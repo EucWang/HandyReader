@@ -1,19 +1,3 @@
-<p align=center><image src="https://raw.githubusercontent.com/Rics-Dev/uRead/main/.github/app-icon.png" height="150"></image></p>
-<h1 align="center">uRead</h1>
-
----
-
-<p align="center">
-An Ebook and AudioBook reader for Android supporting Epub and PDF books, implemented in a clean and minimalistic UI in Material You style.
-</p>
-
-
-<p align="center">
-    <a href="https://play.google.com/store/apps/details?id=com.ricdev.uread" target="_blank">
-        <img src="https://play.google.com/intl/en_us/badges/static/images/badges/en_badge_web_generic.png" height="100" alt="Get it on Google Play">
-    </a>
-</p>
-
 ---
 
 ## 👀 Overview 
@@ -46,11 +30,6 @@ An Ebook and AudioBook reader for Android supporting Epub and PDF books, impleme
 --- 
 
 
-## Feature Request
-
-To request a feature for the app, [add a new issue](https://github.com/Rics-Dev/uRead/issues/new) with the label "feature"
-
----
 
 ## License
 
