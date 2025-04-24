@@ -9,6 +9,7 @@ import com.wxn.reader.data.model.AppPreferences
 import com.wxn.reader.data.source.local.AppPreferencesUtil
 import com.wxn.reader.navigation.Screens
 import com.wxn.reader.util.LanguageHelper
+import com.wxn.reader.util.Logger
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -39,7 +40,7 @@ class SplashViewModel @Inject constructor(
         viewModelScope.launch {
             try {
                 val initialPreferences = appPreferencesUtil.appPreferencesFlow.first()
-                Log.d("SplashViewModel", "Initial preferences: $initialPreferences")
+                Logger.d("SplashViewModel:Initial preferences: $initialPreferences")
                 _appPreferences.value = initialPreferences
                 languageHelper.changeLanguage(
                     getApplication(),
@@ -47,7 +48,7 @@ class SplashViewModel @Inject constructor(
                 )
                 determineStartDestination(initialPreferences)
             } catch (e: Exception) {
-                Log.e("SplashViewModel", "Initialization error", e)
+                Logger.e("SplashViewModel:Initialization error,$e")
             }
         }
     }

@@ -7,6 +7,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material.icons.outlined.Delete
 import androidx.compose.material3.*
@@ -51,7 +52,7 @@ fun ShelvesScreen(
     var newShelfName by remember { mutableStateOf("") }
 
 
-    val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
+//    val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
     val scope = rememberCoroutineScope()
 
     val appPreferences by viewModel.appPreferences.collectAsStateWithLifecycle()
@@ -59,11 +60,9 @@ fun ShelvesScreen(
 //    var showPremiumModal by remember { mutableStateOf(false) }
 
 
-    CustomNavigationDrawer(
-        purchaseHelper = purchaseHelper,
-        drawerState = drawerState,
-        navController = navController
-    ) {
+//    CustomNavigationDrawer(
+//        drawerState = drawerState,
+//    ) {
         Scaffold(
             topBar = {
                 TopAppBar(
@@ -71,10 +70,11 @@ fun ShelvesScreen(
                     navigationIcon = {
                         IconButton(onClick = {
                             scope.launch {
-                                drawerState.open()
+//                                drawerState.open()
+                                navController.popBackStack()
                             }
                         }) {
-                            Icon(Icons.Default.Menu, contentDescription = "Menu")
+                            Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
                         }
                     },
                 )
@@ -278,7 +278,7 @@ fun ShelvesScreen(
                 )
             }
         }
-    }
+//    }
 
 //    if (showPremiumModal) {
 //        PremiumModal(

@@ -32,6 +32,7 @@ import com.wxn.reader.BuildConfig
 import com.wxn.reader.data.model.AppPreferences
 import com.wxn.reader.data.model.Book
 import com.wxn.reader.data.model.FileType
+import com.wxn.reader.navigation.LocalNavController
 import com.wxn.reader.presentation.home.HomeViewModel
 import com.wxn.reader.navigation.Screens
 import kotlin.random.Random
@@ -40,7 +41,6 @@ import kotlin.random.Random
 fun GridLayout(
     clearSearch: () -> Unit,
     books: LazyPagingItems<Book>,
-    navController: NavHostController,
     selectedBooks: List<Book>,
     selectionMode: Boolean,
     toggleSelection: (Book) -> Unit,
@@ -48,7 +48,7 @@ fun GridLayout(
     isLoading: Boolean,
     appPreferences: AppPreferences,
 ) {
-
+    val navController = LocalNavController.current
 
     val gridAdUnit = BuildConfig.OPEN_BOOK_GRID_AD_UNIT
 

@@ -34,7 +34,7 @@ data class AppPreferences(
 
 
     // premium unlocked
-    val isPremium: Boolean
+    val isPremium: Boolean = true
 )
 
 

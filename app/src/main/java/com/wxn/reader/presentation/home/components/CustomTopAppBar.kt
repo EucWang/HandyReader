@@ -93,13 +93,14 @@ fun CustomTopAppBar(
     totalBooks: Int,
     currentShelfBookCount: Int,
     toggleSearchMode: () -> Unit,
-    openDrawer: () -> Unit,
+//    openDrawer: () -> Unit,
 ) {
     var dropdownMenuExpanded by remember { mutableStateOf(false) }
     val dropdownMenuOffset = remember { mutableStateOf(DpOffset.Zero) }
     var showConfirmDialog by remember { mutableStateOf(false) }
     var shelfToRemove by remember { mutableStateOf<Shelf?>(null) }
     val isAddingBook by viewModel.isAddingBooks.collectAsState()
+    val selectedTabRow by viewModel.selectedTabRow.collectAsState()
 
     TopAppBar(
         title = {
@@ -157,138 +158,140 @@ fun CustomTopAppBar(
             }
         },
         actions = {
-            if (selectionMode) {
-                IconButton(onClick = {
-                    selectAll()
-                }) {
-                    Icon(
-                        imageVector = Icons.Filled.SelectAll,
-                        contentDescription = "Select All"
-                    )
-                }
-            } else {
-                IconButton(
-//                    enabled = !isAddingBook,
-                    onClick = {
-                    toggleSearchMode()
-                }) {
-                    Icon(
-                        imageVector = Icons.Filled.Search,
-                        contentDescription = "Search books"
-                    )
-                }
-                BadgedBox(
-                    badge = {
-                       if(appPreferences.readingStatus.isNotEmpty() || appPreferences.fileTypes.isNotEmpty()) Badge()
-                    }
-                ) {
-                    IconButton(
-                        onClick = {
-                            toggleSortFilterModal()
-                        }) {
+            if (selectedTabRow == 0 || selectedTabRow == 1) {
+                if (selectionMode) {
+                    IconButton(onClick = {
+                        selectAll()
+                    }) {
                         Icon(
-                            imageVector = Icons.Filled.FilterList,
-                            contentDescription = "Sort & Filter books"
+                            imageVector = Icons.Filled.SelectAll,
+                            contentDescription = "Select All"
                         )
                     }
-                }
-                IconButton(
-//                    enabled = !isAddingBook,
-                    onClick = {
-                    toggleLayoutModal()
-                }) {
-                    Icon(
-                        if (appPreferences.homeLayout == Layout.Grid || appPreferences.homeLayout == Layout.CoverOnly) Icons.Outlined.GridView
-                        else Icons.Outlined.ViewAgenda,
-                        contentDescription = "Change Layout"
-                    )
-                }
-                IconButton(
-                    enabled = !isAddingBook,
-                    onClick = {
-                        dropdownMenuExpanded = !dropdownMenuExpanded
-                    },
-                    modifier = Modifier.onSizeChanged { size ->
-                        dropdownMenuOffset.value = DpOffset((size.width / 5).dp, 0.dp)
+                } else {
+                    IconButton(
+    //                    enabled = !isAddingBook,
+                        onClick = {
+                        toggleSearchMode()
+                    }) {
+                        Icon(
+                            imageVector = Icons.Filled.Search,
+                            contentDescription = "Search books"
+                        )
                     }
-                ) {
-                    Icon(
-                        imageVector = Icons.Filled.MoreVert,
-                        contentDescription = "More Actions"
-                    )
-                }
-                DropdownMenu(
-                    expanded = dropdownMenuExpanded,
-                    onDismissRequest = {
-                        dropdownMenuExpanded = false
-                    },
-                    offset = dropdownMenuOffset.value
-                ) {
-                    if (selectedTab != 0) {
-                        DropdownMenuItem(
+                    BadgedBox(
+                        badge = {
+                           if(appPreferences.readingStatus.isNotEmpty() || appPreferences.fileTypes.isNotEmpty()) Badge()
+                        }
+                    ) {
+                        IconButton(
                             onClick = {
-                                // Show confirmation dialog
-                                shelfToRemove = shelves[selectedTab - 1]
-                                showConfirmDialog = true
-                                dropdownMenuExpanded = false
-                            },
+                                toggleSortFilterModal()
+                            }) {
+                            Icon(
+                                imageVector = Icons.Filled.FilterList,
+                                contentDescription = "Sort & Filter books"
+                            )
+                        }
+                    }
+                    IconButton(
+    //                    enabled = !isAddingBook,
+                        onClick = {
+                        toggleLayoutModal()
+                    }) {
+                        Icon(
+                            if (appPreferences.homeLayout == Layout.Grid || appPreferences.homeLayout == Layout.CoverOnly) Icons.Outlined.GridView
+                            else Icons.Outlined.ViewAgenda,
+                            contentDescription = "Change Layout"
+                        )
+                    }
+                    IconButton(
+                        enabled = !isAddingBook,
+                        onClick = {
+                            dropdownMenuExpanded = !dropdownMenuExpanded
+                        },
+                        modifier = Modifier.onSizeChanged { size ->
+                            dropdownMenuOffset.value = DpOffset((size.width / 5).dp, 0.dp)
+                        }
+                    ) {
+                        Icon(
+                            imageVector = Icons.Filled.MoreVert,
+                            contentDescription = "More Actions"
+                        )
+                    }
+                    DropdownMenu(
+                        expanded = dropdownMenuExpanded,
+                        onDismissRequest = {
+                            dropdownMenuExpanded = false
+                        },
+                        offset = dropdownMenuOffset.value
+                    ) {
+                        if (selectedTab != 0) {
+                            DropdownMenuItem(
+                                onClick = {
+                                    // Show confirmation dialog
+                                    shelfToRemove = shelves[selectedTab - 1]
+                                    showConfirmDialog = true
+                                    dropdownMenuExpanded = false
+                                },
+                                text = {
+                                    Row(
+                                        modifier = Modifier
+                                            .fillMaxWidth(),
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        horizontalArrangement = Arrangement.SpaceBetween,
+                                    ) {
+                                        Text(
+                                            stringResource(
+                                                R.string.remove_shelf,
+                                                shelves[selectedTab - 1].name
+                                            ),
+                                            color = MaterialTheme.colorScheme.error
+                                        )
+                                        Icon(
+                                            imageVector = Icons.Outlined.Delete,
+                                            contentDescription = "Delete Shelf",
+                                            tint = MaterialTheme.colorScheme.error
+                                        )
+                                    }
+                                }
+                            )
+                        }
+
+                        ImagePicker { path ->
+                            viewModel.updateAppPreferences(appPreferences.copy(homeBackgroundImage = path))
+                        }
+
+                        DropdownMenuItem(onClick = {
+                            viewModel.refreshBooks()
+                            dropdownMenuExpanded = false
+                        },
                             text = {
+
                                 Row(
                                     modifier = Modifier
                                         .fillMaxWidth(),
                                     verticalAlignment = Alignment.CenterVertically,
                                     horizontalArrangement = Arrangement.SpaceBetween,
                                 ) {
-                                    Text(
-                                        stringResource(
-                                            R.string.remove_shelf,
-                                            shelves[selectedTab - 1].name
-                                        ),
-                                        color = MaterialTheme.colorScheme.error
-                                    )
+                                    Text(stringResource(R.string.refresh_library))
+                                    Spacer(modifier = Modifier.width(8.dp))
                                     Icon(
-                                        imageVector = Icons.Outlined.Delete,
-                                        contentDescription = "Delete Shelf",
-                                        tint = MaterialTheme.colorScheme.error
+                                        imageVector = Icons.Default.Refresh,
+                                        contentDescription = "Refresh Library",
                                     )
                                 }
+
                             }
                         )
                     }
-
-                    ImagePicker { path ->
-                        viewModel.updateAppPreferences(appPreferences.copy(homeBackgroundImage = path))
-                    }
-
-                    DropdownMenuItem(onClick = {
-                        viewModel.refreshBooks()
-                        dropdownMenuExpanded = false
-                    },
-                        text = {
-
-                            Row(
-                                modifier = Modifier
-                                    .fillMaxWidth(),
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.SpaceBetween,
-                            ) {
-                                Text(stringResource(R.string.refresh_library))
-                                Spacer(modifier = Modifier.width(8.dp))
-                                Icon(
-                                    imageVector = Icons.Default.Refresh,
-                                    contentDescription = "Refresh Library",
-                                )
-                            }
-
-                        }
-                    )
                 }
             }
         },
         navigationIcon = {
-            IconButton(onClick =  openDrawer ) {
-                Icon(Icons.Default.Menu, contentDescription = "Menu")
-            }
+//            IconButton(onClick =  openDrawer ) {
+//                Icon(Icons.Default.Menu, contentDescription = "Menu")
+//            }
         },
     )
 

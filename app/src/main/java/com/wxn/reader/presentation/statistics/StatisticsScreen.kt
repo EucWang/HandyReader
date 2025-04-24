@@ -6,7 +6,9 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Menu
+import androidx.compose.material.icons.filled.Navigation
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -43,15 +45,13 @@ fun StatisticsScreen(
     val statistics by viewModel.statistics.collectAsStateWithLifecycle()
     val appPreferences by viewModel.appPreferences.collectAsStateWithLifecycle()
     val scope = rememberCoroutineScope()
-    val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
+//    val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
 
 
 
-    CustomNavigationDrawer(
-        purchaseHelper = purchaseHelper,
-        drawerState = drawerState,
-        navController = navController
-    ) {
+//    CustomNavigationDrawer(
+//        drawerState = drawerState,
+//    ) {
         Box(modifier = Modifier.fillMaxSize()) {
             Scaffold(
                 topBar = {
@@ -60,10 +60,11 @@ fun StatisticsScreen(
                         navigationIcon = {
                             IconButton(onClick = {
                                 scope.launch {
-                                    drawerState.open()
+//                                    drawerState.open()
+                                    navController.popBackStack()
                                 }
                             }) {
-                                Icon(Icons.Default.Menu, contentDescription = "Menu")
+                                Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "NavBack")
                             }
                         },
                     )
@@ -574,7 +575,7 @@ fun StatisticsScreen(
 
 
         }
-    }
+//    }
 }
 
 

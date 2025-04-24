@@ -28,6 +28,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.currentBackStackEntryAsState
 import com.wxn.reader.R
+import com.wxn.reader.navigation.LocalNavController
 import com.wxn.reader.util.PurchaseHelper
 import com.wxn.reader.navigation.Screens
 import com.wxn.reader.navigation.navigateToScreen
@@ -36,12 +37,11 @@ import kotlinx.coroutines.launch
 
 @Composable
 fun CustomNavigationDrawer(
-    purchaseHelper: PurchaseHelper,
     drawerState: DrawerState,
-    navController: NavHostController,
     viewModel: CustomNavigationViewModel = hiltViewModel(),
     content: @Composable () -> Unit
 ) {
+    val navController  = LocalNavController.current
     val scope = rememberCoroutineScope()
     val currentRoute = navController.currentBackStackEntryAsState().value?.destination?.route
     val configuration = LocalConfiguration.current
@@ -50,13 +50,11 @@ fun CustomNavigationDrawer(
     val appPreferences by viewModel.appPreferences.collectAsStateWithLifecycle()
     val showPremiumScreen by remember { mutableStateOf(false) }
 
-
-    LaunchedEffect(purchaseHelper) {
-        purchaseHelper.isPremium.collect { isPremium ->
-            viewModel.updatePremiumStatus(isPremium)
-        }
-    }
-
+//    LaunchedEffect(purchaseHelper) {
+//        purchaseHelper.isPremium.collect { isPremium ->
+//            viewModel.updatePremiumStatus(isPremium)
+//        }
+//    }
 
     ModalNavigationDrawer(
         drawerState = drawerState,
@@ -64,7 +62,7 @@ fun CustomNavigationDrawer(
             ModalDrawerSheet {
                 Spacer(Modifier.height(if (isPortrait) 24.dp else 0.dp))
                 Column(
-                    modifier = Modifier.fillMaxWidth(),
+                    modifier = Modifier.width(200.dp),
                     verticalArrangement = Arrangement.Center,
                     horizontalAlignment = Alignment.CenterHorizontally,
                 ) {
@@ -76,15 +74,15 @@ fun CustomNavigationDrawer(
                                 .size(if (isPortrait) 24.dp else 16.dp)
                                 .offset(y = (if (isPortrait) 36 else 18).dp)
                         )
-                        FilledTonalButton(
-                                contentPadding = PaddingValues(8.dp),
-                        onClick = {
-                        },
-                        modifier = Modifier
-                            .offset(y = (if (isPortrait) 36 else 18).dp)
-                        ) {
-                                Text("Connect to Google Drive", fontSize = 12.sp)
-                        }
+//                        FilledTonalButton(
+//                                contentPadding = PaddingValues(8.dp),
+//                        onClick = {
+//                        },
+//                        modifier = Modifier
+//                            .offset(y = (if (isPortrait) 36 else 18).dp)
+//                        ) {
+//                                Text("Connect to Google Drive", fontSize = 12.sp)
+//                        }
                     } else {
                         FilledTonalButton(
                             contentPadding = PaddingValues(8.dp),
@@ -241,7 +239,7 @@ fun CustomNavigationDrawer(
 }
 
 @Composable
-private fun NavigationItem(
+fun NavigationItem(
     icon: ImageVector,
     label: String,
     isSelected: Boolean = false,

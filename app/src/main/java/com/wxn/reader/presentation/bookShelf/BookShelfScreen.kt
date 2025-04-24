@@ -32,7 +32,6 @@ fun BookShelfScreen(
     shelf: Shelf,
     books: LazyPagingItems<Book>,
     homeViewModel: HomeViewModel,
-    navController: NavHostController,
     selectedBooks: List<Book>,
     selectionMode: Boolean,
     toggleSelection: (Book) -> Unit,
@@ -50,7 +49,6 @@ fun BookShelfScreen(
             GridLayout(
                 clearSearch =  { clearSearch() },
                 books = books,
-                navController = navController,
                 selectedBooks = selectedBooks,
                 selectionMode = selectionMode,
                 toggleSelection = toggleSelection,
@@ -65,7 +63,6 @@ fun BookShelfScreen(
             ListLayout(
                 clearSearch = { clearSearch() },
                 books = books,
-                navController = navController,
                 selectedBooks = selectedBooks,
                 selectionMode = selectionMode,
                 toggleSelection = toggleSelection,

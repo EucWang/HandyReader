@@ -37,6 +37,7 @@ paletteKtx = "1.0.0"
 firebaseCrashlytics = "19.4.0"
 googleGmsGoogleServices = "4.4.2"
 googleFirebaseCrashlytics = "3.0.3"
+timber = "5.0.1"
 
 
 [libraries]
@@ -62,6 +63,7 @@ readium-navigator-media-tts = { module = "org.readium.kotlin-toolkit:readium-nav
 readium-navigator-media-audio = { module = "org.readium.kotlin-toolkit:readium-navigator-media-audio", version.ref = "readium" }
 readium-adapter-exoplayer = { module = "org.readium.kotlin-toolkit:readium-adapter-exoplayer", version.ref = "readium" }
 readium-adapter-pdfium = { module = "org.readium.kotlin-toolkit:readium-adapter-pdfium", version.ref = "readium" }
+timber = { module = "com.jakewharton.timber:timber", version.ref = "timber" }
 
 
 

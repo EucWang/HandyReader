@@ -1,6 +1,5 @@
 package com.wxn.reader.presentation.home
 
-import android.net.Uri
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
@@ -11,26 +10,71 @@ import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.offset
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.pager.HorizontalPager
+import androidx.compose.foundation.pager.PagerState
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.outlined.StickyNote2
 import androidx.compose.material.icons.automirrored.rounded.MenuBook
 import androidx.compose.material.icons.filled.Headset
 import androidx.compose.material.icons.filled.ModeEdit
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
+import androidx.compose.material.icons.filled.Person
+import androidx.compose.material.icons.outlined.BorderColor
+import androidx.compose.material.icons.outlined.FolderCopy
+import androidx.compose.material.icons.outlined.Home
+import androidx.compose.material.icons.outlined.QueryStats
+import androidx.compose.material.icons.outlined.Settings
+import androidx.compose.material3.DrawerValue
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.FilledTonalButton
+import androidx.compose.material3.FloatingActionButton
+import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.ModalDrawerSheet
+import androidx.compose.material3.NavigationBar
+import androidx.compose.material3.NavigationBarItem
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Text
+import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.rememberDrawerState
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.IntOffset
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import androidx.navigation.NavHostController
 import androidx.paging.compose.collectAsLazyPagingItems
 import coil.compose.rememberAsyncImagePainter
 import com.wxn.reader.R
@@ -38,24 +82,20 @@ import com.wxn.reader.data.model.Layout
 import com.wxn.reader.navigation.LocalNavController
 import com.wxn.reader.navigation.PurchaseHelperController
 import com.wxn.reader.navigation.Screens
-import com.wxn.reader.navigation.navigateToScreen
 import com.wxn.reader.presentation.bookDetails.components.EditMetadataModal
 import com.wxn.reader.presentation.bookShelf.BookShelfScreen
-import com.wxn.reader.presentation.home.components.CustomSnackbar
 import com.wxn.reader.presentation.home.components.CustomBottomAppBar
 import com.wxn.reader.presentation.home.components.CustomSearchBar
+import com.wxn.reader.presentation.home.components.CustomSnackbar
 import com.wxn.reader.presentation.home.components.CustomTopAppBar
 import com.wxn.reader.presentation.home.components.GridLayout
 import com.wxn.reader.presentation.home.components.LayoutModal
 import com.wxn.reader.presentation.home.components.ListLayout
 import com.wxn.reader.presentation.home.components.SortFilterModal
-import com.wxn.reader.presentation.sharedComponents.CustomNavigationDrawer
+import com.wxn.reader.presentation.sharedComponents.NavigationItem
 import com.wxn.reader.presentation.sharedComponents.Shelves
+import com.wxn.reader.util.Logger
 import com.wxn.reader.util.PurchaseHelper
-import kotlinx.coroutines.delay
-import kotlinx.coroutines.launch
-import kotlin.random.Random
-
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -76,10 +116,10 @@ fun HomeScreen(
     val importProgress by viewModel.importProgressState.collectAsStateWithLifecycle()
     val snackbarState by viewModel.snackbarState.collectAsStateWithLifecycle()
 
-    var selectedTab by remember { mutableIntStateOf(0) }
     val selectedTabRow by viewModel.selectedTabRow.collectAsStateWithLifecycle()
+    var selectedTab by viewModel.selectedTab
 
-    val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
+//    val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
 
     val allShelves = remember(shelves) { listOf("All Books") + shelves.map { it.name } }
     val pagerState = rememberPagerState { allShelves.size }
@@ -88,18 +128,17 @@ fun HomeScreen(
     val selectedBooks by viewModel.selectedBooks.collectAsStateWithLifecycle()
     val selectionMode by viewModel.selectionMode.collectAsStateWithLifecycle()
 
-    var showLayoutModal by remember { mutableStateOf(false) }
-    var showSortModal by remember { mutableStateOf(false) }
+    var showLayoutModal by viewModel.showLayoutModal
+    var showSortModal by viewModel.showSortModal
+    var showMetadataModal by viewModel.showMetadataModal
 
-    var showMetadataModal by remember { mutableStateOf(false) }
 
-
-    LaunchedEffect(Unit) {
-        delay(5000)
-        if(!appPreferences.isPremium && Random.nextFloat() <= 0.10f){
-            navController.navigate(Screens.PremiumScreen.route)
-        }
-    }
+//    LaunchedEffect(Unit) {
+//        delay(5000)
+//        if (!appPreferences.isPremium && Random.nextFloat() <= 0.10f) {
+//            navController.navigate(Screens.PremiumScreen.route)
+//        }
+//    }
 
     LaunchedEffect(selectedTab) {
         pagerState.animateScrollToPage(selectedTab)
@@ -119,11 +158,9 @@ fun HomeScreen(
         }
     }
 
-    CustomNavigationDrawer(
-        purchaseHelper = purchaseHelper,
-        drawerState = drawerState,
-        navController = navController
-    ) {
+//    CustomNavigationDrawer(
+//        drawerState = drawerState,
+//    ) {
         Scaffold(
             topBar = {
                 AnimatedVisibility(
@@ -170,23 +207,23 @@ fun HomeScreen(
                         toggleSearchMode = {
                             searchMode = true
                         },
-                        openDrawer = {
-                            coroutineScope.launch {
-                                drawerState.open()
-                            }
-                        },
+//                        openDrawer = {
+//                            coroutineScope.launch {
+//                                drawerState.open()
+//                            }
+//                        },
                     )
                 }
             },
             bottomBar = {
                 AnimatedVisibility(
-                   visible = !selectionMode,
+                    visible = !selectionMode,
                     enter = fadeIn() + slideInVertically(initialOffsetY = { it }),
                     exit = fadeOut() + slideOutVertically(targetOffsetY = { it }),
                 ) {
                     NavigationBar {
                         NavigationBarItem(
-                            icon = { Icon( Icons.AutoMirrored.Rounded.MenuBook, contentDescription = "Ebooks") },
+                            icon = { Icon(Icons.AutoMirrored.Rounded.MenuBook, contentDescription = "Ebooks") },
                             label = { Text("eBooks") },
                             selected = selectedTabRow == 0,
                             onClick = { viewModel.updateCurrentTabRow(0) }
@@ -197,24 +234,34 @@ fun HomeScreen(
                             selected = selectedTabRow == 1,
                             onClick = { viewModel.updateCurrentTabRow(1) }
                         )
+                        NavigationBarItem(
+                            icon = {
+                                Icon(Icons.Default.Person, contentDescription = "Mine")
+                            },
+                            label = {
+                                Text("Mine")
+                            },
+                            selected = selectedTabRow == 2,
+                            onClick = { viewModel.updateCurrentTabRow(2) }
+                        )
                     }
                 }
 
-               AnimatedVisibility(
-                   visible = selectionMode,
-                   enter = fadeIn() + slideInVertically(initialOffsetY = { it }),
-                   exit = fadeOut() + slideOutVertically(targetOffsetY = { it }),
-               ) {
-                   CustomBottomAppBar(
-                       shelves = shelves,
-                       selectedBooks = selectedBooks,
-                       viewModel = viewModel,
-                       clearSelection = {
-                           viewModel.clearBookSelection()
-                       },
-                       navController = navController
-                   )
-               }
+                AnimatedVisibility(
+                    visible = selectionMode,
+                    enter = fadeIn() + slideInVertically(initialOffsetY = { it }),
+                    exit = fadeOut() + slideOutVertically(targetOffsetY = { it }),
+                ) {
+                    CustomBottomAppBar(
+                        shelves = shelves,
+                        selectedBooks = selectedBooks,
+                        viewModel = viewModel,
+                        clearSelection = {
+                            viewModel.clearBookSelection()
+                        },
+                        navController = navController
+                    )
+                }
             },
             floatingActionButton = {
                 AnimatedVisibility(
@@ -243,175 +290,11 @@ fun HomeScreen(
                 )
             },
         ) { innerPadding ->
-            Column(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(innerPadding)
-            ) {
-                Shelves(
-                    navController = navController,
-                    viewModel = viewModel,
-                    appPreferences = appPreferences,
-                    shelves = shelves,
-                    selectedTab = selectedTab,
-                    onTabSelected = { index ->
-                        selectedTab = index
-                    },
-                    onAddShelf = { newShelfName ->
-                        viewModel.addShelf(newShelfName)
-                    },
-                    purchaseHelper = purchaseHelper,
-                )
-                val isAddingBook by viewModel.isAddingBooks.collectAsState()
-                HorizontalPager(
-                    userScrollEnabled = !isAddingBook,
-                    state = pagerState,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .weight(1f)
-                        .background(color = MaterialTheme.colorScheme.background)
-                ) { index ->
-                    Box(modifier = Modifier.fillMaxSize()) {
-                        if(appPreferences.homeBackgroundImage.isNotEmpty()){
-                            Image(
-                                painter = rememberAsyncImagePainter(appPreferences.homeBackgroundImage),
-                                contentDescription = "Book cover",
-                                modifier = Modifier
-                                    .fillMaxSize()
-                                    .alpha(0.7f),
-                                contentScale = ContentScale.Crop
-                            )
-                        }
-
-                    // Gradient overlay
-                    Box(
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .background(
-                                brush = Brush.verticalGradient(
-                                    colors = listOf(
-                                        Color.Transparent,
-                                        MaterialTheme.colorScheme.background.copy(alpha = 0.5f),
-                                        MaterialTheme.colorScheme.background
-                                    ),
-                                    startY = 0f,
-                                    endY = 2000f
-                                )
-                            )
-                    )
-
-
-
-                        Column{
-                            when (index) {
-                                0 -> {
-                                    var visible by remember { mutableStateOf(false) }
-
-                                    LaunchedEffect(Unit) {
-                                        visible = true
-                                    }
-
-                                    val slideInAnimationSpec = tween<IntOffset>(durationMillis = 300)
-                                    val tweenInAnimationSpec = tween<Float>(durationMillis = 300)
-
-
-//                            if (books.itemCount == 0) {
-//                                EmptyShelfContent("Library")
-//                            }
-
-                                    if (appPreferences.homeLayout == Layout.Grid || appPreferences.homeLayout == Layout.CoverOnly) {
-                                        AnimatedVisibility(
-                                            visible = visible,
-                                            enter = fadeIn(tweenInAnimationSpec) + slideInVertically(
-                                                animationSpec = slideInAnimationSpec,
-                                                initialOffsetY = { it })
-                                        ) {
-                                            GridLayout(
-                                                clearSearch = { viewModel.updateSearchQuery("") },
-                                                books = books,
-                                                navController = navController,
-                                                selectedBooks = selectedBooks,
-                                                selectionMode = selectionMode,
-                                                toggleSelection = {
-                                                    viewModel.toggleBookSelection(it)
-                                                },
-                                                viewModel = viewModel,
-                                                isLoading = isAddingBooks,
-                                                appPreferences = appPreferences,
-                                            )
-                                        }
-                                    } else {
-                                        AnimatedVisibility(
-                                            visible = visible,
-                                            enter = fadeIn(tweenInAnimationSpec) + slideInVertically(
-                                                animationSpec = slideInAnimationSpec,
-                                                initialOffsetY = { it })
-                                        ) {
-                                            ListLayout(
-                                                clearSearch = { viewModel.updateSearchQuery("") },
-                                                books = books,
-                                                navController = navController,
-                                                selectedBooks = selectedBooks,
-                                                selectionMode = selectionMode,
-                                                toggleSelection = {
-                                                    viewModel.toggleBookSelection(it)
-                                                },
-                                                viewModel = viewModel,
-                                                isLoading = isAddingBooks,
-                                                appPreferences = appPreferences,
-                                            )
-                                        }
-                                    }
-                                }
-
-                                else -> {
-                                    val shelf = shelves.getOrNull(index - 1)
-                                    if (shelf != null) {
-                                        BookShelfScreen(
-                                            clearSearch = { viewModel.updateSearchQuery("") },
-                                            shelf = shelf,
-                                            books = books,
-                                            homeViewModel = viewModel,
-                                            navController = navController,
-                                            selectedBooks = selectedBooks,
-                                            selectionMode = selectionMode,
-                                            toggleSelection = { book -> viewModel.toggleBookSelection(book) },
-                                            isLoading = isAddingBooks,
-                                            appPreferences = appPreferences,
-                                        )
-                                    } else {
-                                        Text(stringResource(R.string.shelf_not_found))
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-
-            if (showLayoutModal) {
-                LayoutModal(
-                    appPreferences = appPreferences,
-                    viewModel = viewModel,
-                    onDismiss = { showLayoutModal = false },
-                )
-            }
-            if (showSortModal) {
-                SortFilterModal(
-                    appPreferences = appPreferences,
-                    viewModel = viewModel,
-                    onDismiss = { showSortModal = false },
-                )
-            }
-            if (showMetadataModal) {
-                EditMetadataModal(
-                    book = selectedBooks[0],
-                    onDismiss = {
-                        viewModel.toggleBookSelection(selectedBooks[0])
-                        showMetadataModal = false
-                    }
-                )
+            if (selectedTabRow == 0 || selectedTabRow == 1) {
+                HomeShelfsPanel(innerPadding, pagerState, viewModel)
+            } else if (selectedTabRow == 2) {
+                HomeMinePanel(innerPadding, viewModel)
             }
         }
-    }
+//    }
 }

@@ -30,6 +30,7 @@ import com.wxn.reader.BuildConfig
 import com.wxn.reader.data.model.AppPreferences
 import com.wxn.reader.data.model.Book
 import com.wxn.reader.data.model.FileType
+import com.wxn.reader.navigation.LocalNavController
 import com.wxn.reader.presentation.home.HomeViewModel
 import com.wxn.reader.navigation.Screens
 import kotlin.random.Random
@@ -38,7 +39,6 @@ import kotlin.random.Random
 fun ListLayout(
     clearSearch: () -> Unit,
     books: LazyPagingItems<Book>,
-    navController: NavHostController,
     selectedBooks: List<Book>,
     selectionMode: Boolean,
     toggleSelection: (Book) -> Unit,
@@ -47,7 +47,7 @@ fun ListLayout(
     appPreferences: AppPreferences,
 ) {
     val listAdUnit = BuildConfig.OPEN_BOOK_LIST_AD_UNIT
-
+    val navController: NavHostController = LocalNavController.current
 
     val context = LocalContext.current
     var isBookOpen by remember { mutableStateOf(false) }

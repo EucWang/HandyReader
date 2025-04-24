@@ -61,7 +61,7 @@ class MainActivity : AppCompatActivity() {
 
         // Initialize billing first
         val purchaseHelper = PurchaseHelper(this)
-        purchaseHelper.billingSetup()
+//        purchaseHelper.billingSetup() //TODO 更新vip状态
 
         // Initialize ads in background
 //        if (BuildConfig.ENABLE_AD) {

@@ -20,8 +20,10 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.outlined.Send
 import androidx.compose.material.icons.filled.Menu
+import androidx.compose.material.icons.filled.Navigation
 import androidx.compose.material.icons.outlined.DeleteOutline
 import androidx.compose.material.icons.outlined.Info
 import androidx.compose.material.icons.outlined.Palette
@@ -77,7 +79,7 @@ fun SettingsScreen(
     val context = LocalContext.current
     val reviewManager = remember { ReviewManagerFactory.create(context) }
 
-    val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
+//    val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
     val scope = rememberCoroutineScope()
 
     val appPreferences by viewModel.appPreferences.collectAsStateWithLifecycle()
@@ -98,21 +100,20 @@ fun SettingsScreen(
 
 
 
-    CustomNavigationDrawer(
-        purchaseHelper = purchaseHelper,
-        drawerState = drawerState,
-        navController = navController
-    ) {
+//    CustomNavigationDrawer(
+//        drawerState = drawerState,
+//    ) {
         Scaffold(
             topBar = {
                 TopAppBar(
                     navigationIcon = {
                         IconButton(onClick = {
                             scope.launch {
-                                drawerState.open()
+//                                drawerState.open()
+                                navController.popBackStack()
                             }
                         }) {
-                            Icon(Icons.Default.Menu, contentDescription = "Menu")
+                            Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
                         }
                     },
                     title = { Text(text = stringResource(R.string.settings)) }
@@ -470,5 +471,5 @@ fun SettingsScreen(
                 }
             }
         }
-    }
+//    }
 }

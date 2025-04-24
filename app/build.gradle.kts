@@ -176,8 +176,7 @@ dependencies {
 
 
 
-
-
+    implementation(libs.timber)
 
 
     coreLibraryDesugaring(libs.desugar.jdk.libs)

@@ -74,7 +74,7 @@ class AppPreferencesUtil @Inject constructor(
             sortOrder = SortOrder.ASCENDING,
             readingStatus = emptySet(),
             fileTypes = emptySet(),
-            isPremium = false,
+            isPremium = true,
         )
     }
 

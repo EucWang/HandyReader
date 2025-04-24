@@ -20,9 +20,12 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.DeleteOutline
 import androidx.compose.material.icons.filled.Menu
+import androidx.compose.material.icons.filled.Navigation
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
@@ -83,7 +86,7 @@ fun NotesScreen(
     val appPreferences by viewModel.appPreferences.collectAsStateWithLifecycle()
 
     val booksWithNotes by viewModel.booksWithNotes.collectAsStateWithLifecycle(initialValue = emptyList())
-    val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
+//    val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
     val scope = rememberCoroutineScope()
 
     val sortedBooksWithNotes = booksWithNotes.sortedBy { it.book.title }
@@ -110,11 +113,9 @@ fun NotesScreen(
         )
     }
 
-    CustomNavigationDrawer(
-        purchaseHelper = purchaseHelper,
-        drawerState = drawerState,
-        navController = navController
-    ) {
+//    CustomNavigationDrawer(
+//        drawerState = drawerState,
+//    ) {
         Scaffold(
             topBar = {
                 TopAppBar(
@@ -122,10 +123,12 @@ fun NotesScreen(
                     navigationIcon = {
                         IconButton(onClick = {
                             scope.launch {
-                                drawerState.open()
+//                                drawerState.open()
+                                navController.popBackStack()
                             }
                         }) {
-                            Icon(Icons.Default.Menu, contentDescription = "Menu")
+                            Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+
                         }
                     },
                     actions = {
@@ -229,7 +232,7 @@ fun NotesScreen(
                 )
             }
         }
-    }
+//    }
 //    if (showPremiumModal) {
 //        PremiumModal(
 //            purchaseHelper = purchaseHelper,

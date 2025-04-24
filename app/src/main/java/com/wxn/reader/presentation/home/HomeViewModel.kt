@@ -10,6 +10,11 @@ import android.media.MediaMetadataRetriever
 import android.net.Uri
 import android.provider.DocumentsContract
 import android.util.Log
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.documentfile.provider.DocumentFile
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
@@ -120,6 +125,8 @@ class HomeViewModel
     private val _selectedTabRow = MutableStateFlow(0)
     val selectedTabRow: StateFlow<Int> = _selectedTabRow.asStateFlow()
 
+    var selectedTab = mutableStateOf(0)
+
     private val _searchQuery = MutableStateFlow("")
     val searchQuery: StateFlow<String> = _searchQuery.asStateFlow()
 
@@ -134,9 +141,9 @@ class HomeViewModel
 
     private var snackbarJob: Job? = null
 
-
-
-
+    var showLayoutModal = mutableStateOf(false)
+    var showSortModal = mutableStateOf(false)
+    var showMetadataModal = mutableStateOf(false)
 
 
 

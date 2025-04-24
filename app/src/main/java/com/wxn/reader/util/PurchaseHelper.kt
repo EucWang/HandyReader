@@ -32,8 +32,8 @@ data class PurchaseHelper(val activity: Activity) {
     private val _priceCurrencyCode = MutableStateFlow("N/A")
     val formattedPrice = _formattedPrice.asStateFlow()
 //    val priceCurrencyCode = _priceCurrencyCode.asStateFlow()
-    private val _buyEnabled = MutableStateFlow(false)
-    private val _isPremium = MutableStateFlow(false)
+    private val _buyEnabled = MutableStateFlow(true)
+    private val _isPremium = MutableStateFlow(true) //TODO 默认就是VIP用户
     val isPremium = _isPremium.asStateFlow()
     private val _statusText = MutableStateFlow("Initializing...")
 
@@ -212,6 +212,4 @@ data class PurchaseHelper(val activity: Activity) {
             }
         }
     }
-
-
 }

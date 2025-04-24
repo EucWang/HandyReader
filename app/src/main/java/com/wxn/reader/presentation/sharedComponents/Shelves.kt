@@ -12,6 +12,7 @@ import androidx.navigation.NavHostController
 import com.wxn.reader.R
 import com.wxn.reader.data.model.AppPreferences
 import com.wxn.reader.data.model.Shelf
+import com.wxn.reader.navigation.LocalNavController
 import com.wxn.reader.navigation.Screens
 import com.wxn.reader.presentation.home.HomeViewModel
 import com.wxn.reader.presentation.sharedComponents.dialogs.AddShelfDialog
@@ -19,19 +20,16 @@ import com.wxn.reader.util.PurchaseHelper
 
 @Composable
 fun Shelves(
-    navController: NavHostController,
     viewModel: HomeViewModel,
     appPreferences: AppPreferences,
     shelves: List<Shelf>,
     selectedTab: Int,
     onTabSelected: (Int) -> Unit,
     onAddShelf: (String) -> Unit,
-    purchaseHelper: PurchaseHelper,
 ) {
-
+//    purchaseHelper: PurchaseHelper
+    val navController = LocalNavController.current
 //    var showPremiumModal by remember { mutableStateOf(false) }
-
-
     val context = LocalContext.current
 
     var showAddShelfDialog by remember { mutableStateOf(false) }
