@@ -20,16 +20,10 @@ import com.ricdev.uread.presentation.shelves.ShelvesScreen
 import com.ricdev.uread.presentation.settings.components.ThemeScreen
 import com.ricdev.uread.presentation.sharedComponents.PremiumScreen
 import com.ricdev.uread.presentation.statistics.StatisticsScreen
-import com.ricdev.uread.util.PurchaseHelper
 
 @Composable
-fun SetupNavGraph(
-    navController: NavHostController,
-    startDestination: String,
-    purchaseHelper: PurchaseHelper,
-) {
-
-
+fun SetupNavGraph(startDestination: String) {
+    val navController : NavHostController = LocalNavController.current
     NavHost(
         navController = navController,
         startDestination = startDestination
@@ -37,88 +31,88 @@ fun SetupNavGraph(
         composable(
             route = Screens.GettingStartedScreen.route
         ) {
-            GettingStartedScreen(navController)
+            GettingStartedScreen()
         }
         composable(
             route = Screens.HomeScreen.route
         ) {
-            HomeScreen(navController = navController, purchaseHelper)
+            HomeScreen()
         }
         composable(
             route = Screens.BookReaderScreen.route + "/{bookId}/{bookUri}",
         ) {
-            BookReaderScreen(navController = navController, purchaseHelper)
+            BookReaderScreen()
         }
         composable(
             route = Screens.PdfReaderScreen.route + "/{bookId}/{bookUri}",
         ) {
-            PdfReaderScreen(navController)
+            PdfReaderScreen()
         }
         composable(
             route = Screens.AudiobookReaderScreen.route + "/{bookId}/{bookUri}",
         ) {
-            AudiobookReaderScreen(navController)
+            AudiobookReaderScreen()
         }
         composable(
             route = Screens.BookDetailsScreen.route + "/{bookId}/{bookUri}",
         ) {
-            BookDetailsScreen(navController = navController)
+            BookDetailsScreen()
         }
         composable(
             route = Screens.SettingsScreen.route,
         ) {
-            SettingsScreen(navController, purchaseHelper)
+            SettingsScreen()
         }
         composable(
             route = Screens.GeneralSettingsScreen.route,
         ) {
-            GeneralSettings(navController)
+            GeneralSettings()
         }
         composable(
             route = Screens.ThemeScreen.route,
         ) {
-            ThemeScreen(navController)
+            ThemeScreen()
         }
         composable(
             route = Screens.ShelvesScreen.route,
         ) {
-            ShelvesScreen(navController, purchaseHelper)
+            ShelvesScreen()
         }
         composable(
             route = Screens.DeletedBooksScreen.route,
         ) {
-            DeletedBooksScreen(navController)
+            DeletedBooksScreen()
         }
         composable(
             route = Screens.AboutAppScreen.route + "/{isDarkTheme}",
         ) {
-            AboutAppScreen(navController)
+            AboutAppScreen()
         }
 
         composable(
             route = Screens.NotesScreen.route,
         ) {
-            NotesScreen(navController, purchaseHelper)
+            NotesScreen()
         }
         composable(
             route = Screens.AnnotationsScreen.route,
         ) {
-            AnnotationsScreen(navController, purchaseHelper)
+            AnnotationsScreen()
         }
         composable(
             route = Screens.StatisticsScreen.route,
         ) {
-            StatisticsScreen(navController, purchaseHelper)
+            StatisticsScreen()
         }
         composable(
             route = Screens.PremiumScreen.route,
         ) {
-            PremiumScreen(navController, purchaseHelper);
+            PremiumScreen()
         }
         //composable(
         //    route = Screens.OnlineBooksScreen.route,
         //) {
-        //    OnlineBooksScreen(navController, purchaseHelper)
+        //    OnlineBooksScreen(purchaseHelper)
         //}
         //composable(
         //    route = "webview/{url}",
@@ -126,11 +120,9 @@ fun SetupNavGraph(
         //) { backStackEntry ->
         //    val encodedUrl = backStackEntry.arguments?.getString("url") ?: ""
         //    val decodedUrl = URLDecoder.decode(encodedUrl, StandardCharsets.UTF_8.toString())
-        //    WebViewScreen(navController = navController, url = decodedUrl)
+        //    WebViewScreen(url = decodedUrl)
         //}
     }
-
-
 }
 
 fun NavHostController.navigateToScreen(route: String) {

@@ -20,6 +20,8 @@ import androidx.compose.ui.zIndex
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavHostController
+import com.ricdev.uread.navigation.LocalNavController
+import com.ricdev.uread.navigation.PurchaseHelperController
 import com.wxn.simplereader2.R
 import com.ricdev.uread.navigation.Screens
 import com.ricdev.uread.presentation.sharedComponents.CustomNavigationDrawer
@@ -34,10 +36,10 @@ import java.util.Locale
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun StatisticsScreen(
-    navController: NavHostController,
-    purchaseHelper: PurchaseHelper,
     viewModel: StatisticsViewModel = hiltViewModel()
 ) {
+    val purchaseHelper: PurchaseHelper = PurchaseHelperController.current
+    val navController: NavHostController = LocalNavController.current
     val statistics by viewModel.statistics.collectAsStateWithLifecycle()
     val appPreferences by viewModel.appPreferences.collectAsStateWithLifecycle()
     val scope = rememberCoroutineScope()

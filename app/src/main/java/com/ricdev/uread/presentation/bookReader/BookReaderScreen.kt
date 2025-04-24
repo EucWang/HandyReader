@@ -72,6 +72,8 @@ import com.ricdev.uread.data.model.BookAnnotation
 import com.ricdev.uread.data.model.Note
 import com.ricdev.uread.data.model.ReaderPreferences
 import com.ricdev.uread.domain.model.DecorationStyleAnnotationMark
+import com.ricdev.uread.navigation.LocalNavController
+import com.ricdev.uread.navigation.PurchaseHelperController
 import com.ricdev.uread.navigation.Screens
 import com.ricdev.uread.presentation.bookReader.components.TextToolbar
 import com.ricdev.uread.presentation.bookReader.components.TtsPlayer
@@ -118,11 +120,11 @@ import org.readium.r2.shared.DelicateReadiumApi
 @OptIn(ExperimentalReadiumApi::class)
 @Composable
 fun BookReaderScreen(
-    navController: NavHostController,
-    purchaseHelper: PurchaseHelper,
     viewModel: BookReaderViewModel = hiltViewModel()
 ) {
 
+    val purchaseHelper: PurchaseHelper = PurchaseHelperController.current
+    val navController = LocalNavController.current
     val context = LocalContext.current
 
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()

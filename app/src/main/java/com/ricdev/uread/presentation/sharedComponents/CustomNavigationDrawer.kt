@@ -236,10 +236,7 @@ fun CustomNavigationDrawer(
     }
 
    if (showPremiumScreen){
-      PremiumScreen(
-          navController = navController,
-          purchaseHelper = purchaseHelper,
-      )
+      PremiumScreen()
    }
 
 }

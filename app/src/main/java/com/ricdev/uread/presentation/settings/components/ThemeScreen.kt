@@ -26,16 +26,18 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.navigation.NavHostController
 import com.wxn.simplereader2.R
 import com.ricdev.uread.data.model.AppTheme
+import com.ricdev.uread.navigation.LocalNavController
 import com.ricdev.uread.navigation.Screens
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ThemeScreen(
-    navController: NavController,
     viewModel: ThemeViewModel = hiltViewModel()
 ) {
+    val navController: NavHostController = LocalNavController.current
     val appPreferences by viewModel.appPreferences.collectAsStateWithLifecycle()
 
     val isDarkTheme = when (appPreferences.appTheme) {

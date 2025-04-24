@@ -10,13 +10,18 @@ import androidx.activity.result.ActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.viewModels
 import androidx.appcompat.app.AppCompatActivity
+import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.compositionLocalOf
 import androidx.compose.runtime.getValue
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.navigation.NavHostController
 import androidx.navigation.compose.rememberNavController
 //import com.google.android.gms.ads.MobileAds
 import com.ricdev.uread.data.model.AppLanguage
 import com.ricdev.uread.data.source.local.AppPreferencesUtil
+import com.ricdev.uread.navigation.LocalNavController
+import com.ricdev.uread.navigation.PurchaseHelperController
 import com.ricdev.uread.ui.theme.UReadTheme
 import com.ricdev.uread.navigation.SetupNavGraph
 import com.ricdev.uread.util.LanguageHelper
@@ -69,16 +74,16 @@ class MainActivity : AppCompatActivity() {
         setContent {
             val screen by viewModel.startDestination.collectAsStateWithLifecycle()
 
+            val navController = rememberNavController()
 
-            UReadTheme {
-                val navController = rememberNavController()
-
-                screen?.let {
-                    SetupNavGraph(
-                        navController = navController,
-                        startDestination = it,
-                        purchaseHelper = purchaseHelper,
-                    )
+            CompositionLocalProvider(LocalNavController provides navController,
+                PurchaseHelperController provides purchaseHelper) {
+                UReadTheme {
+                    screen?.let {
+                        SetupNavGraph(
+                            startDestination = it,
+                        )
+                    }
                 }
             }
         }

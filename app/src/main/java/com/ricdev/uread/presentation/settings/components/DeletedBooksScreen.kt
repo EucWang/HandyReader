@@ -42,8 +42,10 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavController
+import androidx.navigation.NavHostController
 import com.wxn.simplereader2.R
 import com.ricdev.uread.data.model.Book
+import com.ricdev.uread.navigation.LocalNavController
 import com.ricdev.uread.presentation.settings.viewmodels.DeletedBooksViewModel
 import com.ricdev.uread.presentation.settings.states.DeletedBooksState
 import kotlinx.coroutines.delay
@@ -51,11 +53,10 @@ import kotlinx.coroutines.delay
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun DeletedBooksScreen(
-    navController: NavController,
     viewModel: DeletedBooksViewModel = hiltViewModel()
 ) {
     val deletedBooksState by viewModel.deletedBooksState.collectAsStateWithLifecycle()
-
+    val navController: NavHostController = LocalNavController.current
 
     var selectedBooks by remember { mutableStateOf(setOf<Book>()) }
     var bookToDelete by remember { mutableStateOf<Book?>(null) }

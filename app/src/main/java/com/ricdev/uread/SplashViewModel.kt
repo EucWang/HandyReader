@@ -53,16 +53,14 @@ class SplashViewModel @Inject constructor(
     }
 
 
-
-
-        private fun determineStartDestination(prefs: AppPreferences) {
-            _startDestination.value = if (prefs.isFirstLaunch) {
-                Screens.GettingStartedScreen.route
-            } else {
-                Screens.HomeScreen.route
-            }
-            _isLoading.value = false
+    private fun determineStartDestination(prefs: AppPreferences) {
+        _startDestination.value = if (prefs.isFirstLaunch) {
+            Screens.GettingStartedScreen.route
+        } else {
+            Screens.HomeScreen.route
         }
+        _isLoading.value = false
+    }
 }
 
 

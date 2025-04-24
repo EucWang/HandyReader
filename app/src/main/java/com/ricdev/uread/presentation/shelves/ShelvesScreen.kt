@@ -24,6 +24,8 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavHostController
 import com.wxn.simplereader2.R
 import com.ricdev.uread.data.model.Shelf
+import com.ricdev.uread.navigation.LocalNavController
+import com.ricdev.uread.navigation.PurchaseHelperController
 import com.ricdev.uread.navigation.Screens
 import com.ricdev.uread.presentation.sharedComponents.CustomNavigationDrawer
 //import com.ricsdev.uread.presentation.sharedComponents.PremiumModal
@@ -35,12 +37,11 @@ import kotlinx.coroutines.launch
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ShelvesScreen(
-    navController: NavHostController,
-    purchaseHelper: PurchaseHelper,
     viewModel: ShelvesViewModel = hiltViewModel()
 ) {
+    val purchaseHelper: PurchaseHelper = PurchaseHelperController.current
     val context = LocalContext.current
-
+    val navController: NavHostController = LocalNavController.current
 
     val shelvesState by viewModel.shelvesState.collectAsStateWithLifecycle()
     var selectedShelf by remember { mutableStateOf<Shelf?>(null) }

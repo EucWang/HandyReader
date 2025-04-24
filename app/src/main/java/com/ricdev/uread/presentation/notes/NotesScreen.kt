@@ -65,6 +65,8 @@ import com.wxn.simplereader2.R
 import com.ricdev.uread.data.model.AppPreferences
 import com.ricdev.uread.data.model.Book
 import com.ricdev.uread.data.model.Note
+import com.ricdev.uread.navigation.LocalNavController
+import com.ricdev.uread.navigation.PurchaseHelperController
 import com.ricdev.uread.navigation.Screens
 import com.ricdev.uread.presentation.bookReader.components.dialogs.NoteContent
 import com.ricdev.uread.presentation.sharedComponents.CustomNavigationDrawer
@@ -74,10 +76,10 @@ import kotlinx.coroutines.launch
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun NotesScreen(
-    navController: NavHostController,
-    purchaseHelper: PurchaseHelper,
     viewModel: NotesViewModel = hiltViewModel()
 ) {
+    val purchaseHelper: PurchaseHelper = PurchaseHelperController.current
+    val navController: NavHostController = LocalNavController.current
     val appPreferences by viewModel.appPreferences.collectAsStateWithLifecycle()
 
     val booksWithNotes by viewModel.booksWithNotes.collectAsStateWithLifecycle(initialValue = emptyList())

@@ -73,6 +73,8 @@ import androidx.compose.ui.res.stringResource
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.wxn.simplereader2.R
 import com.ricdev.uread.data.model.AppPreferences
+import com.ricdev.uread.navigation.LocalNavController
+import com.ricdev.uread.navigation.PurchaseHelperController
 import com.ricdev.uread.navigation.Screens
 import com.ricdev.uread.util.PurchaseHelper
 
@@ -80,10 +82,10 @@ import com.ricdev.uread.util.PurchaseHelper
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AnnotationsScreen(
-    navController: NavHostController,
-    purchaseHelper: PurchaseHelper,
     viewModel: AnnotationsViewModel = hiltViewModel()
 ) {
+    val purchaseHelper: PurchaseHelper = PurchaseHelperController.current
+    val navController: NavHostController = LocalNavController.current
     val booksWithAnnotations by viewModel.booksWithAnnotations.collectAsStateWithLifecycle(
         initialValue = emptyList()
     )

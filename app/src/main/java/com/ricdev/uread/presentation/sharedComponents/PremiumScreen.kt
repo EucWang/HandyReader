@@ -36,6 +36,8 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavHostController
 import com.mikepenz.markdown.m3.Markdown
+import com.ricdev.uread.navigation.LocalNavController
+import com.ricdev.uread.navigation.PurchaseHelperController
 import com.wxn.simplereader2.R
 import com.ricdev.uread.util.PurchaseHelper
 import com.ricdev.uread.util.customMarkdownTypography
@@ -44,11 +46,10 @@ import java.io.IOException
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun PremiumScreen(
-    navController: NavHostController,
-    purchaseHelper: PurchaseHelper,
     viewModel: PremiumViewModel = hiltViewModel()
 ) {
-
+    val purchaseHelper: PurchaseHelper = PurchaseHelperController.current
+    val navController: NavHostController = LocalNavController.current
     val context = LocalContext.current
     fun readPrivacyPolicy(context: Context): String {
         return try {

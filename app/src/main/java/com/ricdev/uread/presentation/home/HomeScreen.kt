@@ -35,6 +35,8 @@ import androidx.paging.compose.collectAsLazyPagingItems
 import coil.compose.rememberAsyncImagePainter
 import com.wxn.simplereader2.R
 import com.ricdev.uread.data.model.Layout
+import com.ricdev.uread.navigation.LocalNavController
+import com.ricdev.uread.navigation.PurchaseHelperController
 import com.ricdev.uread.navigation.Screens
 import com.ricdev.uread.navigation.navigateToScreen
 import com.ricdev.uread.presentation.bookDetails.components.EditMetadataModal
@@ -58,11 +60,11 @@ import kotlin.random.Random
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun HomeScreen(
-    navController: NavHostController,
-    purchaseHelper: PurchaseHelper,
     viewModel: HomeViewModel = hiltViewModel()
 ) {
+    val purchaseHelper: PurchaseHelper = PurchaseHelperController.current
     val coroutineScope = rememberCoroutineScope()
+    val navController = LocalNavController.current
 
     val appPreferences by viewModel.appPreferences.collectAsStateWithLifecycle()
     val shelves by viewModel.shelves.collectAsStateWithLifecycle()
@@ -98,7 +100,6 @@ fun HomeScreen(
             navController.navigate(Screens.PremiumScreen.route)
         }
     }
-
 
     LaunchedEffect(selectedTab) {
         pagerState.animateScrollToPage(selectedTab)

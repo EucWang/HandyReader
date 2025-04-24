@@ -51,15 +51,16 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavHostController
 import com.wxn.simplereader2.R
 import com.ricdev.uread.data.model.AppLanguage
+import com.ricdev.uread.navigation.LocalNavController
 import com.ricdev.uread.presentation.settings.SettingsViewModel
 
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun GeneralSettings(
-    navController: NavHostController,
     viewModel: SettingsViewModel = hiltViewModel()
 ) {
+    val navController: NavHostController = LocalNavController.current
     val appPreferences by viewModel.appPreferences.collectAsStateWithLifecycle()
     val context = LocalContext.current
     var directoryToDelete by remember { mutableStateOf("") }

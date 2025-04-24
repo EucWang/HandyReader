@@ -60,10 +60,12 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavController
+import androidx.navigation.NavHostController
 import coil.compose.rememberAsyncImagePainter
 import com.wxn.simplereader2.R
 import com.ricdev.uread.data.model.Book
 import com.ricdev.uread.data.model.FileType
+import com.ricdev.uread.navigation.LocalNavController
 import com.ricdev.uread.presentation.bookDetails.components.BookDescription
 import com.ricdev.uread.presentation.bookDetails.components.BookReview
 import com.ricdev.uread.presentation.bookDetails.components.EditMetadataModal
@@ -77,10 +79,9 @@ import java.time.format.DateTimeFormatter
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun BookDetailsScreen(
-    navController: NavController,
     viewModel: BookDetailsViewModel = hiltViewModel(),
 ) {
-
+    val navController: NavHostController = LocalNavController.current
     val book by viewModel.book.collectAsStateWithLifecycle()
     var showMetadataModal by remember { mutableStateOf(false) }
 

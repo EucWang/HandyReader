@@ -44,6 +44,7 @@ import androidx.navigation.NavHostController
 import coil.compose.AsyncImage
 import coil.request.ImageRequest
 import coil.size.Scale
+import com.ricdev.uread.navigation.LocalNavController
 import com.ricdev.uread.presentation.pdfReader.components.PdfReaderBottomBar
 import com.ricdev.uread.presentation.pdfReader.components.PdfReaderTopBar
 import com.ricdev.uread.util.KeepScreenOn
@@ -53,10 +54,9 @@ import kotlinx.coroutines.launch
 
 @Composable
 fun PdfReaderScreen(
-    navController: NavHostController,
     viewModel: PdfReaderViewModel = hiltViewModel()
 ) {
-
+    val navController: NavHostController = LocalNavController.current
     KeepScreenOn(true)
     val context = LocalContext.current
     val coroutineScope = rememberCoroutineScope()

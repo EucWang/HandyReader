@@ -60,6 +60,8 @@ import com.google.android.play.core.review.ReviewManagerFactory
 import com.google.android.play.core.review.model.ReviewErrorCode
 import com.wxn.simplereader2.R
 import com.ricdev.uread.data.model.AppTheme
+import com.ricdev.uread.navigation.LocalNavController
+import com.ricdev.uread.navigation.PurchaseHelperController
 import com.ricdev.uread.presentation.sharedComponents.CustomNavigationDrawer
 import com.ricdev.uread.util.PurchaseHelper
 import com.ricdev.uread.navigation.Screens
@@ -68,17 +70,15 @@ import kotlinx.coroutines.launch
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SettingsScreen(
-    navController: NavHostController,
-    purchaseHelper: PurchaseHelper,
     viewModel: SettingsViewModel = hiltViewModel(),
 ) {
-
+    val purchaseHelper: PurchaseHelper = PurchaseHelperController.current
+    val navController: NavHostController = LocalNavController.current
     val context = LocalContext.current
     val reviewManager = remember { ReviewManagerFactory.create(context) }
 
     val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
     val scope = rememberCoroutineScope()
-
 
     val appPreferences by viewModel.appPreferences.collectAsStateWithLifecycle()
 

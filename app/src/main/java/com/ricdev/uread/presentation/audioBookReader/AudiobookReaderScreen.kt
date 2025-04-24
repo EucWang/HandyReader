@@ -40,17 +40,18 @@ import coil.request.ImageRequest
 import coil.size.Scale
 import com.wxn.simplereader2.R
 import com.ricdev.uread.data.model.Book
+import com.ricdev.uread.navigation.LocalNavController
 import kotlinx.coroutines.delay
 import java.util.Locale
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AudiobookReaderScreen(
-    navController: NavHostController,
     viewModel: AudiobookReaderViewModel = hiltViewModel()
 ) {
     val loadingState by viewModel.loadingState.collectAsState()
     val audiobook by viewModel.audiobook.collectAsState()
+    val navController: NavHostController = LocalNavController.current
 
 
     var showReader by remember { mutableStateOf(false) }

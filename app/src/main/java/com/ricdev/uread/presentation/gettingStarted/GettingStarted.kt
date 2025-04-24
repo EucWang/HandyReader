@@ -28,6 +28,7 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavHostController
+import com.ricdev.uread.navigation.LocalNavController
 import com.wxn.simplereader2.R
 import com.ricdev.uread.navigation.Screens
 import com.ricdev.uread.presentation.gettingStarted.components.ActionButton
@@ -35,10 +36,10 @@ import com.ricdev.uread.presentation.gettingStarted.components.StorageAccessDial
 
 @Composable
 fun GettingStartedScreen(
-    navController: NavHostController,
     viewModel: GettingStartedViewModel = hiltViewModel(),
 ) {
     val context = LocalContext.current
+    val navController = LocalNavController.current
 
     val appPreferences by viewModel.appPreferences.collectAsStateWithLifecycle()
     val isButtonsEnabled by viewModel.isButtonsEnabled.collectAsStateWithLifecycle()

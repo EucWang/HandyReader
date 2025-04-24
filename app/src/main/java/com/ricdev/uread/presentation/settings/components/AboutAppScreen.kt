@@ -70,8 +70,10 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavController
+import androidx.navigation.NavHostController
 import com.mikepenz.aboutlibraries.ui.compose.LibrariesContainer
 import com.mikepenz.markdown.m3.Markdown
+import com.ricdev.uread.navigation.LocalNavController
 import com.wxn.simplereader2.R
 import com.ricdev.uread.presentation.settings.viewmodels.AboutViewModel
 import com.ricdev.uread.util.customMarkdownTypography
@@ -82,11 +84,9 @@ import java.io.IOException
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AboutAppScreen(
-    navController: NavController,
     viewModel: AboutViewModel = hiltViewModel()
 ) {
-
-
+    val navController: NavHostController = LocalNavController.current
     val isDarkTheme = viewModel.isDarkTheme.collectAsStateWithLifecycle()
 
     val elevationOverlay = if (isDarkTheme.value == true) {
