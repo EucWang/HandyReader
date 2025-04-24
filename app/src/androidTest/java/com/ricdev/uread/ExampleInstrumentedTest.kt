@@ -1,4 +1,4 @@
-package com.ricdev.uread
+package com.wxn.reader
 
 import androidx.test.platform.app.InstrumentationRegistry
 import androidx.test.ext.junit.runners.AndroidJUnit4

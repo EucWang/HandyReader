@@ -1,4 +1,4 @@
-package com.ricdev.uread
+package com.wxn.reader
 
 import org.junit.Test
 

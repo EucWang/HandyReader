@@ -26,11 +26,11 @@ val apikeyProperties = Properties().apply {
 
 
 android {
-    namespace = "com.wxn.simplereader2"
+    namespace = "com.wxn.reader"
     compileSdk = 35
 
     defaultConfig {
-        applicationId = "com.wxn.simplereader2"
+        applicationId = "com.wxn.reader"
         minSdk = 23
         //noinspection OldTargetApi
         targetSdk = 35
