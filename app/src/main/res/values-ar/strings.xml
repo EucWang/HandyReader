@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <resources xmlns:tools="http://schemas.android.com/tools">
-    <string name="app_name">يوريد</string>
+    <string name="app_name">قارئ سريع</string>
     <string name="highlight">تظليل</string>
     <string name="underline">تحتيط</string>
     <string name="note">ملاحظة</string>

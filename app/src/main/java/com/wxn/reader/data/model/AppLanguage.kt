@@ -2,21 +2,22 @@ package com.wxn.reader.data.model
 
 enum class AppLanguage(val code: String, val displayName: String) {
     SYSTEM("system", "System Default"),
-    ENGLISH("en", "English"),
-    SWEDISH("sv", "Svenska"),
-    FRENCH("fr", "Français"),
-    GERMAN("de", "Deutsch"),
-    DUTCH("nl", "Nederlands"),
-    ITALIAN("it", "Italiano"),
-    SPANISH("es", "Español"),
-    PORTUGUESE("pt", "Português"),
-    TURKISH("tr", "Türkçe"),
-    CHINESE("zh", "中文"),
-    JAPANESE("ja", "日本語"),
-    KOREAN("ko", "한국어"),
-    RUSSIAN("ru", "Русский"),
-    ARABIC("ar", "العربية"),
-    HINDI("hi", "हिन्दी");
+    ENGLISH("en", "English"),           //英语
+    FRENCH("fr", "Français"),           //法语
+    GERMAN("de", "Deutsch"),            //德语
+    SPANISH("es", "Español"),           //西班牙语
+    PORTUGUESE("pt", "Português"),      //葡萄牙语
+    CHINESE("zh", "中文"),               //中文
+    JAPANESE("ja", "日本語"),            //日语
+    RUSSIAN("ru", "Русский"),           //俄罗斯语
+    ARABIC("ar", "العربية"),            //阿拉伯语
+    HINDI("hi", "हिन्दी");                 //印地语
+    //如下几种语言暂不支持
+//    SWEDISH("sv", "Svenska"),         //瑞典语
+//    DUTCH("nl", "Nederlands"),        //荷兰语
+//    ITALIAN("it", "Italiano"),          //意大利语
+//    TURKISH("tr", "Türkçe"),            //土耳其语
+//    KOREAN("ko", "한국어"),               //韩语
 
     companion object {
         fun fromCode(code: String): AppLanguage =

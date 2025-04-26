@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources xmlns:tools="http://schemas.android.com/tools">
-    <string name="app_name">uRead</string>
+    <string name="app_name">सुविधाजनक पाठक</string>
     <string name="highlight">हाइलाइट</string>
     <string name="underline">अंडरलाइन</string>
     <string name="note">नोट</string>

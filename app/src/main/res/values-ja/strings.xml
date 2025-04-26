@@ -1,5 +1,5 @@
 <resources xmlns:tools="http://schemas.android.com/tools">
-    <string name="app_name">uRead</string>
+    <string name="app_name">Handy読書</string>
     <string name="highlight">ハイライト</string>
     <string name="underline">下線</string>
     <string name="note">メモ</string>
