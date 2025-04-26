@@ -82,36 +82,36 @@ import com.wxn.reader.util.Logger
             modifier = Modifier
                 .fillMaxWidth()
                 .weight(1f)
-                .background(color = MaterialTheme.colorScheme.background)
+//                .background(color = MaterialTheme.colorScheme.background)
         ) { index ->
             Logger.d("HomeScreen:index=$index")
             Box(modifier = Modifier.fillMaxSize()) {
-                if (appPreferences.homeBackgroundImage.isNotEmpty()) { //自定义背景
-                    Image(
-                        painter = rememberAsyncImagePainter(appPreferences.homeBackgroundImage),
-                        contentDescription = "Book cover",
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .alpha(0.7f),
-                        contentScale = ContentScale.Crop
-                    )
-                }
-
-                // Gradient overlay
-                Box(                    //默认背景
-                    modifier = Modifier.fillMaxSize()
-                        .background(
-                            brush = Brush.verticalGradient(
-                                colors = listOf(
-                                    Color.Transparent,
-                                    MaterialTheme.colorScheme.background.copy(alpha = 0.5f),
-                                    MaterialTheme.colorScheme.background
-                                ),
-                                startY = 0f,
-                                endY = 2000f
-                            )
-                        )
-                )
+//                if (appPreferences.homeBackgroundImage.isNotEmpty()) { //自定义背景
+//                    Image(
+//                        painter = rememberAsyncImagePainter(appPreferences.homeBackgroundImage),
+//                        contentDescription = "Book cover",
+//                        modifier = Modifier
+//                            .fillMaxSize()
+//                            .alpha(0.7f),
+//                        contentScale = ContentScale.Crop
+//                    )
+//                }
+//
+//                // Gradient overlay
+//                Box(                    //默认背景
+//                    modifier = Modifier.fillMaxSize()
+//                        .background(
+//                            brush = Brush.verticalGradient(
+//                                colors = listOf(
+//                                    Color.Transparent,
+//                                    MaterialTheme.colorScheme.background.copy(alpha = 0.5f),
+//                                    MaterialTheme.colorScheme.background
+//                                ),
+//                                startY = 0f,
+//                                endY = 2000f
+//                            )
+//                        )
+//                )
 
                 Column {
                     when (index) {

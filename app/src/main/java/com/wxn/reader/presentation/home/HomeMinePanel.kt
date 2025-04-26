@@ -53,32 +53,32 @@ fun HomeMinePanel(innerPadding: PaddingValues, viewModel: HomeViewModel) {
     val navController = LocalNavController.current
 
     Box(modifier = Modifier.fillMaxSize().padding(innerPadding), contentAlignment = Alignment.TopStart) {
-        if (appPreferences.homeBackgroundImage.isNotEmpty()) { //自定义背景
-            Image(
-                painter = rememberAsyncImagePainter(appPreferences.homeBackgroundImage),
-                contentDescription = "Book cover",
-                modifier = Modifier
-                    .fillMaxSize()
-                    .alpha(0.7f),
-                contentScale = ContentScale.Crop
-            )
-        }
-        // Gradient overlay
-        Box(                    //默认背景
-            modifier = Modifier.fillMaxSize()
-
-                .background(
-                    brush = Brush.verticalGradient(
-                        colors = listOf(
-                            Color.Transparent,
-                            MaterialTheme.colorScheme.background.copy(alpha = 0.5f),
-                            MaterialTheme.colorScheme.background
-                        ),
-                        startY = 0f,
-                        endY = 2000f
-                    )
-                )
-        )
+//        if (appPreferences.homeBackgroundImage.isNotEmpty()) { //自定义背景
+//            Image(
+//                painter = rememberAsyncImagePainter(appPreferences.homeBackgroundImage),
+//                contentDescription = "Book cover",
+//                modifier = Modifier
+//                    .fillMaxSize()
+//                    .alpha(0.7f),
+//                contentScale = ContentScale.Crop
+//            )
+//        }
+//        // Gradient overlay
+//        Box(                    //默认背景
+//            modifier = Modifier.fillMaxSize()
+//
+//                .background(
+//                    brush = Brush.verticalGradient(
+//                        colors = listOf(
+//                            Color.Transparent,
+//                            MaterialTheme.colorScheme.background.copy(alpha = 0.5f),
+//                            MaterialTheme.colorScheme.background
+//                        ),
+//                        startY = 0f,
+//                        endY = 2000f
+//                    )
+//                )
+//        )
 
 //        Column{
 //        ModalDrawerSheet {
