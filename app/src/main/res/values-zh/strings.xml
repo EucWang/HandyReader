@@ -112,7 +112,7 @@
     <string name="text_color">文本颜色</string>
     <string name="select_color">选择 %1$s 颜色</string>
     <string name="no_books_in">%1$s 中没有书籍</string>
-    <string name="welcome_to_uread">欢迎使用 uRead！</string>
+<!--    <string name="welcome_to_uread">欢迎使用 uRead！</string>-->
     <string name="to_get_started_please_select_a_directory_where_you_would_like_to_load_your_books">要开始使用，请选择要加载书籍的目录。</string>
     <string name="select_directory">选择目录位置</string>
     <string name="select_scan_directory">选择扫描目录</string>
@@ -214,4 +214,27 @@
     <string name="unable_to_open_privacy_policy">无法打开隐私政策</string>
     <string name="navigate_to">导航至</string>
     <string name="back">返回</string>
+
+    <string name="ebooks">电子书</string>
+    <string name="audio_books">有声书</string>
+    <string name="mine">我的</string>
+    <string name="description">描述</string>
+    <string name="publication_date">出版日期</string>
+    <string name="publisher">出版商</string>
+    <string name="subjects_with_comma">主题（逗号分隔）</string>
+    <string name="narrator">朗读者</string>
+    <string name="translated_text">翻译文本：[API调用结果 \"%1$s\"]</string>
+    <string name="welcome_to_uread">欢迎使用随阅.悦读</string>
+    <string name="remove_note">删除笔记</string>
+    <string name="dialog_content_remove_note">确定要删除此笔记吗？</string>
+    <string name="ok">确定</string>
+    <string name="definition_of_word">\"%1$s\"的定义</string>
+    <string name="search_in_google">在谷歌搜索</string> <!-- TODO 用不了谷歌搜索 -->
+    <string name="translation">翻译</string>
+    <string name="note_content">笔记：%1$s</string>
+    <string name="error_with_message">错误：%1$s</string>
+    <string name="model_system">跟随系统</string>
+    <string name="model_light">浅色模式</string>
+    <string name="model_dark">深色模式</string>
+
 </resources>

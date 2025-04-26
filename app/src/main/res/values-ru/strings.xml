@@ -112,7 +112,6 @@
     <string name="text_color">Цвет текста</string>
     <string name="select_color">Выбрать цвет %1$s</string>
     <string name="no_books_in">Нет книг в %1$s</string>
-    <string name="welcome_to_uread">Добро пожаловать в uRead!</string>
     <string name="to_get_started_please_select_a_directory_where_you_would_like_to_load_your_books">Чтобы начать, выберите директорию, где вы хотели бы загрузить свои книги.</string>
     <string name="select_directory">Выбрать местоположение директории</string>
     <string name="select_scan_directory">Выбрать директорию для сканирования</string>
@@ -214,4 +213,28 @@
     <string name="unable_to_open_privacy_policy">Не удалось открыть политику конфиденциальности</string>
     <string name="navigate_to">Перейти к</string>
     <string name="back">Назад</string>
+    <string name="ebooks">Электронные книги</string>
+    <string name="audio_books">Аудиокниги</string>
+    <string name="mine">Моё</string>
+    <string name="description">Описание</string>
+    <string name="publication_date">Дата публикации</string>
+    <string name="publisher">Издатель</string>
+    <string name="subjects_with_comma">Темы (через запятую)</string>
+    <string name="narrator">Рассказчик</string>
+    <string name="translated_text">Переведенный текст: [Результат вызова API для \"%1$s\"]</string>
+    <string name="welcome_to_uread">Добро пожаловать в Удобный Читатель</string>
+    <string name="remove_note">Удалить заметку</string>
+    <string name="dialog_content_remove_note">Вы уверены, что хотите удалить эту заметку?</string>
+    <string name="ok">OK</string>
+    <string name="definition_of_word">Определение \"%1$s\"</string>
+    <!-- 俄语 /app/src/main/res/values-ru/strings.xml -->
+    <string name="search_in_google">Поиск в Google</string> <!-- TODO   用不了谷歌搜索-->
+    <!-- 俄语 /app/src/main/res/values-ru/strings.xml -->
+    <string name="translation">Перевод</string>
+    <string name="note_content">Заметка: %1$s</string>
+    <string name="error_with_message">Ошибка: %1$s</string>
+    <string name="model_system">Система</string>
+    <string name="model_light">Светлая</string>
+    <string name="model_dark">Тёмная</string>
+
 </resources>

@@ -34,7 +34,7 @@ fun ReadingDatesDialog(
                     onDismiss()
                 }
             ) {
-                Text("OK")
+                Text(stringResource(R.string.ok))
             }
         },
         dismissButton = {

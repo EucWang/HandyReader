@@ -187,7 +187,7 @@ fun ShelvesScreen(
 
                 is ShelvesState.Error -> {
                     Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                        Text("Error: ${state.message}")
+                        Text(stringResource(R.string.error_with_message, state.message))
                     }
                 }
             }

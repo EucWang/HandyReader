@@ -62,12 +62,14 @@ import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavHostController
 import com.github.skydoves.colorpicker.compose.ColorPickerController
 import com.github.skydoves.colorpicker.compose.HsvColorPicker
 import com.github.skydoves.colorpicker.compose.rememberColorPickerController
+import com.wxn.reader.R
 import com.wxn.reader.data.model.AnnotationType
 import com.wxn.reader.data.model.AppPreferences
 import com.wxn.reader.data.model.BookAnnotation
@@ -542,7 +544,7 @@ fun ColorPickerOverlay(
             )
             Spacer(modifier = Modifier.height(16.dp))
             Button(onClick = { onColorSelected(selectedColor ?: Color.White) }) {
-                Text("Select")
+                Text(stringResource(R.string.select))
             }
         }
     }
@@ -556,11 +558,11 @@ fun TranslationDialog(
 ) {
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("Translation") },
-        text = { Text("Translated text: [API call result for '$text']") },
+        title = { Text(stringResource(R.string.translation)) },
+        text = { Text(stringResource(R.string.translated_text, text)) },
         confirmButton = {
             TextButton(onClick = onDismiss) {
-                Text("Close")
+                Text(stringResource(R.string.close))
             }
         }
     )
@@ -600,15 +602,15 @@ fun DefinitionDialog(
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
                 Icon(Icons.Default.Search, contentDescription = "search")
-                Text("Definition of '$word'", style = MaterialTheme.typography.titleLarge)
+                Text(stringResource(R.string.definition_of_word, word), style = MaterialTheme.typography.titleLarge)
             }
             Spacer(modifier = Modifier.height(16.dp))
             Button(onClick = { openGoogleSearch() }) {
-                Text("Search in Google")
+                Text(stringResource(R.string.search_in_google))
             }
             Spacer(modifier = Modifier.height(8.dp))
             Button(onClick = onDismiss) {
-                Text("Close")
+                Text(stringResource(R.string.close))
             }
         }
     }

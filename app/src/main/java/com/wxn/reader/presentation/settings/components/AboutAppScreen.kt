@@ -175,7 +175,7 @@ fun AboutAppScreen(
                             fontFamily = FontFamily.SansSerif,
                             color = Color(0xE6564026),
                             textAlign = TextAlign.Start,
-                            text = " uRead",
+                            text = stringResource(LocalContext.current.applicationInfo.labelRes),
                             style = MaterialTheme.typography.titleLarge,
                             modifier = Modifier
                                 .offset(y = (-28).dp)
@@ -598,7 +598,7 @@ fun AboutAppScreen(
                         .fillMaxWidth()
                         .padding(top = 16.dp, start = 16.dp)
                 ) {
-                    Text("Libraries", style = MaterialTheme.typography.headlineSmall)
+                    Text(stringResource(R.string.libraries), style = MaterialTheme.typography.headlineSmall)
                 }
 
 

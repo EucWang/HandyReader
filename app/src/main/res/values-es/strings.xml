@@ -112,7 +112,7 @@
     <string name="text_color">Color de Texto</string>
     <string name="select_color">Seleccionar Color de %1$s</string>
     <string name="no_books_in">No hay libros en %1$s</string>
-    <string name="welcome_to_uread">¡Bienvenido a uRead!</string>
+<!--    <string name="welcome_to_uread">¡Bienvenido a uRead!</string>-->
     <string name="to_get_started_please_select_a_directory_where_you_would_like_to_load_your_books">Para comenzar, selecciona un directorio donde te gustaría cargar tus libros.</string>
     <string name="select_directory">Seleccionar Directorio</string>
     <string name="select_scan_directory">Seleccionar Directorio de Escaneo</string>
@@ -214,5 +214,27 @@
     <string name="unable_to_open_privacy_policy">No se puede abrir la política de privacidad</string>
     <string name="navigate_to">Navegar a</string>
     <string name="back">Atrás</string>
+    <string name="ebooks">Libros electrónicos</string>
+    <string name="audio_books">Audiolibros</string>
+    <string name="mine">Mío</string>
+    <string name="description">Descripción</string>
+    <string name="publication_date">Fecha de publicación</string>
+    <string name="publisher">Editorial</string>
+    <string name="subjects_with_comma">Temas (separados por comas)</string>
+    <string name="narrator">Narrador</string>
+    <string name="translated_text">Texto traducido: [Resultado de llamada API para \"%1$s\"]</string>
+    <!-- 西班牙语 /app/src/main/res/values-es/strings.xml -->
+    <string name="welcome_to_uread">Bienvenido/a a LectoRápido</string>
+    <string name="remove_note">Eliminar nota</string>
+    <string name="dialog_content_remove_note">¿Está seguro de que desea eliminar esta nota?</string>
+    <string name="ok">Aceptar</string>
+    <string name="definition_of_word">Definición de \"%1$s\"</string>
+    <string name="search_in_google">Buscar en Google</string>
+    <string name="translation">Traducción</string>
+    <string name="note_content">Nota: %1$s</string>
+    <string name="error_with_message">Error: %1$s</string>
+        <string name="model_system">Sistema</string>
+        <string name="model_light">Claro</string>
+        <string name="model_dark">Oscuro</string>
 
 </resources>

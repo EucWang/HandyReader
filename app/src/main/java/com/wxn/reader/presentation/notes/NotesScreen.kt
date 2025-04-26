@@ -420,13 +420,13 @@ fun NoteItem(
     if (showRemoveNoteDialog) {
         AlertDialog(
             onDismissRequest = { showRemoveNoteDialog = false },
-            title = { Text("Remove Note") },
-            text = { Text("Are you sure you want to remove this note?") },
+            title = { Text(stringResource(R.string.remove_note)) },
+            text = { Text(stringResource(R.string.dialog_content_remove_note)) },
             dismissButton = {
                 Button(
                     onClick = { showRemoveNoteDialog = false }
                 ) {
-                    Text("Cancel")
+                    Text(stringResource(R.string.cancel))
                 }
             },
             confirmButton = {
@@ -440,7 +440,7 @@ fun NoteItem(
                         showRemoveNoteDialog = false
                     }
                 ) {
-                    Text("Remove")
+                    Text(stringResource(R.string.remove))
                 }
             },
         )

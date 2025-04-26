@@ -112,7 +112,6 @@
     <string name="text_color">テキストの色</string>
     <string name="select_color">%1$sの色を選択</string>
     <string name="no_books_in">%1$sに本がありません</string>
-    <string name="welcome_to_uread">uReadへようこそ!</string>
     <string name="to_get_started_please_select_a_directory_where_you_would_like_to_load_your_books">始めるには、本を読み込むディレクトリを選択してください。</string>
     <string name="select_directory">ディレクトリの場所を選択</string>
     <string name="select_scan_directory">スキャンするディレクトリを選択</string>
@@ -214,4 +213,28 @@
     <string name="unable_to_open_privacy_policy">プライバシーポリシーを開けません</string>
     <string name="navigate_to">移動する</string>
     <string name="back">戻る</string>
+
+    <string name="ebooks">電子書籍</string>
+    <string name="audio_books">オーディオブック</string>
+    <string name="mine">マイ</string>
+    <string name="description">説明</string>
+    <string name="publication_date">出版日</string>
+    <string name="publisher">出版社</string>
+    <string name="subjects_with_comma">主題（カンマ区切り）</string>
+    <string name="narrator">ナレーター</string>
+    <string name="translated_text">翻訳テキスト：[API呼び出し結果 \"%1$s\"]</string>
+    <string name="welcome_to_uread">Handy読書へようこそ</string>
+    <string name="remove_note">メモを削除</string>
+    <string name="dialog_content_remove_note">このメモを削除してもよろしいですか？</string>
+    <string name="ok">OK</string>
+    <string name="definition_of_word">\"%1$s\"の定義</string>
+    <!-- 日语 /app/src/main/res/values-ja/strings.xml -->
+    <string name="search_in_google">Googleで検索</string>
+    <string name="translation">翻訳</string>
+    <string name="note_content">メモ: %1$s</string>
+    <string name="error_with_message">エラー: %1$s</string>
+    <string name="model_system">システム</string>
+    <string name="model_light">ライト</string>
+    <string name="model_dark">ダーク</string>
+
 </resources>

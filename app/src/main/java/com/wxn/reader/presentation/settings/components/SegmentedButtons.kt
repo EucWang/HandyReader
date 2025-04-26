@@ -16,7 +16,9 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import com.wxn.reader.R
 import com.wxn.reader.data.model.AppTheme
 
 
@@ -31,19 +33,19 @@ fun SegmentedThemeControl(
     ) {
         ThemeOption(
             icon = Icons.Default.PhoneAndroid,
-            label = "System",
+            label = stringResource(R.string.model_system),
             isSelected = selectedTheme == AppTheme.SYSTEM,
             onClick = { onThemeSelected(AppTheme.SYSTEM) }
         )
         ThemeOption(
             icon = Icons.Default.LightMode,
-            label = "Light",
+            label = stringResource(R.string.model_light),
             isSelected = selectedTheme == AppTheme.LIGHT,
             onClick = { onThemeSelected(AppTheme.LIGHT) }
         )
         ThemeOption(
             icon = Icons.Default.DarkMode,
-            label = "Dark",
+            label = stringResource(R.string.model_dark),
             isSelected = selectedTheme == AppTheme.DARK,
             onClick = { onThemeSelected(AppTheme.DARK) }
         )

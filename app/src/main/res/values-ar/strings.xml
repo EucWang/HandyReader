@@ -113,7 +113,7 @@
     <string name="text_color">لون النص</string>
     <string name="select_color">حدد لون %1$s</string>
     <string name="no_books_in">لا توجد كتب في %1$s</string>
-    <string name="welcome_to_uread">مرحبًا بك في يوريد!</string>
+<!--    <string name="welcome_to_uread">مرحبًا بك في يوريد!</string>-->
     <string name="to_get_started_please_select_a_directory_where_you_would_like_to_load_your_books">للبدء، يرجى تحديد المجلد الذي تريد تحميل كتبك منه.</string>
     <string name="select_directory">اختر موقع المجلد</string>
     <string name="select_scan_directory">اختر مجلد المسح</string>
@@ -215,4 +215,28 @@
     <string name="unable_to_open_privacy_policy">تعذر فتح سياسة الخصوصية</string>
     <string name="navigate_to">انتقل إلى</string>
     <string name="back">رجوع</string>
+
+    <string name="ebooks">كتب إلكترونية</string>
+    <string name="audio_books">كتب صوتية</string>
+    <string name="mine">خاصتي</string>
+    <string name="description">وصف</string>
+    <string name="publication_date">تاريخ النشر</string>
+    <string name="publisher">الناشر</string>
+    <string name="subjects_with_comma">مواضيع (مفصولة بفواصل)</string>
+    <string name="narrator">الراوي</string>
+    <string name="translated_text">نص مترجم: [نتيجة استدعاء API لـ \"%1$s\"]</string>
+    <string name="welcome_to_uread">مرحبًا بكم في قارئ سريع</string>
+    <string name="remove_note">إزالة الملاحظة</string>
+    <string name="dialog_content_remove_note">هل أنت متأكد أنك تريد إزالة هذه الملاحظة؟</string>
+    <string name="ok">موافق</string>
+    <string name="definition_of_word">تعريف \"%1$s\"</string>
+    <!-- 阿拉伯语 /app/src/main/res/values-ar/strings.xml -->
+    <string name="search_in_google"><![CDATA[البحث في Google]]></string>
+    <string name="translation">ترجمة</string>
+    <string name="note_content"><![CDATA[ملاحظة: %1$s]]></string>
+    <string name="error_with_message"><![CDATA[خطأ: %1$s]]></string>
+    <string name="model_system">النظام</string>
+    <string name="model_light">فاتح</string>
+    <string name="model_dark">غامق</string>
+
 </resources>

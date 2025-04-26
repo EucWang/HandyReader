@@ -45,11 +45,13 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import coil.compose.rememberAsyncImagePainter
+import com.wxn.reader.R
 import com.wxn.reader.data.model.Book
 import com.wxn.reader.data.model.FileType
 import com.wxn.reader.presentation.bookDetails.BookDetailsViewModel
@@ -187,27 +189,27 @@ fun EditMetadataModal(
                     OutlinedTextField(
                         value = title,
                         onValueChange = { title = it; titleError = false },
-                        label = { Text("Title *") },
+                        label = { Text(stringResource(R.string.title)) },
                         isError = titleError,
                         modifier = Modifier.fillMaxWidth()
                     )
-                    if (titleError) Text("Required", color = MaterialTheme.colorScheme.error)
+                    if (titleError) Text(stringResource(R.string.required), color = MaterialTheme.colorScheme.error)
 
                     Spacer(modifier = Modifier.height(8.dp))
                     OutlinedTextField(
                         value = authors,
                     onValueChange = { authors = it; authorsError = false },
-                    label = { Text("Authors *") },
+                    label = { Text(stringResource(R.string.authors)) },
                     isError = authorsError,
                     modifier = Modifier.fillMaxWidth()
                     )
-                    if (authorsError) Text("Required", color = MaterialTheme.colorScheme.error)
+                    if (authorsError) Text(stringResource(R.string.required), color = MaterialTheme.colorScheme.error)
                     Spacer(modifier = Modifier.height(8.dp))
 
                     OutlinedTextField(
                         value = description,
                         onValueChange = { description = it },
-                        label = { Text("Description") },
+                        label = { Text(stringResource(R.string.description)) },
                         modifier = Modifier.fillMaxWidth()
                     )
                     Spacer(modifier = Modifier.height(8.dp))
@@ -215,7 +217,7 @@ fun EditMetadataModal(
                     OutlinedTextField(
                           value = publishDate,
                     onValueChange = { publishDate = it },
-                    label = { Text("Publication Date") },
+                    label = { Text(stringResource(R.string.publication_date)) },
                     placeholder = { Text("YYYY-MM-DD") },
                     modifier = Modifier.fillMaxWidth()
                     )
@@ -224,7 +226,7 @@ fun EditMetadataModal(
                     OutlinedTextField(
                           value = publisher,
                     onValueChange = { publisher = it },
-                    label = { Text("Publisher") },
+                    label = { Text(stringResource(R.string.publisher)) },
                     modifier = Modifier.fillMaxWidth()
                     )
                     Spacer(modifier = Modifier.height(8.dp))
@@ -232,7 +234,7 @@ fun EditMetadataModal(
                     OutlinedTextField(
            value = language,
                     onValueChange = { language = it },
-                    label = { Text("Language") },
+                    label = { Text(stringResource(R.string.language)) },
                     modifier = Modifier.fillMaxWidth()
                     )
                     Spacer(modifier = Modifier.height(8.dp))
@@ -240,7 +242,7 @@ fun EditMetadataModal(
                     OutlinedTextField(
                         value = numberOfPages,
                         onValueChange = { numberOfPages = it },
-                        label = { Text("Pages") },
+                        label = { Text(stringResource(R.string.pages)) },
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                         modifier = Modifier.fillMaxWidth()
                     )
@@ -249,7 +251,7 @@ fun EditMetadataModal(
                     OutlinedTextField(
                         value = subjects,
                         onValueChange = { subjects = it },
-                        label = { Text("Subjects (comma-separated)") },
+                        label = { Text(stringResource(R.string.subjects_with_comma)) },
                         modifier = Modifier.fillMaxWidth()
                     )
                     Spacer(modifier = Modifier.height(8.dp))
@@ -258,7 +260,7 @@ fun EditMetadataModal(
                         OutlinedTextField(
                             value = narrator,
                             onValueChange = { narrator = it },
-                            label = { Text("Narrator") },
+                            label = { Text(stringResource(R.string.narrator)) },
                             modifier = Modifier.fillMaxWidth()
                         )
                     }
@@ -301,7 +303,7 @@ fun EditMetadataModal(
                         contentColor = MaterialTheme.colorScheme.onErrorContainer
                     )
                 ) {
-                    Text("Reset")
+                    Text(stringResource(R.string.reset))
                 }
 
                 // Save Button
@@ -329,7 +331,7 @@ fun EditMetadataModal(
                     },
                     modifier = Modifier.weight(1f),
                 ) {
-                    Text("Save")
+                    Text(stringResource(R.string.save))
                 }
             }
         }

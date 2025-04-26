@@ -112,7 +112,6 @@
     <string name="text_color">Textfarbe</string>
     <string name="select_color">%1$s Farbe auswählen</string>
     <string name="no_books_in">Keine Bücher in %1$s</string>
-    <string name="welcome_to_uread">Willkommen bei uRead!</string>
     <string name="to_get_started_please_select_a_directory_where_you_would_like_to_load_your_books">Um zu beginnen, wählen Sie bitte ein Verzeichnis aus, in dem Sie Ihre Bücher laden möchten.</string>
     <string name="select_directory">Verzeichnis auswählen</string>
     <string name="select_scan_directory">Scan-Verzeichnis auswählen</string>
@@ -214,5 +213,30 @@
     <string name="unable_to_open_privacy_policy">Datenschutzerklärung kann nicht geöffnet werden</string>
     <string name="navigate_to">Navigieren zu</string>
     <string name="back">Zurück</string>
+
+    <!-- -->
+    <string name="ebooks">E-Books</string>
+    <string name="audio_books">Hörbücher</string>
+    <string name="mine">Meine</string>
+    <string name="description">Beschreibung</string>
+    <string name="publication_date">Veröffentlichungsdatum</string>
+    <string name="publisher">Verlag</string>
+    <string name="subjects_with_comma">Themen (kommagetrennt)</string>
+    <string name="narrator">Sprecher</string>
+    <string name="translated_text">Übersetzter Text: [API-Aufrufergebnis für \"%1$s\"]</string>
+    <!-- 德语 /app/src/main/res/values-de/strings.xml -->
+    <string name="welcome_to_uread">Willkommen bei Einfach Leser</string>
+    <string name="remove_note">Notiz entfernen</string>
+    <string name="dialog_content_remove_note">Möchten Sie diese Notiz wirklich löschen?</string>
+    <string name="ok">OK</string>
+    <string name="definition_of_word">Definition von \"%1$s\"</string>
+    <string name="search_in_google">In Google suchen</string>
+    <!-- 德语 /app/src/main/res/values-de/strings.xml -->
+    <string name="translation">Übersetzung</string>
+    <string name="note_content">Notiz: %1$s</string>
+    <string name="error_with_message">Fehler: %1$s</string>
+    <string name="model_system">System</string>
+    <string name="model_light">Hell</string>
+    <string name="model_dark">Dunkel</string>
 
 </resources>

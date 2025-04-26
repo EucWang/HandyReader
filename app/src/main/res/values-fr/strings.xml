@@ -112,7 +112,6 @@
     <string name="text_color">Couleur du texte</string>
     <string name="select_color">Sélectionner la couleur %1$s</string>
     <string name="no_books_in">Aucun livre dans %1$s</string>
-    <string name="welcome_to_uread">Bienvenue sur uRead !</string>
     <string name="to_get_started_please_select_a_directory_where_you_would_like_to_load_your_books">Pour commencer, veuillez sélectionner un répertoire où vous souhaitez charger vos livres.</string>
     <string name="select_directory">Sélectionner un répertoire</string>
     <string name="select_scan_directory">Sélectionner le répertoire de scan</string>
@@ -214,4 +213,28 @@
     <string name="unable_to_open_privacy_policy">Impossible d\'ouvrir la politique de confidentialité</string>
     <string name="navigate_to">Naviguer vers</string>
     <string name="back">Retour</string>
+
+    <string name="ebooks">Livres numériques</string>
+    <string name="audio_books">Livres audio</string>
+    <string name="mine">Le mien</string>
+    <string name="description">Description</string>
+    <string name="publication_date">Date de publication</string>
+    <string name="publisher">Éditeur</string>
+    <string name="subjects_with_comma">Sujets (séparés par des virgules)</string>
+    <string name="narrator">Narrateur</string>
+    <string name="translated_text">Texte traduit : [Résultat d\'appel API pour \"%1$s\"]</string>
+    <string name="welcome_to_uread">Bienvenue sur Lecteur Pratique</string>
+    <string name="remove_note">Supprimer la note</string>
+    <string name="dialog_content_remove_note">Êtes-vous sûr de vouloir supprimer cette note ?</string>
+    <string name="ok">OK</string>
+    <string name="definition_of_word">Définition de \"%1$s\"</string>
+    <string name="search_in_google"><![CDATA[Rechercher sur Google]]></string>
+    <!-- 法语 /app/src/main/res/values-fr/strings.xml -->
+    <string name="translation">Traduction</string>
+    <string name="note_content">Note de lecture : %1$s</string>
+    <string name="error_with_message">Erreur : %1$s</string>
+        <string name="model_system">Système</string>
+        <string name="model_light">Clair</string>
+        <string name="model_dark">Sombre</string>
+
 </resources>

@@ -113,7 +113,7 @@
     <string name="text_color">टेक्स्ट रंग</string>
     <string name="select_color">%1$s रंग चुनें</string>
     <string name="no_books_in">%1$s में कोई पुस्तक नहीं</string>
-    <string name="welcome_to_uread">uRead में आपका स्वागत है!</string>
+<!--    <string name="welcome_to_uread">uRead में आपका स्वागत है!</string>-->
     <string name="to_get_started_please_select_a_directory_where_you_would_like_to_load_your_books">शुरुआत करने के लिए, कृपया एक निर्देशिका चुनें जहाँ आप अपनी पुस्तकें लोड करना चाहते हैं।</string>
     <string name="select_directory">निर्देशिका स्थान चुनें</string>
     <string name="select_scan_directory">स्कैन निर्देशिका चुनें</string>
@@ -215,4 +215,28 @@
     <string name="unable_to_open_privacy_policy">गोपनीयता नीति नहीं खोल सकते</string>
     <string name="navigate_to">पर जाएं</string>
     <string name="back">वापस</string>
+
+    <string name="ebooks">ई-पुस्तकें</string>
+    <string name="audio_books">ऑडियोबुक</string>
+    <string name="mine">मेरा</string>
+    <string name="description">विवरण</string>
+    <string name="publication_date">प्रकाशन तिथि</string>
+    <string name="publisher">प्रकाशक</string>
+    <string name="subjects_with_comma">विषय (अल्पविराम से अलग)</string>
+    <string name="narrator">कथावाचक</string>
+    <string name="translated_text">अनूदित पाठ: [API कॉल परिणाम \"%1$s\"]</string>
+    <string name="welcome_to_uread">HandyReader में आपका स्वागत है</string>
+    <string name="remove_note">नोट हटाएँ</string>
+    <string name="dialog_content_remove_note">क्या आप वाकई इस नोट को हटाना चाहते हैं？</string>
+    <string name="ok">ठीक है</string>
+    <string name="definition_of_word">\"%1$s\" की परिभाषा</string>
+    <string name="search_in_google"><![CDATA[Google में खोजेंं]]></string>
+    <!-- 印地语 /app/src/main/res/values-hi/strings.xml -->
+    <string name="translation">अनुवाद</string>
+    <string name="note_content"><![CDATA[नोट: %1$s]]></string>
+    <string name="error_with_message"><![CDATA[त्रुटि: %1$s]]></string>
+    <string name="model_system">सिस्टम</string>
+    <string name="model_light">हल्का</string>
+    <string name="model_dark">गहरा</string>
+
 </resources>

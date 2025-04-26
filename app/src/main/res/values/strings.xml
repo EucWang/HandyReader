@@ -112,7 +112,6 @@
     <string name="text_color">Text Color</string>
     <string name="select_color">Select %1$s Color</string>
     <string name="no_books_in">No books in %1$s</string>
-    <string name="welcome_to_uread">Welcome to uRead!</string>
     <string name="to_get_started_please_select_a_directory_where_you_would_like_to_load_your_books">To get started, please select a directory where you would like to load your books.</string>
     <string name="select_directory">Select Directory location</string>
     <string name="select_scan_directory">Select Scan Directory</string>
@@ -214,5 +213,30 @@
     <string name="unable_to_open_privacy_policy">Unable to open Privacy Policy</string>
     <string name="navigate_to">Navigate to</string>
     <string name="back">Back</string>
-    <string name="admob_app_id" translatable="false">xxxxx</string> <!--TODO -->
+
+    <string name="admob_app_id" translatable="false">xxxxx</string> <!-- TODO -->
+
+    <string name="ebooks">eBooks</string>
+    <string name="audio_books">AudioBooks</string>
+    <string name="mine">Mine</string>
+    <string name="description">Description</string>
+    <string name="publication_date">Publication Date</string>
+    <string name="publisher">Publisher</string>
+    <string name="subjects_with_comma">Subjects (comma-separated)</string>
+    <string name="narrator">Narrator</string>
+    <string name="search_in_google">Search in Google</string>
+    <string name="ok">OK</string>
+    <string name="translated_text">Translated text: [API call result for \'%1$s\']</string>
+    <string name="welcome_to_uread">Welcome to HandyReader</string>
+    <string name="remove_note">Remove Note</string>
+    <string name="dialog_content_remove_note">Are you sure you want to remove this note?</string>
+    <string name="definition_of_word">Definition of \"%1$s\"</string>
+    <string name="translation">Translation</string>
+    <string name="note_content">Note: %1$s</string>
+    <string name="error_with_message">Error: %1$s</string>
+
+    <string name="model_system">System</string>
+    <string name="model_light">Light</string>
+    <string name="model_dark">Dark</string>
+
 </resources>

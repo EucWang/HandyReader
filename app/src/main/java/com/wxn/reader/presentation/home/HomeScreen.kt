@@ -224,13 +224,15 @@ fun HomeScreen(
                     NavigationBar {
                         NavigationBarItem(
                             icon = { Icon(Icons.AutoMirrored.Rounded.MenuBook, contentDescription = "Ebooks") },
-                            label = { Text("eBooks") },
+                            label = { Text(
+                                stringResource(R.string.ebooks)
+                            ) },
                             selected = selectedTabRow == 0,
                             onClick = { viewModel.updateCurrentTabRow(0) }
                         )
                         NavigationBarItem(
                             icon = { Icon(Icons.Default.Headset, contentDescription = "AudioBooks") },
-                            label = { Text("AudioBooks") },
+                            label = { Text(stringResource(R.string.audio_books)) },
                             selected = selectedTabRow == 1,
                             onClick = { viewModel.updateCurrentTabRow(1) }
                         )
@@ -239,7 +241,7 @@ fun HomeScreen(
                                 Icon(Icons.Default.Person, contentDescription = "Mine")
                             },
                             label = {
-                                Text("Mine")
+                                Text(stringResource(R.string.mine))
                             },
                             selected = selectedTabRow == 2,
                             onClick = { viewModel.updateCurrentTabRow(2) }

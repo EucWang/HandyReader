@@ -142,7 +142,7 @@ fun NoteContent(
                         )
                     }
                 } else {
-                    Text("Note: ${note.note}", style = MaterialTheme.typography.titleMedium)
+                    Text(stringResource(R.string.note_content, note.note), style = MaterialTheme.typography.titleMedium)
                     Spacer(modifier = Modifier.height(24.dp))
                     Text(note.selectedText)
                 }
