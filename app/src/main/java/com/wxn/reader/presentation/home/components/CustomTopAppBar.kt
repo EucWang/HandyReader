@@ -125,10 +125,18 @@ fun CustomTopAppBar(
                     modifier = Modifier.fillMaxWidth()
                 ) {
                     Text(
-                        text = when (selectedTab) {
-                            0 -> if (appPreferences.showEntries) "uRead " else "uRead"
-                            else -> shelves.getOrNull(selectedTab - 1)?.name ?: "Unknown Shelf"
-                        },
+                        text =
+                          when(selectedTabRow) {
+                              0 -> stringResource(R.string.ebooks)
+                              1 -> stringResource(R.string.audio_books)
+                              2 -> stringResource(R.string.mine)
+                              else -> stringResource(R.string.app_name)
+                          }
+//                            when (selectedTab) {
+//                            0 -> if (appPreferences.showEntries) "uRead " else "uRead"
+//                            else -> shelves.getOrNull(selectedTab - 1)?.name ?: "Unknown Shelf"
+//                        }
+                        ,
                         maxLines = 1,
 //                        modifier = Modifier.weight(1f),
 //                        style = MaterialTheme.typography.titleMedium
