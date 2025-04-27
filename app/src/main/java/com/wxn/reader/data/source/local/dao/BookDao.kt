@@ -8,7 +8,7 @@ import androidx.room.OnConflictStrategy
 import androidx.room.Query
 import androidx.room.Transaction
 import androidx.room.Update
-import com.wxn.reader.data.model.Book
+import com.wxn.reader.data.model.BookEntity
 import com.wxn.reader.data.model.FileType
 import com.wxn.reader.data.model.ReadingStatus
 import kotlinx.coroutines.flow.Flow
@@ -16,8 +16,7 @@ import kotlinx.coroutines.flow.Flow
 @Dao
 interface BookDao {
     @Query("SELECT * FROM books WHERE deleted = 0")
-    fun getAllBooks(): Flow<List<Book>>
-
+    fun getAllBooks(): Flow<List<BookEntity>>
 
     @Query(
         """
@@ -45,46 +44,35 @@ interface BookDao {
         isAsc: Boolean,
         readingStatuses: List<ReadingStatus>?,
         fileTypes: List<FileType>?
-    ): PagingSource<Int, Book>
-
+    ): PagingSource<Int, BookEntity>
 
     @Query("SELECT * FROM books WHERE deleted = 1")
-    fun getDeletedBooks(): Flow<List<Book>>
-
+    fun getDeletedBooks(): Flow<List<BookEntity>>
 
     @Query("SELECT uri FROM books")
     suspend fun getAllBookUris(): List<String>
 
-
     @Query("SELECT * FROM books WHERE uri = :uri")
-    fun getBookByUri(uri: String): Book?
+    fun getBookByUri(uri: String): BookEntity?
 
     @Query("SELECT * FROM books WHERE id = :bookId")
-    fun getBookById(bookId: Long): Book?
+    fun getBookById(bookId: Long): BookEntity?
 
     @Query("SELECT * FROM books WHERE id IN (:bookIds)")
-    suspend fun getBooksByIds(bookIds: List<Long>): List<Book>
-
-
-
+    suspend fun getBooksByIds(bookIds: List<Long>): List<BookEntity>
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
-    fun insertBook(books: Book)
-
+    fun insertBook(books: BookEntity)
 
     @Transaction
     @Update
-    suspend fun update(book: Book)
+    suspend fun update(book: BookEntity)
 
     @Delete
-    suspend fun delete(book: Book)
-
+    suspend fun delete(book: BookEntity)
 
     @Query("DELETE FROM books WHERE uri = :bookUri")
     fun deleteBookByUri(bookUri: String)
-
-
-
 
     @Query("SELECT locator FROM books WHERE id = :bookId")
     fun getReadingProgress(bookId: Long): String
@@ -92,14 +80,7 @@ interface BookDao {
     @Query("UPDATE books SET locator = :locator, progression = :progression WHERE id = :bookId")
     fun setReadingProgress(bookId: Long, locator: String, progression: Float)
 
-
     @Query("UPDATE books SET readingStatus = :status WHERE id = :bookId")
     suspend fun setReadingStatus(bookId: Long, status: ReadingStatus)
-
-
-
-
-
-
 }
 

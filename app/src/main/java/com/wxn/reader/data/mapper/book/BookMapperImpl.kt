@@ -1,0 +1,97 @@
+package com.wxn.reader.data.mapper.book
+
+import androidx.core.net.toUri
+import com.wxn.bookparser.domain.book.Book
+import com.wxn.bookparser.domain.category.stringToCategory
+import com.wxn.bookparser.domain.ui.UIText
+import com.wxn.reader.R
+import com.wxn.reader.data.model.BookEntity
+import com.wxn.reader.data.model.intToReadStatus
+import com.wxn.reader.data.model.stringToFileType
+import javax.inject.Inject
+
+class BookMapperImpl @Inject constructor() : BookMapper {
+    override suspend fun toBookEntity(book: Book): BookEntity {
+        return BookEntity(
+            id = book.id,
+            uri = book.filePath,
+            fileType = stringToFileType(book.fileType),
+
+            title = book.title,
+            authors = book.author.getAsString().orEmpty(),
+            description = book.description,
+
+            publishDate = book.publishDate,
+            publisher = book.publisher,
+            language = book.language,
+            numberOfPages = book.numberOfPages,
+
+            subjects = book.category.toString(),
+            coverPath = book.coverImage?.toString(),
+            locator = book.locator,
+
+            progression = book.progress,
+            lastOpened = book.lastOpened,
+            deleted = book.deleted,
+
+            rating = book.rating,
+            isFavorite = book.isFavorite,
+
+            readingStatus = intToReadStatus(book.readingStatus ?: 0),
+            readingTime = book.readingTime,
+            startReadingDate = book.startReadingDate,
+            endReadingDate = book.endReadingDate,
+
+            review = book.review,
+            duration = book.duration,
+            narrator = book.narrator,
+
+            scrollIndex = book.scrollIndex,
+            scrollOffset = book.scrollOffset,
+        )
+    }
+
+    override suspend fun toBook(bookEntity: BookEntity): Book {
+        return Book(
+            id = bookEntity.id,
+            title = bookEntity.title,
+            author = bookEntity.authors.let {
+                UIText.StringValue(it) } ?: UIText.StringResource(
+                R.string.unknown_author
+            ),
+
+            description = bookEntity.description,
+            scrollIndex = bookEntity.scrollIndex,
+            scrollOffset = bookEntity.scrollOffset,
+
+            progress = bookEntity.progression,
+            filePath = bookEntity.uri,
+            lastOpened = bookEntity.lastOpened,
+
+            category = stringToCategory(bookEntity.subjects.orEmpty()),
+            coverImage = bookEntity.coverPath?.toUri(),
+
+            fileType = bookEntity.fileType.toString(),
+
+            publishDate = bookEntity.publishDate,
+            publisher = bookEntity.publisher,
+            language = bookEntity.language,
+
+            numberOfPages = bookEntity.numberOfPages,
+            locator = bookEntity.locator,
+            deleted = bookEntity.deleted,
+
+            rating = bookEntity.rating,
+            isFavorite = bookEntity.isFavorite,
+            readingStatus = bookEntity.readingStatus?.ordinal,
+
+            readingTime = bookEntity.readingTime,
+            startReadingDate = bookEntity.startReadingDate,
+            endReadingDate = bookEntity.endReadingDate,
+
+            review = bookEntity.review,
+            duration = bookEntity.duration,
+            narrator = bookEntity.narrator
+        )
+    }
+}

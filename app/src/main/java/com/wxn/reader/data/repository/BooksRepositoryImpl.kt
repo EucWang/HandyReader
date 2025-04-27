@@ -1,7 +1,7 @@
 package com.wxn.reader.data.repository
 
 import androidx.paging.PagingSource
-import com.wxn.reader.data.model.Book
+import com.wxn.bookparser.domain.book.Book
 import com.wxn.reader.data.model.BookAnnotation
 import com.wxn.reader.data.model.Bookmark
 import com.wxn.reader.data.model.FileType

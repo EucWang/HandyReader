@@ -13,7 +13,6 @@ interface BookmarkDao {
     @Query("SELECT * FROM bookmarks")
     fun getAllBookmarks(): Flow<List<Bookmark>>
 
-
     @Insert
     suspend fun insert(bookmark: Bookmark)
 

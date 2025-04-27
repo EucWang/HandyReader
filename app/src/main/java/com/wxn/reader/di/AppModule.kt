@@ -31,8 +31,6 @@ import org.readium.r2.streamer.parser.DefaultPublicationParser
 import javax.inject.Singleton
 
 
-
-
 @Module
 @InstallIn(SingletonComponent::class) //live as long as our application
 object AppModule {

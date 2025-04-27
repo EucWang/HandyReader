@@ -238,5 +238,6 @@
     <string name="model_system">System</string>
     <string name="model_light">Hell</string>
     <string name="model_dark">Dunkel</string>
+    <string name="unknown_author" />
 
 </resources>

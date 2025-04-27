@@ -236,5 +236,6 @@
     <string name="model_system">跟随系统</string>
     <string name="model_light">浅色模式</string>
     <string name="model_dark">深色模式</string>
+    <string name="unknown_author" />
 
 </resources>

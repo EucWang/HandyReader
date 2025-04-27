@@ -236,5 +236,6 @@
         <string name="model_system">Système</string>
         <string name="model_light">Clair</string>
         <string name="model_dark">Sombre</string>
+    <string name="unknown_author" />
 
 </resources>

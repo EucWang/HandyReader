@@ -236,5 +236,6 @@
     <string name="model_system">システム</string>
     <string name="model_light">ライト</string>
     <string name="model_dark">ダーク</string>
+    <string name="unknown_author" />
 
 </resources>
