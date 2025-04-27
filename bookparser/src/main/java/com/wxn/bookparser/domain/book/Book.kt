@@ -3,6 +3,7 @@ package com.wxn.bookparser.domain.book
 import android.net.Uri
 import android.os.Parcelable
 import androidx.compose.runtime.Immutable
+import com.wxn.bookparser.domain.category.Category
 import com.wxn.bookparser.domain.ui.UIText
 import kotlinx.parcelize.Parcelize
 

@@ -10,11 +10,11 @@ import android.util.Log
 import com.wxn.bookparser.domain.book.BookWithCover
 import com.wxn.bookparser.domain.file.CachedFile
 import com.wxn.bookparser.FileParser
-import com.wxn.bookparser.subparser.epub.EpubFileParser
-import ua.acclorite.book_story.data.parser.fb2.Fb2FileParser
-import ua.acclorite.book_story.data.parser.html.HtmlFileParser
-import ua.acclorite.book_story.data.parser.pdf.PdfFileParser
-import ua.acclorite.book_story.data.parser.txt.TxtFileParser
+import com.wxn.bookparser.parser.epub.EpubFileParser
+import com.wxn.bookparser.parser.fb2.Fb2FileParser
+import com.wxn.bookparser.parser.html.HtmlFileParser
+import com.wxn.bookparser.parser.pdf.PdfFileParser
+import com.wxn.bookparser.parser.txt.TxtFileParser
 import javax.inject.Inject
 
 private const val FILE_PARSER = "File Parser"

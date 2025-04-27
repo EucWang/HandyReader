@@ -4,12 +4,18 @@ import android.util.Log
 import com.wxn.bookparser.TextParser
 import com.wxn.bookparser.domain.file.CachedFile
 import com.wxn.bookparser.domain.reader.ReaderText
+import com.wxn.bookparser.parser.epub.EpubTextParser
+import com.wxn.bookparser.parser.html.HtmlTextParser
+import com.wxn.bookparser.parser.pdf.PdfTextParser
+import com.wxn.bookparser.parser.txt.TxtTextParser
+import com.wxn.bookparser.parser.xml.XmlTextParser
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import javax.inject.Inject
 
 private const val TEXT_PARSER = "Text Parser"
 
-class TextParserImpl constructor(
+class TextParserImpl @Inject constructor(
     // Markdown parser (Markdown)
     private val txtTextParser: TxtTextParser,
     private val pdfTextParser: PdfTextParser,

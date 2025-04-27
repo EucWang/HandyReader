@@ -209,10 +209,6 @@ dependencies {
     implementation(libs.multiplatform.markdown.renderer.m3)
 
 
-
-
-
-
     // for ads TODO
 //    implementation(libs.play.services.ads)
 
@@ -225,18 +221,13 @@ dependencies {
     // for in app purchases
     implementation(libs.billing.ktx)
 
-
-
     implementation(libs.aboutlibraries.core)
     implementation(libs.aboutlibraries.compose)
-
 
     implementation(platform("io.github.jan-tennert.supabase:bom:3.1.1"))
     implementation("io.github.jan-tennert.supabase:postgrest-kt")
     implementation("io.github.jan-tennert.supabase:auth-kt")
     implementation("io.github.jan-tennert.supabase:realtime-kt")
-
-
 
 
 //    implementation(libs.ketch)
@@ -257,4 +248,5 @@ dependencies {
 //
 //    implementation("com.google.android.libraries.identity.googleid:googleid:1.1.1")
 
+    implementation(project(":bookparser"))
 }
