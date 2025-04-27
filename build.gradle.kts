@@ -12,6 +12,7 @@ plugins {
     id("com.mikepenz.aboutlibraries.plugin") version "11.2.3" apply false
     alias(libs.plugins.google.gms.google.services) apply false
     alias(libs.plugins.google.firebase.crashlytics) apply false
+    alias(libs.plugins.android.library) apply false
 
 //    id("com.chaquo.python") version "15.0.1" apply false
 

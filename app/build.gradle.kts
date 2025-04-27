@@ -31,7 +31,7 @@ android {
 
     defaultConfig {
         applicationId = "com.wxn.reader"
-        minSdk = 23
+        minSdk = 24
         //noinspection OldTargetApi
         targetSdk = 35
         versionCode = 20
