@@ -141,7 +141,7 @@ fun CustomTopAppBar(
 //                        modifier = Modifier.weight(1f),
 //                        style = MaterialTheme.typography.titleMedium
                     )
-                    AnimatedVisibility(visible = appPreferences.showEntries) {
+                    AnimatedVisibility(visible = appPreferences.showEntries && (selectedTabRow == 0 || selectedTabRow == 1)) {
                         Box(
                             modifier = Modifier
                                 .weight(1f)

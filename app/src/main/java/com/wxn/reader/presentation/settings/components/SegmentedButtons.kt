@@ -1,6 +1,7 @@
 package com.wxn.reader.presentation.settings.components
 
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -27,9 +28,10 @@ fun SegmentedThemeControl(
     selectedTheme: AppTheme,
     onThemeSelected: (AppTheme) -> Unit
 ) {
-    Row(
+    Column(
         modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.SpaceEvenly,
+        horizontalAlignment = Alignment.Start,
+        verticalArrangement = Arrangement.Top
     ) {
         ThemeOption(
             icon = Icons.Default.PhoneAndroid,

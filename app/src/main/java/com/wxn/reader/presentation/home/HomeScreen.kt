@@ -158,37 +158,8 @@ fun HomeScreen(
         }
     }
     Box(modifier = Modifier.fillMaxSize()) {
-        if (appPreferences.homeBackgroundImage.isNotEmpty()) { //自定义背景
-            Image(
-                painter = rememberAsyncImagePainter(appPreferences.homeBackgroundImage),
-                contentDescription = "Book cover",
-                modifier = Modifier
-                    .fillMaxSize()
-                    .alpha(0.7f),
-                contentScale = ContentScale.Crop
-            )
-        }
+        PageBackground(viewModel)
 
-        // Gradient overlay
-        Box(                    //默认背景
-            modifier = Modifier.fillMaxSize()
-                .background(
-                    MaterialTheme.colorScheme.background
-//                    brush = Brush.verticalGradient(
-//                        colors = listOf(
-//                            Color.Transparent,
-//                            MaterialTheme.colorScheme.background.copy(alpha = 0.5f),
-//                            MaterialTheme.colorScheme.background
-//                        ),
-//                        startY = 0f,
-//                        endY = 2000f
-//                    )
-                )
-        )
-
-//    CustomNavigationDrawer(
-//        drawerState = drawerState,
-//    ) {
         Scaffold(
             topBar = {
                 AnimatedVisibility(
@@ -268,9 +239,7 @@ fun HomeScreen(
                             icon = {
                                 Icon(Icons.Default.Person, contentDescription = "Mine")
                             },
-                            label = {
-                                Text(stringResource(R.string.mine))
-                            },
+                            label = { Text(stringResource(R.string.mine)) },
                             selected = selectedTabRow == 2,
                             onClick = { viewModel.updateCurrentTabRow(2) }
                         )
@@ -328,5 +297,38 @@ fun HomeScreen(
                 HomeMinePanel(innerPadding, viewModel)
             }
         }
+    }
+}
+
+@Composable fun PageBackground(viewModel: HomeViewModel) {
+    val appPreferences by viewModel.appPreferences.collectAsStateWithLifecycle()
+
+    if (appPreferences.homeBackgroundImage.isNotEmpty()) { //自定义背景
+        Image(
+            painter = rememberAsyncImagePainter(appPreferences.homeBackgroundImage),
+            contentDescription = "Book cover",
+            modifier = Modifier
+                .fillMaxSize()
+                .alpha(0.7f),
+            contentScale = ContentScale.Crop
+        )
+        // Gradient overlay
+        Box(                    //默认背景
+            modifier = Modifier.fillMaxSize()
+                .background(
+                    brush = Brush.verticalGradient(
+                        colors = listOf(
+                            Color.Transparent,
+                            MaterialTheme.colorScheme.background.copy(alpha = 0.5f),
+                            MaterialTheme.colorScheme.background
+                        ),
+                        startY = 0f,
+                        endY = 2000f
+                    )
+                )
+        )
+    } else {
+        //默认纯色背景
+        Box(modifier = Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background))
     }
 }

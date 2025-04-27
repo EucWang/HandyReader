@@ -99,25 +99,25 @@ fun GeneralSettings(
         ) {
 
             //Pdf support
-            ListItem(
-                modifier = Modifier.padding(vertical = 8.dp),
-                leadingContent = {
-                    Icon(
-                        Icons.Outlined.PictureAsPdf,
-                        contentDescription = "Enable pdf support"
-                    )
-                },
-                headlineContent = { Text(stringResource(R.string.enable_pdf_support)) },
-                supportingContent = { Text(stringResource(R.string.pdf_files_do_not_support_features_such_as_highlighting_annotations)) },
-                trailingContent = {
-                    Switch(
-                        checked = appPreferences.enablePdfSupport,
-                        onCheckedChange = { viewModel.updatePdfSupport(it) }
-                    )
-                }
-            )
-
-            HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
+//            ListItem(
+//                modifier = Modifier.padding(vertical = 8.dp),
+//                leadingContent = {
+//                    Icon(
+//                        Icons.Outlined.PictureAsPdf,
+//                        contentDescription = "Enable pdf support"
+//                    )
+//                },
+//                headlineContent = { Text(stringResource(R.string.enable_pdf_support)) },
+//                supportingContent = { Text(stringResource(R.string.pdf_files_do_not_support_features_such_as_highlighting_annotations)) },
+//                trailingContent = {
+//                    Switch(
+//                        checked = appPreferences.enablePdfSupport,
+//                        onCheckedChange = { viewModel.updatePdfSupport(it) }
+//                    )
+//                }
+//            )
+//
+//            HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
 
 
             // scan directories
@@ -180,11 +180,7 @@ fun GeneralSettings(
                 }
             }
 
-
-
             HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
-
-
 
             ListItem(
                 headlineContent = { Text(stringResource(R.string.language)) },
@@ -318,16 +314,6 @@ fun GeneralSettings(
         }
     }
 
-
-
-
-
-
-
-
-
-
-
     if (showSelectDirectoryDialog) {
         AlertDialog(
             onDismissRequest = { showSelectDirectoryDialog = false },
@@ -348,7 +334,6 @@ fun GeneralSettings(
             }
         )
     }
-
 
     if (showDeleteDirectoryDialog) {
         val uri = Uri.parse(directoryToDelete)
