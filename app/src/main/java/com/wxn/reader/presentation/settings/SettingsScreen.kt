@@ -50,6 +50,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.compositeOver
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
@@ -124,8 +125,6 @@ fun SettingsScreen(
                 modifier = Modifier
                     .padding(innerPadding)
             ) {
-
-
                 item {
                     Row(
                         modifier = Modifier
@@ -155,165 +154,59 @@ fun SettingsScreen(
                     }
                 }
 
-
                 item {
-
-                    ListItem(
-                        modifier = Modifier
-                            .padding(horizontal = 16.dp, vertical = 8.dp)
-                            .shadow(
-                                elevation = 4.dp,
-                                shape = RoundedCornerShape(16.dp),
-                                spotColor = if (!isDarkTheme) {
-                                    Color.Black.copy(alpha = 0.8f)
-                                } else {
-                                    Color.Black.copy(alpha = 0.5f)
-                                }
-                            )
-                            .clip(RoundedCornerShape(16.dp))
-                            .background(elevationOverlay)
-                            .clickable(onClick = {
-                                navController.navigate(Screens.GeneralSettingsScreen.route)
-                            })
-                            .fillMaxWidth(),
-                        headlineContent = {
-                            Text(
-                                text = stringResource(R.string.general),
-                                color = MaterialTheme.colorScheme.onSurface
-                            )
-                        },
-                        leadingContent = {
-                            Icon(
-                                imageVector = Icons.Outlined.Tune,
-                                contentDescription = "General",
-                                tint = MaterialTheme.colorScheme.onSurface
-                            )
-                        },
-                        colors = ListItemDefaults.colors(
-                            containerColor = Color.Transparent,
-                        )
-                    )
+                    SetListItem(isDarkTheme,
+                        text = stringResource(R.string.general),
+                        icon = Icons.Outlined.Tune) {
+                        navController.navigate(Screens.GeneralSettingsScreen.route)
+                    }
                 }
 
-
-
                 item {
-                    ListItem(
-                        modifier = Modifier
-                            .padding(horizontal = 16.dp, vertical = 8.dp)
-                            .shadow(
-                                elevation = 4.dp,
-                                shape = RoundedCornerShape(16.dp),
-                                spotColor = if (!isDarkTheme) {
-                                    Color.Black.copy(alpha = 0.8f)
-                                } else {
-                                    Color.Black.copy(alpha = 0.5f)
-                                }
-                            )
-                            .clip(RoundedCornerShape(16.dp))
-                            .background(elevationOverlay)
-                            .clickable(onClick = {
-                                navController.navigate(Screens.ThemeScreen.route)
-                            })
-                            .fillMaxWidth(),
-                        headlineContent = {
-                            Text(
-                                text = stringResource(R.string.theme),
-                                color = MaterialTheme.colorScheme.onSurface
-                            )
-                        },
-                        leadingContent = {
-                            Icon(
-                                imageVector = Icons.Outlined.Palette,
-                                contentDescription = "Theme",
-                                tint = MaterialTheme.colorScheme.onSurface
-                            )
-                        },
-                        colors = ListItemDefaults.colors(
-                            containerColor = Color.Transparent,
-                        )
-                    )
+                    SetListItem(isDarkTheme, stringResource(R.string.theme), Icons.Outlined.Palette) {
+                        navController.navigate(Screens.ThemeScreen.route)
+                    }
                 }
 
-
+                item {
+                    SetListItem(isDarkTheme, stringResource(R.string.deleted_books),Icons.Outlined.DeleteOutline,) {
+                        navController.navigate(Screens.DeletedBooksScreen.route)
+                    }
+                }
 
                 item {
-                    ListItem(
-                        modifier = Modifier
-                            .padding(horizontal = 16.dp, vertical = 8.dp)
-                            .shadow(
-                                elevation = 4.dp,
-                                shape = RoundedCornerShape(16.dp),
-                                spotColor = if (!isDarkTheme) {
-                                    Color.Black.copy(alpha = 0.8f)
-                                } else {
-                                    Color.Black.copy(alpha = 0.5f)
-                                }
-                            )
-                            .clip(RoundedCornerShape(16.dp))
-                            .background(elevationOverlay)
-                            .clickable(onClick = {
-                                navController.navigate(Screens.DeletedBooksScreen.route)
-                            })
-                            .fillMaxWidth(),
-                        headlineContent = {
-                            Text(
-                                text = stringResource(R.string.deleted_books),
-                                color = MaterialTheme.colorScheme.onSurface
-                            )
-                        },
-                        leadingContent = {
-                            Icon(
-                                imageVector = Icons.Outlined.DeleteOutline,
-                                contentDescription = "Trash",
-                                tint = MaterialTheme.colorScheme.onSurface
-                            )
-                        },
-                        colors = ListItemDefaults.colors(
-                            containerColor = Color.Transparent,
-                        )
-                    )
+                    SetListItem(isDarkTheme,  stringResource(R.string.about),Icons.Outlined.Info,) {
+                        navController.navigate(Screens.AboutAppScreen.route + "/${isDarkTheme}")
+                    }
                 }
 
 
                 item {
-                    ListItem(
-                        modifier = Modifier
-                            .padding(horizontal = 16.dp, vertical = 8.dp)
-                            .shadow(
-                                elevation = 4.dp,
-                                shape = RoundedCornerShape(16.dp),
-                                spotColor = if (!isDarkTheme) {
-                                    Color.Black.copy(alpha = 0.8f)
-                                } else {
-                                    Color.Black.copy(alpha = 0.5f)
+                    SetListItem(isDarkTheme,  stringResource(R.string.rate_the_app), Icons.Outlined.StarRate,) {
+                        val request = reviewManager.requestReviewFlow()
+                                request.addOnCompleteListener { task ->
+                                    if (task.isSuccessful) {
+                                        // We got the ReviewInfo object
+                                        val reviewInfo = task.result
+                                        val flow = reviewManager.launchReviewFlow(
+                                            context as ComponentActivity,
+                                            reviewInfo
+                                        )
+                                        flow.addOnCompleteListener { _ ->
+                                            Log.d("Review", "Review flow completed")
+                                            // The flow has finished. The API does not indicate whether the user
+                                            // reviewed or not, or even whether the review dialog was shown. Thus, no
+                                            // matter the result, we continue our app flow.
+                                        }
+                                    } else {
+                                        // There was some problem, log or handle the error code.
+                                        @ReviewErrorCode val reviewErrorCode =
+                                            (task.exception as ReviewException).errorCode
+                                        Log.e("Review", "Error code: $reviewErrorCode")
+                                    }
                                 }
-                            )
-                            .clip(RoundedCornerShape(16.dp))
-                            .background(elevationOverlay)
-                            .clickable(onClick = {
-                                navController.navigate(Screens.AboutAppScreen.route + "/${isDarkTheme}")
-                            })
-                            .fillMaxWidth(),
-                        headlineContent = {
-                            Text(
-                                text = stringResource(R.string.about),
-                                color = MaterialTheme.colorScheme.onSurface
-                            )
-                        },
-                        leadingContent = {
-                            Icon(
-                                imageVector = Icons.Outlined.Info,
-                                contentDescription = "About",
-                                tint = MaterialTheme.colorScheme.onSurface
-                            )
-                        },
-                        colors = ListItemDefaults.colors(
-                            containerColor = Color.Transparent,
-                        )
-                    )
+                    }
                 }
-
 
 //                if (!appPreferences.isPremium) {
 //                    item {
@@ -354,122 +247,57 @@ fun SettingsScreen(
 //                        )
 //                    }
 //                }
-
-
-
-
-
-                item {
-
-                    ListItem(
-                        modifier = Modifier
-                            .padding(horizontal = 16.dp, vertical = 8.dp)
-                            .shadow(
-                                elevation = 4.dp,
-                                shape = RoundedCornerShape(16.dp),
-                                spotColor = if (!isDarkTheme) {
-                                    Color.Black.copy(alpha = 0.8f)
-                                } else {
-                                    Color.Black.copy(alpha = 0.5f)
-                                }
-                            )
-                            .clip(RoundedCornerShape(16.dp))
-                            .background(elevationOverlay)
-                            .clickable(onClick = {
-                                try {
-                                    val intent = Intent(
-                                        Intent.ACTION_VIEW,
-                                        Uri.parse("https://github.com/Rics-Dev/uRead/issues/new")
-                                    )
-                                    context.startActivity(intent)
-                                } catch (e: Exception) {
-                                    Toast
-                                        .makeText(context, "Unable to open GitHub", Toast.LENGTH_SHORT)
-                                        .show()
-                                }
-                            })
-                            .fillMaxWidth(),
-                        headlineContent = {
-                            Text(
-                                text = stringResource(R.string.feature_request),
-                                color = MaterialTheme.colorScheme.onSurface
-                            )
-                        },
-                        leadingContent = {
-                            Icon(
-                                Icons.AutoMirrored.Outlined.Send,
-                                contentDescription = "Feature Request",
-                                tint = MaterialTheme.colorScheme.onSurface
-                            )
-                        },
-                        colors = ListItemDefaults.colors(
-                            containerColor = Color.Transparent,
-                        )
-                    )
-
-
-                }
-
-
-                item {
-                    ListItem(
-                        modifier = Modifier
-                            .padding(horizontal = 16.dp, vertical = 8.dp)
-                            .shadow(
-                                elevation = 4.dp,
-                                shape = RoundedCornerShape(16.dp),
-                                spotColor = if (!isDarkTheme) {
-                                    Color.Black.copy(alpha = 0.8f)
-                                } else {
-                                    Color.Black.copy(alpha = 0.5f)
-                                }
-                            )
-                            .clip(RoundedCornerShape(16.dp))
-                            .background(elevationOverlay)
-                            .clickable(onClick = {
-                                val request = reviewManager.requestReviewFlow()
-                                request.addOnCompleteListener { task ->
-                                    if (task.isSuccessful) {
-                                        // We got the ReviewInfo object
-                                        val reviewInfo = task.result
-                                        val flow = reviewManager.launchReviewFlow(
-                                            context as ComponentActivity,
-                                            reviewInfo
-                                        )
-                                        flow.addOnCompleteListener { _ ->
-                                            Log.d("Review", "Review flow completed")
-                                            // The flow has finished. The API does not indicate whether the user
-                                            // reviewed or not, or even whether the review dialog was shown. Thus, no
-                                            // matter the result, we continue our app flow.
-                                        }
-                                    } else {
-                                        // There was some problem, log or handle the error code.
-                                        @ReviewErrorCode val reviewErrorCode =
-                                            (task.exception as ReviewException).errorCode
-                                        Log.e("Review", "Error code: $reviewErrorCode")
-                                    }
-                                }
-                            })
-                            .fillMaxWidth(),
-                        headlineContent = {
-                            Text(
-                                text = stringResource(R.string.rate_the_app),
-                                color = MaterialTheme.colorScheme.onSurface
-                            )
-                        },
-                        leadingContent = {
-                            Icon(
-                                Icons.Outlined.StarRate,
-                                contentDescription = "Rating",
-                                tint = MaterialTheme.colorScheme.onSurface
-                            )
-                        },
-                        colors = ListItemDefaults.colors(
-                            containerColor = Color.Transparent,
-                        )
-                    )
-                }
             }
         }
 //    }
+}
+
+@Composable
+fun SetListItem(
+    isDarkTheme: Boolean,
+    text: String,
+    icon: ImageVector,
+    elevationOverlay: Color = if (isDarkTheme) {
+        Color.White.copy(alpha = 0.09f)
+            .compositeOver(MaterialTheme.colorScheme.surface)
+    } else {
+        MaterialTheme.colorScheme.surface
+    },
+    itemClick: (() -> Unit)? = null
+) {
+    ListItem(
+        modifier = Modifier
+            .padding(horizontal = 16.dp, vertical = 8.dp)
+            .shadow(
+                elevation = 4.dp,
+                shape = RoundedCornerShape(16.dp),
+                spotColor = if (!isDarkTheme) {
+                    Color.Black.copy(alpha = 0.8f)
+                } else {
+                    Color.Black.copy(alpha = 0.5f)
+                }
+            )
+            .clip(RoundedCornerShape(16.dp))
+            .background(elevationOverlay)
+            .clickable(onClick = {
+                itemClick?.invoke()
+            })
+            .fillMaxWidth(),
+        headlineContent = {
+            Text(
+                text = text, //stringResource(R.string.general),
+                color = MaterialTheme.colorScheme.onSurface
+            )
+        },
+        leadingContent = {
+            Icon(
+                imageVector = icon, //Icons.Outlined.Tune,
+                contentDescription = "General",
+                tint = MaterialTheme.colorScheme.onSurface
+            )
+        },
+        colors = ListItemDefaults.colors(
+            containerColor = Color.Transparent,
+        )
+    )
 }

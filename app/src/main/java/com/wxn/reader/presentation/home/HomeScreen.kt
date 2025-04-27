@@ -173,15 +173,16 @@ fun HomeScreen(
         Box(                    //默认背景
             modifier = Modifier.fillMaxSize()
                 .background(
-                    brush = Brush.verticalGradient(
-                        colors = listOf(
-                            Color.Transparent,
-                            MaterialTheme.colorScheme.background.copy(alpha = 0.5f),
-                            MaterialTheme.colorScheme.background
-                        ),
-                        startY = 0f,
-                        endY = 2000f
-                    )
+                    MaterialTheme.colorScheme.background
+//                    brush = Brush.verticalGradient(
+//                        colors = listOf(
+//                            Color.Transparent,
+//                            MaterialTheme.colorScheme.background.copy(alpha = 0.5f),
+//                            MaterialTheme.colorScheme.background
+//                        ),
+//                        startY = 0f,
+//                        endY = 2000f
+//                    )
                 )
         )
 
