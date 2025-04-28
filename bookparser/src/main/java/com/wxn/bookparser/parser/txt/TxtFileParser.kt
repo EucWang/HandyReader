@@ -1,5 +1,6 @@
 package com.wxn.bookparser.parser.txt
 
+import androidx.compose.ui.res.stringResource
 import com.wxn.bookparser.FileParser
 import com.wxn.bookparser.R
 import com.wxn.bookparser.domain.book.Book
@@ -15,7 +16,7 @@ class TxtFileParser @Inject constructor() : FileParser {
     override suspend fun parse(cachedFile: CachedFile): BookWithCover? {
         return try {
             val title = cachedFile.name.substringBeforeLast(".").trim()
-            val author = UIText.StringResource(R.string.unknown_author)
+            val author = stringResource(R.string.unknown_author)
 
             BookWithCover(
                 book = Book(
@@ -27,8 +28,9 @@ class TxtFileParser @Inject constructor() : FileParser {
                     progress = 0f,
                     filePath = cachedFile.path,
                     lastOpened = null,
-                    category = Category.entries[0],
-                    coverImage = null
+                    category = Category.DEFAULT,
+                    coverImage = null,
+                    fileType = "txt"
                 ),
                 coverImage = null
             )

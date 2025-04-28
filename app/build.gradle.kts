@@ -9,6 +9,7 @@ plugins {
     alias(libs.plugins.compose.compiler)
     id("com.google.devtools.ksp")
     id("com.google.dagger.hilt.android")
+    id("kotlin-parcelize")
 
     id("com.mikepenz.aboutlibraries.plugin")
 //    alias(libs.plugins.google.gms.google.services) //TODO
@@ -113,6 +114,7 @@ android {
             excludes += "/META-INF/{AL2.0,LGPL2.1}"
             excludes += "/schemas/**"
 //            excludes += "META-INF/DEPENDENCIES"
+            excludes += "/META-INF/gradle/incremental.annotation.processors"
         }
     }
 }
@@ -189,15 +191,11 @@ dependencies {
     implementation(libs.androidx.room.paging)
     implementation(libs.androidx.paging.compose)
 
-
-
     implementation(libs.hilt.android)
     ksp(libs.dagger.compiler)
     ksp(libs.hilt.compiler)
 
     implementation(libs.androidx.hilt.navigation.compose)
-
-
 
     implementation(libs.androidx.datastore.preferences)
     implementation(libs.palette)
@@ -205,18 +203,13 @@ dependencies {
 
     implementation(libs.androidx.core.splashscreen)
 
-
     implementation(libs.multiplatform.markdown.renderer.m3)
-
 
     // for ads TODO
 //    implementation(libs.play.services.ads)
 
-
-
     // for in app reviews
     implementation(libs.play.review.ktx)
-
 
     // for in app purchases
     implementation(libs.billing.ktx)

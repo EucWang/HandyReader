@@ -1,8 +1,7 @@
-package com.wxn.reader.data.model
+package com.wxn.reader.data.dto
 
 import androidx.room.Entity
 import androidx.room.PrimaryKey
-import com.wxn.bookparser.parser.epub.EpubFileParser
 
 @Entity(tableName = "books")
 data class BookEntity(
@@ -44,7 +43,7 @@ data class BookEntity(
     val narrator: String? = null, // Name of the audiobook narrator
 
     var scrollIndex: Int = 0,  //+
-    var scrollOffset : Int = 0 //+
+    var scrollOffset: Int = 0 //+
 )
 
 enum class FileType {
@@ -55,32 +54,50 @@ enum class FileType {
     FB2,
     HTML,
     MD,
-    UNKNOWN
-}
+    UNKNOWN;
 
-fun stringToFileType(type:String): FileType =
-    when(type.lowercase()) {
-        "epub" -> FileType.EPUB
-        "pdf" -> FileType.PDF
-        "mp3" -> FileType.AUDIOBOOK
-        "txt" -> FileType.TXT
-        "fb2" -> FileType.FB2
-        "html", "htm" -> FileType.HTML
-        "md" -> FileType.MD
-        else -> FileType.UNKNOWN
+    companion object {
+
+        fun stringToFileType(type: String): FileType =
+            when (type.lowercase()) {
+                "epub" -> FileType.EPUB
+                "pdf" -> FileType.PDF
+                "mp3" -> FileType.AUDIOBOOK
+                "txt" -> FileType.TXT
+                "fb2" -> FileType.FB2
+                "html", "htm" -> FileType.HTML
+                "md" -> FileType.MD
+                else -> FileType.UNKNOWN
+            }
     }
 
+    fun typeName(): String =
+        when (this) {
+            EPUB -> "epub"
+            PDF -> "pdf"
+            AUDIOBOOK -> "mp3"
+            TXT -> "txt"
+            FB2 -> "fb2"
+            HTML -> "html"
+            MD -> "md"
+            UNKNOWN -> ""
+        }
+}
 
 
-enum class ReadingStatus(val value:Int) {
+enum class ReadingStatus(val value: Int) {
     NOT_STARTED(0),    // 0
     IN_PROGRESS(1),    // 1
     FINISHED(2)        //2
-}
+    ;
 
-fun intToReadStatus(status:Int) = when(status) {
-    0 -> ReadingStatus.NOT_STARTED
-    1 -> ReadingStatus.IN_PROGRESS
-    2 -> ReadingStatus.FINISHED
-    else -> ReadingStatus.NOT_STARTED
+    companion object {
+
+        fun intToReadStatus(status: Int?) = when (status) {
+            0 -> ReadingStatus.NOT_STARTED
+            1 -> ReadingStatus.IN_PROGRESS
+            2 -> ReadingStatus.FINISHED
+            else -> ReadingStatus.NOT_STARTED
+        }
+    }
 }

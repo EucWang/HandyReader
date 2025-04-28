@@ -139,7 +139,7 @@ fun PdfReaderScreen(
             contentAlignment = Alignment.Center
         ) {
             val request = ImageRequest.Builder(LocalContext.current)
-                .data(book?.coverPath)
+                .data(book?.coverImage)
                 .size(300)
                 .scale(Scale.FIT)
                 .build()

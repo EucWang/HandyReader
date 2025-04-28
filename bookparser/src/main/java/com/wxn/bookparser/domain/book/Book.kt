@@ -12,11 +12,11 @@ import kotlinx.parcelize.Parcelize
 data class Book(
     val id: Long = 0,
     val title: String,
-    val author: UIText,
+    val author: String,
 
     val description: String?,
     val filePath: String,
-    val coverImage: Uri?,
+    val coverImage: String?,
 
     val scrollIndex: Int,
     val scrollOffset: Int,
@@ -28,12 +28,12 @@ data class Book(
     //----------------
     val fileType: String,
 
-    val publishDate: String?, // New: Publication date 出版日期
-    val publisher: String?, // New: Publisher  出版商
-    val language: String?, // New: Primary language 语言
+    val publishDate: String? = "", // New: Publication date 出版日期
+    val publisher: String? = "", // New: Publisher  出版商
+    val language: String? = "", // New: Primary language 语言
 
-    val numberOfPages: Int?, // New: Total number of pages 总页数
-    val locator: String, //阅读位置
+    val numberOfPages: Int? = 0, // New: Total number of pages 总页数
+    val locator: String = "", //阅读位置
     val deleted: Boolean = false, // flag to mark the book as deleted 是否删除
 
     val rating: Float = 0f, // rating of the book  标星

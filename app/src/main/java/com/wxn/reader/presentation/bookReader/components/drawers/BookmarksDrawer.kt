@@ -43,7 +43,7 @@ import androidx.compose.ui.unit.dp
 import androidx.navigation.NavHostController
 import com.wxn.reader.R
 import com.wxn.reader.data.model.AppPreferences
-import com.wxn.reader.data.model.Bookmark
+import com.wxn.reader.domain.model.Bookmark
 import com.wxn.reader.navigation.Screens
 import com.wxn.reader.presentation.bookReader.BookReaderViewModel
 //import com.ricsdev.uread.presentation.sharedComponents.PremiumModal

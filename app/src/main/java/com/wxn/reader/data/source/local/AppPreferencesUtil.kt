@@ -10,9 +10,9 @@ import androidx.datastore.preferences.core.stringSetPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
 import com.wxn.reader.data.model.AppPreferences
 import com.wxn.reader.data.model.AppTheme
-import com.wxn.reader.data.model.FileType
+import com.wxn.reader.data.dto.FileType
 import com.wxn.reader.data.model.Layout
-import com.wxn.reader.data.model.ReadingStatus
+import com.wxn.reader.data.dto.ReadingStatus
 import com.wxn.reader.data.model.SortOption
 import com.wxn.reader.data.model.SortOrder
 import kotlinx.coroutines.flow.Flow

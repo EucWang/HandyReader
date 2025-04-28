@@ -48,8 +48,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import com.wxn.bookparser.domain.book.Book
 import com.wxn.reader.R
-import com.wxn.reader.data.model.Book
 import com.wxn.reader.presentation.bookDetails.BookDetailsViewModel
 import com.wxn.reader.presentation.sharedComponents.dialogs.RatingDialog
 
@@ -112,7 +112,7 @@ fun BookReview(book: Book, viewModel: BookDetailsViewModel) {
             ) {
                 if (book.review != null && book.review != "") {
                     Text(
-                        text = book.review,
+                        text = book.review.orEmpty(),
                         style = MaterialTheme.typography.bodyMedium,
                         modifier = Modifier.padding(bottom = 8.dp)
                     )

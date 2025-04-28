@@ -1,5 +1,6 @@
 package com.wxn.reader.domain.model
-import com.wxn.reader.data.model.Book
+
+import com.wxn.bookparser.domain.book.Book
 
 data class Author(
     val name: String,

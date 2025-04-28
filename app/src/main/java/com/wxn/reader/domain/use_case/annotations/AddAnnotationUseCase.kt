@@ -1,6 +1,6 @@
 package com.wxn.reader.domain.use_case.annotations
 
-import com.wxn.reader.data.model.BookAnnotation
+import com.wxn.reader.domain.model.BookAnnotation
 import com.wxn.reader.domain.repository.BooksRepository
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext

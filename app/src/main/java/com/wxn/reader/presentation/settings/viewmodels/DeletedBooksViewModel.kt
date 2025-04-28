@@ -6,7 +6,7 @@ import android.net.Uri
 import android.provider.DocumentsContract
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
-import com.wxn.reader.data.model.Book
+import com.wxn.bookparser.domain.book.Book
 import com.wxn.reader.domain.use_case.books.DeleteBookUseCase
 import com.wxn.reader.domain.use_case.books.GetDeletedBooksUseCase
 import com.wxn.reader.domain.use_case.books.UpdateBookUseCase
@@ -65,7 +65,7 @@ class DeletedBooksViewModel @Inject constructor(
     fun permanentlyDeleteBooks(selectedBooks: Set<Book>) {
         viewModelScope.launch {
             selectedBooks.forEach { book ->
-                val uri = Uri.parse(book.uri)
+                val uri = Uri.parse(book.filePath)
                 if (uri.scheme == "content") {
                     // Use ContentResolver to delete the file
                     val contentResolver = appContext.contentResolver

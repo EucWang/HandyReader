@@ -1,6 +1,7 @@
 package com.wxn.bookparser.parser.pdf
 
 import android.app.Application
+import androidx.compose.ui.res.stringResource
 import com.tom_roush.pdfbox.android.PDFBoxResourceLoader
 import com.tom_roush.pdfbox.pdmodel.PDDocument
 import com.wxn.bookparser.FileParser
@@ -24,8 +25,8 @@ class PdfFileParser @Inject constructor(
             val title = document.documentInformation.title
                 ?: cachedFile.name.substringBeforeLast(".").trim()
             val author = document.documentInformation.author.run {
-                if (isNullOrBlank()) UIText.StringResource(R.string.unknown_author)
-                else UIText.StringValue(this)
+                if (isNullOrBlank()) stringResource(R.string.unknown_author)
+                else this
             }
             val description = document.documentInformation.subject
 
@@ -41,8 +42,9 @@ class PdfFileParser @Inject constructor(
                     progress = 0f,
                     filePath = cachedFile.path,
                     lastOpened = null,
-                    category = Category.entries[0],
-                    coverImage = null
+                    category = Category.DEFAULT,
+                    coverImage = null,
+                    fileType = "pdf"
                 ),
                 coverImage = null
             )

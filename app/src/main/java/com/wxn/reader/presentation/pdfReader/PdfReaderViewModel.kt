@@ -7,9 +7,10 @@ import androidx.compose.ui.graphics.Color
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.viewModelScope
-import com.wxn.reader.data.model.Book
-import com.wxn.reader.data.model.ReadingActivity
-import com.wxn.reader.data.model.ReadingStatus
+import com.wxn.bookparser.domain.book.Book
+import com.wxn.reader.domain.model.ReadingActive
+import com.wxn.reader.data.dto.ReadingStatus
+import com.wxn.reader.data.dto.ReadingStatus.Companion.intToReadStatus
 import com.wxn.reader.domain.use_case.books.GetBookByIdUseCase
 import com.wxn.reader.domain.use_case.books.UpdateBookUseCase
 import com.wxn.reader.domain.use_case.reading_activity.AddReadingActivityUseCase
@@ -143,17 +144,17 @@ class PdfReaderViewModel @Inject constructor(
                 var newReadingStatus = book.readingStatus
 
                 if (newProgression >= 98f) {
-                    newReadingStatus = ReadingStatus.FINISHED
-                } else if (newReadingStatus != ReadingStatus.IN_PROGRESS) {
-                    newReadingStatus = ReadingStatus.IN_PROGRESS
+                    newReadingStatus = ReadingStatus.FINISHED.value
+                } else if (newReadingStatus != ReadingStatus.IN_PROGRESS.value) {
+                    newReadingStatus = ReadingStatus.IN_PROGRESS.value
                 }
 
                 val updatedBook = book.copy(
                     locator = currentPage.toString(),
-                    progression = newProgression,
+                    progress = newProgression,
                     readingTime = newReadingTime,
                     readingStatus = newReadingStatus,
-                    endReadingDate = if (newReadingStatus == ReadingStatus.FINISHED) currentTime else null
+                    endReadingDate = if (newReadingStatus == ReadingStatus.FINISHED.value) currentTime else null
                 )
 
                 updateBookUseCase(updatedBook)
@@ -180,7 +181,7 @@ class PdfReaderViewModel @Inject constructor(
                 )
                 addOrUpdateReadingActivityUseCase(updatedActivity)
             } else {
-                val newActivity = ReadingActivity(
+                val newActivity = ReadingActive(
                     date = currentDate,
                     readingTime = sessionDuration
                 )
@@ -203,8 +204,8 @@ class PdfReaderViewModel @Inject constructor(
     private fun updateBook(updatedBook: Book) {
         viewModelScope.launch {
             var updatedBook2 = updatedBook
-            if (updatedBook.progression.isFinite() && updatedBook.progression >= 98f) {
-                updatedBook2 = updatedBook.copy(readingStatus = ReadingStatus.FINISHED)
+            if (updatedBook.progress.isFinite() && updatedBook.progress >= 98f) {
+                updatedBook2 = updatedBook.copy(readingStatus = ReadingStatus.FINISHED.value)
             }
             updateBookUseCase(updatedBook2)
             _book.value = updatedBook2

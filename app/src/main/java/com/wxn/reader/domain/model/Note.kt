@@ -1,0 +1,19 @@
+package com.wxn.reader.domain.model
+
+import android.os.Parcelable
+import androidx.compose.runtime.Immutable
+import kotlinx.parcelize.Parcelize
+
+
+@Parcelize
+@Immutable
+data class Note (
+    var id : Long = 0,
+    var locator: String = "",
+    var selectedText : String = "",
+    var note : String = "",
+    var color : String = "",
+    var bookId : Long = 0
+) : Parcelable {
+
+}

@@ -68,9 +68,9 @@ import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
 import com.wxn.reader.R
 import com.wxn.reader.data.model.AppPreferences
-import com.wxn.reader.data.model.Book
+import com.wxn.bookparser.domain.book.Book
 import com.wxn.reader.data.model.Layout
-import com.wxn.reader.data.model.Shelf
+import com.wxn.reader.domain.model.Shelf
 import com.wxn.reader.presentation.home.HomeViewModel
 import com.wxn.reader.presentation.sharedComponents.dialogs.DeleteShelfDialog
 import com.wxn.reader.util.ImageUtils

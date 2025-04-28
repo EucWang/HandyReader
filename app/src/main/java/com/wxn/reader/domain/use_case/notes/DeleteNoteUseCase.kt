@@ -1,6 +1,6 @@
 package com.wxn.reader.domain.use_case.notes
 
-import com.wxn.reader.data.model.Note
+import com.wxn.reader.domain.model.Note
 import com.wxn.reader.domain.repository.BooksRepository
 import javax.inject.Inject
 

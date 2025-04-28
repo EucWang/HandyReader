@@ -1,6 +1,6 @@
 package com.wxn.reader.domain.use_case.books
 
-import com.wxn.reader.data.model.Book
+import com.wxn.bookparser.domain.book.Book
 import com.wxn.reader.domain.repository.BooksRepository
 import kotlinx.coroutines.flow.Flow
 import javax.inject.Inject

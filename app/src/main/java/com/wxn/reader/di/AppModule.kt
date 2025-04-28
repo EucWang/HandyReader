@@ -2,13 +2,27 @@ package com.wxn.reader.di
 
 import android.content.Context
 import androidx.room.Room
+import com.wxn.reader.data.mapper.annotation.BookAnnotationMapper
+import com.wxn.reader.data.mapper.annotation.BookAnnotationMapperImpl
+import com.wxn.reader.data.mapper.book.BookMapper
+import com.wxn.reader.data.mapper.book.BookMapperImpl
+import com.wxn.reader.data.mapper.bookmark.BookmarkMapper
+import com.wxn.reader.data.mapper.bookmark.BookmarkMapperImpl
+import com.wxn.reader.data.mapper.bookshelf.BookShelfMapper
+import com.wxn.reader.data.mapper.bookshelf.BookShelfMapperImpl
+import com.wxn.reader.data.mapper.note.NoteMapper
+import com.wxn.reader.data.mapper.note.NoteMapperImpl
+import com.wxn.reader.data.mapper.readingactive.ReadingActiveMapper
+import com.wxn.reader.data.mapper.readingactive.ReadingActiveMapperImpl
+import com.wxn.reader.data.mapper.shelf.ShelfMapper
+import com.wxn.reader.data.mapper.shelf.ShelfMapperImpl
 import com.wxn.reader.data.repository.BooksRepositoryImpl
 import com.wxn.reader.data.repository.ShelfRepositoryImpl
 import com.wxn.reader.data.source.local.AppDatabase
-import com.wxn.reader.data.source.local.dao.BookDao
 import com.wxn.reader.data.source.local.AppPreferencesUtil
 import com.wxn.reader.data.source.local.ReaderPreferencesUtil
 import com.wxn.reader.data.source.local.dao.AnnotationDao
+import com.wxn.reader.data.source.local.dao.BookDao
 import com.wxn.reader.data.source.local.dao.BookShelfDao
 import com.wxn.reader.data.source.local.dao.BookmarkDao
 import com.wxn.reader.data.source.local.dao.NoteDao
@@ -41,6 +55,50 @@ object AppModule {
     @Singleton
     fun provideContext(@ApplicationContext context: Context): Context {
         return context
+    }
+
+
+
+    @Provides
+    @Singleton
+    fun provideBookMapper(): BookMapper {
+        return BookMapperImpl()
+    }
+
+    @Provides
+    @Singleton
+    fun provideAnnotationMapper(): BookAnnotationMapper {
+        return BookAnnotationMapperImpl()
+    }
+
+    @Provides
+    @Singleton
+    fun provideBookmarkMapper(): BookmarkMapper {
+        return BookmarkMapperImpl()
+    }
+
+    @Provides
+    @Singleton
+    fun provideBookshelfMapper(): BookShelfMapper {
+        return BookShelfMapperImpl()
+    }
+
+    @Provides
+    @Singleton
+    fun provideNoteMapper(): NoteMapper {
+        return NoteMapperImpl()
+    }
+
+    @Provides
+    @Singleton
+    fun provideReadingActiveMapper(): ReadingActiveMapper {
+        return ReadingActiveMapperImpl()
+    }
+
+    @Provides
+    @Singleton
+    fun provideShelfMapper(): ShelfMapper {
+        return ShelfMapperImpl()
     }
 
 //    @Provides
@@ -93,6 +151,7 @@ object AppModule {
     fun provideShelfDao(appDatabase: AppDatabase): ShelfDao {
         return appDatabase.shelfDao()
     }
+
     @Provides
     @Singleton
     fun provideBookShelfDao(appDatabase: AppDatabase): BookShelfDao {
@@ -120,16 +179,50 @@ object AppModule {
 
     @Provides
     @Singleton
-    fun provideBooksRepository ( bookDao: BookDao, annotationDao: AnnotationDao, noteDao: NoteDao, bookmarkDao: BookmarkDao ,readingActivityDao: ReadingActivityDao ): BooksRepository {
-        return BooksRepositoryImpl(bookDao, annotationDao, noteDao, bookmarkDao , readingActivityDao  )
+    fun provideBooksRepository(
+        bookDao: BookDao,
+        annotationDao: AnnotationDao,
+        noteDao: NoteDao,
+        bookmarkDao: BookmarkDao,
+        readingActivityDao: ReadingActivityDao,
+        bookMapper: BookMapper,
+        annotationMapper: BookAnnotationMapper,
+        bookmarkMapper: BookmarkMapper,
+        noteMapper: NoteMapper,
+        readingActiveMapper: ReadingActiveMapper,
+        shelfMapper: ShelfMapper,
+        bookShelfMapper: BookShelfMapper
+    ): BooksRepository {
+        return BooksRepositoryImpl(bookDao,
+            annotationDao,
+            noteDao,
+            bookmarkDao,
+            readingActivityDao,
+            bookMapper,
+            annotationMapper,
+            bookmarkMapper,
+            noteMapper,
+            readingActiveMapper,
+            shelfMapper,
+            bookShelfMapper
+            )
     }
 
     @Provides
     @Singleton
-    fun provideShelfRepository (shelfDao: ShelfDao, bookShelfDao: BookShelfDao,  bookDao: BookDao): ShelfRepository {
-        return ShelfRepositoryImpl(shelfDao, bookShelfDao, bookDao)
+    fun provideShelfRepository(shelfDao: ShelfDao,
+                               bookShelfDao: BookShelfDao,
+                               bookDao: BookDao,
+                               shelfMapper: ShelfMapper,
+                               bookMapper: BookMapper,
+                               bookShelfMapper: BookShelfMapper): ShelfRepository {
+        return ShelfRepositoryImpl(shelfDao,
+            bookShelfDao,
+            bookDao,
+            shelfMapper,
+            bookMapper,
+            bookShelfMapper)
     }
-
 
     @Provides
     @Singleton
@@ -163,7 +256,6 @@ object AppModule {
     }
 
 
-
     @Provides
     @Singleton
     fun providePdfBitmapConverter(@ApplicationContext context: Context): PdfBitmapConverter {
@@ -171,18 +263,9 @@ object AppModule {
     }
 
 
-
-
     @Provides
     @Singleton
     fun provideLanguageHelper(): LanguageHelper = LanguageHelper()
-
-
-
-
-
-
-
 
 }
 //

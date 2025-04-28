@@ -51,11 +51,13 @@ import androidx.compose.ui.zIndex
 import coil.compose.AsyncImage
 import coil.request.ImageRequest
 import coil.size.Scale
+import com.wxn.bookparser.domain.book.Book
 import com.wxn.reader.R
 import com.wxn.reader.data.model.AppPreferences
-import com.wxn.reader.data.model.Book
-import com.wxn.reader.data.model.FileType
-import com.wxn.reader.data.model.ReadingStatus
+import com.wxn.reader.data.dto.FileType
+import com.wxn.reader.data.dto.ReadingStatus
+import com.wxn.reader.data.dto.ReadingStatus.Companion.intToReadStatus
+import com.wxn.reader.data.dto.FileType.Companion.stringToFileType
 import com.wxn.reader.presentation.home.HomeViewModel
 import com.wxn.reader.presentation.sharedComponents.dialogs.ReadingDatesDialog
 import com.wxn.reader.presentation.sharedComponents.dialogs.ReadingStatusDialog
@@ -168,7 +170,7 @@ fun BookListCard(
                         .background(Color.LightGray)
                 ) {
                     val request = ImageRequest.Builder(LocalContext.current)
-                        .data(book.coverPath)
+                        .data(book.coverImage)
                         .size(200)
                         .scale(Scale.FILL)
                         .build()
@@ -206,7 +208,7 @@ fun BookListCard(
                         )
                         AnimatedVisibility(visible = appPreferences.showReadingStatus) {
                             ReadingStatusIcon(
-                                status = book.readingStatus,
+                                status = intToReadStatus(book.readingStatus),
                                 onClick = {
                                     showReadingStatusDialog = true
                                 },
@@ -223,7 +225,7 @@ fun BookListCard(
                     ) {
                         Text(
                             modifier = Modifier.width(if (appPreferences.showReadingDates) 125.dp else 200.dp),
-                            text = book.authors,
+                            text = book.author,
                             style = MaterialTheme.typography.bodyMedium,
                             maxLines = 1,
                             overflow = TextOverflow.Ellipsis
@@ -296,13 +298,13 @@ fun BookListCard(
                         text = if (book.readingTime > 0) {
                             stringResource(
                                 R.string.completed_reading_time,
-                                book.progression!!.toInt(),
+                                book.progress!!.toInt(),
                                 formatReadingTime(
                                     book.readingTime
                                 )
                             )
                         } else {
-                            stringResource(R.string.completed, book.progression!!.toInt())
+                            stringResource(R.string.completed, book.progress!!.toInt())
                         },
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
@@ -315,9 +317,9 @@ fun BookListCard(
                         Spacer(modifier = Modifier.height(4.dp))
 
                     }
-                    if (book.progression != 0f) {
+                    if (book.progress != 0f) {
                         LinearProgressIndicator(
-                            progress = { book.progression / 100f },
+                            progress = { book.progress / 100f },
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .height(6.dp)
@@ -337,7 +339,7 @@ fun BookListCard(
                     .zIndex(1f)
             ) {
                 AnimatedVisibility(
-                    visible = book.fileType == FileType.PDF && appPreferences.showPdfLabel,
+                    visible = stringToFileType(book.fileType) == FileType.PDF && appPreferences.showPdfLabel,
                 ) {
                     PdfLabel()
                 }
@@ -368,10 +370,10 @@ fun BookListCard(
 
     if (showReadingStatusDialog) {
         ReadingStatusDialog(
-            currentStatus = book.readingStatus,
+            currentStatus = intToReadStatus(book.readingStatus),
             onStatusSelected = { newStatus ->
                 viewModel.updateBook(
-                    book.copy(readingStatus = newStatus),
+                    book.copy(readingStatus = newStatus.value),
                     updatedReadingStatus = true
                 )
                 showReadingStatusDialog = false

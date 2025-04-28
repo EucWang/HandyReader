@@ -39,7 +39,7 @@ import coil.compose.AsyncImage
 import coil.request.ImageRequest
 import coil.size.Scale
 import com.wxn.reader.R
-import com.wxn.reader.data.model.Book
+import com.wxn.bookparser.domain.book.Book
 import com.wxn.reader.navigation.LocalNavController
 import kotlinx.coroutines.delay
 import java.util.Locale
@@ -89,7 +89,7 @@ fun AudiobookReaderScreen(
     ) { paddingValues ->
         Box(modifier = Modifier.fillMaxSize()) {
             // Blurred background cover image
-            audiobook?.coverPath?.let { coverPath ->
+            audiobook?.coverImage?.let { coverPath ->
                 AsyncImage(
                     model = ImageRequest.Builder(LocalContext.current)
                         .data(coverPath)
@@ -128,7 +128,7 @@ fun AudiobookReaderScreen(
                 contentAlignment = Alignment.Center
             ) {
                 val request = ImageRequest.Builder(LocalContext.current)
-                    .data(audiobook?.coverPath)
+                    .data(audiobook?.coverImage)
                     .size(300)
                     .scale(Scale.FIT)
                     .build()
@@ -226,7 +226,7 @@ fun AudiobookPlayerScreen(
             contentAlignment = Alignment.Center
         ) {
             val request = ImageRequest.Builder(LocalContext.current)
-                .data(audiobook?.coverPath)
+                .data(audiobook?.coverImage)
                 .scale(Scale.FIT)
                 .build()
             AsyncImage(
@@ -296,7 +296,7 @@ fun AudiobookInfo(audiobook: Book?) {
         )
         Spacer(modifier = Modifier.height(8.dp))
         Text(
-            text = audiobook?.authors ?: "",
+            text = audiobook?.author.orEmpty(),
             style = MaterialTheme.typography.bodyMedium,
             textAlign = TextAlign.Center,
             fontWeight = FontWeight.W400

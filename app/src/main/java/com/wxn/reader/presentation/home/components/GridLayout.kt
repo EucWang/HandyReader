@@ -1,6 +1,5 @@
 package com.wxn.reader.presentation.home.components
 
-import android.app.Activity
 import android.net.Uri
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -19,7 +18,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
-import androidx.navigation.NavHostController
 import androidx.paging.compose.LazyPagingItems
 import androidx.paging.compose.itemKey
 //import com.google.android.gms.ads.AdError
@@ -30,8 +28,9 @@ import androidx.paging.compose.itemKey
 //import com.google.android.gms.ads.interstitial.InterstitialAdLoadCallback
 import com.wxn.reader.BuildConfig
 import com.wxn.reader.data.model.AppPreferences
-import com.wxn.reader.data.model.Book
-import com.wxn.reader.data.model.FileType
+import com.wxn.bookparser.domain.book.Book
+import com.wxn.reader.data.dto.FileType
+import com.wxn.reader.data.dto.FileType.Companion.stringToFileType
 import com.wxn.reader.navigation.LocalNavController
 import com.wxn.reader.presentation.home.HomeViewModel
 import com.wxn.reader.navigation.Screens
@@ -135,7 +134,7 @@ fun GridLayout(
     ) {
         items(
             count = books.itemCount,
-            key = books.itemKey { book -> "${book.id}_${book.uri}" }
+            key = books.itemKey { book -> "${book.id}_${book.filePath}" }
         ) { index ->
             val book = books[index] ?: return@items
             val isSelected = selectedBooks.contains(book)
@@ -152,13 +151,16 @@ fun GridLayout(
                             val shouldShowAd =
                                 !appPreferences.isPremium && Random.nextFloat() < 0.25f // 25% chance to show ad
                             val navigateToBook = {
-                                val encodedUri = Uri.encode(openedBook.uri)
+                                val encodedUri = Uri.encode(openedBook.filePath)
                                 isBookOpen = true
                                 navController.navigate(
-                                    route = when (book.fileType) {
+                                    route = when (stringToFileType(book.fileType)) {
                                         FileType.EPUB -> Screens.BookReaderScreen.route + "/${openedBook.id}/${encodedUri}"
                                         FileType.PDF -> Screens.PdfReaderScreen.route + "/${openedBook.id}/${encodedUri}"
                                         FileType.AUDIOBOOK -> Screens.AudiobookReaderScreen.route + "/${openedBook.id}/${encodedUri}"
+                                        else -> {
+                                            //TODO
+                                        }
                                     }
                                 )
                             }

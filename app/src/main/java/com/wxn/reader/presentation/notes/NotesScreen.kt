@@ -66,8 +66,8 @@ import com.github.skydoves.colorpicker.compose.HsvColorPicker
 import com.github.skydoves.colorpicker.compose.rememberColorPickerController
 import com.wxn.reader.R
 import com.wxn.reader.data.model.AppPreferences
-import com.wxn.reader.data.model.Book
-import com.wxn.reader.data.model.Note
+import com.wxn.bookparser.domain.book.Book
+import com.wxn.reader.domain.model.Note
 import com.wxn.reader.navigation.LocalNavController
 import com.wxn.reader.navigation.PurchaseHelperController
 import com.wxn.reader.navigation.Screens

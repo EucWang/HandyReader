@@ -2,6 +2,7 @@ package com.wxn.bookparser.parser.epub
 
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
+import androidx.compose.ui.res.stringResource
 import com.wxn.bookparser.FileParser
 import com.wxn.bookparser.domain.book.BookWithCover
 import com.wxn.bookparser.domain.file.CachedFile
@@ -45,9 +46,9 @@ class EpubFileParser @Inject constructor() : FileParser {
 
                     val author = document.select("metadata > dc|creator").text().trim().run {
                         if (isBlank()) {
-                            UIText.StringResource(R.string.unknown_author)
+                            stringResource(R.string.unknown_author)
                         } else {
-                            UIText.StringValue(this)
+                            this
                         }
                     }
 
@@ -85,8 +86,10 @@ class EpubFileParser @Inject constructor() : FileParser {
                             progress = 0f,
                             filePath = cachedFile.path,
                             lastOpened = null,
-                            category = Category.entries[0],
-                            coverImage = null
+                            category = Category.DEFAULT,
+                            coverImage = null,
+
+                            fileType = "epub",
                         ),
                         coverImage = extractCoverImageBitmap(rawFile, coverImage)
                     )

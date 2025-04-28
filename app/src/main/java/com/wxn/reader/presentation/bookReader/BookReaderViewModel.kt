@@ -10,16 +10,16 @@ import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.viewModelScope
 import com.wxn.reader.data.model.AppPreferences
-import com.wxn.reader.data.model.Book
-import com.wxn.reader.data.model.BookAnnotation
-import com.wxn.reader.data.model.Bookmark
-import com.wxn.reader.data.model.Note
+import com.wxn.bookparser.domain.book.Book
+import com.wxn.reader.domain.model.BookAnnotation
+import com.wxn.reader.domain.model.Bookmark
+import com.wxn.reader.domain.model.Note
 import com.wxn.reader.data.model.ReaderPreferences
-import com.wxn.reader.data.model.ReadingActivity
-import com.wxn.reader.data.model.ReadingStatus
+import com.wxn.reader.data.dto.ReadingStatus
 import com.wxn.reader.data.model.toEpubPreferences
 import com.wxn.reader.data.source.local.AppPreferencesUtil
 import com.wxn.reader.data.source.local.ReaderPreferencesUtil
+import com.wxn.reader.domain.model.ReadingActive
 import com.wxn.reader.domain.use_case.annotations.*
 import com.wxn.reader.domain.use_case.bookmarks.AddBookmarkUseCase
 import com.wxn.reader.domain.use_case.bookmarks.DeleteBookmarkUseCase
@@ -698,7 +698,7 @@ class BookReaderViewModel @Inject constructor(
                     )
                     addOrUpdateReadingActivityUseCase(updatedActivity)
                 } else {
-                    val newActivity = ReadingActivity(
+                    val newActivity = ReadingActive(
                         date = currentDate,
                         readingTime = sessionDuration
                     )
@@ -730,7 +730,7 @@ class BookReaderViewModel @Inject constructor(
                 if (it.endReadingDate == null) {
                     val updatedBook = it.copy(
                         endReadingDate = System.currentTimeMillis(),
-                        readingStatus = ReadingStatus.FINISHED
+                        readingStatus = ReadingStatus.FINISHED.value
                     )
                     updateBookUseCase(updatedBook)
                 }

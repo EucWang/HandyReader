@@ -44,7 +44,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavController
 import androidx.navigation.NavHostController
 import com.wxn.reader.R
-import com.wxn.reader.data.model.Book
+import com.wxn.bookparser.domain.book.Book
 import com.wxn.reader.navigation.LocalNavController
 import com.wxn.reader.presentation.settings.viewmodels.DeletedBooksViewModel
 import com.wxn.reader.presentation.settings.states.DeletedBooksState
@@ -209,7 +209,7 @@ fun DeletedBooksScreen(
                             val isSelected = book in selectedBooks
                             ListItem(
                                 headlineContent = { Text(text = book.title, maxLines = 1) },
-                                supportingContent = { Text(text = book.authors, maxLines = 1) },
+                                supportingContent = { Text(text = book.author, maxLines = 1) },
                                 trailingContent = {
                                     if (!isSelectionMode) {
                                         Row {

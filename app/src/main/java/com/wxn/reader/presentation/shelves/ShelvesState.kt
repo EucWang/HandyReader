@@ -1,6 +1,6 @@
 package com.wxn.reader.presentation.shelves
 
-import com.wxn.reader.data.model.Shelf
+import com.wxn.reader.domain.model.Shelf
 
 sealed class ShelvesState {
     data object Loading : ShelvesState()

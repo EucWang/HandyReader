@@ -28,13 +28,13 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.unit.dp
-import com.wxn.reader.data.model.Note
 import androidx.compose.foundation.background
 import androidx.compose.ui.res.stringResource
 import com.github.skydoves.colorpicker.compose.HsvColorPicker
 import com.github.skydoves.colorpicker.compose.rememberColorPickerController
 import com.wxn.reader.R
 import com.wxn.reader.data.model.AppPreferences
+import com.wxn.reader.domain.model.Note
 
 @Composable
 fun NoteContent(

@@ -1,6 +1,6 @@
 package com.wxn.reader.domain.model
 
-import com.wxn.reader.data.model.ReadingActivity
+import com.wxn.reader.domain.model.ReadingActive
 
 
 data class Statistics(
@@ -30,5 +30,5 @@ data class Statistics(
     val genreDistribution: List<Genre> = emptyList(),
 
 
-    val readingActivities: List<ReadingActivity> = emptyList()
+    val readingActivities: List<ReadingActive> = emptyList()
 )

@@ -7,7 +7,7 @@ import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.res.stringResource
 import com.wxn.reader.R
-import com.wxn.reader.data.model.Shelf
+import com.wxn.reader.domain.model.Shelf
 
 @Composable
 fun DeleteShelfDialog(

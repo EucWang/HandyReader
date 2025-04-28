@@ -5,7 +5,7 @@ import android.util.Log
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.wxn.reader.data.model.AppPreferences
-import com.wxn.reader.data.model.Note
+import com.wxn.reader.domain.model.Note
 import com.wxn.reader.data.source.local.AppPreferencesUtil
 import com.wxn.reader.domain.use_case.books.GetAllBooksUseCase
 import com.wxn.reader.domain.use_case.notes.AddNoteUseCase

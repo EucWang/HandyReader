@@ -34,9 +34,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavHostController
+import com.wxn.bookparser.domain.book.Book
 import com.wxn.reader.R
-import com.wxn.reader.data.model.Book
-import com.wxn.reader.data.model.Shelf
+import com.wxn.reader.domain.model.Shelf
 import com.wxn.reader.presentation.home.HomeViewModel
 import com.wxn.reader.navigation.Screens
 import com.wxn.reader.navigation.navigateToScreen

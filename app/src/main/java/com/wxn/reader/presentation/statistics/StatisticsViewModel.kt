@@ -1,15 +1,16 @@
 package com.wxn.reader.presentation.statistics
 
 import android.app.Application
+import androidx.compose.ui.platform.LocalContext
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
-import com.wxn.reader.data.model.AnnotationType
+import com.wxn.reader.data.dto.AnnotationType
 import com.wxn.reader.data.model.AppPreferences
-import com.wxn.reader.data.model.Book
-import com.wxn.reader.data.model.BookAnnotation
-import com.wxn.reader.data.model.Note
-import com.wxn.reader.data.model.ReadingActivity
-import com.wxn.reader.data.model.ReadingStatus
+import com.wxn.bookparser.domain.book.Book
+import com.wxn.reader.domain.model.BookAnnotation
+import com.wxn.reader.domain.model.Note
+import com.wxn.reader.domain.model.ReadingActive
+import com.wxn.reader.data.dto.ReadingStatus
 import com.wxn.reader.data.source.local.AppPreferencesUtil
 import com.wxn.reader.domain.model.Author
 import com.wxn.reader.domain.model.Genre
@@ -31,6 +32,7 @@ import java.time.LocalDate
 import java.time.ZoneId
 import java.time.temporal.ChronoUnit
 import javax.inject.Inject
+import kotlin.collections.isNotEmpty
 
 @HiltViewModel
 class StatisticsViewModel @Inject constructor(
@@ -61,7 +63,7 @@ class StatisticsViewModel @Inject constructor(
     val annotations: StateFlow<List<BookAnnotation>> = _annotations.asStateFlow()
 
 
-    private val _readingActivities = MutableStateFlow<List<ReadingActivity>>(emptyList())
+    private val _readingActivities = MutableStateFlow<List<ReadingActive>>(emptyList())
 //    val readingActivities: StateFlow<List<ReadingActivity>> = _readingActivities.asStateFlow()
 
 
@@ -118,13 +120,13 @@ class StatisticsViewModel @Inject constructor(
     }
 
 
-    private fun calculateStatistics(books: List<Book>, notes: List<Note>, annotations: List<BookAnnotation>, readingActivities: List<ReadingActivity> ): Statistics {
+    private fun calculateStatistics(books: List<Book>, notes: List<Note>, annotations: List<BookAnnotation>, readingActivities: List<ReadingActive> ): Statistics {
         val currentDate = LocalDate.now()
         val currentYear = currentDate.year
         val currentMonth = currentDate.monthValue
 
         val booksReadThisYear = books.count { book ->
-            book.readingStatus == ReadingStatus.FINISHED &&
+            book.readingStatus == ReadingStatus.FINISHED.value &&
                     book.endReadingDate?.let { endDate ->
                         val endReadingDate =
                             Instant.ofEpochMilli(endDate).atZone(ZoneId.systemDefault())
@@ -134,7 +136,7 @@ class StatisticsViewModel @Inject constructor(
         }
 
         val booksReadThisMonth = books.count { book ->
-            book.readingStatus == ReadingStatus.FINISHED &&
+            book.readingStatus == ReadingStatus.FINISHED.value &&
                     book.endReadingDate?.let { endDate ->
                         val endReadingDate =
                             Instant.ofEpochMilli(endDate).atZone(ZoneId.systemDefault())
@@ -165,11 +167,11 @@ class StatisticsViewModel @Inject constructor(
 
         return Statistics(
             totalBooks = books.size,
-            booksRead = books.count { it.readingStatus == ReadingStatus.FINISHED },
+            booksRead = books.count { it.readingStatus == ReadingStatus.FINISHED.value },
             booksReadThisYear = booksReadThisYear,
             booksReadThisMonth = booksReadThisMonth,
-            booksInProgress = books.count { it.readingStatus == ReadingStatus.IN_PROGRESS },
-            booksToRead = books.count { it.readingStatus == ReadingStatus.NOT_STARTED },
+            booksInProgress = books.count { it.readingStatus == ReadingStatus.IN_PROGRESS.value },
+            booksToRead = books.count { it.readingStatus == ReadingStatus.NOT_STARTED.value },
             totalReadingTime = totalReadingTime,
             averageReadingTimePerBook = averageReadingTimePerBook,
             averageDailyReadingTime = averageDailyReadingTime,
@@ -185,13 +187,11 @@ class StatisticsViewModel @Inject constructor(
             totalHighlights = annotations.count { it.type == AnnotationType.HIGHLIGHT },
             totalUnderlines = annotations.count { it.type == AnnotationType.UNDERLINE },
 
-            favoriteAuthors = books.groupBy { it.authors }.map { (author, books) ->
-                Author(name = author, books = books)
+            favoriteAuthors = books.groupBy { it.author }.map { (author, books) ->
+                Author(name = author.orEmpty(), books = books)
             }.sortedByDescending { it.books.size },
 
-
-
-            genreDistribution = books.flatMap { it.subjects?.split(",") ?: emptyList() }
+            genreDistribution = books.flatMap { it.category.name?.split(",") ?: emptyList() }
                 .groupingBy { it }
                 .eachCount()
                 .map { (genre, count) -> Genre(name = genre, count = count) }
@@ -205,7 +205,7 @@ class StatisticsViewModel @Inject constructor(
     }
 
     private fun calculateReadingStreaks(
-        sortedActivities: List<ReadingActivity>,
+        sortedActivities: List<ReadingActive>,
         currentDate: LocalDate
     ): Pair<Int, Int> {
         var currentStreak = 0

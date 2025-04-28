@@ -51,9 +51,12 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import coil.compose.rememberAsyncImagePainter
+import com.wxn.bookparser.domain.book.Book
+import com.wxn.bookparser.domain.category.Category
+import com.wxn.bookparser.domain.ui.UIText.StringValue
 import com.wxn.reader.R
-import com.wxn.reader.data.model.Book
-import com.wxn.reader.data.model.FileType
+import com.wxn.reader.data.dto.FileType
+import com.wxn.reader.data.dto.FileType.Companion.stringToFileType
 import com.wxn.reader.presentation.bookDetails.BookDetailsViewModel
 import com.wxn.reader.util.PermissionHandler
 
@@ -74,9 +77,9 @@ fun EditMetadataModal(
     var title by remember { mutableStateOf(book.title) }
     var titleError by remember { mutableStateOf(false) }
 
-    var coverImage by remember { mutableStateOf(book.coverPath) }
+    var coverImage by remember { mutableStateOf(book.coverImage) }
 
-    var authors by remember { mutableStateOf(book.authors) }
+    var authors by remember { mutableStateOf(book.author) }
     var authorsError by remember { mutableStateOf(false) }
 
     var description by remember { mutableStateOf(book.description ?: "") }
@@ -84,7 +87,7 @@ fun EditMetadataModal(
     var publisher by remember { mutableStateOf(book.publisher ?: "") }
     var language by remember { mutableStateOf(book.language ?: "") }
     var numberOfPages by remember { mutableStateOf(book.numberOfPages?.toString() ?: "") }
-    var subjects by remember { mutableStateOf(book.subjects ?: "") }
+    var subjects by remember { mutableStateOf(book.category.toString() ?: "") }
     var narrator by remember { mutableStateOf(book.narrator ?: "") }
 
     // Content picker launcher
@@ -256,7 +259,7 @@ fun EditMetadataModal(
                     )
                     Spacer(modifier = Modifier.height(8.dp))
 
-                    if (book.fileType == FileType.AUDIOBOOK) {
+                    if (stringToFileType(book.fileType) == FileType.AUDIOBOOK) {
                         OutlinedTextField(
                             value = narrator,
                             onValueChange = { narrator = it },
@@ -284,15 +287,15 @@ fun EditMetadataModal(
                     onClick = {
                         // Reset all fields to initial values
                         title = initialBook.title
-                        authors = initialBook.authors
+                        authors = initialBook.author
                         description = initialBook.description ?: ""
                         publishDate = initialBook.publishDate ?: ""
                         publisher = initialBook.publisher ?: ""
                         language = initialBook.language ?: ""
                         numberOfPages = initialBook.numberOfPages?.toString() ?: ""
-                        subjects = initialBook.subjects ?: ""
+                        subjects = initialBook.category.name ?: ""
                         narrator = initialBook.narrator ?: ""
-                        coverImage = initialBook.coverPath
+                        coverImage = initialBook.coverImage
                         // Clear errors
                         titleError = false
                         authorsError = false
@@ -316,15 +319,15 @@ fun EditMetadataModal(
                         viewModel.updateBook(
                             book.copy(
                                 title = title.trim(),
-                                coverPath = coverImage,
-                                authors = authors.trim(),
+                                coverImage = coverImage,
+                                author = authors.trim(),
                                 description = description.ifEmpty { null },
                                 publishDate = publishDate.ifEmpty { null },
                                 publisher = publisher.ifEmpty { null },
                                 language = language.ifEmpty { null },
                                 numberOfPages = numberOfPages.toIntOrNull(),
-                                subjects = subjects.ifEmpty { null },
-                                narrator = if (book.fileType == FileType.AUDIOBOOK) narrator.ifEmpty { null } else null
+                                category = if (subjects.isNullOrEmpty()) Category.DEFAULT else Category(subjects),
+                                narrator = if (stringToFileType(book.fileType) == FileType.AUDIOBOOK) narrator.ifEmpty { null } else null
                             )
                         )
                         onDismiss()

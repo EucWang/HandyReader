@@ -65,11 +65,11 @@ import coil.size.Scale
 //import com.google.android.gms.ads.interstitial.InterstitialAd
 //import com.google.android.gms.ads.interstitial.InterstitialAdLoadCallback
 import com.wxn.reader.BuildConfig
-import com.wxn.reader.data.model.AnnotationType
+import com.wxn.reader.data.dto.AnnotationType
 import com.wxn.reader.data.model.AppPreferences
-import com.wxn.reader.data.model.Book
-import com.wxn.reader.data.model.BookAnnotation
-import com.wxn.reader.data.model.Note
+import com.wxn.bookparser.domain.book.Book
+import com.wxn.reader.domain.model.BookAnnotation
+import com.wxn.reader.domain.model.Note
 import com.wxn.reader.data.model.ReaderPreferences
 import com.wxn.reader.domain.model.DecorationStyleAnnotationMark
 import com.wxn.reader.navigation.LocalNavController
@@ -195,7 +195,7 @@ fun BookReaderScreen(
                     contentAlignment = Alignment.Center
                 ) {
                     val request = ImageRequest.Builder(LocalContext.current)
-                        .data(book?.coverPath)
+                        .data(book?.coverImage)
                         .size(300)
                         .scale(Scale.FIT)
                         .build()

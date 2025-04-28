@@ -1,5 +1,6 @@
 package com.wxn.bookparser.parser.fb2
 
+import androidx.compose.ui.res.stringResource
 import com.wxn.bookparser.FileParser
 import com.wxn.bookparser.R
 import com.wxn.bookparser.domain.book.Book
@@ -28,9 +29,9 @@ class Fb2FileParser @Inject constructor() : FileParser {
 
             val author = document?.selectFirst("author")?.text()?.trim().run {
                 if (isNullOrBlank()) {
-                    return@run UIText.StringResource(R.string.unknown_author)
+                    return@run stringResource(R.string.unknown_author)
                 }
-                UIText.StringValue(this.trim())
+               this.trim()
             }
 
             val description = document?.selectFirst("annotation")?.text()?.trim().run {
@@ -50,8 +51,9 @@ class Fb2FileParser @Inject constructor() : FileParser {
                     progress = 0f,
                     filePath = cachedFile.path,
                     lastOpened = null,
-                    category = Category.entries[0],
-                    coverImage = null
+                    category = Category.DEFAULT,
+                    coverImage = null,
+                    fileType = "fb2",
                 ),
                 coverImage = null
             )

@@ -1,5 +1,8 @@
 package com.wxn.reader.data.model
 
+import com.wxn.reader.data.dto.FileType
+import com.wxn.reader.data.dto.ReadingStatus
+
 data class AppPreferences(
     //App Settings
     val isFirstLaunch: Boolean,

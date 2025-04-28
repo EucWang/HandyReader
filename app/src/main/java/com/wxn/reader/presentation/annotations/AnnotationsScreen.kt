@@ -16,14 +16,13 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.wrapContentSize
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.DeleteOutline
 import androidx.compose.material.icons.filled.Edit
-import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material3.Button
-import androidx.compose.material3.DrawerValue
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -35,7 +34,6 @@ import androidx.compose.material3.ScrollableTabRow
 import androidx.compose.material3.Tab
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
-import androidx.compose.material3.rememberDrawerState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
@@ -56,17 +54,14 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavHostController
 import com.github.skydoves.colorpicker.compose.HsvColorPicker
 import com.github.skydoves.colorpicker.compose.rememberColorPickerController
-import com.wxn.reader.data.model.AnnotationType
-import com.wxn.reader.data.model.Book
-import com.wxn.reader.data.model.BookAnnotation
-import com.wxn.reader.presentation.sharedComponents.CustomNavigationDrawer
+import com.wxn.reader.data.dto.AnnotationType
+import com.wxn.bookparser.domain.book.Book
+import com.wxn.reader.domain.model.BookAnnotation
 import kotlinx.coroutines.launch
 import org.json.JSONObject
 import org.readium.r2.shared.publication.Locator
-import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Close
-import androidx.compose.material.icons.filled.Navigation
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.ButtonDefaults
@@ -303,7 +298,7 @@ fun BookAnnotationContent(
             .fillMaxSize()
             .padding(16.dp)
     ) {
-        items(bookWithAnnotations.annotation) { annotation ->
+        items(items = bookWithAnnotations.annotation) { annotation ->
             AnnotationItem(
                 appPreferences = appPreferences,
                 annotation = annotation,

@@ -1,6 +1,6 @@
 package com.wxn.reader.presentation.settings.states
 
-import com.wxn.reader.data.model.Book
+import com.wxn.bookparser.domain.book.Book
 
 sealed class DeletedBooksState {
     data object Loading : DeletedBooksState()

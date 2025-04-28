@@ -1,6 +1,6 @@
 package com.wxn.reader.domain.repository
-import com.wxn.reader.data.model.Book
-import com.wxn.reader.data.model.Shelf
+import com.wxn.bookparser.domain.book.Book
+import com.wxn.reader.domain.model.Shelf
 import kotlinx.coroutines.flow.Flow
 
 interface ShelfRepository {

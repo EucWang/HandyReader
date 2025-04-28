@@ -70,9 +70,9 @@ import com.github.skydoves.colorpicker.compose.ColorPickerController
 import com.github.skydoves.colorpicker.compose.HsvColorPicker
 import com.github.skydoves.colorpicker.compose.rememberColorPickerController
 import com.wxn.reader.R
-import com.wxn.reader.data.model.AnnotationType
+import com.wxn.reader.data.dto.AnnotationType
 import com.wxn.reader.data.model.AppPreferences
-import com.wxn.reader.data.model.BookAnnotation
+import com.wxn.reader.domain.model.BookAnnotation
 import com.wxn.reader.navigation.Screens
 import com.wxn.reader.presentation.bookReader.BookReaderViewModel
 

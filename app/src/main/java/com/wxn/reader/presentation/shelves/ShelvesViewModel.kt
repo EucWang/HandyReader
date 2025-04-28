@@ -4,7 +4,7 @@ import android.app.Application
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.wxn.reader.data.model.AppPreferences
-import com.wxn.reader.data.model.Shelf
+import com.wxn.reader.domain.model.Shelf
 import com.wxn.reader.data.source.local.AppPreferencesUtil
 import com.wxn.reader.domain.use_case.shelves.AddShelfUseCase
 import com.wxn.reader.domain.use_case.shelves.GetShelvesUseCase

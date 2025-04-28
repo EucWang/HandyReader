@@ -2,12 +2,13 @@ package com.wxn.reader.data.mapper.book
 
 import androidx.core.net.toUri
 import com.wxn.bookparser.domain.book.Book
-import com.wxn.bookparser.domain.category.stringToCategory
+import com.wxn.bookparser.domain.category.Category.Companion.stringToCategory
 import com.wxn.bookparser.domain.ui.UIText
 import com.wxn.reader.R
-import com.wxn.reader.data.model.BookEntity
-import com.wxn.reader.data.model.intToReadStatus
-import com.wxn.reader.data.model.stringToFileType
+import com.wxn.reader.data.dto.BookEntity
+import com.wxn.reader.data.dto.ReadingStatus.Companion.intToReadStatus
+import com.wxn.reader.data.dto.FileType.Companion.stringToFileType
+
 import javax.inject.Inject
 
 class BookMapperImpl @Inject constructor() : BookMapper {
@@ -18,7 +19,7 @@ class BookMapperImpl @Inject constructor() : BookMapper {
             fileType = stringToFileType(book.fileType),
 
             title = book.title,
-            authors = book.author.getAsString().orEmpty(),
+            authors = book.author,
             description = book.description,
 
             publishDate = book.publishDate,
@@ -55,10 +56,7 @@ class BookMapperImpl @Inject constructor() : BookMapper {
         return Book(
             id = bookEntity.id,
             title = bookEntity.title,
-            author = bookEntity.authors.let {
-                UIText.StringValue(it) } ?: UIText.StringResource(
-                R.string.unknown_author
-            ),
+            author = bookEntity.authors,
 
             description = bookEntity.description,
             scrollIndex = bookEntity.scrollIndex,
@@ -69,7 +67,7 @@ class BookMapperImpl @Inject constructor() : BookMapper {
             lastOpened = bookEntity.lastOpened,
 
             category = stringToCategory(bookEntity.subjects.orEmpty()),
-            coverImage = bookEntity.coverPath?.toUri(),
+            coverImage = bookEntity.coverPath,
 
             fileType = bookEntity.fileType.toString(),
 

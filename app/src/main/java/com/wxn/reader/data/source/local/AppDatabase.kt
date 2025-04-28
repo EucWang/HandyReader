@@ -2,13 +2,13 @@ package com.wxn.reader.data.source.local
 
 import androidx.room.Database
 import androidx.room.RoomDatabase
-import com.wxn.reader.data.model.BookEntity
-import com.wxn.reader.data.model.BookAnnotation
-import com.wxn.reader.data.model.BookShelf
-import com.wxn.reader.data.model.Bookmark
-import com.wxn.reader.data.model.Note
-import com.wxn.reader.data.model.ReadingActivity
-import com.wxn.reader.data.model.Shelf
+import com.wxn.reader.data.dto.BookAnnotationEntity
+import com.wxn.reader.data.dto.BookEntity
+import com.wxn.reader.data.dto.BookShelfEntity
+import com.wxn.reader.data.dto.BookmarkEntity
+import com.wxn.reader.data.dto.NoteEntity
+import com.wxn.reader.data.dto.ReadingActiveEntity
+import com.wxn.reader.data.dto.ShelfEntity
 import com.wxn.reader.data.source.local.dao.AnnotationDao
 import com.wxn.reader.data.source.local.dao.BookDao
 import com.wxn.reader.data.source.local.dao.BookShelfDao
@@ -20,12 +20,12 @@ import com.wxn.reader.data.source.local.dao.ShelfDao
 @Database(
     entities = [
         BookEntity::class,
-        BookAnnotation::class,
-        Note::class,
-        Bookmark::class,
-        Shelf::class,
-        BookShelf::class,
-        ReadingActivity::class
+        BookAnnotationEntity::class,
+        NoteEntity::class,
+        BookmarkEntity::class,
+        ShelfEntity::class,
+        BookShelfEntity::class,
+        ReadingActiveEntity::class
     ],
     version = 1,
     exportSchema = true,

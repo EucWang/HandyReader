@@ -24,7 +24,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavHostController
 import com.wxn.reader.R
-import com.wxn.reader.data.model.Shelf
+import com.wxn.reader.domain.model.Shelf
 import com.wxn.reader.navigation.LocalNavController
 import com.wxn.reader.navigation.PurchaseHelperController
 import com.wxn.reader.navigation.Screens
@@ -34,6 +34,7 @@ import com.wxn.reader.presentation.sharedComponents.dialogs.AddShelfDialog
 import com.wxn.reader.presentation.sharedComponents.dialogs.DeleteShelfDialog
 import com.wxn.reader.util.PurchaseHelper
 import kotlinx.coroutines.launch
+import kotlin.collections.isNotEmpty
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable

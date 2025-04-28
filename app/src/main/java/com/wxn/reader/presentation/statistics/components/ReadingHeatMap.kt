@@ -16,7 +16,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
-import com.wxn.reader.data.model.ReadingActivity
+import com.wxn.reader.domain.model.ReadingActive
 import java.time.Instant
 import java.time.ZoneId
 import java.time.temporal.ChronoUnit
@@ -24,7 +24,7 @@ import java.util.Calendar
 
 @Composable
 fun ReadingHeatmap(
-    readingActivities: List<ReadingActivity>,
+    readingActivities: List<ReadingActive>,
     modifier: Modifier = Modifier
 ) {
     val currentCalendar = Calendar.getInstance()

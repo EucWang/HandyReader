@@ -7,8 +7,9 @@ import android.net.Uri
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.viewModelScope
-import com.wxn.reader.data.model.Book
-import com.wxn.reader.data.model.ReadingStatus
+import com.wxn.bookparser.domain.book.Book
+import com.wxn.reader.data.dto.ReadingStatus
+import com.wxn.reader.data.dto.ReadingStatus.Companion.intToReadStatus
 import com.wxn.reader.domain.use_case.books.GetBookByIdUseCase
 import com.wxn.reader.domain.use_case.books.UpdateBookUseCase
 import com.wxn.reader.util.ImageUtils
@@ -49,22 +50,22 @@ class BookDetailsViewModel @Inject constructor(
         viewModelScope.launch {
             var updateBook: Book = updatedBook
             if (updatedReadingStatus) {
-                updateBook = when (updatedBook.readingStatus) {
+                updateBook = when (intToReadStatus(updatedBook.readingStatus)) {
                     ReadingStatus.NOT_STARTED -> updatedBook.copy(
                         startReadingDate = null,
                         endReadingDate = null,
                         readingTime = 0,
-                        progression = 0f
+                        progress = 0f
                     )
                     ReadingStatus.IN_PROGRESS -> updatedBook.copy(
                         startReadingDate = System.currentTimeMillis(),
                         endReadingDate = null,
                         readingTime = 0,
-                        progression = 0f
+                        progress = 0f
                     )
                     ReadingStatus.FINISHED -> updatedBook.copy(
                         endReadingDate = System.currentTimeMillis(),
-                        progression = 100f,
+                        progress = 100f,
                     )
                     else -> updatedBook
                 }

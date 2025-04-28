@@ -1,6 +1,6 @@
 package com.wxn.reader.domain.use_case.bookmarks
 
-import com.wxn.reader.data.model.Bookmark
+import com.wxn.reader.domain.model.Bookmark
 import com.wxn.reader.domain.repository.BooksRepository
 import javax.inject.Inject
 

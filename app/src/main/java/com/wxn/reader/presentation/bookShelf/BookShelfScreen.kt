@@ -17,11 +17,11 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavHostController
 import androidx.paging.compose.LazyPagingItems
+import com.wxn.bookparser.domain.book.Book
 import com.wxn.reader.R
 import com.wxn.reader.data.model.AppPreferences
-import com.wxn.reader.data.model.Book
 import com.wxn.reader.data.model.Layout
-import com.wxn.reader.data.model.Shelf
+import com.wxn.reader.domain.model.Shelf
 import com.wxn.reader.presentation.home.HomeViewModel
 import com.wxn.reader.presentation.home.components.GridLayout
 import com.wxn.reader.presentation.home.components.ListLayout

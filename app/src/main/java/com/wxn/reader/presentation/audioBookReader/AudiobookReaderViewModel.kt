@@ -11,7 +11,7 @@ import androidx.media3.common.MediaItem
 import androidx.media3.common.PlaybackParameters
 import androidx.media3.common.Player
 import androidx.media3.exoplayer.ExoPlayer
-import com.wxn.reader.data.model.Book
+import com.wxn.bookparser.domain.book.Book
 import com.wxn.reader.domain.use_case.books.GetBookByIdUseCase
 import com.wxn.reader.domain.use_case.books.UpdateBookUseCase
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -244,7 +244,7 @@ class AudiobookReaderViewModel @Inject constructor(
                 } else {
                     0f
                 }
-                val updatedBook = book.copy(readingTime = _currentTime.value, progression = progression)
+                val updatedBook = book.copy(readingTime = _currentTime.value, progress = progression)
                 updateBookUseCase(updatedBook)
             }
         }

@@ -25,12 +25,12 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.unit.dp
-import com.wxn.reader.data.model.ReadingActivity
+import com.wxn.reader.domain.model.ReadingActive
 import java.util.Calendar
 
 @Composable
 fun ReadingGraph(
-    readingActivities: List<ReadingActivity>
+    readingActivities: List<ReadingActive>
 ) {
     val calendar = Calendar.getInstance()
     val currentDayOfWeek = calendar.get(Calendar.DAY_OF_WEEK) - 1 // Adjust to 0-based index

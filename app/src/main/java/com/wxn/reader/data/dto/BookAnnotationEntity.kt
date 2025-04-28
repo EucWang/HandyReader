@@ -1,4 +1,4 @@
-package com.wxn.reader.data.model
+package com.wxn.reader.data.dto
 
 import androidx.room.Entity
 import androidx.room.ForeignKey
@@ -6,7 +6,7 @@ import androidx.room.Index
 import androidx.room.PrimaryKey
 
 @Entity(
-    tableName = "bookmarks",
+    tableName = "annotations",
     foreignKeys = [ForeignKey(
         entity = BookEntity::class,
         parentColumns = ["id"],
@@ -15,11 +15,18 @@ import androidx.room.PrimaryKey
     )],
     indices = [Index(value = ["bookId"])]
 )
-data class Bookmark (
+data class BookAnnotationEntity(
     @PrimaryKey(autoGenerate = true)
     val id: Long = 0,
     val bookId: Long,
     val locator: String,
-    val dateAndTime: Long,
-    val color: String? = null,
+    val color: String,
+    val note: String?,
+    val type: AnnotationType
 )
+
+enum class AnnotationType {
+    HIGHLIGHT,
+    UNDERLINE
+}
+

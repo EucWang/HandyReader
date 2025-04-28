@@ -1,4 +1,4 @@
-package com.wxn.reader.data.model
+package com.wxn.reader.data.dto
 
 import androidx.room.Entity
 import androidx.room.ForeignKey
@@ -9,13 +9,13 @@ import androidx.room.Index
     primaryKeys = ["bookId", "shelfId"],
     foreignKeys = [
         ForeignKey(
-            entity = Book::class,
+            entity = BookEntity::class,
             parentColumns = ["id"],
             childColumns = ["bookId"],
             onDelete = ForeignKey.CASCADE
         ),
         ForeignKey(
-            entity = Shelf::class,
+            entity = ShelfEntity::class,
             parentColumns = ["id"],
             childColumns = ["shelfId"],
             onDelete = ForeignKey.CASCADE
@@ -23,7 +23,7 @@ import androidx.room.Index
     ],
     indices = [Index(value = ["bookId"]), Index(value = ["shelfId"])]
 )
-data class BookShelf(
+data class BookShelfEntity(
     val bookId: Long,
     val shelfId: Long
 )

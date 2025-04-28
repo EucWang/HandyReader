@@ -8,10 +8,12 @@ import org.readium.r2.navigator.preferences.TextAlign
 import org.readium.r2.shared.ExperimentalReadiumApi
 import org.readium.r2.navigator.preferences.Color as ReadiumColor
 
-
+/****
+ * 阅读设置
+ */
 data class ReaderPreferences @OptIn(ExperimentalReadiumApi::class) constructor(
     //Font Settings
-    val fontSize: Double,
+    val fontSize: Double,  //字体大小
     val letterSpacing: Double,
     val lineHeight: Double,
     val pageMargins: Double,

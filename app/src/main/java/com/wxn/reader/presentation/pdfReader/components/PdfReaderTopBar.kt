@@ -18,7 +18,7 @@ import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import com.wxn.reader.data.model.Book
+import com.wxn.bookparser.domain.book.Book
 
 @Composable
 fun PdfReaderTopBar(

@@ -23,7 +23,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.wxn.reader.R
-import com.wxn.reader.data.model.ReadingStatus
+import com.wxn.reader.data.dto.ReadingStatus
 
 
 

@@ -10,25 +10,26 @@ import android.media.MediaMetadataRetriever
 import android.net.Uri
 import android.provider.DocumentsContract
 import android.util.Log
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.documentfile.provider.DocumentFile
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import androidx.paging.PagingData
 import androidx.paging.cachedIn
 import androidx.paging.filter
+import com.wxn.bookparser.domain.book.Book
+import com.wxn.bookparser.domain.category.Category
+import com.wxn.bookparser.domain.ui.UIText.StringValue
 import com.wxn.reader.data.model.AppPreferences
-import com.wxn.reader.data.model.Book
-import com.wxn.reader.data.model.FileType
-import com.wxn.reader.data.model.ReadingStatus
-import com.wxn.reader.data.model.Shelf
+import com.wxn.reader.data.dto.FileType
+import com.wxn.reader.data.dto.FileType.Companion.stringToFileType
+import com.wxn.reader.data.dto.ReadingStatus
+import com.wxn.reader.data.dto.ReadingStatus.Companion.intToReadStatus
+
 import com.wxn.reader.data.model.SortOption
 import com.wxn.reader.data.model.SortOrder
 import com.wxn.reader.data.source.local.AppPreferencesUtil
+import com.wxn.reader.domain.model.Shelf
 import com.wxn.reader.domain.use_case.books.DeleteBookByUriUseCase
 import com.wxn.reader.domain.use_case.books.DeleteBookUseCase
 import com.wxn.reader.domain.use_case.books.GetBookUrisUseCase
@@ -61,6 +62,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import org.readium.r2.shared.publication.Publication
 import org.readium.r2.shared.publication.services.cover
+import org.readium.r2.shared.util.AbsoluteUrl
 import org.readium.r2.shared.util.ErrorException
 import org.readium.r2.shared.util.asset.AssetRetriever
 import org.readium.r2.shared.util.getOrElse
@@ -227,9 +229,9 @@ class HomeViewModel
                         query.isBlank() || book.title.contains(query, ignoreCase = true)
                     val matchesShelf = shelf == null || book.id in shelfBookIds
                     val matchesTab = if (selectedTabRow == 1) {
-                        book.fileType == FileType.AUDIOBOOK
+                        stringToFileType(book.fileType) == FileType.AUDIOBOOK
                     } else {
-                        book.fileType != FileType.AUDIOBOOK
+                        stringToFileType(book.fileType) != FileType.AUDIOBOOK
                     }
                     matchesSearch && matchesShelf && matchesTab
                 }
@@ -474,7 +476,7 @@ class HomeViewModel
                 if (hardRemove) {
                     books.forEach { book ->
                         try {
-                            val uri = Uri.parse(book.uri)
+                            val uri = Uri.parse(book.filePath)
                             if (uri.scheme == "content") {
                                 // Use ContentResolver to delete the file
                                 val contentResolver = context.contentResolver
@@ -669,11 +671,11 @@ class HomeViewModel
         throw lastException ?: IllegalStateException("Retry failed")
     }
 
-    private suspend fun getBookInfo(documentFile: DocumentFile): Book =
-        withContext(Dispatchers.IO) {
+    private suspend fun getBookInfo(documentFile: DocumentFile): Book {
+        var retVal:Book =
             try {
                 val url = documentFile.uri.toAbsoluteUrl()
-                val fileType = when {
+                val fileType: FileType = when {
                     documentFile.name?.endsWith(".pdf", ignoreCase = true) == true -> FileType.PDF
                     documentFile.name?.let {
                         it.endsWith(".mp3", ignoreCase = true) ||
@@ -685,52 +687,69 @@ class HomeViewModel
                     else -> FileType.EPUB
                 }
 
-                when (fileType) {
-                    FileType.EPUB -> {
-                        val asset = url?.let { it ->
-                            assetRetriever.retrieve(it).getOrElse { throw ErrorException(it) }
-                        }
-                        val publication = asset?.let { it ->
-                            publicationOpener.open(it, allowUserInteraction = false)
-                                .getOrElse { throw ErrorException(it) }
-                        }
-                        extractEpubBookInfo(publication, documentFile)
-                    }
-
-                    FileType.PDF -> extractPdfBookInfo(documentFile)
-                    FileType.AUDIOBOOK -> extractAudioBookInfo(documentFile)
-                }
+               getBookFromType(fileType, url, documentFile)
             } catch (e: Exception) {
-                Book(
-                    uri = documentFile.uri.toString(),
-                    fileType = when {
-                        documentFile.name?.endsWith(
-                            ".pdf",
-                            ignoreCase = true
-                        ) == true -> FileType.PDF
-
-                        documentFile.name?.let {
-                            it.endsWith(".mp3", ignoreCase = true) ||
-                                    it.endsWith(".m4a", ignoreCase = true) ||
-                                    it.endsWith(".m4b", ignoreCase = true) ||
-                                    it.endsWith(".aac", ignoreCase = true)
-                        } == true -> FileType.AUDIOBOOK
-
-                        else -> FileType.EPUB
-                    },
-                    title = documentFile.name ?: "Unknown",
-                    authors = "",
-                    description = null,
-                    publishDate = null,
-                    publisher = null,
-                    language = null,
-                    numberOfPages = null,
-                    subjects = null,
-                    coverPath = null,
-                    locator = "",
-                )
+                defaultBook(documentFile)
             }
+        return retVal
+    }
+    public class UnknownFileTypeException(val fileType:String) : Exception() {
+
+    }
+
+    private suspend fun getBookFromType(type: FileType, url: AbsoluteUrl?, documentFile: DocumentFile):Book {
+        return when (type) {
+            FileType.EPUB -> {
+                val asset = url?.let { it ->
+                    assetRetriever.retrieve(it).getOrElse { throw ErrorException(it) }
+                }
+                val publication = asset?.let { it ->
+                    publicationOpener.open(it, allowUserInteraction = false)
+                        .getOrElse { throw ErrorException(it) }
+                }
+                extractEpubBookInfo(publication, documentFile)
+            }
+
+            FileType.PDF -> extractPdfBookInfo(documentFile)
+            FileType.AUDIOBOOK -> extractAudioBookInfo(documentFile)
+            else -> throw UnknownFileTypeException(type.typeName())
         }
+    }
+
+    private fun defaultBook(documentFile: DocumentFile) : Book{
+        return Book(
+            filePath = documentFile.uri.toString(),
+            fileType = when {
+                documentFile.name?.endsWith(
+                    ".pdf",
+                    ignoreCase = true
+                ) == true -> FileType.PDF.typeName()
+
+                documentFile.name?.let {
+                    it.endsWith(".mp3", ignoreCase = true) ||
+                            it.endsWith(".m4a", ignoreCase = true) ||
+                            it.endsWith(".m4b", ignoreCase = true) ||
+                            it.endsWith(".aac", ignoreCase = true)
+                } == true -> FileType.AUDIOBOOK.typeName()
+
+                else -> FileType.EPUB.typeName()
+            },
+            title = documentFile.name ?: "Unknown",
+            author = "",
+            description = null,
+            publishDate = null,
+            publisher = null,
+            language = null,
+            numberOfPages = null,
+            category = Category.DEFAULT,
+            coverImage = null,
+            locator = "",
+            scrollIndex = 0,
+            scrollOffset = 0,
+            progress = 0f,
+            lastOpened = 0,
+        )
+    }
 
     private suspend fun extractAudioBookInfo(documentFile: DocumentFile): Book =
         withContext(Dispatchers.IO) {
@@ -767,36 +786,44 @@ class HomeViewModel
                     }
 
                     Book(
-                        uri = uri.toString(),
-                        fileType = FileType.AUDIOBOOK,
+                        filePath = uri.toString(),
+                        fileType = FileType.AUDIOBOOK.typeName(),
                         title = title,
-                        authors = artist ?: "",
+                        author = artist ?: "",
                         description = album,
                         publishDate = null,
                         publisher = null,
                         language = null,
                         numberOfPages = null,
-                        subjects = null,
-                        coverPath = coverPath,
+                        category = Category.DEFAULT,
+                        coverImage = coverPath,
                         locator = "",
                         duration = duration,
-                        narrator = artist
+                        narrator = artist,
+                        scrollIndex = 0,
+                        scrollOffset = 0,
+                        progress = 0f,
+                        lastOpened = 0,
                     )
                 } ?: throw IllegalStateException("Unable to open audio file")
             } catch (e: Exception) {
                 Book(
-                    uri = uri.toString(),
-                    fileType = FileType.AUDIOBOOK,
+                    filePath = uri.toString(),
+                    fileType = FileType.AUDIOBOOK.typeName(),
                     title = documentFile.name ?: "Unknown",
-                    authors = "",
+                    author = "",
                     description = null,
                     publishDate = null,
                     publisher = null,
                     language = null,
                     numberOfPages = null,
-                    subjects = null,
-                    coverPath = null,
+                    category = Category.DEFAULT,
+                    coverImage = null,
                     locator = "",
+                    scrollIndex = 0,
+                    scrollOffset = 0,
+                    progress = 0f,
+                    lastOpened = 0,
                 )
             } finally {
                 mediaMetadataRetriever.release()
@@ -831,35 +858,43 @@ class HomeViewModel
                     firstPage?.close()
 
                     Book(
-                        uri = uri.toString(),
-                        fileType = FileType.PDF,
+                        filePath = uri.toString(),
+                        fileType = FileType.PDF.typeName(),
                         title = title,
-                        authors = "",
+                        author = "",
                         description = null,
                         publishDate = null,
                         publisher = null,
                         language = null,
                         numberOfPages = pageCount,
-                        subjects = null,
-                        coverPath = coverPath,
-                        locator = ""
+                        category = Category.DEFAULT,
+                        coverImage = coverPath,
+                        locator = "",
+                        scrollIndex = 0,
+                        scrollOffset = 0,
+                        progress = 0f,
+                        lastOpened = 0,
                     )
                 } ?: throw IllegalStateException("Unable to open PDF file")
             } catch (e: Exception) {
                 // Log the error or handle it as needed
                 Book(
-                    uri = uri.toString(),
-                    fileType = FileType.PDF,
+                    filePath = uri.toString(),
+                    fileType = FileType.PDF.typeName(),
                     title = documentFile.name ?: "Unknown",
-                    authors = "",
+                    author = "",
                     description = null,
                     publishDate = null,
                     publisher = null,
                     language = null,
                     numberOfPages = null,
-                    subjects = null,
-                    coverPath = null,
+                    category = Category.DEFAULT,
+                    coverImage = null,
                     locator = "",
+                    scrollIndex = 0,
+                    scrollOffset = 0,
+                    progress = 0f,
+                    lastOpened = 0,
                 )
             } finally {
                 pdfRenderer?.close()
@@ -875,18 +910,22 @@ class HomeViewModel
         val coverPath = coverBitmap?.let { ImageUtils.saveCoverImage( it, documentFile.uri.toString(), context) }
 
         return Book(
-            uri = documentFile.uri.toString(),
-            fileType = FileType.EPUB,
+            filePath = documentFile.uri.toString(),
+            fileType = FileType.EPUB.typeName(),
             title = publication?.metadata?.title ?: documentFile.name ?: "Unknown",
-            authors = publication?.metadata?.authors?.joinToString(", ") { it.name } ?: "",
+            author = publication?.metadata?.authors?.joinToString(", ") { it.name } ?: "",
             description = publication?.metadata?.description,
             publishDate = publication?.metadata?.published?.toString(),
             publisher = publication?.metadata?.publishers?.firstOrNull()?.name,
             language = publication?.metadata?.languages?.firstOrNull(),
             numberOfPages = publication?.metadata?.numberOfPages,
-            subjects = publication?.metadata?.subjects?.joinToString(", ") { it.name },
-            coverPath = coverPath,
+            category = Category(publication?.metadata?.subjects?.joinToString(", ") { it.name }.orEmpty()),
+            coverImage = coverPath,
             locator = "",
+            scrollIndex = 0,
+            scrollOffset = 0,
+            progress = 0f,
+            lastOpened = 0,
         )
     }
 
@@ -896,24 +935,24 @@ class HomeViewModel
         viewModelScope.launch {
             var updateBook: Book = updatedBook
             if (updatedReadingStatus) {
-                updateBook = when (updatedBook.readingStatus) {
+                updateBook = when (intToReadStatus(updatedBook.readingStatus)) {
                     ReadingStatus.NOT_STARTED -> updatedBook.copy(
                         startReadingDate = null,
                         endReadingDate = null,
                         readingTime = 0,
-                        progression = 0f
+                        progress = 0f
                     )
 
                     ReadingStatus.IN_PROGRESS -> updatedBook.copy(
                         startReadingDate = System.currentTimeMillis(),
                         endReadingDate = null,
                         readingTime = 0,
-                        progression = 0f
+                        progress = 0f
                     )
 
                     ReadingStatus.FINISHED -> updatedBook.copy(
                         endReadingDate = System.currentTimeMillis(),
-                        progression = 100f
+                        progress = 100f
                     )
 
                     else -> updatedBook

@@ -19,7 +19,6 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
@@ -29,15 +28,12 @@ import androidx.compose.material.icons.outlined.PeopleAlt
 import androidx.compose.material.icons.outlined.PersonOutline
 import androidx.compose.material.icons.outlined.StarOutline
 import androidx.compose.material.icons.outlined.Translate
-import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
-import androidx.compose.material3.TextField
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
@@ -54,17 +50,14 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import androidx.navigation.NavController
 import androidx.navigation.NavHostController
 import coil.compose.rememberAsyncImagePainter
+import com.wxn.bookparser.domain.book.Book
 import com.wxn.reader.R
-import com.wxn.reader.data.model.Book
-import com.wxn.reader.data.model.FileType
 import com.wxn.reader.navigation.LocalNavController
 import com.wxn.reader.presentation.bookDetails.components.BookDescription
 import com.wxn.reader.presentation.bookDetails.components.BookReview
@@ -114,7 +107,7 @@ fun BookDetailsScreen(
     ) { innerPadding ->
         Box(modifier = Modifier.fillMaxSize()) {
             // Faded background cover image
-            book?.coverPath?.let { coverPath ->
+            book?.coverImage?.let { coverPath ->
                 Image(
                     painter = rememberAsyncImagePainter(coverPath),
                     contentDescription = "Book cover",
@@ -156,7 +149,7 @@ fun BookDetailsScreen(
                             .fillMaxWidth(),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        BookCover(book.coverPath, modifier = Modifier.weight(1f))
+                        BookCover(book.coverImage, modifier = Modifier.weight(1f))
                         Spacer(modifier = Modifier.width(16.dp))
                         BookInfo(book, modifier = Modifier.weight(2f), viewModel)
                     }
@@ -223,7 +216,7 @@ fun BookInfo(book: Book, modifier: Modifier = Modifier, viewModel: BookDetailsVi
                 tint = MaterialTheme.colorScheme.onSurfaceVariant
             )
             Text(
-                book.authors,
+                book.author,
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )

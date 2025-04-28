@@ -1,5 +1,6 @@
 package com.wxn.bookparser.parser.html
 
+import androidx.compose.ui.res.stringResource
 import com.wxn.bookparser.FileParser
 import com.wxn.bookparser.R
 import com.wxn.bookparser.domain.book.Book
@@ -30,15 +31,16 @@ class HtmlFileParser @Inject constructor() : FileParser {
             BookWithCover(
                 book = Book(
                     title = title,
-                    author = UIText.StringResource(R.string.unknown_author),
+                    author = stringResource(R.string.unknown_author),
                     description = null,
                     scrollIndex = 0,
                     scrollOffset = 0,
                     progress = 0f,
                     filePath = cachedFile.path,
                     lastOpened = null,
-                    category = Category.entries[0],
-                    coverImage = null
+                    category = Category.DEFAULT,
+                    coverImage = null,
+                    fileType = "html"
                 ),
                 coverImage = null
             )

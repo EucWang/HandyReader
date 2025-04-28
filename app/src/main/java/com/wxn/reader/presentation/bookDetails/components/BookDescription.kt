@@ -31,7 +31,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import androidx.core.text.HtmlCompat
-import com.wxn.reader.data.model.Book
+import com.wxn.bookparser.domain.book.Book
 
 @Composable
 fun BookDescription(book: Book) {

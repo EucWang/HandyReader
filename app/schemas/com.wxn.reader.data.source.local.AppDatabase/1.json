@@ -2,11 +2,11 @@
   "formatVersion": 1,
   "database": {
     "version": 1,
-    "identityHash": "b652093ce50b7725c9efb8b7aa3c09a8",
+    "identityHash": "39648c1d87d1bd3c5e294d08fd8b4cf4",
     "entities": [
       {
         "tableName": "books",
-        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `uri` TEXT NOT NULL, `fileType` TEXT NOT NULL, `title` TEXT NOT NULL, `authors` TEXT NOT NULL, `description` TEXT, `publishDate` TEXT, `publisher` TEXT, `language` TEXT, `numberOfPages` INTEGER, `subjects` TEXT, `coverPath` TEXT, `locator` TEXT NOT NULL, `progression` REAL NOT NULL, `lastOpened` INTEGER, `deleted` INTEGER NOT NULL, `rating` REAL NOT NULL, `isFavorite` INTEGER NOT NULL, `readingStatus` TEXT, `readingTime` INTEGER NOT NULL, `startReadingDate` INTEGER, `endReadingDate` INTEGER, `review` TEXT, `duration` INTEGER, `narrator` TEXT)",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `uri` TEXT NOT NULL, `fileType` TEXT NOT NULL, `title` TEXT NOT NULL, `authors` TEXT NOT NULL, `description` TEXT, `publishDate` TEXT, `publisher` TEXT, `language` TEXT, `numberOfPages` INTEGER, `subjects` TEXT, `coverPath` TEXT, `locator` TEXT NOT NULL, `progression` REAL NOT NULL, `lastOpened` INTEGER, `deleted` INTEGER NOT NULL, `rating` REAL NOT NULL, `isFavorite` INTEGER NOT NULL, `readingStatus` TEXT, `readingTime` INTEGER NOT NULL, `startReadingDate` INTEGER, `endReadingDate` INTEGER, `review` TEXT, `duration` INTEGER, `narrator` TEXT, `scrollIndex` INTEGER NOT NULL, `scrollOffset` INTEGER NOT NULL)",
         "fields": [
           {
             "fieldPath": "id",
@@ -157,6 +157,18 @@
             "columnName": "narrator",
             "affinity": "TEXT",
             "notNull": false
+          },
+          {
+            "fieldPath": "scrollIndex",
+            "columnName": "scrollIndex",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "scrollOffset",
+            "columnName": "scrollOffset",
+            "affinity": "INTEGER",
+            "notNull": true
           }
         ],
         "primaryKey": {
@@ -509,7 +521,7 @@
     "views": [],
     "setupQueries": [
       "CREATE TABLE IF NOT EXISTS room_master_table (id INTEGER PRIMARY KEY,identity_hash TEXT)",
-      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, 'b652093ce50b7725c9efb8b7aa3c09a8')"
+      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, '39648c1d87d1bd3c5e294d08fd8b4cf4')"
     ]
   }
 }

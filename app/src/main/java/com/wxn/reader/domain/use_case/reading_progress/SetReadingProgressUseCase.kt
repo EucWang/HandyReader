@@ -1,6 +1,6 @@
 package com.wxn.reader.domain.use_case.reading_progress
 
-import com.wxn.reader.data.model.ReadingStatus
+import com.wxn.reader.data.dto.ReadingStatus
 import com.wxn.reader.domain.repository.BooksRepository
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext

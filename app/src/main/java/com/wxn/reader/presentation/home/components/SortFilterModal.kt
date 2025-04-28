@@ -17,8 +17,8 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.wxn.reader.R
 import com.wxn.reader.data.model.AppPreferences
-import com.wxn.reader.data.model.FileType
-import com.wxn.reader.data.model.ReadingStatus
+import com.wxn.reader.data.dto.FileType
+import com.wxn.reader.data.dto.ReadingStatus
 import com.wxn.reader.data.model.SortOption
 import com.wxn.reader.data.model.SortOrder
 import com.wxn.reader.presentation.home.HomeViewModel

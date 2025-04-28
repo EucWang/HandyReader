@@ -31,9 +31,10 @@ import androidx.compose.ui.zIndex
 import coil.compose.AsyncImage
 import coil.request.ImageRequest
 import coil.size.Scale
+import com.wxn.bookparser.domain.book.Book
 import com.wxn.reader.data.model.AppPreferences
-import com.wxn.reader.data.model.Book
-import com.wxn.reader.data.model.FileType
+import com.wxn.reader.data.dto.FileType
+import com.wxn.reader.data.dto.FileType.Companion.stringToFileType
 import com.wxn.reader.data.model.Layout
 import com.wxn.reader.presentation.home.HomeViewModel
 import kotlinx.coroutines.delay
@@ -149,7 +150,7 @@ fun BookCard(
                                 .background(Color.LightGray)
                         ) {
                             val request = ImageRequest.Builder(LocalContext.current)
-                                .data(book.coverPath)
+                                .data(book.coverImage)
                                 .size(300)
                                 .scale(Scale.FILL)
                                 .build()
@@ -191,7 +192,7 @@ fun BookCard(
                     .zIndex(1f)
             ) {
                 AnimatedVisibility(
-                    visible = book.fileType == FileType.PDF && appPreferences.showPdfLabel,
+                    visible = stringToFileType(book.fileType) == FileType.PDF && appPreferences.showPdfLabel,
                 ) {
                     PdfLabel()
                 }

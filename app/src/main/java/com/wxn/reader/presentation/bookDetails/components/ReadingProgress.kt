@@ -32,11 +32,13 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import com.wxn.bookparser.domain.book.Book
 import com.wxn.reader.R
-import com.wxn.reader.data.model.Book
-import com.wxn.reader.data.model.ReadingStatus
+import com.wxn.reader.data.dto.ReadingStatus
+import com.wxn.reader.data.dto.ReadingStatus.Companion.intToReadStatus
 import com.wxn.reader.presentation.bookDetails.BookDetailsViewModel
 import com.wxn.reader.presentation.sharedComponents.dialogs.ReadingStatusDialog
+import kotlin.math.absoluteValue
 
 @Composable
 fun ReadingProgress(
@@ -50,7 +52,7 @@ fun ReadingProgress(
 
     Column {
 
-        book.subjects?.takeIf { it.isNotBlank() }?.let { subjectsString ->
+        book.category.name?.takeIf { it.isNotBlank() }?.let { subjectsString ->
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -66,7 +68,7 @@ fun ReadingProgress(
             }
         }
 
-        if (book.subjects?.isNotBlank() == true) {
+        if (book.category.name?.isNotBlank() == true) {
             Spacer(modifier = Modifier.height(16.dp))
         }
 
@@ -80,17 +82,17 @@ fun ReadingProgress(
                     .clickable(onClick = {
                         showReadingStatusDialog = true
                     }),
-                imageVector = when (book.readingStatus) {
+                imageVector = when (intToReadStatus(book.readingStatus)) {
                     ReadingStatus.NOT_STARTED -> Icons.Outlined.Book
                     ReadingStatus.IN_PROGRESS -> Icons.Outlined.AutoStories
                     ReadingStatus.FINISHED -> Icons.Outlined.CheckCircle
                     null -> Icons.Outlined.Book
                 },
-                contentDescription = book.readingStatus?.name,
+                contentDescription = intToReadStatus(book.readingStatus).name,
             )
             Spacer(modifier = Modifier.width(8.dp))
             StatusChip(
-                book.readingStatus,
+                intToReadStatus(book.readingStatus),
                 showReadingStatusDialog = { showReadingStatusDialog = true }
             )
         }
@@ -101,11 +103,11 @@ fun ReadingProgress(
         ) {
             Text(
                 modifier = Modifier.padding(end = 16.dp),
-                text = "${book.progression.toInt()}%",
+                text = "${book.progress.toInt()}%",
                 style = MaterialTheme.typography.bodyMedium
             )
             LinearProgressIndicator(
-                progress = { book.progression / 100f },
+                progress = { book.progress / 100f },
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(8.dp)
@@ -116,10 +118,10 @@ fun ReadingProgress(
 
     if (showReadingStatusDialog) {
         ReadingStatusDialog(
-            currentStatus = book.readingStatus,
+            currentStatus = intToReadStatus(book.readingStatus),
             onStatusSelected = { newStatus ->
                 viewModel.updateBook(
-                    book.copy(readingStatus = newStatus),
+                    book.copy(readingStatus = newStatus.value),
                     updatedReadingStatus = true
                 )
                 showReadingStatusDialog = false
@@ -130,7 +132,6 @@ fun ReadingProgress(
 
 
 }
-
 
 
 @Composable

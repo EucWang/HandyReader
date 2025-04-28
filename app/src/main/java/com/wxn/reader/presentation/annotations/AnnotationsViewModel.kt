@@ -4,9 +4,9 @@ import android.app.Application
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.wxn.reader.data.model.AppPreferences
-import com.wxn.reader.data.model.BookAnnotation
-import com.wxn.reader.data.model.Note
 import com.wxn.reader.data.source.local.AppPreferencesUtil
+import com.wxn.reader.domain.model.BookAnnotation
+import com.wxn.reader.domain.model.Note
 import com.wxn.reader.domain.use_case.annotations.DeleteAnnotationUseCase
 import com.wxn.reader.domain.use_case.annotations.GetAnnotationsUseCase
 import com.wxn.reader.domain.use_case.annotations.UpdateAnnotationUseCase
@@ -24,6 +24,7 @@ import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 import javax.inject.Inject
+import kotlin.collections.isNotEmpty
 
 @HiltViewModel
 class AnnotationsViewModel @Inject constructor(
