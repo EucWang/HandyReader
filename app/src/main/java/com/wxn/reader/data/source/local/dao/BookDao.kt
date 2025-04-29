@@ -74,6 +74,35 @@ interface BookDao {
         fileTypes: List<FileType>?
     ): Flow<List<BookEntity>>
 
+    @Query(
+        """
+        SELECT COUNT(*) FROM 
+        ( SELECT * FROM books
+        WHERE deleted = 0
+        AND (:readingStatuses IS NULL OR readingStatus IN (:readingStatuses))
+        AND (:fileTypes IS NULL OR fileType IN (:fileTypes))
+        ORDER BY
+        CASE WHEN :sortBy = 'last_opened' AND :isAsc = 1 THEN lastOpened END ASC,
+        CASE WHEN :sortBy = 'last_opened' AND :isAsc = 0 THEN lastOpened END DESC,
+        CASE WHEN :sortBy = 'last_added' AND :isAsc = 1 THEN id END ASC,
+        CASE WHEN :sortBy = 'last_added' AND :isAsc = 0 THEN id END DESC,
+        CASE WHEN :sortBy = 'title' AND :isAsc = 1 THEN title END ASC,
+        CASE WHEN :sortBy = 'title' AND :isAsc = 0 THEN title END DESC,
+        CASE WHEN :sortBy = 'author' AND :isAsc = 1 THEN authors END ASC,
+        CASE WHEN :sortBy = 'author' AND :isAsc = 0 THEN authors END DESC,
+        CASE WHEN :sortBy = 'rating' AND :isAsc = 1 THEN rating END ASC,
+        CASE WHEN :sortBy = 'rating' AND :isAsc = 0 THEN rating END DESC,
+        CASE WHEN :sortBy = 'progression' AND :isAsc = 1 THEN progression END ASC,
+        CASE WHEN :sortBy = 'progression' AND :isAsc = 0 THEN progression END DESC )
+        """
+    )
+    fun getBooksCountSorted(
+        sortBy: String,
+        isAsc: Boolean,
+        readingStatuses: List<ReadingStatus>?,
+        fileTypes: List<FileType>?
+    ): Int
+
 
     @Query("SELECT * FROM books WHERE deleted = 1")
     fun getDeletedBooks(): Flow<List<BookEntity>>

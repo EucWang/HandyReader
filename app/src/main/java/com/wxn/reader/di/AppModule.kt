@@ -180,6 +180,7 @@ object AppModule {
     @Provides
     @Singleton
     fun provideBooksRepository(
+        db : AppDatabase,
         bookDao: BookDao,
         annotationDao: AnnotationDao,
         noteDao: NoteDao,
@@ -193,7 +194,8 @@ object AppModule {
         shelfMapper: ShelfMapper,
         bookShelfMapper: BookShelfMapper
     ): BooksRepository {
-        return BooksRepositoryImpl(bookDao,
+        return BooksRepositoryImpl(db,
+            bookDao,
             annotationDao,
             noteDao,
             bookmarkDao,
