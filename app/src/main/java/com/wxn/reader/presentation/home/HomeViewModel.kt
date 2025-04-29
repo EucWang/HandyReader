@@ -18,8 +18,7 @@ import androidx.paging.PagingData
 import androidx.paging.cachedIn
 import androidx.paging.filter
 import com.wxn.bookparser.domain.book.Book
-import com.wxn.bookparser.domain.category.Category
-import com.wxn.bookparser.domain.ui.UIText.StringValue
+import com.wxn.reader.R
 import com.wxn.reader.data.model.AppPreferences
 import com.wxn.reader.data.dto.FileType
 import com.wxn.reader.data.dto.FileType.Companion.stringToFileType
@@ -44,6 +43,7 @@ import com.wxn.reader.domain.use_case.shelves.RemoveBooksFromShelfUseCase
 import com.wxn.reader.domain.use_case.shelves.RemoveShelfUseCase
 import com.wxn.reader.presentation.home.states.ImportProgressState
 import com.wxn.reader.presentation.home.states.SnackbarState
+import com.wxn.reader.ui.theme.stringResource
 import com.wxn.reader.util.ImageUtils
 import com.wxn.reader.util.PurchaseHelper
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -325,37 +325,42 @@ class HomeViewModel
             )
         }) {
             try {
-
+                //已经存到数据库中的书籍
                 val existingUris = getBookUrisUseCase()
 
-
+                //从用户目录中导入的书籍文件列表
                 val documentFiles = mutableListOf<DocumentFile>()
                 preferences.scanDirectories.forEach { directoryPath ->
                     val uri = Uri.parse(directoryPath)
                     val filesInDirectory = getBooksFromDirectory(context, uri)
                     documentFiles.addAll(filesInDirectory)
                 }
+                //从文件列表中的文件去重复
+                val uniqueFiles = documentFiles.distinctBy { it.uri.toString() } //去重复
 
-                val uniqueFiles = documentFiles.distinctBy { it.uri.toString() }
-
-
+                //不在数据库中，但是在用户的搜索目录中的文件，就是用户新增加的文件
                 val newBooks = uniqueFiles.filter { documentFile ->
                     val bookUriString = documentFile.uri.toString()
                     !existingUris.contains(bookUriString)
                 }
 
+                //当前目录中的文件对应的uri
                 val currentUris = uniqueFiles.map { it.uri.toString() }.toSet()
+
+                //将资产目录中的2个预置书籍放入到存储目录中
                 val assetBookUris = listOf("alice_in_wonderlands.epub", "romeo_and_juliet.epub").map {
                     Uri.fromFile(copyAssetToInternalStorage(it)).toString()
                 }
+
+                //在数据库中， 但是不在用户的扫描目录中的uri，则是用户已经删除掉了的书籍
                 val deletedUris = existingUris.filter { it !in currentUris && it !in assetBookUris }
 
 
-                if (newBooks.isNotEmpty()) {
+                if (newBooks.isNotEmpty()) {        //有新增加的，则将新增加的加入到数据库中
                     _isAddingBooks.value = true
                     _importProgressState.value = ImportProgressState.InProgress(0, newBooks.size)
                     showSnackbar(
-                        message = "Adding new books to library",
+                        message = stringResource(R.string.adding_new_book_to_library)
                     )
 
                     // Process books in smaller batches
@@ -369,13 +374,11 @@ class HomeViewModel
                                 _importProgressState.value =
                                     ImportProgressState.InProgress(totalProcessed, newBooks.size)
 
-
                                 // Update snackbar with progress
                                 showSnackbar(
-                                    message = "Adding books ($totalProcessed/${newBooks.size})",
+                                    message = stringResource(R.string.adding_books_num, totalProcessed, newBooks.size),
                                     unlimited = true
                                 )
-
 
                                 // Check if book already exists before adding
                                 val bookUriString = documentFile.uri.toString()
@@ -390,7 +393,7 @@ class HomeViewModel
 
                     _importProgressState.value = ImportProgressState.Complete
                     showSnackbar(
-                        message = "Added ${newBooks.size} book(s)",
+                        message = stringResource(R.string.added_books, newBooks.size)
                     )
                     _isAddingBooks.value = false
                 }
@@ -398,7 +401,7 @@ class HomeViewModel
                 // Handle deleted books in batches
                 if (deletedUris.isNotEmpty()) {
                     showSnackbar(
-                        message = "Removing ${deletedUris.size} books",
+                        message = stringResource(R.string.remove_nums_books, deletedUris.size)
                     )
                     deletedUris.chunked(10).forEach { batch ->
                         batch.forEach { bookUri ->
@@ -411,7 +414,7 @@ class HomeViewModel
                         delay(50)
                     }
                     showSnackbar(
-                        message = "Removed ${deletedUris.size} book(s)",
+                        message = stringResource(R.string.remove_nums_books, deletedUris.size)
                     )
                 }
 
@@ -422,7 +425,7 @@ class HomeViewModel
                 _importProgressState.value = ImportProgressState.Error(e.message ?: "Unknown error occurred")
                 Log.e("HomeViewModel", "Error observing books", e)
                 showSnackbar(
-                    message = "Error updating library: ${e.message}",
+                    message = stringResource(R.string.error_updateing_library, e.message ?: "Unknown error occurred")
                 )
             } finally {
                 _isAddingBooks.value = false
@@ -454,7 +457,8 @@ class HomeViewModel
                 val newShelfId = addShelfUseCase(shelfName, newOrder)
                 _shelves.value += Shelf(id = newShelfId, name = shelfName, order = newOrder)
             } catch (e: Exception) {
-                showSnackbar("Failed to add shelf: ${e.message}" )
+//                showSnackbar("Failed to add shelf: ${e.message}" )
+                showSnackbar(stringResource(R.string.failed_to_add_shelf, e.message.orEmpty()))
             }
         }
     }
@@ -465,7 +469,7 @@ class HomeViewModel
                 removeShelfUseCase(shelf)
                 _shelves.value = _shelves.value.filter { it.id != shelf.id }
             } catch (e: Exception) {
-                showSnackbar("Failed to remove shelf: ${e.message}" )
+                showSnackbar(stringResource(R.string.failed_remove_shelf, e.message.orEmpty()))
             }
         }
     }
@@ -491,7 +495,7 @@ class HomeViewModel
                                 ) {
                                     deleteBookUseCase(book)
                                 } else {
-                                    showSnackbar("Failed to delete book: ${book.title}" )
+                                    showSnackbar(stringResource(R.string.failed_delete_book, book.title))
                                 }
                             } else {
                                 // Handle cases where the URI is not a content URI (e.g., file://)
@@ -500,13 +504,13 @@ class HomeViewModel
                                     if (bookFile.exists() && bookFile.delete()) {
                                         deleteBookUseCase(book)
                                     } else {
-                                        showSnackbar("Failed to delete book: ${book.title}" )
+                                        showSnackbar(stringResource(R.string.failed_delete_book, book.title))
                                     }
                                 }
                             }
                         } catch (e: Exception) {
                             showSnackbar(
-                                "Failed to delete book: ${book.title} - ${e.message}"
+                                stringResource(R.string.failed_delete_book_info, book.title, e.message.orEmpty())
                             )
                         }
                     }
@@ -517,9 +521,9 @@ class HomeViewModel
                         updateBookUseCase(it)
                     }
                 }
-                showSnackbar("Books removed successfully" )
+                showSnackbar(stringResource(R.string.book_remove_success))
             } catch (e: Exception) {
-                showSnackbar("Failed to delete books: ${e.message}" )
+                showSnackbar(stringResource(R.string.failed_delete_book, e.message.toString()))
             }
         }
     }
@@ -532,9 +536,9 @@ class HomeViewModel
                         addBookToShelfUseCase(bookId, shelfId)
                     }
                 }
-                showSnackbar("Books added to shelf successfully" )
+                showSnackbar(stringResource(R.string.books_add_shelf_success))
             } catch (e: Exception) {
-                showSnackbar("Failed to add books to shelf: ${e.message}" )
+                showSnackbar(stringResource(R.string.add_book_shelf_failed, e.message.toString()))
             }
         }
     }
@@ -549,16 +553,14 @@ class HomeViewModel
                 }
 
                 _booksInShelfSet.value -= bookIds.toSet()
-                showSnackbar("Books removed from shelf successfully" )
+//                showSnackbar("Books removed from shelf successfully" )
+                showSnackbar(stringResource(R.string.remove_books_from_shelf_success))
             } catch (e: Exception) {
-                showSnackbar("Failed to remove books from shelf: ${e.message}" )
+//                showSnackbar("Failed to remove books from shelf: ${e.message}" )
+                showSnackbar(stringResource(R.string.remove_books_from_shelf_fail, e.message.toString()))
             }
         }
     }
-
-
-
-
 
     fun getBooksForShelfSelection(shelfId: Long): Flow<List<Book>> {
         return getBooksForShelfUseCase(shelfId)
@@ -632,8 +634,6 @@ class HomeViewModel
         _selectionMode.value = false
     }
 
-
-
     private suspend fun addNewBook(documentFile: DocumentFile) {
         withContext(Dispatchers.IO) {
             try {
@@ -693,6 +693,7 @@ class HomeViewModel
             }
         return retVal
     }
+
     public class UnknownFileTypeException(val fileType:String) : Exception() {
 
     }
@@ -741,7 +742,7 @@ class HomeViewModel
             publisher = null,
             language = null,
             numberOfPages = null,
-            category = Category.DEFAULT,
+            category = "",
             coverImage = null,
             locator = "",
             scrollIndex = 0,
@@ -795,7 +796,7 @@ class HomeViewModel
                         publisher = null,
                         language = null,
                         numberOfPages = null,
-                        category = Category.DEFAULT,
+                        category = "",
                         coverImage = coverPath,
                         locator = "",
                         duration = duration,
@@ -817,7 +818,7 @@ class HomeViewModel
                     publisher = null,
                     language = null,
                     numberOfPages = null,
-                    category = Category.DEFAULT,
+                    category = "",
                     coverImage = null,
                     locator = "",
                     scrollIndex = 0,
@@ -867,7 +868,7 @@ class HomeViewModel
                         publisher = null,
                         language = null,
                         numberOfPages = pageCount,
-                        category = Category.DEFAULT,
+                        category = "",
                         coverImage = coverPath,
                         locator = "",
                         scrollIndex = 0,
@@ -888,7 +889,7 @@ class HomeViewModel
                     publisher = null,
                     language = null,
                     numberOfPages = null,
-                    category = Category.DEFAULT,
+                    category = "",
                     coverImage = null,
                     locator = "",
                     scrollIndex = 0,
@@ -919,7 +920,7 @@ class HomeViewModel
             publisher = publication?.metadata?.publishers?.firstOrNull()?.name,
             language = publication?.metadata?.languages?.firstOrNull(),
             numberOfPages = publication?.metadata?.numberOfPages,
-            category = Category(publication?.metadata?.subjects?.joinToString(", ") { it.name }.orEmpty()),
+            category = (publication?.metadata?.subjects?.joinToString(", ") { it.name }.orEmpty()),
             coverImage = coverPath,
             locator = "",
             scrollIndex = 0,

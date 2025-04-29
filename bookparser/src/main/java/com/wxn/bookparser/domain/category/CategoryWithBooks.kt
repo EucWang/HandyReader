@@ -6,7 +6,7 @@ import com.wxn.bookparser.domain.ui.UIText
 
 @Immutable
 data class CategoryWithBooks(
-    val category: Category,
+    val category: String,
     val title: UIText,
     val books: List<SelectableBook>
 )

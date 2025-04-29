@@ -52,7 +52,7 @@ fun ReadingProgress(
 
     Column {
 
-        book.category.name?.takeIf { it.isNotBlank() }?.let { subjectsString ->
+        book.category?.takeIf { it.isNotBlank() }?.let { subjectsString ->
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -68,7 +68,7 @@ fun ReadingProgress(
             }
         }
 
-        if (book.category.name?.isNotBlank() == true) {
+        if (book.category?.isNotBlank() == true) {
             Spacer(modifier = Modifier.height(16.dp))
         }
 

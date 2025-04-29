@@ -10,8 +10,6 @@ import java.io.File
 import java.util.zip.ZipFile
 import javax.inject.Inject
 import com.wxn.bookparser.domain.book.Book
-import com.wxn.bookparser.domain.category.Category
-import com.wxn.bookparser.domain.ui.UIText
 import com.wxn.bookparser.R
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -86,7 +84,7 @@ class EpubFileParser @Inject constructor() : FileParser {
                             progress = 0f,
                             filePath = cachedFile.path,
                             lastOpened = null,
-                            category = Category.DEFAULT,
+                            category = "",
                             coverImage = null,
 
                             fileType = "epub",

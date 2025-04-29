@@ -1,10 +1,6 @@
 package com.wxn.reader.data.mapper.book
 
-import androidx.core.net.toUri
 import com.wxn.bookparser.domain.book.Book
-import com.wxn.bookparser.domain.category.Category.Companion.stringToCategory
-import com.wxn.bookparser.domain.ui.UIText
-import com.wxn.reader.R
 import com.wxn.reader.data.dto.BookEntity
 import com.wxn.reader.data.dto.ReadingStatus.Companion.intToReadStatus
 import com.wxn.reader.data.dto.FileType.Companion.stringToFileType
@@ -66,7 +62,7 @@ class BookMapperImpl @Inject constructor() : BookMapper {
             filePath = bookEntity.uri,
             lastOpened = bookEntity.lastOpened,
 
-            category = stringToCategory(bookEntity.subjects.orEmpty()),
+            category = bookEntity.subjects.orEmpty(),
             coverImage = bookEntity.coverPath,
 
             fileType = bookEntity.fileType.toString(),

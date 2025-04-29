@@ -1,10 +1,7 @@
 package com.wxn.bookparser.domain.book
 
-import android.net.Uri
 import android.os.Parcelable
 import androidx.compose.runtime.Immutable
-import com.wxn.bookparser.domain.category.Category
-import com.wxn.bookparser.domain.ui.UIText
 import kotlinx.parcelize.Parcelize
 
 @Parcelize
@@ -23,7 +20,7 @@ data class Book(
     val progress: Float,
 
     val lastOpened: Long?,
-    val category: Category,
+    val category: String?,
 
     //----------------
     val fileType: String,

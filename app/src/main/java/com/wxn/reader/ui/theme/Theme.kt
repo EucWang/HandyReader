@@ -1,7 +1,9 @@
 package com.wxn.reader.ui.theme
 
+import android.content.Context
 import android.os.Build
 import androidx.activity.compose.LocalActivity
+import androidx.annotation.StringRes
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.dynamicDarkColorScheme
@@ -14,9 +16,12 @@ import androidx.compose.ui.platform.LocalView
 import androidx.core.view.WindowCompat
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.wxn.reader.BookApplication
 import com.wxn.reader.R
 import com.wxn.reader.data.model.AppTheme
 
+fun stringResource(@StringRes res: Int, vararg args: Any) : String =
+    BookApplication.app.applicationContext.getString(res, args)
 
 @Composable
 fun UReadTheme(
@@ -33,7 +38,6 @@ fun UReadTheme(
         AppTheme.LIGHT -> false
         AppTheme.DARK -> true
     }
-
 
     val colorScheme = when {
         appPreferences.colorScheme == "Dynamic" -> {

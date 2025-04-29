@@ -1,7 +1,6 @@
 package com.wxn.reader.presentation.statistics
 
 import android.app.Application
-import androidx.compose.ui.platform.LocalContext
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.wxn.reader.data.dto.AnnotationType
@@ -65,8 +64,6 @@ class StatisticsViewModel @Inject constructor(
 
     private val _readingActivities = MutableStateFlow<List<ReadingActive>>(emptyList())
 //    val readingActivities: StateFlow<List<ReadingActivity>> = _readingActivities.asStateFlow()
-
-
 
     init {
         viewModelScope.launch {
@@ -191,7 +188,7 @@ class StatisticsViewModel @Inject constructor(
                 Author(name = author.orEmpty(), books = books)
             }.sortedByDescending { it.books.size },
 
-            genreDistribution = books.flatMap { it.category.name?.split(",") ?: emptyList() }
+            genreDistribution = books.flatMap { it.category?.split(",") ?: emptyList() }
                 .groupingBy { it }
                 .eachCount()
                 .map { (genre, count) -> Genre(name = genre, count = count) }
@@ -244,11 +241,3 @@ class StatisticsViewModel @Inject constructor(
         return Pair(longestStreak, currentStreak)
     }
 }
-
-
-
-
-
-
-
-

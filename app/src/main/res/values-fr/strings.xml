@@ -237,5 +237,19 @@
         <string name="model_light">Clair</string>
         <string name="model_dark">Sombre</string>
     <string name="unknown_author" />
+    <string name="adding_new_book_to_library">Adding new books to library</string>
+    <string name="adding_books_num">Adding books (%1$1d/$2$2d)</string>
+    <string name="added_books">Added %1$d books(s)</string>
+    <string name="remove_nums_books">Removing %1$d books</string>
+    <string name="error_updateing_library">Error updating library: %1$s</string>
+    <string name="failed_to_add_shelf">Failed to add shelf %1$d</string>
+    <string name="failed_remove_shelf">Failed to remove shelf %1$s</string>
+    <string name="failed_delete_book">Failed to delete book %1$s</string>
+    <string name="failed_delete_book_info">Failed to delete book: %1$s %2$s</string>
+    <string name="book_remove_success">Books removed successfully</string>
+    <string name="books_add_shelf_success">Books added to shelf successfully</string>
+    <string name="add_book_shelf_failed">Failed to add books to shelf %1$s</string>
+    <string name="remove_books_from_shelf_success">Books removed from shelf successfully</string>
+    <string name="remove_books_from_shelf_fail">Failed to remove books from shelf %1$s</string>
 
 </resources>

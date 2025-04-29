@@ -5,7 +5,6 @@ import com.wxn.bookparser.FileParser
 import com.wxn.bookparser.R
 import com.wxn.bookparser.domain.book.Book
 import com.wxn.bookparser.domain.book.BookWithCover
-import com.wxn.bookparser.domain.category.Category
 import com.wxn.bookparser.domain.file.CachedFile
 import com.wxn.bookparser.domain.ui.UIText
 import javax.inject.Inject
@@ -28,7 +27,7 @@ class TxtFileParser @Inject constructor() : FileParser {
                     progress = 0f,
                     filePath = cachedFile.path,
                     lastOpened = null,
-                    category = Category.DEFAULT,
+                    category = "",
                     coverImage = null,
                     fileType = "txt"
                 ),

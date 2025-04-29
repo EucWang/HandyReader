@@ -52,8 +52,6 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import coil.compose.rememberAsyncImagePainter
 import com.wxn.bookparser.domain.book.Book
-import com.wxn.bookparser.domain.category.Category
-import com.wxn.bookparser.domain.ui.UIText.StringValue
 import com.wxn.reader.R
 import com.wxn.reader.data.dto.FileType
 import com.wxn.reader.data.dto.FileType.Companion.stringToFileType
@@ -293,7 +291,7 @@ fun EditMetadataModal(
                         publisher = initialBook.publisher ?: ""
                         language = initialBook.language ?: ""
                         numberOfPages = initialBook.numberOfPages?.toString() ?: ""
-                        subjects = initialBook.category.name ?: ""
+                        subjects = initialBook.category.orEmpty()
                         narrator = initialBook.narrator ?: ""
                         coverImage = initialBook.coverImage
                         // Clear errors
@@ -326,7 +324,7 @@ fun EditMetadataModal(
                                 publisher = publisher.ifEmpty { null },
                                 language = language.ifEmpty { null },
                                 numberOfPages = numberOfPages.toIntOrNull(),
-                                category = if (subjects.isNullOrEmpty()) Category.DEFAULT else Category(subjects),
+                                category = subjects,
                                 narrator = if (stringToFileType(book.fileType) == FileType.AUDIOBOOK) narrator.ifEmpty { null } else null
                             )
                         )

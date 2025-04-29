@@ -7,8 +7,13 @@ import dagger.hilt.android.HiltAndroidApp
 @HiltAndroidApp
 class BookApplication : Application() {
 
+    companion object {
+        lateinit var app: BookApplication
+    }
+
     override fun onCreate() {
         super.onCreate()
+        app = this
 
         initComponent()
     }
