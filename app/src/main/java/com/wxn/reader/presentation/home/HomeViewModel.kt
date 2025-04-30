@@ -45,6 +45,7 @@ import com.wxn.reader.presentation.home.states.ImportProgressState
 import com.wxn.reader.presentation.home.states.SnackbarState
 import com.wxn.reader.ui.theme.stringResource
 import com.wxn.reader.util.ImageUtils
+import com.wxn.reader.util.Logger
 import com.wxn.reader.util.PurchaseHelper
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.CoroutineExceptionHandler

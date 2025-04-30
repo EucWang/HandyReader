@@ -240,7 +240,7 @@
     <string name="model_dark">Dunkel</string>
     <string name="unknown_author" />
     <string name="adding_new_book_to_library">Adding new books to library</string>
-    <string name="adding_books_num">Adding books (%1$1d/$2$2d)</string>
+    <string name="adding_books_num">Adding books (%d\/%d)</string>
     <string name="added_books">Added %1$d books(s)</string>
     <string name="remove_nums_books">Removing %1$d books</string>
     <string name="error_updateing_library">Error updating library: %1$s</string>

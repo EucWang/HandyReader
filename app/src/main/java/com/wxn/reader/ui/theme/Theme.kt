@@ -2,6 +2,7 @@ package com.wxn.reader.ui.theme
 
 import android.content.Context
 import android.os.Build
+import android.text.Html
 import androidx.activity.compose.LocalActivity
 import androidx.annotation.StringRes
 import androidx.compose.foundation.isSystemInDarkTheme
@@ -19,12 +20,20 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.wxn.reader.BookApplication
 import com.wxn.reader.R
 import com.wxn.reader.data.model.AppTheme
+import com.wxn.reader.util.Logger
 
-fun stringResource(@StringRes res: Int, vararg args: Any) : String =
-    BookApplication.app.applicationContext.getString(res, args)
+fun stringResource(@StringRes res: Int, vararg args: Any) : String {
+    if (args.size > 0) {
+        for(i in 0 until args.size) {
+            Logger.d("stringResource:${args[i]} type is ${args[i]::class.java}")
+        }
+    }
+    val str = BookApplication.app.applicationContext.getString(res, *args)
+    return str
+}
 
 @Composable
-fun UReadTheme(
+fun ReadTheme(
     viewModel: AppThemeViewModel = hiltViewModel(),
     content: @Composable () -> Unit,
 ) {

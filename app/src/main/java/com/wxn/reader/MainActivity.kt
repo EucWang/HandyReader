@@ -22,7 +22,7 @@ import com.wxn.reader.data.model.AppLanguage
 import com.wxn.reader.data.source.local.AppPreferencesUtil
 import com.wxn.reader.navigation.LocalNavController
 import com.wxn.reader.navigation.PurchaseHelperController
-import com.wxn.reader.ui.theme.UReadTheme
+import com.wxn.reader.ui.theme.ReadTheme
 import com.wxn.reader.navigation.SetupNavGraph
 import com.wxn.reader.util.LanguageHelper
 import com.wxn.reader.util.PurchaseHelper
@@ -78,7 +78,7 @@ class MainActivity : AppCompatActivity() {
 
             CompositionLocalProvider(LocalNavController provides navController,
                 PurchaseHelperController provides purchaseHelper) {
-                UReadTheme {
+                ReadTheme {
                     screen?.let {
                         SetupNavGraph(
                             startDestination = it,
