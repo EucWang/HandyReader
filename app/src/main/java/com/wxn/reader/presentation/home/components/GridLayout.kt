@@ -34,6 +34,7 @@ import com.wxn.reader.data.dto.FileType.Companion.stringToFileType
 import com.wxn.reader.navigation.LocalNavController
 import com.wxn.reader.presentation.home.HomeViewModel
 import com.wxn.reader.navigation.Screens
+import com.wxn.reader.util.Logger
 import kotlin.random.Random
 
 @Composable
@@ -153,16 +154,18 @@ fun GridLayout(
                             val navigateToBook = {
                                 val encodedUri = Uri.encode(openedBook.filePath)
                                 isBookOpen = true
-                                navController.navigate(
-                                    route = when (stringToFileType(book.fileType)) {
-                                        FileType.EPUB -> Screens.BookReaderScreen.route + "/${openedBook.id}/${encodedUri}"
-                                        FileType.PDF -> Screens.PdfReaderScreen.route + "/${openedBook.id}/${encodedUri}"
-                                        FileType.AUDIOBOOK -> Screens.AudiobookReaderScreen.route + "/${openedBook.id}/${encodedUri}"
-                                        else -> {
-                                            //TODO
-                                        }
+                                Logger.d("OpenBook::isBookOpen=$isBookOpen,book.fileType=${openedBook.fileType},encodedUri=${encodedUri},id=${openedBook.id}")
+                                val route = when (stringToFileType(openedBook.fileType)) {
+                                    FileType.EPUB -> Screens.BookReaderScreen.route + "/${openedBook.id}/${encodedUri}"
+                                    FileType.PDF -> Screens.PdfReaderScreen.route + "/${openedBook.id}/${encodedUri}"
+                                    FileType.AUDIOBOOK -> Screens.AudiobookReaderScreen.route + "/${openedBook.id}/${encodedUri}"
+                                    else -> {
+                                        "" //TODO
                                     }
-                                )
+                                }
+                                if (route.isNotEmpty()) {
+                                    navController.navigate(route = route)
+                                }
                             }
                             if (shouldShowAd) {
                                 navigateToBook()
