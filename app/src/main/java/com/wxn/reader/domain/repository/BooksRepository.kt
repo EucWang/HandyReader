@@ -15,12 +15,20 @@ interface BooksRepository {
 
     //book
     fun getAllBooks(): Flow<List<Book>>
+
     fun getAllBooks(
         sortOption: SortOption,
         isAscending: Boolean,
         readingStatuses: Set<ReadingStatus>,
         fileTypes: Set<FileType>
     ): PagingSource<Int, Book>
+
+    fun getSortedBooks(
+        sortOption: SortOption,
+        isAscending: Boolean,
+        readingStatuses: Set<ReadingStatus>,
+        fileTypes: Set<FileType>
+    ): Flow<List<Book>>
 
     fun getDeletedBooks(): Flow<List<Book>>
     suspend fun getAllBookUris(): List<String>

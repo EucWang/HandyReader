@@ -27,4 +27,11 @@ class GetBooksUseCase @Inject constructor(
     ) {
         repository.getAllBooks(sortOption, isAscending, readingStatuses, fileTypes)
     }.flow
+
+    fun getSortedBooks( sortOption: SortOption,
+                        isAscending: Boolean,
+                        readingStatuses: Set<ReadingStatus>,
+                        fileTypes: Set<FileType>) : Flow<List<Book>> {
+        return repository.getSortedBooks(sortOption, isAscending, readingStatuses, fileTypes)
+    }
 }

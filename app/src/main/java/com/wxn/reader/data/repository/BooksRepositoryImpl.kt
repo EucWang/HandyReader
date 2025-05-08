@@ -75,6 +75,27 @@ class BooksRepositoryImpl @Inject constructor(
             }
     }
 
+
+
+    override fun getSortedBooks(
+        sortOption: SortOption,
+        isAscending: Boolean,
+        readingStatuses: Set<ReadingStatus>,
+        fileTypes: Set<FileType>
+    ): Flow<List<Book>> {
+        val result = bookDao.getBooksSorted(
+            sortOption.name.lowercase(),
+            isAscending,
+            readingStatuses = readingStatuses.toList().takeIf { it.isNotEmpty() },
+            fileTypes = fileTypes.toList().takeIf { it.isNotEmpty() }
+        ).map { entities ->
+            entities.map { entity ->
+                bookMapper.toBook(entity)
+            }
+        }
+        return result
+    }
+
     override fun getAllBooks(
         sortOption: SortOption,
         isAscending: Boolean,

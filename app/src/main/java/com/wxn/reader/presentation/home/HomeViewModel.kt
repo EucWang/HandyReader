@@ -15,9 +15,14 @@ import androidx.documentfile.provider.DocumentFile
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import androidx.paging.PagingData
+import androidx.paging.PagingSource
 import androidx.paging.cachedIn
 import androidx.paging.filter
+import com.wxn.bookparser.FileParser
+import com.wxn.bookparser.TextParser
 import com.wxn.bookparser.domain.book.Book
+import com.wxn.bookparser.domain.file.CachedFile
+import com.wxn.bookparser.domain.file.CachedFileCompat
 import com.wxn.reader.R
 import com.wxn.reader.data.model.AppPreferences
 import com.wxn.reader.data.dto.FileType
@@ -35,6 +40,7 @@ import com.wxn.reader.domain.use_case.books.GetBookUrisUseCase
 import com.wxn.reader.domain.use_case.books.GetBooksUseCase
 import com.wxn.reader.domain.use_case.books.InsertBookUseCase
 import com.wxn.reader.domain.use_case.books.UpdateBookUseCase
+import com.wxn.reader.domain.use_case.permission.GrantPersistableUriPermission
 import com.wxn.reader.domain.use_case.shelves.AddBookToShelfUseCase
 import com.wxn.reader.domain.use_case.shelves.AddShelfUseCase
 import com.wxn.reader.domain.use_case.shelves.GetBooksForShelfUseCase
@@ -59,6 +65,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import org.readium.r2.shared.publication.Publication
@@ -91,6 +98,7 @@ class HomeViewModel
     private val assetRetriever: AssetRetriever,
     private val publicationOpener: PublicationOpener,
     private val appPreferencesUtil: AppPreferencesUtil,
+    private val fileParser: FileParser,
     application: Application,
 ) : AndroidViewModel(application) {
 
@@ -148,10 +156,6 @@ class HomeViewModel
     var showSortModal = mutableStateOf(false)
     var showMetadataModal = mutableStateOf(false)
 
-
-
-
-
     init {
         initializeApp()
     }
@@ -178,8 +182,9 @@ class HomeViewModel
             val internalFile = copyAssetToInternalStorage(fileName)
             val internalUri = Uri.fromFile(internalFile)
             if (!existingUris.contains(internalUri.toString())) {
-                val book = getBookInfoFromInternalFile(internalFile)
-                insertBookUseCase(book)
+                getBookInfoFromInternalFile(internalFile)?.let { book ->
+                    insertBookUseCase(book)
+                }
             }
         }
 //        val initialPreferences = appPreferencesUtil.appPreferencesFlow.first()
@@ -202,11 +207,12 @@ class HomeViewModel
         return internalFile
     }
 
-    private suspend fun getBookInfoFromInternalFile(file: File): Book {
+    private suspend fun getBookInfoFromInternalFile(file: File): Book? {
         val documentFile = DocumentFile.fromFile(file)
-        return getBookInfo(documentFile)
+        val bookWithCover = fileParser.parse(documentFile)
+//        return getBookInfo(documentFile)
+        return bookWithCover?.book
     }
-
 
     private fun loadBooks(preferences: AppPreferences) {
         val sortBy = preferences.sortBy
@@ -226,6 +232,7 @@ class HomeViewModel
                 selectedTabRow
             ) { books, query, shelf, shelfBookIds, selectedTabRow ->
                 books.filter { book ->
+                    Logger.d("HomeViewModel:loadBooks:${book}")
                     val matchesSearch =
                         query.isBlank() || book.title.contains(query, ignoreCase = true)
                     val matchesShelf = shelf == null || book.id in shelfBookIds
@@ -236,13 +243,12 @@ class HomeViewModel
                     }
                     matchesSearch && matchesShelf && matchesTab
                 }
-            }.collect { filteredPagingData ->
+            }.collect { filteredPagingData : PagingData<Book> ->
+                Logger.d("HomeViewModel:loadBooks:${filteredPagingData.toString()}")
                 _books.value = filteredPagingData
             }
-
         }
     }
-
 
     private fun loadShelves() {
         viewModelScope.launch {

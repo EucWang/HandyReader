@@ -3,8 +3,10 @@ package com.wxn.bookparser.domain.file
 import android.content.Context
 import android.net.Uri
 import android.provider.DocumentsContract
+import androidx.documentfile.provider.DocumentFile
 import com.anggrayudi.storage.file.DocumentFileCompat
 import com.anggrayudi.storage.file.getAbsolutePath
+import java.io.File
 
 
 object CachedFileCompat {
@@ -35,14 +37,14 @@ object CachedFileCompat {
         path: String,
         builder: CachedFileBuilder? = null
     ): CachedFile? {
-        val uri = try {
+        var uri = try {
             val storageId = DocumentFileCompat.getStorageId(context, path)
-            if (storageId.isBlank()) throw NullPointerException("Could not get storageId.")
+            if (storageId.isBlank()) null //throw NullPointerException("Could not get storageId.")
 
             val basePath = DocumentFileCompat.getBasePath(context, path)
-            if (basePath.isBlank()) throw NullPointerException("Could not get basePath.")
+            if (basePath.isBlank()) null //throw NullPointerException("Could not get basePath.")
 
-            val parentUri = context.contentResolver.persistedUriPermissions.find {
+            var parentUri = context.contentResolver.persistedUriPermissions.find {
                 try {
                     val persistedUri = DocumentFileCompat.fromUri(context, it.uri)
                     val persistedUriPath = persistedUri?.getAbsolutePath(context)
@@ -56,13 +58,21 @@ object CachedFileCompat {
                     return@find false
                 }
             }?.uri
-            if (parentUri == null) throw NullPointerException("Could not get parentUri.")
+            if (parentUri == null) {
+                null //throw NullPointerException("Could not get parentUri.")
+            }
 
             DocumentsContract.buildDocumentUriUsingTree(parentUri, "$storageId:$basePath")
         } catch (e: Exception) {
             e.printStackTrace()
-            return null
+            null
         }
+
+        if (uri == null) {
+            uri = DocumentFileCompat.fromFile(context, File(path))?.uri
+        }
+
+        uri ?: return null
 
         val cachedFile = CachedFile(
             context = context,

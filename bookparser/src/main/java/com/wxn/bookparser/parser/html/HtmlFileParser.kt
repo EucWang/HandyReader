@@ -1,28 +1,55 @@
 package com.wxn.bookparser.parser.html
 
+import android.content.Context
 import androidx.compose.ui.res.stringResource
+import androidx.documentfile.provider.DocumentFile
+import com.anggrayudi.storage.file.baseName
+import com.anggrayudi.storage.file.getAbsolutePath
+import com.anggrayudi.storage.file.openInputStream
 import com.wxn.bookparser.FileParser
 import com.wxn.bookparser.R
 import com.wxn.bookparser.domain.book.Book
 import com.wxn.bookparser.domain.book.BookWithCover
 import com.wxn.bookparser.domain.file.CachedFile
-import com.wxn.bookparser.domain.ui.UIText
 import org.jsoup.Jsoup
 import org.jsoup.parser.Parser
+import java.io.InputStream
 import javax.inject.Inject
 
 
-class HtmlFileParser @Inject constructor() : FileParser {
+class HtmlFileParser @Inject constructor(val context: Context) : FileParser {
+
+    override suspend fun parse(file: DocumentFile): BookWithCover? {
+        return try {
+            val inputStream = file.openInputStream(context)
+            val title = file.baseName
+            val path = file.getAbsolutePath(context)
+            innerParse(inputStream, title, path)
+        } catch (ex: Exception) {
+            null
+        }
+    }
 
     override suspend fun parse(cachedFile: CachedFile): BookWithCover? {
         return try {
-            val document = cachedFile.openInputStream()?.use {
+            val inputStream = cachedFile.openInputStream()
+            val title = cachedFile.name.substringBeforeLast(".").trim()
+            val path = cachedFile.path
+            innerParse(inputStream, title, path)
+        } catch (ex: Exception) {
+            null
+        }
+    }
+
+    private suspend fun innerParse(inputStream: InputStream?, baseName: String, path: String): BookWithCover? {
+        return try {
+            val document = inputStream?.use {
                 Jsoup.parse(it, null, "", Parser.htmlParser())
             }
 
             val title = document?.select("head > title")?.text()?.trim().run {
                 if (isNullOrBlank()) {
-                    return@run cachedFile.name.substringBeforeLast(".").trim()
+                    return@run baseName
                 }
                 return@run this
             }
@@ -35,7 +62,7 @@ class HtmlFileParser @Inject constructor() : FileParser {
                     scrollIndex = 0,
                     scrollOffset = 0,
                     progress = 0f,
-                    filePath = cachedFile.path,
+                    filePath = path,
                     lastOpened = null,
                     category = "",
                     coverImage = null,

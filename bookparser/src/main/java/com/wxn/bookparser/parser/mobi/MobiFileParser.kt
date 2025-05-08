@@ -1,5 +1,6 @@
 package com.wxn.bookparser.parser.mobi
 
+import androidx.documentfile.provider.DocumentFile
 import com.wxn.bookparser.FileParser
 import com.wxn.bookparser.domain.book.BookWithCover
 import com.wxn.bookparser.domain.file.CachedFile
@@ -159,6 +160,11 @@ MOBI与AZW的关系
  *
  */
 class MobiFileParser @Inject constructor() : FileParser {
+
+    override suspend fun parse(file: DocumentFile): BookWithCover? {
+        return null
+    }
+
     override suspend fun parse(cachedFile: CachedFile): BookWithCover? {
         return null
     }

@@ -6,5 +6,6 @@ import androidx.compose.runtime.Immutable
 @Immutable
 data class BookWithCover(
     val book: Book,
-    val coverImage: Bitmap?
+//    val coverImage: Bitmap?
+    val coverImage: String?
 )
