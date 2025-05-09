@@ -14,6 +14,7 @@ import com.wxn.bookparser.domain.book.Book
 import com.wxn.bookparser.domain.book.BookWithCover
 import com.wxn.bookparser.domain.file.CachedFile
 import com.wxn.bookparser.util.FileUtil
+import com.wxn.bookparser.util.getCoverPath
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import org.jsoup.Jsoup
@@ -198,7 +199,7 @@ class EpubFileParser @Inject constructor(val context: Context) : FileParser {
                 if (entry.name.endsWith(coverImagePath)) {
                     return try {
                         val inputStream = zip.getInputStream(entry)
-                        val targetPath = getCoverPath(coverImagePath)
+                        val targetPath = getCoverPath(context, coverImagePath)
                         FileUtil.writeStreamToFile(inputStream, targetPath)
                         targetPath
                     } catch (ex: Exception) {
@@ -212,9 +213,6 @@ class EpubFileParser @Inject constructor(val context: Context) : FileParser {
 
         return null
     }
-
-    fun getCoverPath(coverImageName: String) =
-       context.filesDir.absolutePath + File.separator + "covers" + File.separator + UUID.randomUUID().toString() + "_" + coverImageName.replace(File.separator, "_")
 
     private suspend fun innerParserFile(rawFile: File?, baseName: String, absolutePath: String): BookWithCover? {
         return try {

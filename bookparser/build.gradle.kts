@@ -57,6 +57,7 @@ dependencies {
 
     // PDF parser
     implementation("com.tom-roush:pdfbox-android:2.0.27.0")
+//    implementation("com.gemalto.jp2:jp2-android:1.0.3")     //Reading JPX Images for pdf
 
     // EPUB parser
     implementation("org.jsoup:jsoup:1.18.3")
@@ -66,4 +67,5 @@ dependencies {
 
     // Markdown
     implementation("org.commonmark:commonmark:0.24.0")
+
 }
