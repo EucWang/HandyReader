@@ -8,7 +8,17 @@ fun provideExtensions() = listOf(
     ".txt",
     ".html",
     ".htm",
-    ".md"
+    ".md",
+)
+
+fun supportedExtensions() = listOf(
+    "epub",
+    "pdf",
+    "fb2",
+    "txt",
+    "html",
+    "htm",
+    "md"
 )
 
 fun provideImageExtensions() = listOf(

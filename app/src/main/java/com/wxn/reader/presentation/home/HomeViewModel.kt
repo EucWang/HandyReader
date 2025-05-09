@@ -81,6 +81,8 @@ import org.readium.r2.streamer.PublicationOpener
 import java.io.File
 import java.io.FileOutputStream
 import javax.inject.Inject
+import com.wxn.bookparser.exts.*
+import com.wxn.bookparser.supportedExtensions
 
 @HiltViewModel
 class HomeViewModel
@@ -334,14 +336,6 @@ class HomeViewModel
                 message = "Error during import: ${throwable.message}",
             )
         }) {
-//        viewModelScope.launchIO({ throwable ->
-//            _importProgressState.value =
-//                ImportProgressState.Error(throwable.message ?: "Unknown error occurred")
-//            _isAddingBooks.value = false
-//            showSnackbar(
-//                message = "Error during import: ${throwable.message}",
-//            )
-//        }) {
             try {
                 //已经存到数据库中的书籍
                 val existingUris = getBookUrisUseCase().toSet()
@@ -361,7 +355,9 @@ class HomeViewModel
                 //不在数据库中，但是在用户的搜索目录中的文件，就是用户新增加的文件
                 val newBooks = uniqueFiles.filter { documentFile ->
                     val bookUriString = documentFile.uri.toString()
-                    !existingUris.contains(bookUriString)
+                    documentFile.canRead()  //满足条件 可读
+//                        && documentFile.mimeType in supportedExtensions()   //是支持的文件类型
+                        && !existingUris.contains(bookUriString)            //不在数据库中
                 }
 
                 //当前目录中的文件对应的uri
@@ -486,7 +482,7 @@ class HomeViewModel
 
     fun updateAppPreferences(newPreferences: AppPreferences) {
         viewModelScope.launch {
-            Log.d("it's me", "the home viewModel")
+            Logger.d("HomeViewModel::updateAppPreferences:the home viewModel")
             appPreferencesUtil.updateAppPreferences(newPreferences)
         }
     }
@@ -625,7 +621,6 @@ class HomeViewModel
         return booksList
     }
 
-
     private suspend fun getBooksFromDirectory(context: Context, uri: Uri): List<DocumentFile> {
         return withContext(Dispatchers.IO) {
             try {
@@ -640,16 +635,18 @@ class HomeViewModel
 
     private fun scanDirectory(directory: DocumentFile): List<DocumentFile> {
         return try {
-            val allowedExtensions = listOf("epub", "pdf", "mp3", "m4a", "m4b", "aac").let {
-                if (_appPreferences.value.enablePdfSupport) it else it - "pdf"
-            }
+//            val allowedExtensions = listOf("epub", "pdf", "mp3", "m4a", "m4b", "aac").let {
+//                if (_appPreferences.value.enablePdfSupport) it else it - "pdf"
+//            }
+            val allowedExtensions =  supportedExtensions()
 
             directory.listFiles().filter { file ->
                 when {
                     file.isDirectory -> file.name?.let { !it.startsWith(".") } ?: false
-                    file.isFile -> file.name?.let { name ->
-                        name.substringAfterLast('.', "").lowercase() in allowedExtensions
-                    } ?: false
+//                    file.isFile ->  file.name?.let { name ->
+//                        name.substringAfterLast('.', "").lowercase() in allowedExtensions
+//                    } ?: false
+                    file.isFile ->  file.mimeType in allowedExtensions
 
                     else -> false
                 }
@@ -657,7 +654,7 @@ class HomeViewModel
                 if (file.isDirectory) scanDirectory(file) else listOf(file)
             }
         } catch (e: Exception) {
-            Log.e("HomeViewModel", "Error scanning directory: ${directory.name}", e)
+            Logger.e("HomeViewModel:Error scanning directory: ${directory.name}, $e")
             emptyList()
         }
     }
@@ -1040,7 +1037,7 @@ class HomeViewModel
                         _books.value = pagingData
                     }
             } catch (e: Exception) {
-                Log.e("HomeViewModel", "Error sorting books: ${e.message}")
+                Logger.e("HomeViewModel:Error sorting books: ${e.message}")
             }
         }
     }
@@ -1100,7 +1097,7 @@ class HomeViewModel
             val currentPreferences = appPreferencesUtil.appPreferencesFlow.first()
             if (currentPreferences.isPremium != isPremium) {
                 val updatedPreferences = currentPreferences.copy(isPremium = isPremium)
-                Log.d("it's me", "the home viewModel")
+                Logger.d("HomeViewModel:updatePremiumStatus:the home viewModel")
                 appPreferencesUtil.updateAppPreferences(updatedPreferences)
                 _appPreferences.value = updatedPreferences
             }

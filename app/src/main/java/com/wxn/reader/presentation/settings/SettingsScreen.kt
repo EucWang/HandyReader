@@ -68,6 +68,7 @@ import com.wxn.reader.navigation.PurchaseHelperController
 import com.wxn.reader.presentation.sharedComponents.CustomNavigationDrawer
 import com.wxn.reader.util.PurchaseHelper
 import com.wxn.reader.navigation.Screens
+import com.wxn.reader.util.Logger
 import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -193,7 +194,7 @@ fun SettingsScreen(
                                             reviewInfo
                                         )
                                         flow.addOnCompleteListener { _ ->
-                                            Log.d("Review", "Review flow completed")
+                                            Logger.d("Review:Review flow completed")
                                             // The flow has finished. The API does not indicate whether the user
                                             // reviewed or not, or even whether the review dialog was shown. Thus, no
                                             // matter the result, we continue our app flow.
@@ -202,7 +203,7 @@ fun SettingsScreen(
                                         // There was some problem, log or handle the error code.
                                         @ReviewErrorCode val reviewErrorCode =
                                             (task.exception as ReviewException).errorCode
-                                        Log.e("Review", "Error code: $reviewErrorCode")
+                                        Logger.e("Review:Error code: $reviewErrorCode")
                                     }
                                 }
                     }

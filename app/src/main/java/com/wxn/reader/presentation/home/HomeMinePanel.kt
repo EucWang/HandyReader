@@ -46,6 +46,7 @@ import com.wxn.reader.data.model.AppTheme
 import com.wxn.reader.navigation.LocalNavController
 import com.wxn.reader.navigation.Screens
 import com.wxn.reader.presentation.settings.SetListItem
+import com.wxn.reader.util.Logger
 
 @Composable
 fun HomeMinePanel(innerPadding: PaddingValues, viewModel: HomeViewModel) {
@@ -159,7 +160,7 @@ fun HomeMinePanel(innerPadding: PaddingValues, viewModel: HomeViewModel) {
                                     reviewInfo
                                 )
                                 flow.addOnCompleteListener { _ ->
-                                    Log.d("Review", "Review flow completed")
+                                    Logger.d("Review:Review flow completed")
                                     // The flow has finished. The API does not indicate whether the user
                                     // reviewed or not, or even whether the review dialog was shown. Thus, no
                                     // matter the result, we continue our app flow.
@@ -168,7 +169,7 @@ fun HomeMinePanel(innerPadding: PaddingValues, viewModel: HomeViewModel) {
                                 // There was some problem, log or handle the error code.
                                 @ReviewErrorCode val reviewErrorCode =
                                     (task.exception as ReviewException).errorCode
-                                Log.e("Review", "Error code: $reviewErrorCode")
+                                Logger.e("Review:Error code: $reviewErrorCode")
                             }
                         }
                     }

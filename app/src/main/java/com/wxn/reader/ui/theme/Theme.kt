@@ -21,11 +21,11 @@ import com.wxn.reader.data.model.AppTheme
 import com.wxn.reader.util.Logger
 
 fun stringResource(@StringRes res: Int, vararg args: Any) : String {
-    if (args.size > 0) {
-        for(i in 0 until args.size) {
-            Logger.d("stringResource:${args[i]} type is ${args[i]::class.java}")
-        }
-    }
+//    if (args.size > 0) {
+//        for(i in 0 until args.size) {
+//            Logger.d("stringResource:${args[i]} type is ${args[i]::class.java}")
+//        }
+//    }
     val str = BookApplication.app.applicationContext.getString(res, *args)
     return str
 }

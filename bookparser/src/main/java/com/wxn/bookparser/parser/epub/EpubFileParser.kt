@@ -19,6 +19,7 @@ import kotlinx.coroutines.withContext
 import org.jsoup.Jsoup
 import java.io.File
 import java.util.UUID
+import java.util.logging.Logger
 import java.util.zip.ZipFile
 import javax.inject.Inject
 import kotlin.text.replace
@@ -174,17 +175,17 @@ content:            其中的 src 属性指向包含这些内容的物理资源�
 class EpubFileParser @Inject constructor(val context: Context) : FileParser {
 
     override suspend fun parse(file: DocumentFile): BookWithCover? {
-        val absolutePath = file.getAbsolutePath(context)
         val title = file.baseName
         val rawFile = file.toRawFile(context)
-        return innerParserFile(rawFile, title, absolutePath)
+
+        return innerParserFile(rawFile, title, file.uri.toString())
     }
 
     override suspend fun parse(cachedFile: CachedFile): BookWithCover? {
         val rawFile = cachedFile.rawFile
-        val absolutePath = cachedFile.path
         val title = cachedFile.name.substringBeforeLast(".").trim()
-        return innerParserFile(rawFile, title, absolutePath)
+
+        return innerParserFile(rawFile, title, cachedFile.uri.toString())
     }
 
     private fun extractCoverImage(file: File, coverImagePath: String?): String? {
@@ -282,7 +283,7 @@ class EpubFileParser @Inject constructor(val context: Context) : FileParser {
                             scrollIndex = 0,
                             scrollOffset = 0,
                             progress = 0f,
-                            filePath = Uri.fromFile(rawFile).toString(),
+                            filePath = absolutePath,
                             lastOpened = null,
                             category = "",
                             coverImage = coverImagePath,

@@ -72,7 +72,7 @@ class LanguageHelper {
                 )
             }
         } catch (e: Exception) {
-            Log.e("LanguageHelper", "Failed to change language", e)
+            Logger.e("LanguageHelper:Failed to change language:$e")
         }
     }
 

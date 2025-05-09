@@ -47,13 +47,9 @@ class PdfFileParser @Inject constructor(
             PDFBoxResourceLoader.init(application)
             val document = PDDocument.load(inputStream)
 
-            val title = document.documentInformation.title
-                ?: baseName
-            val author = document.documentInformation.author //.run {
-//                if (isNullOrBlank()) stringResource(R.string.unknown_author)
-//                else this
-//            }
-            val description = document.documentInformation.subject
+            val title = document.documentInformation.title ?: baseName
+            val author = document.documentInformation.author.orEmpty()
+            val description = document.documentInformation.subject.orEmpty()
 
             document.close()
 

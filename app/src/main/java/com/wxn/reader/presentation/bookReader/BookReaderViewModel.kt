@@ -34,6 +34,7 @@ import com.wxn.reader.domain.use_case.notes.UpdateNoteUseCase
 import com.wxn.reader.domain.use_case.reading_activity.AddReadingActivityUseCase
 import com.wxn.reader.domain.use_case.reading_activity.GetReadingActivityByDateUseCase
 import com.wxn.reader.domain.use_case.reading_progress.*
+import com.wxn.reader.util.Logger
 import com.wxn.reader.util.PurchaseHelper
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Dispatchers
@@ -248,7 +249,7 @@ class BookReaderViewModel @Inject constructor(
                     try {
                         navigator.submitPreferences(ttsPreferences)
                     } catch (e: Exception) {
-                        Log.e("TTS", "Failed to submit preferences: ${e.message}")
+                        Logger.e("TTS:Failed to submit preferences: ${e.message}")
                     }
 
                     // Highlight Spoken Utterances
@@ -281,7 +282,7 @@ class BookReaderViewModel @Inject constructor(
                                 }
                             }
                         } catch (e: Exception) {
-                            Log.e("TTS", "Error in decoration handling: ${e.message}")
+                            Logger.e("TTS:Error in decoration handling: ${e.message}")
                         }
                     }
 
@@ -298,7 +299,7 @@ class BookReaderViewModel @Inject constructor(
                                     }
                                 }
                         } catch (e: Exception) {
-                            Log.e("TTS", "Error in navigation handling: ${e.message}")
+                            Logger.e("TTS:Error in navigation handling: ${e.message}")
                         }
                     }
 
@@ -317,16 +318,16 @@ class BookReaderViewModel @Inject constructor(
                                     }
                                 }
                         } catch (e: Exception) {
-                            Log.e("TTS", "Error in playback handling: ${e.message}")
+                            Logger.e("TTS:Error in playback handling: ${e.message}")
                         }
                     }
                 }?.onFailure { error ->
-                    Log.e("TTS", "Failed to create TTS Navigator: ${error.message}")
+                    Logger.e("TTS:Failed to create TTS Navigator: ${error.message}")
                     _isTtsOn.value = false
                     _isTtsPlaying.value = false
                 }
             } catch (e: Exception) {
-                Log.e("TTS", "Error in TTS initialization: ${e.message}")
+                Logger.e("TTS:Error in TTS initialization: ${e.message}")
                 _isTtsOn.value = false
                 _isTtsPlaying.value = false
             }

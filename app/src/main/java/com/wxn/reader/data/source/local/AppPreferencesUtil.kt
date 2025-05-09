@@ -15,6 +15,7 @@ import com.wxn.reader.data.model.Layout
 import com.wxn.reader.data.dto.ReadingStatus
 import com.wxn.reader.data.model.SortOption
 import com.wxn.reader.data.model.SortOrder
+import com.wxn.reader.util.Logger
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
@@ -142,9 +143,9 @@ class AppPreferencesUtil @Inject constructor(
 
     suspend fun updateAppPreferences(newPreferences: AppPreferences) {
         dataStore.edit { preferences ->
-            Log.d("AppPreferencesUtil", "Updating preferences. isFirstLaunch: ${newPreferences.isFirstLaunch}")
-            Log.d("AppPreferencesUtil", "Updating preferences. Scan directories: ${newPreferences.scanDirectories}")
-            Log.d("AppPreferencesUtil", "Updating preferences. Premium status: ${newPreferences.isPremium}")
+            Logger.d("AppPreferencesUtil:Updating preferences. isFirstLaunch: ${newPreferences.isFirstLaunch}")
+            Logger.d("AppPreferencesUtil:Updating preferences. Scan directories: ${newPreferences.scanDirectories}")
+            Logger.d("AppPreferencesUtil:Updating preferences. Premium status: ${newPreferences.isPremium}")
             preferences[IS_FIRST_LAUNCH] = newPreferences.isFirstLaunch
             preferences[IS_ASSETS_BOOKS_FETCHED] = newPreferences.isAssetsBooksFetched
             preferences[SCAN_DIRECTORY] = newPreferences.scanDirectories

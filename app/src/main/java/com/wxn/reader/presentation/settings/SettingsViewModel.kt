@@ -61,7 +61,7 @@ class SettingsViewModel @Inject constructor(
             permissionRepository.grantPersistableUriPermission(uri)
             if (!currentDirectories.contains(directory)) {
                 val updatedDirectories = currentDirectories + directory
-                Log.d("it's me", "the Settings viewModel")
+                Logger.d("SettingsViewModel:addScanDirectory:the Settings viewModel")
                 appPreferencesUtil.updateAppPreferences(appPreferences.value.copy(scanDirectories = updatedDirectories))
             }
         }
