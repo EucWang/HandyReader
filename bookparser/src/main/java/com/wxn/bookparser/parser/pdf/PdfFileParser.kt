@@ -69,7 +69,7 @@ class PdfFileParser @Inject constructor(
             val pages = document.numberOfPages
 
             val targetPath = getCoverPath(application.applicationContext, title)
-            val cover = if (saveBitmapToFile(application.applicationContext, PDFRenderer(document).renderImage(0, 0.1f, ImageType.RGB), targetPath)) {
+            val cover = if (saveBitmapToFile(application.applicationContext, PDFRenderer(document).renderImage(0, 0.3f, ImageType.RGB), targetPath)) {
                 targetPath
             } else {
                 ""
