@@ -24,12 +24,12 @@ class TxtFileParser @Inject constructor(val context: Context) : FileParser {
             BookWithCover(
                 book = Book(
                     title = file.baseName,
-                    author = stringResource(R.string.unknown_author),
+                    author = "", // stringResource(R.string.unknown_author),
                     description = null,
                     scrollIndex = 0,
                     scrollOffset = 0,
                     progress = 0f,
-                    filePath = file.getAbsolutePath(context),
+                    filePath = file.uri.toString(),
                     lastOpened = null,
                     category = "",
                     coverImage = null,
@@ -46,7 +46,7 @@ class TxtFileParser @Inject constructor(val context: Context) : FileParser {
     override suspend fun parse(cachedFile: CachedFile): BookWithCover? {
         return try {
             val title = cachedFile.name.substringBeforeLast(".").trim()
-            val author = stringResource(R.string.unknown_author)
+            val author = "" //stringResource(R.string.unknown_author)
 
             BookWithCover(
                 book = Book(
@@ -56,7 +56,7 @@ class TxtFileParser @Inject constructor(val context: Context) : FileParser {
                     scrollIndex = 0,
                     scrollOffset = 0,
                     progress = 0f,
-                    filePath = cachedFile.path,
+                    filePath = cachedFile.uri.toString(),
                     lastOpened = null,
                     category = "",
                     coverImage = null,

@@ -22,6 +22,7 @@ import com.wxn.bookparser.FileParser
 import com.wxn.bookparser.TextParser
 import com.wxn.bookparser.domain.book.Book
 import com.wxn.bookparser.domain.file.CachedFile
+import com.wxn.bookparser.domain.file.CachedFileBuilder
 import com.wxn.bookparser.domain.file.CachedFileCompat
 import com.wxn.reader.R
 import com.wxn.reader.data.model.AppPreferences
@@ -53,6 +54,7 @@ import com.wxn.reader.ui.theme.stringResource
 import com.wxn.reader.util.ImageUtils
 import com.wxn.reader.util.Logger
 import com.wxn.reader.util.PurchaseHelper
+import com.wxn.reader.util.launchIO
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.CoroutineExceptionHandler
 import kotlinx.coroutines.Dispatchers
@@ -177,7 +179,7 @@ class HomeViewModel
 
     private suspend fun addPublicDomainBooksIfNeeded() {
         val publicDomainBooks = listOf("alice_in_wonderlands.epub", "romeo_and_juliet.epub")
-        val existingUris = getBookUrisUseCase()
+        val existingUris = getBookUrisUseCase().toSet()
         publicDomainBooks.forEach { fileName ->
             val internalFile = copyAssetToInternalStorage(fileName)
             val internalUri = Uri.fromFile(internalFile)
@@ -223,16 +225,17 @@ class HomeViewModel
 
         viewModelScope.launch {
             combine(
-                getBooksUseCase(sortBy, isAscending, readingStatus, fileType).cachedIn(
-                    viewModelScope
-                ),
+//                getBooksUseCase(sortBy, isAscending, readingStatus, fileType).cachedIn(
+//                    viewModelScope
+//                ),
+                getBooksUseCase.getSortedBooks(sortBy, isAscending, readingStatus, fileType),
                 searchQuery,
                 currentShelf,
                 booksInShelfSet,
                 selectedTabRow
             ) { books, query, shelf, shelfBookIds, selectedTabRow ->
                 books.filter { book ->
-                    Logger.d("HomeViewModel:loadBooks:${book}")
+//                    Logger.d("HomeViewModel:loadBooks:${book}")
                     val matchesSearch =
                         query.isBlank() || book.title.contains(query, ignoreCase = true)
                     val matchesShelf = shelf == null || book.id in shelfBookIds
@@ -243,9 +246,10 @@ class HomeViewModel
                     }
                     matchesSearch && matchesShelf && matchesTab
                 }
-            }.collect { filteredPagingData : PagingData<Book> ->
-                Logger.d("HomeViewModel:loadBooks:${filteredPagingData.toString()}")
-                _books.value = filteredPagingData
+            }.collect { data ->
+//                Logger.d("HomeViewModel:loadBooks:${data.size}")
+                _books.value =  PagingData.from(data)
+//                _books.value = filteredPagingData
             }
         }
     }
@@ -295,8 +299,6 @@ class HomeViewModel
         }
     }
 
-
-
     private fun showSnackbar(
         message: String,
         unlimited: Boolean = false,
@@ -324,6 +326,7 @@ class HomeViewModel
 
     private fun observeBooks(preferences: AppPreferences) {
         viewModelScope.launch(Dispatchers.IO + CoroutineExceptionHandler { _, throwable ->
+            Logger.e(throwable)
             _importProgressState.value =
                 ImportProgressState.Error(throwable.message ?: "Unknown error occurred")
             _isAddingBooks.value = false
@@ -331,15 +334,25 @@ class HomeViewModel
                 message = "Error during import: ${throwable.message}",
             )
         }) {
+//        viewModelScope.launchIO({ throwable ->
+//            _importProgressState.value =
+//                ImportProgressState.Error(throwable.message ?: "Unknown error occurred")
+//            _isAddingBooks.value = false
+//            showSnackbar(
+//                message = "Error during import: ${throwable.message}",
+//            )
+//        }) {
             try {
                 //已经存到数据库中的书籍
-                val existingUris = getBookUrisUseCase()
+                val existingUris = getBookUrisUseCase().toSet()
 
                 //从用户目录中导入的书籍文件列表
                 val documentFiles = mutableListOf<DocumentFile>()
                 preferences.scanDirectories.forEach { directoryPath ->
+                    Logger.d("HomeViewModel::observeBooks::directoryPath=$directoryPath")
                     val uri = Uri.parse(directoryPath)
                     val filesInDirectory = getBooksFromDirectory(context, uri)
+                    Logger.d("HomeViewModel::observeBooks::filesInDirectory=${filesInDirectory.size},")
                     documentFiles.addAll(filesInDirectory)
                 }
                 //从文件列表中的文件去重复
@@ -359,18 +372,19 @@ class HomeViewModel
                     Uri.fromFile(copyAssetToInternalStorage(it)).toString()
                 }
 
+//                Logger.d("HomeViewModel::observeBooks::assetBookUris=${assetBookUris},existingUris=${existingUris}")
                 //在数据库中， 但是不在用户的扫描目录中的uri，则是用户已经删除掉了的书籍
                 val deletedUris = existingUris.filter { it !in currentUris && it !in assetBookUris }
 
-
+                Logger.d("HomeViewModel::observeBooks::newBooks.size=${newBooks.size}")
                 if (newBooks.isNotEmpty()) {        //有新增加的，则将新增加的加入到数据库中
                     _isAddingBooks.value = true
                     _importProgressState.value = ImportProgressState.InProgress(0, newBooks.size)
                     showSnackbar(
                         message = stringResource(R.string.adding_new_book_to_library)
                     )
-
-                    // Process books in smaller batches
+//
+//                    // Process books in smaller batches
                     newBooks.chunked(5).forEachIndexed { batchIndex, batch ->
                         // Add delay between batches to prevent overwhelming the system
                         if (batchIndex > 0) delay(100)
@@ -388,15 +402,43 @@ class HomeViewModel
                                 )
 
                                 // Check if book already exists before adding
-                                val bookUriString = documentFile.uri.toString()
-                                if (!getBookUrisUseCase().contains(bookUriString)) {
+//                                val bookUriString = documentFile.uri.toString()
+//                                if (!getBookUrisUseCase().toSet().contains(bookUriString)) {
                                     addNewBook(documentFile)
-                                }
+//                                } else {
+//                                    Logger.d("HomeViewModel::${bookUriString} already exists.")
+//                                }
                             } catch (e: Exception) {
-                                Log.e("HomeViewModel", "Error adding book: ${documentFile.name}", e)
+                                Logger.e("HomeViewModel::Error adding book: ${documentFile.name}, ${e.message}")
                             }
                         }
                     }
+
+                    // Process books in smaller batches
+//                    newBooks.forEachIndexed { index, documentFile ->
+//                        try {
+//                            val totalProcessed = index + 1
+//                            _importProgressState.value =
+//                                ImportProgressState.InProgress(totalProcessed, newBooks.size)
+//
+//                            // Update snackbar with progress
+//                            showSnackbar(
+//                                message = stringResource(R.string.adding_books_num, totalProcessed, newBooks.size),
+//                                unlimited = true
+//                            )
+//
+//                            // Check if book already exists before adding
+//                            val bookUriString = documentFile.uri.toString()
+//                            if (!getBookUrisUseCase().toSet().contains(bookUriString)) {
+//                                addNewBook(documentFile)
+//                            } else {
+//                                Logger.d("HomeViewModel::${bookUriString} already exists.")
+//                            }
+//                        } catch (e: Exception) {
+//                            Logger.e("HomeViewModel::Error adding book: ${documentFile.name}, ${e.message}")
+//                        }
+//                    }
+
 
                     _importProgressState.value = ImportProgressState.Complete
                     showSnackbar(
@@ -406,6 +448,7 @@ class HomeViewModel
                 }
 
                 // Handle deleted books in batches
+                Logger.d("HomeViewModel::observeBooks::deletedUris.size=${deletedUris.size}")
                 if (deletedUris.isNotEmpty()) {
                     showSnackbar(
                         message = stringResource(R.string.remove_nums_books, deletedUris.size)
@@ -415,7 +458,7 @@ class HomeViewModel
                             try {
                                 deleteBookByUriUseCase(bookUri)
                             } catch (e: Exception) {
-                                Log.e("HomeViewModel", "Error deleting book: $bookUri", e)
+                                Logger.e("HomeViewModel::Error deleting book: $bookUri,${e.message}")
                             }
                         }
                         delay(50)
@@ -425,12 +468,10 @@ class HomeViewModel
                     )
                 }
 
-
-
                 loadBooks(appPreferences.value)
             } catch (e: Exception) {
                 _importProgressState.value = ImportProgressState.Error(e.message ?: "Unknown error occurred")
-                Log.e("HomeViewModel", "Error observing books", e)
+                Logger.e("HomeViewModel::Error observing books:${e.message}")
                 showSnackbar(
                     message = stringResource(R.string.error_updateing_library, e.message ?: "Unknown error occurred")
                 )
@@ -591,12 +632,11 @@ class HomeViewModel
                 val documentFile = DocumentFile.fromTreeUri(context, uri)
                 documentFile?.let { scanDirectory(it) } ?: emptyList()
             } catch (e: Exception) {
-                Log.e("HomeViewModel", "Error scanning directory: $uri", e)
+                Logger.e("HomeViewModel::Error scanning directory: $uri, $e")
                 emptyList()
             }
         }
     }
-
 
     private fun scanDirectory(directory: DocumentFile): List<DocumentFile> {
         return try {
@@ -644,23 +684,39 @@ class HomeViewModel
     private suspend fun addNewBook(documentFile: DocumentFile) {
         withContext(Dispatchers.IO) {
             try {
-                val bookUriString = documentFile.uri.toString()
-                if (!getBookUrisUseCase().contains(bookUriString)) {
-                    val book = getBookInfo(documentFile)
-                    // Add retry mechanism for database operations
-                    retry(attempts = 3) {
-                        insertBookUseCase(book)
+//                val bookUriString = documentFile.uri.toString()
+//                if (!getBookUrisUseCase().toSet().contains(bookUriString)) {
+//                    val book = getBookInfo(documentFile)
+
+                    val cachedFile = CachedFileCompat.fromUri(context,
+                        documentFile.uri, CachedFileCompat.build(
+                            name = documentFile.name,
+                            path = documentFile.uri.path,
+                            isDirectory = false
+                        ))
+//
+                    val bookWithCover = fileParser.parse(cachedFile)
+//                    val bookWithCover = fileParser.parse(documentFile)
+                    bookWithCover?.book?.let {book ->
+                        // Add retry mechanism for database operations
+                        retry {
+                            insertBookUseCase(book)
+                        }
                     }
-                }
+//                }
             } catch (e: Exception) {
-                Log.e("HomeViewModel", "Error adding book: ${documentFile.name}", e)
+                Logger.e("HomeViewModel::Error adding book: ${documentFile.name}, ${e.message}")
                 throw e
             }
         }
     }
 
+    /****
+     * 如果block运行抛出异常，则尝试attempts次，每次间隔delayBetweenAttempts 毫秒
+     * 返回block运行的结果
+     */
     private suspend fun <T> retry(
-        attempts: Int,
+        attempts: Int = 3,
         delayBetweenAttempts: Long = 1000L,
         block: suspend () -> T
     ): T {

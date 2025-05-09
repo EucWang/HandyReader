@@ -7,7 +7,7 @@ import kotlinx.coroutines.withContext
 import javax.inject.Inject
 
 class InsertBookUseCase @Inject constructor(private val repository: BooksRepository) {
-    suspend operator fun invoke(book: Book) = withContext(Dispatchers.IO) {
+    suspend operator fun invoke(book: Book): Int = withContext(Dispatchers.IO) {
         repository.insertBook(book)
     }
 }

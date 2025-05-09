@@ -13,7 +13,6 @@ object Coroutines {
         val dispatcher = Dispatchers.IO
         val exceptionHandler = CoroutineExceptionHandler{
                 ctx, throwable ->
-//            log(throwable)
             Logger.e(throwable)
         }
         return CoroutineScope(job + dispatcher + exceptionHandler)
@@ -24,10 +23,21 @@ object Coroutines {
         val dispatcher = Dispatchers.Main
         val exceptionHandler = CoroutineExceptionHandler{
                 ctx, throwable ->
-//            log(throwable)
             Logger.e(throwable)
         }
         return CoroutineScope(job + dispatcher + exceptionHandler)
     }
 
+}
+
+fun CoroutineScope.launchIO(exceptionHandler: ((Throwable)->Unit)? = null, block: suspend CoroutineScope.() -> Unit) {
+    val job = SupervisorJob()
+    val dispatcher = Dispatchers.IO
+    val exceptionHandler = CoroutineExceptionHandler{
+            ctx, throwable ->
+        Logger.e(throwable)
+        exceptionHandler?.invoke(throwable)
+    }
+    val context = this.coroutineContext + dispatcher + exceptionHandler + job
+    launch(context = context, block = block)
 }

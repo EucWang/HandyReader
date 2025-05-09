@@ -1,13 +1,16 @@
 package com.wxn.reader.presentation.settings
 
 import android.app.Application
+import android.net.Uri
 import android.util.Log
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.wxn.reader.data.model.AppLanguage
 import com.wxn.reader.data.model.AppPreferences
 import com.wxn.reader.data.source.local.AppPreferencesUtil
+import com.wxn.reader.domain.repository.PermissionRepository
 import com.wxn.reader.util.LanguageHelper
+import com.wxn.reader.util.Logger
 import com.wxn.reader.util.PurchaseHelper
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -21,6 +24,7 @@ import javax.inject.Inject
 class SettingsViewModel @Inject constructor(
     private val appPreferencesUtil: AppPreferencesUtil,
     private val languageHelper: LanguageHelper,
+    private val permissionRepository: PermissionRepository,
     application: Application,
 ) : AndroidViewModel(application) {
 
@@ -50,9 +54,11 @@ class SettingsViewModel @Inject constructor(
     }
 
 
-    fun addScanDirectory(directory: String) {
+    fun addScanDirectory(uri: Uri) {
         viewModelScope.launch {
             val currentDirectories = appPreferences.value.scanDirectories
+            val directory = uri.toString()
+            permissionRepository.grantPersistableUriPermission(uri)
             if (!currentDirectories.contains(directory)) {
                 val updatedDirectories = currentDirectories + directory
                 Log.d("it's me", "the Settings viewModel")
@@ -60,18 +66,25 @@ class SettingsViewModel @Inject constructor(
             }
         }
     }
+//    fun addScanDirectory(directory: String) {
+//        viewModelScope.launch {
+//            val currentDirectories = appPreferences.value.scanDirectories
+//            if (!currentDirectories.contains(directory)) {
+//                val updatedDirectories = currentDirectories + directory
+//                Log.d("it's me", "the Settings viewModel")
+//                appPreferencesUtil.updateAppPreferences(appPreferences.value.copy(scanDirectories = updatedDirectories))
+//            }
+//        }
+//    }
 
     fun removeScanDirectory(directory: String) {
         viewModelScope.launch {
             val updatedDirectories = appPreferences.value.scanDirectories - directory
-            Log.d("it's me", "the Settings viewModel")
+            Logger.d("removeScanDirectory::$directory")
             appPreferencesUtil.updateAppPreferences(appPreferences.value.copy(scanDirectories = updatedDirectories))
+            permissionRepository.releasePersistableUriPermission(Uri.parse(directory))
         }
     }
-
-
-
-
 
     fun updateLanguage(languageCode: String) {
         viewModelScope.launch {

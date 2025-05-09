@@ -131,8 +131,14 @@ class BooksRepositoryImpl @Inject constructor(
         }
     }
 
-    override suspend fun insertBook(book: Book) = withContext(Dispatchers.IO) {
-        bookDao.insertBook(bookMapper.toBookEntity(book))
+    override suspend fun insertBook(book: Book) : Int = withContext(Dispatchers.IO) {
+        val entity = bookMapper.toBookEntity(book)
+        if (!getAllBookUris().toSet().contains(entity.uri)){
+            bookDao.insertBook(entity)
+            1
+        } else {
+            0
+        }
     }
 
     override suspend fun updateBook(book: Book) = withContext(Dispatchers.IO) {

@@ -1,8 +1,6 @@
 package com.wxn.reader.ui.theme
 
-import android.content.Context
 import android.os.Build
-import android.text.Html
 import androidx.activity.compose.LocalActivity
 import androidx.annotation.StringRes
 import androidx.compose.foundation.isSystemInDarkTheme

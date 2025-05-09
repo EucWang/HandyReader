@@ -1,11 +1,13 @@
 package com.wxn.bookparser.parser.html
 
 import android.content.Context
+import android.net.Uri
 import androidx.compose.ui.res.stringResource
 import androidx.documentfile.provider.DocumentFile
 import com.anggrayudi.storage.file.baseName
 import com.anggrayudi.storage.file.getAbsolutePath
 import com.anggrayudi.storage.file.openInputStream
+import com.anggrayudi.storage.file.toRawFile
 import com.wxn.bookparser.FileParser
 import com.wxn.bookparser.R
 import com.wxn.bookparser.domain.book.Book
@@ -23,8 +25,8 @@ class HtmlFileParser @Inject constructor(val context: Context) : FileParser {
         return try {
             val inputStream = file.openInputStream(context)
             val title = file.baseName
-            val path = file.getAbsolutePath(context)
-            innerParse(inputStream, title, path)
+//            val path = Uri.fromFile(file.toRawFile(context)).toString()
+            innerParse(inputStream, title, file.uri.toString())
         } catch (ex: Exception) {
             null
         }
@@ -34,8 +36,8 @@ class HtmlFileParser @Inject constructor(val context: Context) : FileParser {
         return try {
             val inputStream = cachedFile.openInputStream()
             val title = cachedFile.name.substringBeforeLast(".").trim()
-            val path = cachedFile.path
-            innerParse(inputStream, title, path)
+//            val path = cachedFile.path
+            innerParse(inputStream, title, cachedFile.uri.toString())
         } catch (ex: Exception) {
             null
         }
@@ -57,7 +59,7 @@ class HtmlFileParser @Inject constructor(val context: Context) : FileParser {
             BookWithCover(
                 book = Book(
                     title = title,
-                    author = stringResource(R.string.unknown_author),
+                    author = "", // stringResource(R.string.unknown_author),
                     description = null,
                     scrollIndex = 0,
                     scrollOffset = 0,

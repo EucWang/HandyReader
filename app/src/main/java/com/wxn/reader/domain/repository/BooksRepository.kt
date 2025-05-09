@@ -33,7 +33,7 @@ interface BooksRepository {
     fun getDeletedBooks(): Flow<List<Book>>
     suspend fun getAllBookUris(): List<String>
     suspend fun getBookById(bookId: Long): Book?
-    suspend fun insertBook(book: Book)
+    suspend fun insertBook(book: Book): Int
     suspend fun updateBook(book: Book)
     suspend fun deleteBook(book: Book)
     suspend fun deleteBookByUri(bookUri: String)

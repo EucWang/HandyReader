@@ -1,6 +1,7 @@
 package com.wxn.bookparser.parser.epub
 
 import android.content.Context
+import android.net.Uri
 import android.util.Log
 import androidx.compose.ui.res.stringResource
 import androidx.documentfile.provider.DocumentFile
@@ -20,6 +21,7 @@ import java.io.File
 import java.util.UUID
 import java.util.zip.ZipFile
 import javax.inject.Inject
+import kotlin.text.replace
 
 /**
  * EPUB 文件结构，本质是一个zip压缩文件
@@ -211,7 +213,7 @@ class EpubFileParser @Inject constructor(val context: Context) : FileParser {
     }
 
     fun getCoverPath(coverImageName: String) =
-       context.filesDir.absolutePath + File.separator + "covers" + File.separator + UUID.randomUUID().toString() + "_" + coverImageName
+       context.filesDir.absolutePath + File.separator + "covers" + File.separator + UUID.randomUUID().toString() + "_" + coverImageName.replace(File.separator, "_")
 
     private suspend fun innerParserFile(rawFile: File?, baseName: String, absolutePath: String): BookWithCover? {
         return try {
@@ -240,7 +242,7 @@ class EpubFileParser @Inject constructor(val context: Context) : FileParser {
 
                     val author = document.select("metadata > dc|creator").text().trim().run {
                         if (isBlank()) {
-                            stringResource(R.string.unknown_author)
+                            "" // stringResource(R.string.unknown_author)
                         } else {
                             this
                         }
@@ -280,7 +282,7 @@ class EpubFileParser @Inject constructor(val context: Context) : FileParser {
                             scrollIndex = 0,
                             scrollOffset = 0,
                             progress = 0f,
-                            filePath = absolutePath,
+                            filePath = Uri.fromFile(rawFile).toString(),
                             lastOpened = null,
                             category = "",
                             coverImage = coverImagePath,

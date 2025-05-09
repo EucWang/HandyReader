@@ -24,8 +24,7 @@ class PdfFileParser @Inject constructor(
         return try {
             val inputStream = file.openInputStream(application.applicationContext)
             val baseName = file.baseName
-            val path = file.getAbsolutePath(application.applicationContext)
-            innerParse(inputStream, baseName, path)
+            innerParse(inputStream, baseName, file.uri.toString())
         } catch (ex: Exception) {
             null
         }
@@ -36,7 +35,7 @@ class PdfFileParser @Inject constructor(
             val inputStream = cachedFile.openInputStream()
             val baseName = cachedFile.name.substringBeforeLast(".").trim()
             val path = cachedFile.path
-            innerParse(inputStream, baseName, path)
+            innerParse(inputStream, baseName, cachedFile.uri.toString())
         } catch (ex: Exception) {
             null
         }
@@ -50,10 +49,10 @@ class PdfFileParser @Inject constructor(
 
             val title = document.documentInformation.title
                 ?: baseName
-            val author = document.documentInformation.author.run {
-                if (isNullOrBlank()) stringResource(R.string.unknown_author)
-                else this
-            }
+            val author = document.documentInformation.author //.run {
+//                if (isNullOrBlank()) stringResource(R.string.unknown_author)
+//                else this
+//            }
             val description = document.documentInformation.subject
 
             document.close()

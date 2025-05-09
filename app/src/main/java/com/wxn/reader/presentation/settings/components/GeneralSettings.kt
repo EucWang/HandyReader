@@ -72,11 +72,12 @@ fun GeneralSettings(
     val getDirectoryPermissionLauncher =
         rememberLauncherForActivityResult(ActivityResultContracts.OpenDocumentTree()) { uri: Uri? ->
             uri?.let {
-                context.contentResolver.takePersistableUriPermission(
-                    it,
-                    Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_GRANT_WRITE_URI_PERMISSION
-                )
-                viewModel.addScanDirectory(it.toString())
+//                context.contentResolver.takePersistableUriPermission(
+//                    it,
+//                    Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_GRANT_WRITE_URI_PERMISSION
+//                )
+//                viewModel.addScanDirectory(it.toString())
+                viewModel.addScanDirectory(it)
             }
         }
 
@@ -323,6 +324,7 @@ fun GeneralSettings(
                 Button(onClick = {
                     showSelectDirectoryDialog = false
                     getDirectoryPermissionLauncher.launch(null)
+
                 }) {
                     Text(stringResource(R.string.select))
                 }
