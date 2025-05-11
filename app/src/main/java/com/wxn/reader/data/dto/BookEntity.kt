@@ -8,7 +8,7 @@ data class BookEntity(
     @PrimaryKey(autoGenerate = true)
     val id: Long = 0,           //+
     val uri: String,            //+ filePath
-    val fileType: FileType,
+    val fileType: String,
 
     val title: String,          //+
     val authors: String,        //+    ->author
@@ -57,12 +57,11 @@ enum class FileType {
     UNKNOWN;
 
     companion object {
-
         fun stringToFileType(type: String): FileType =
             when (type.lowercase()) {
                 "epub" -> FileType.EPUB
                 "pdf" -> FileType.PDF
-                "mp3" -> FileType.AUDIOBOOK
+                in listOf("mp3", "m4a", "m4b", "aac","AUDIOBOOK") -> AUDIOBOOK
                 "txt" -> FileType.TXT
                 "fb2" -> FileType.FB2
                 "html", "htm" -> FileType.HTML
@@ -75,7 +74,7 @@ enum class FileType {
         when (this) {
             EPUB -> "epub"
             PDF -> "pdf"
-            AUDIOBOOK -> "mp3"
+            AUDIOBOOK -> "AUDIOBOOK"
             TXT -> "txt"
             FB2 -> "fb2"
             HTML -> "html"

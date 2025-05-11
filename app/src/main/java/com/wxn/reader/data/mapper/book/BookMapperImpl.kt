@@ -3,7 +3,6 @@ package com.wxn.reader.data.mapper.book
 import com.wxn.bookparser.domain.book.Book
 import com.wxn.reader.data.dto.BookEntity
 import com.wxn.reader.data.dto.ReadingStatus.Companion.intToReadStatus
-import com.wxn.reader.data.dto.FileType.Companion.stringToFileType
 
 import javax.inject.Inject
 
@@ -12,7 +11,8 @@ class BookMapperImpl @Inject constructor() : BookMapper {
         return BookEntity(
             id = book.id,
             uri = book.filePath,
-            fileType = stringToFileType(book.fileType),
+//            fileType = stringToFileType(book.fileType),
+            fileType = book.fileType,
 
             title = book.title,
             authors = book.author,
@@ -65,7 +65,7 @@ class BookMapperImpl @Inject constructor() : BookMapper {
             category = bookEntity.subjects.orEmpty(),
             coverImage = bookEntity.coverPath,
 
-            fileType = bookEntity.fileType.toString(),
+            fileType = bookEntity.fileType,
 
             publishDate = bookEntity.publishDate,
             publisher = bookEntity.publisher,

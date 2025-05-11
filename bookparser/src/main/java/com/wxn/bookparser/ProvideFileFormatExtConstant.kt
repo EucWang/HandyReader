@@ -18,7 +18,11 @@ fun supportedExtensions() = listOf(
     "txt",
     "html",
     "htm",
-    "md"
+    "md",
+    "mp3",
+    "m4a",
+    "m4b",
+    "aac"
 )
 
 fun provideImageExtensions() = listOf(

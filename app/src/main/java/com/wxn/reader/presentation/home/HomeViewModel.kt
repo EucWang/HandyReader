@@ -355,9 +355,7 @@ class HomeViewModel
                 //不在数据库中，但是在用户的搜索目录中的文件，就是用户新增加的文件
                 val newBooks = uniqueFiles.filter { documentFile ->
                     val bookUriString = documentFile.uri.toString()
-                    documentFile.canRead()  //满足条件 可读
-//                        && documentFile.mimeType in supportedExtensions()   //是支持的文件类型
-                        && !existingUris.contains(bookUriString)            //不在数据库中
+                        !existingUris.contains(bookUriString)            //不在数据库中
                 }
 
                 //当前目录中的文件对应的uri
@@ -646,7 +644,7 @@ class HomeViewModel
 //                    file.isFile ->  file.name?.let { name ->
 //                        name.substringAfterLast('.', "").lowercase() in allowedExtensions
 //                    } ?: false
-                    file.isFile ->  file.mimeType in allowedExtensions
+                    file.isFile ->  file.mimeType in allowedExtensions && file.canRead()  //满足条件 支持的类型 可读
 
                     else -> false
                 }

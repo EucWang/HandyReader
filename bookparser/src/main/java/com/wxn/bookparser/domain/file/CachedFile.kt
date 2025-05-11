@@ -56,6 +56,11 @@ class CachedFile(
         }
     }
 
+    val extension: String
+        get() {
+            return name.substringAfterLast(".").lowercase().trim()
+        }
+
     fun openInputStream(): InputStream? {
         return try {
             context.contentResolver.openInputStream(uri)

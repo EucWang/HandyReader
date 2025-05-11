@@ -6,6 +6,7 @@ import com.anggrayudi.storage.file.extension
 import com.wxn.bookparser.FileParser
 import com.wxn.bookparser.domain.book.BookWithCover
 import com.wxn.bookparser.domain.file.CachedFile
+import com.wxn.bookparser.parser.audio.AudioFileParser
 import com.wxn.bookparser.parser.epub.EpubFileParser
 import com.wxn.bookparser.parser.fb2.Fb2FileParser
 import com.wxn.bookparser.parser.html.HtmlFileParser
@@ -21,10 +22,10 @@ class FileParserImpl @Inject constructor(
     private val epubFileParser: EpubFileParser,
     private val fb2FileParser: Fb2FileParser,
     private val htmlFileParser: HtmlFileParser,
+    private val audioFileParser: AudioFileParser
 ) : FileParser {
 
     override suspend fun parse(file: DocumentFile): BookWithCover? {
-
         if (!file.isFile || !file.canRead()) {
             Log.e(FILE_PARSER, "File does not exist or no read access is granted.")
             return null
@@ -60,6 +61,15 @@ class FileParserImpl @Inject constructor(
                 txtFileParser.parse(file)
             }
 
+            in listOf(
+                "mp3",
+                "m4a",
+                "m4b",
+                "aac"
+            ) -> {
+                audioFileParser.parse(file)
+            }
+
             else -> {
                 Log.e(FILE_PARSER, "Wrong file format, could not find supported extension.")
                 null
@@ -73,36 +83,44 @@ class FileParserImpl @Inject constructor(
             return null
         }
 
-        val fileFormat = ".${cachedFile.name.substringAfterLast(".")}".lowercase().trim()
-        return when (fileFormat) {
-            ".pdf" -> {
+        return when (cachedFile.extension) {
+
+            "pdf" -> {
                 pdfFileParser.parse(cachedFile)
             }
 
-            ".epub" -> {
+            "epub" -> {
                 epubFileParser.parse(cachedFile)
             }
 
-            ".txt" -> {
+            "txt" -> {
                 txtFileParser.parse(cachedFile)
             }
 
-            ".fb2" -> {
+            "fb2" -> {
                 fb2FileParser.parse(cachedFile)
             }
 
-            ".html" -> {
+            "html" -> {
                 htmlFileParser.parse(cachedFile)
             }
 
-            ".htm" -> {
+            "htm" -> {
                 htmlFileParser.parse(cachedFile)
             }
 
-            ".md" -> {
+            "md" -> {
                 txtFileParser.parse(cachedFile)
             }
 
+            in listOf(
+                "mp3",
+                "m4a",
+                "m4b",
+                "aac"
+            ) -> {
+                audioFileParser.parse(cachedFile)
+            }
             else -> {
                 Log.e(FILE_PARSER, "Wrong file format, could not find supported extension.")
                 null

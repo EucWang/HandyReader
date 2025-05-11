@@ -5,6 +5,7 @@ import android.content.Context
 import com.wxn.bookparser.FileParser
 import com.wxn.bookparser.impl.FileParserImpl
 import com.wxn.bookparser.impl.TextParserImpl
+import com.wxn.bookparser.parser.audio.AudioFileParser
 import com.wxn.bookparser.parser.base.DocumentParser
 import com.wxn.bookparser.parser.base.MarkdownParser
 import com.wxn.bookparser.parser.epub.EpubFileParser
@@ -81,6 +82,9 @@ object ParserModule {
     @Singleton
     fun provideEpubTextParser(documentParser: DocumentParser): EpubTextParser = EpubTextParser(documentParser)
 
+    @Provides
+    @Singleton
+    fun provideAudioFileParser(context: Context): AudioFileParser = AudioFileParser(context)
 
     @Provides
     @Singleton
@@ -90,12 +94,14 @@ object ParserModule {
         epubFileParser: EpubFileParser,
         fb2FileParser: Fb2FileParser,
         htmlFileParser: HtmlFileParser,
+        audioFileParser: AudioFileParser
     ): FileParser = FileParserImpl(
         txtFileParser,
         pdfFileParser,
         epubFileParser,
         fb2FileParser,
-        htmlFileParser
+        htmlFileParser,
+        audioFileParser
     )
 
     @Provides

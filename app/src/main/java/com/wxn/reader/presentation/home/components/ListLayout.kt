@@ -33,6 +33,7 @@ import com.wxn.reader.data.dto.FileType.Companion.stringToFileType
 import com.wxn.reader.navigation.LocalNavController
 import com.wxn.reader.presentation.home.HomeViewModel
 import com.wxn.reader.navigation.Screens
+import com.wxn.reader.util.Logger
 import kotlin.random.Random
 
 @Composable
@@ -146,6 +147,7 @@ fun ListLayout(
                                         "" //TODO
                                     }
                                 }
+                                Logger.d("OpenBook::isBookOpen=$isBookOpen,book.fileType=${openedBook.fileType},encodedUri=${encodedUri},id=${openedBook.id},route=$route")
                                 navController.navigate(route = route)
                             }
                             if (shouldShowAd) {
