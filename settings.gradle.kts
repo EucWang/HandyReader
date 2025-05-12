@@ -30,3 +30,4 @@ dependencyResolutionManagement {
 rootProject.name = "uRead"
 include(":app")
 include(":bookparser")
+include(":mobi")

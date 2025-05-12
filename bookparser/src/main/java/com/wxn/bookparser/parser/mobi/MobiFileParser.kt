@@ -1,171 +1,221 @@
 package com.wxn.bookparser.parser.mobi
 
+import android.content.Context
 import androidx.documentfile.provider.DocumentFile
+import com.anggrayudi.storage.file.baseName
+import com.anggrayudi.storage.file.extension
 import com.wxn.bookparser.FileParser
+import com.wxn.bookparser.domain.book.Book
 import com.wxn.bookparser.domain.book.BookWithCover
 import com.wxn.bookparser.domain.file.CachedFile
+import com.wxn.bookparser.exts.rawFile
+import com.wxn.mobi.MobiParser
+import com.wxn.mobi.data.model.MobiInfo
+import java.io.File
 import javax.inject.Inject
 
 
 /****
-MOBI文件本质上是Palm数据库(PDB)的变种，包含多个数据记录(records)，主要结构如下：
-    [PDB Header]        32字节
-    [PalmDOC Header]    16字节
-    [MOBI Header]       可变长度
-    [EXTH Header]
-    [Text Records]
-    [Image Records]
-    [FLIS Record]
-    [FCIS Record]
-    [Additional Records]
-
- ------------------------------
-PDB Header (32字节)
-    Offset	Length	Description
-    0x00	32	Database name (null-terminated)
-    0x20	2	Attributes
-    0x22	2	Version
-    0x24	4	Creation time (Palm OS timestamp)
-    0x28	4	Modification time
-    0x2C	4	Last backup time
-    0x30	4	Modification number
-    0x34	4	App info ID
-    0x38	4	Sort info ID
-    ...	...	...
+MOBI文件本质上是Palm数据库(PDB)的变种，包含多个数据记录(records)，主要结构如下： <br/>
+[PDB Header]        32字节    <br/>
+[PalmDOC Header]    16字节    <br/>
+[MOBI Header]       可变长度    <br/>
+[EXTH Header]   <br/>
+[Text Records]  <br/>
+[Image Records] <br/>
+[FLIS Record]   <br/>
+[FCIS Record]   <br/>
+[Additional Records]    <br/>
 
 ------------------------------
-PalmDOC Header (16字节)
-    Offset	Length	Description
-    +0	2	Compression type (1=PalmDOC,2=HUFF/CDIC)
-    +2	2	Unused
-    +4	4	Text length (uncompressed)
-    +8	2	Record count
-    +10	2	Record size (usually 4096)
-    +12	4	Encryption type (0=none,1=Old Mobipocket,2=Mobipocket)
+PDB Header (32字节)   <br/>
+Offset	Length	Description <br/>
+0x00	32	Database name (null-terminated) <br/>
+0x20	2	Attributes  <br/>
+0x22	2	Version <br/>
+0x24	4	Creation time (Palm OS timestamp)<br/>
+0x28	4	Modification time<br/>
+0x2C	4	Last backup time<br/>
+0x30	4	Modification number<br/>
+0x34	4	App info ID<br/>
+0x38	4	Sort info ID<br/>
+...	...	...<br/>
 
-------------------------------
-MOBI Header (可变长度)
-    关键字段包括：
-        Header length:         4 bytes
-        Mobi type:             4 bytes (0x2=BOOK,0x3=BOOKMOBI)
-        Text encoding:         4 bytes (1252=Latin1,65001=UTF8)
-        Unique ID:             4 bytes
-        File version:          4 bytes
-        ...
-        First image index:     4 bytes
-        ...
-        EXTH flags:            4 bytes
-        ...
-        Title offset:          4 bytes
-        Title length:          4 bytes
-        ...
+------------------------------<br/>
+PalmDOC Header (16字节)<br/>
+Offset	Length	Description<br/>
++0	2	Compression type (1=PalmDOC,2=HUFF/CDIC)<br/>
++2	2	Unused<br/>
++4	4	Text length (uncompressed)<br/>
++8	2	Record count<br/>
++10	2	Record size (usually 4096)<br/>
++12	4	Encryption type (0=none,1=Old Mobipocket,2=Mobipocket)<br/>
 
-------------------------------
-EXTH Header
-    扩展头包含丰富的元数据：
+------------------------------<br/>
+MOBI Header (可变长度)<br/>
+关键字段包括：<br/>
+Header length:         4 bytes<br/>
+Mobi type:             4 bytes (0x2=BOOK,0x3=BOOKMOBI)<br/>
+Text encoding:         4 bytes (1252=Latin1,65001=UTF8)<br/>
+Unique ID:             4 bytes<br/>
+File version:          4 bytes<br/>
+...<br/>
+First image index:     4 bytes<br/>
+...<br/>
+EXTH flags:            4 bytes<br/>
+...<br/>
+Title offset:          4 bytes<br/>
+Title length:          4 bytes<br/>
+...<br/>
 
-        Header identifier:     "EXTH"
-        Header length:         4 bytes
-        Record count:         4 bytes
-        Records:              [Record type][Record length][Record data]...
+------------------------------<br/>
+EXTH Header<br/>
+扩展头包含丰富的元数据：<br/>
 
-    常见记录类型：
-        100: Author
-        101: Publisher
-        102: Publishing date
-        103: ISBN
-        104: Copyright
-        105: Subject
-        106: Description
-        108: Contributor
-        109: Rights
-        ...
-        202: Cover offset
-        203: Thumbnail offset
-        205: Language
-        206: Writing mode
-        207: Creator software
-        208: Creator major version
-        209: Creator minor version
-        ...
-        501: ASIN (Amazon Standard Identification Number)
-        503: cdecontenttype
-        504: updated title
-        508: Unknown but important for Kindle
-        ...
+Header identifier:     "EXTH"<br/>
+Header length:         4 bytes<br/>
+Record count:         4 bytes<br/>
+Records:              [Record type][Record length][Record data]...<br/>
 
-------------------------------
-Text内容存储
-    文本内容采用以下方式之一存储：
-        1. PalmDOC压缩(LZ77变种)
-        2. HUFF/CDIC压缩(字典压缩)
-        3. Uncompressed
+常见记录类型：<br/>
+100: Author<br/>
+101: Publisher<br/>
+102: Publishing date<br/>
+103: ISBN<br/>
+104: Copyright<br/>
+105: Subject<br/>
+106: Description<br/>
+108: Contributor<br/>
+109: Rights<br/>
+...<br/>
+202: Cover offset<br/>
+203: Thumbnail offset<br/>
+205: Language<br/>
+206: Writing mode<br/>
+207: Creator software<br/>
+208: Creator major version<br/>
+209: Creator minor version<br/>
+...<br/>
+501: ASIN (Amazon Standard Identification Number)<br/>
+503: cdecontenttype<br/>
+504: updated title<br/>
+508: Unknown but important for Kindle<br/>
+...<br/>
 
-    典型HTML结构：
-        <html>
-            <mbp:frameset>
-            <mbp:pagebreak/>
-            <center><h2>Chapter One</h2></center>
-            <p>This is the first paragraph...</p>
-            <img src="image0001.png"/>
-            </mbp:frameset>
-        </html>
+------------------------------<br/>
+Text内容存储<br/>
+文本内容采用以下方式之一存储：<br/>
+1. PalmDOC压缩(LZ77变种)<br/>
+2. HUFF/CDIC压缩(字典压缩)<br/>
+3. Uncompressed<br/>
 
-------------------------------
-FLIS和FCIS记录
-FLIS(Flow Information Structure):
+典型HTML结构：<br/>
+<html><br/>
+<mbp:frameset><br/>
+<mbp:pagebreak/><br/>
+<center><h2>Chapter One</h2></center><br/>
+<p>This is the first paragraph...</p><br/>
+<img src="image0001.png"/><br/>
+</mbp:frameset><br/>
+</html><br/>
 
-    "FLIS" magic number
-    8 byte header
-    Flow count
-    Flow offsets array
+------------------------------<br/>
+FLIS和FCIS记录<br/>
+FLIS(Flow Information Structure):<br/>
+<br/>
+"FLIS" magic number<br/>
+8 byte header<br/>
+Flow count<br/>
+Flow offsets array<br/>
 
-FCIS(Fragment Control Information Structure):
-
-    "FCIS" magic number
-    28 byte header
-    Page count
-    Fragment information
-
-
-------------------------------
-DRM保护机制
-    MOBI DRM有两种形式：
-    1. Old Mobipocket DRM:
-        User PID based encryption
-        Serial number绑定
-    2. Amazon DRM:
-        ASIN绑定
-        Kindle设备授权
-
-    DRM移除通常需要PID或通过逆向工程。
-
-------------------------------
-MOBI变种
-    1. KF7(MOBI7):
-        Basic Kindle format
-        Limited HTML support
-    2. KF8(MOBI8/AZW3):
-        Enhanced format with better HTML/CSS support
-        Fixed layout capabilities
-    3. Print Replica:
-        PDF-like fixed layout format
-
-------------------------------
-MOBI与AZW的关系
-    AZW本质上是带有Amazon特定元数据的MOBI文件：
-        1. ASIN必须存在
-        2. Amazon特定的EXTH记录(508等)
-        3. DRM方式不同
+FCIS(Fragment Control Information Structure):<br/>
+<br/>
+"FCIS" magic number<br/>
+28 byte header<br/>
+Page count<br/>
+Fragment information<br/>
+<br/>
+------------------------------<br/>
+DRM保护机制<br/>
+MOBI DRM有两种形式：<br/>
+1. Old Mobipocket DRM:<br/>
+User PID based encryption<br/>
+Serial number绑定<br/>
+2. Amazon DRM:<br/>
+ASIN绑定<br/>
+Kindle设备授权<br/>
+<br/>
+DRM移除通常需要PID或通过逆向工程。<br/>
+<br/>
+------------------------------<br/>
+MOBI变种<br/>
+1. KF7(MOBI7):<br/>
+Basic Kindle format<br/>
+Limited HTML support<br/>
+2. KF8(MOBI8/AZW3):<br/>
+Enhanced format with better HTML/CSS support<br/>
+Fixed layout capabilities<br/>
+3. Print Replica:<br/>
+PDF-like fixed layout format<br/>
+<br/>
+------------------------------<br/>
+MOBI与AZW的关系<br/>
+AZW本质上是带有Amazon特定元数据的MOBI文件：<br/>
+1. ASIN必须存在<br/>
+2. Amazon特定的EXTH记录(508等)<br/>
+3. DRM方式不同<br/>
  *
  */
-class MobiFileParser @Inject constructor() : FileParser {
+class MobiFileParser @Inject constructor(val context: Context) : FileParser {
 
     override suspend fun parse(file: DocumentFile): BookWithCover? {
-        return null
+        val rawFile = file.rawFile(context)
+        val title = file.baseName
+        val path = file.uri.toString()
+        val format = file.extension
+
+        return innerParse(rawFile, title, path, format)
     }
 
     override suspend fun parse(cachedFile: CachedFile): BookWithCover? {
-        return null
+        val rawFile = cachedFile.rawFile
+        val title = cachedFile.name.substringBeforeLast(".").trim()
+        val path = cachedFile.uri.toString()
+        val format = cachedFile.extension
+        return innerParse(rawFile, title, path, format)
+    }
+
+    private suspend fun innerParse(rawFile: File?, title: String, uriPath: String, format: String): BookWithCover? {
+        if (rawFile == null || !rawFile.isFile || !rawFile.exists() || !rawFile.canRead()) {
+            return null
+        }
+        val path = rawFile.absolutePath
+
+        val mobiInfo: MobiInfo = MobiParser.getMobiInfo(context, path) ?: return null
+
+        return BookWithCover(
+            Book(
+                title = mobiInfo.title ?: title ?: "",
+                author = mobiInfo.author.orEmpty(),
+
+                publisher = mobiInfo.publisher.orEmpty(),
+                description = mobiInfo.description.orEmpty(),
+                language = mobiInfo.language.orEmpty(),
+                review = mobiInfo.review.orEmpty(),
+
+                scrollIndex = 0,
+                scrollOffset = 0,
+
+                progress = 0f,
+                filePath = uriPath,
+                lastOpened = null,
+                category = mobiInfo.subject.orEmpty(),
+                coverImage = mobiInfo.coverPath.orEmpty(),
+                fileType = format,
+
+
+            ),
+            coverImage = mobiInfo.coverPath.orEmpty()
+        )
     }
 }

@@ -2,6 +2,7 @@ package com.wxn.bookparser.parser.fb2
 
 import android.content.Context
 import android.net.Uri
+import android.util.Log
 import androidx.compose.ui.res.stringResource
 import androidx.documentfile.provider.DocumentFile
 import com.anggrayudi.storage.file.baseName
@@ -13,10 +14,15 @@ import com.wxn.bookparser.R
 import com.wxn.bookparser.domain.book.Book
 import com.wxn.bookparser.domain.book.BookWithCover
 import com.wxn.bookparser.domain.file.CachedFile
+import com.wxn.bookparser.util.FileUtil
+import com.wxn.bookparser.util.getCoverPath
 import org.jsoup.Jsoup
 import org.jsoup.parser.Parser
+import java.io.ByteArrayInputStream
 import java.io.File
 import java.io.InputStream
+import java.util.Base64
+import java.util.UUID
 import javax.inject.Inject
 
 class Fb2FileParser @Inject constructor(val context: Context) : FileParser {
@@ -68,6 +74,21 @@ class Fb2FileParser @Inject constructor(val context: Context) : FileParser {
                 this
             }
 
+            var coverPath = ""
+            document?.selectFirst("coverpage")?.let { ele ->
+                val imageRef: String = ele.select("image").attr("xlink:href")
+                Log.d("Fb2FileParser", "innerParse:imageRef=$imageRef")
+                if (imageRef.startsWith("#")) {
+                    document.selectFirst("binary[id=${imageRef.substring(1)}]")?.let { binary ->
+                        val base64Data = binary.text();
+                        val inputStream = ByteArrayInputStream(Base64.getDecoder().decode(base64Data))
+                        coverPath  = getCoverPath(context, UUID.randomUUID().toString() + ".jpg")
+                        FileUtil.writeStreamToFile(inputStream, coverPath)
+                        Log.d("Fb2FileParser", "innerParse::coverPath=$coverPath")
+                    }
+                }
+            }
+
             BookWithCover(
                 book = Book(
                     title = title,
@@ -79,10 +100,10 @@ class Fb2FileParser @Inject constructor(val context: Context) : FileParser {
                     filePath = uri,
                     lastOpened = null,
                     category = "",
-                    coverImage = null,
+                    coverImage = coverPath,
                     fileType = "fb2",
                 ),
-                coverImage = null
+                coverImage = coverPath
             )
         } catch (e: Exception) {
             e.printStackTrace()

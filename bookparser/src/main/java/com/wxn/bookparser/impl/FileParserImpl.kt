@@ -10,6 +10,7 @@ import com.wxn.bookparser.parser.audio.AudioFileParser
 import com.wxn.bookparser.parser.epub.EpubFileParser
 import com.wxn.bookparser.parser.fb2.Fb2FileParser
 import com.wxn.bookparser.parser.html.HtmlFileParser
+import com.wxn.bookparser.parser.mobi.MobiFileParser
 import com.wxn.bookparser.parser.pdf.PdfFileParser
 import com.wxn.bookparser.parser.txt.TxtFileParser
 import javax.inject.Inject
@@ -22,7 +23,8 @@ class FileParserImpl @Inject constructor(
     private val epubFileParser: EpubFileParser,
     private val fb2FileParser: Fb2FileParser,
     private val htmlFileParser: HtmlFileParser,
-    private val audioFileParser: AudioFileParser
+    private val audioFileParser: AudioFileParser,
+    private val mobiFileParser: MobiFileParser,
 ) : FileParser {
 
     override suspend fun parse(file: DocumentFile): BookWithCover? {
@@ -39,6 +41,10 @@ class FileParserImpl @Inject constructor(
 
             "epub" -> {
                 epubFileParser.parse(file)
+            }
+
+            in listOf("mobi", "azw3") -> {
+                mobiFileParser.parse(file)
             }
 
             "txt" -> {
@@ -93,6 +99,10 @@ class FileParserImpl @Inject constructor(
                 epubFileParser.parse(cachedFile)
             }
 
+            in listOf("mobi", "azw3") -> {
+                mobiFileParser.parse(cachedFile)
+            }
+
             "txt" -> {
                 txtFileParser.parse(cachedFile)
             }
@@ -121,6 +131,7 @@ class FileParserImpl @Inject constructor(
             ) -> {
                 audioFileParser.parse(cachedFile)
             }
+
             else -> {
                 Log.e(FILE_PARSER, "Wrong file format, could not find supported extension.")
                 null
