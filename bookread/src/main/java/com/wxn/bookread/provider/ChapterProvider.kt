@@ -24,9 +24,6 @@ open class PreferencesUser{
 }
 
 object ChapterProvider: PreferencesUser() {
-//
-//    @set:Inject
-//    lateinit var readerPreferencesUtil: ReaderPreferencesUtil //dagger.Lazy<ReaderPreferencesUtil>
 
     /**
      * 页面显示宽度
