@@ -15,11 +15,11 @@ import javax.inject.Singleton
 object ReadModule {
 
 
-    @Provides
-    @Singleton
-    fun provideContext(@ApplicationContext context: Context): Context {
-        return context
-    }
+//    @Provides
+//    @Singleton
+//    fun provideContext(@ApplicationContext context: Context): Context {
+//        return context
+//    }
 
     @Provides
     @Singleton

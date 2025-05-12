@@ -16,7 +16,6 @@
 //    return env->NewStringUTF(hello.c_str());
 //}
 
-
 extern "C" JNIEXPORT jobjectArray JNICALL
 Java_com_wxn_mobi_inative_NativeLib_nativeFilesCrc(
         JNIEnv *env,
@@ -80,8 +79,7 @@ Java_com_wxn_mobi_inative_NativeLib_nativeFilesCrc(
     return result;
 }
 
-
-extern "C" JNIEXPORT jobjectArray JNICALL
+extern "C" JNIEXPORT jobject JNICALL
 Java_com_wxn_mobi_inative_NativeLib_loadMobi(
         JNIEnv *env,
         jobject thiz,
@@ -150,42 +148,79 @@ Java_com_wxn_mobi_inative_NativeLib_loadMobi(
         return nullptr;
     }
 
-    std::vector<std::string> params;
-    params.push_back(coverPath);
-//    params.push_back(epubPath);
-
-    params.push_back(title);
-    params.push_back(author);
-    params.push_back(contributor);
-
-    params.push_back(subject);
-    params.push_back(publisher);
-    params.push_back(date);
-
-    params.push_back(description);
-    params.push_back(review);
-    params.push_back(imprint);
-
-    params.push_back(copyright);
-    params.push_back(isbn);
-    params.push_back(asin);
-
-    params.push_back(language);
-    params.push_back(identifier);
-    if (isEncrypted) {
-        params.push_back("true");
-    } else {
-        params.push_back("false");
+    jclass infoClazz = env->FindClass("com/wxn/mobi/data/model/MobiInfo");
+    jmethodID constructor = env->GetMethodID(infoClazz, "<init>",
+                                             "(Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;" \
+                                          "Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;" \
+                                          "Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;" \
+                                          "Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;" \
+                                          "Ljava/lang/String;ZLjava/lang/String;)V");
+    if (constructor == nullptr) {
+        return nullptr;
     }
 
-    //构造返回的字符串数组
-    int length = 17;
-    jclass stringClass = env->FindClass("java/lang/String");
-    jobjectArray stringArray = env->NewObjectArray(length, stringClass, NULL);
-    for (int i = 0; i < length; i++) {
-        jstring element = env->NewStringUTF(params[i].c_str());
-        env->SetObjectArrayElement(stringArray, i, element);
-        env->DeleteLocalRef(element);
-    }
-    return stringArray;
+    // 4. 调用构造函数创建对象
+    jobject mobiInfoObj = env->NewObject(
+            infoClazz,
+            constructor,
+            env->NewStringUTF(title.c_str()),
+            env->NewStringUTF(author.c_str()),
+            env->NewStringUTF(contributor.c_str()),
+
+            env->NewStringUTF(subject.c_str()),
+            env->NewStringUTF(publisher.c_str()),
+            env->NewStringUTF(date.c_str()),
+
+            env->NewStringUTF(description.c_str()),
+            env->NewStringUTF(review.c_str()),
+            env->NewStringUTF(imprint.c_str()),
+
+            env->NewStringUTF(copyright.c_str()),
+            env->NewStringUTF(isbn.c_str()),
+            env->NewStringUTF(asin.c_str()),
+
+            env->NewStringUTF(language.c_str()),
+            isEncrypted,
+            env->NewStringUTF(coverPath.c_str())
+    );
+    return mobiInfoObj;
+
+//    std::vector<std::string> params;
+//    params.push_back(coverPath);
+////    params.push_back(epubPath);
+//
+//    params.push_back(title);
+//    params.push_back(author);
+//    params.push_back(contributor);
+//
+//    params.push_back(subject);
+//    params.push_back(publisher);
+//    params.push_back(date);
+//
+//    params.push_back(description);
+//    params.push_back(review);
+//    params.push_back(imprint);
+//
+//    params.push_back(copyright);
+//    params.push_back(isbn);
+//    params.push_back(asin);
+//
+//    params.push_back(language);
+//    params.push_back(identifier);
+//    if (isEncrypted) {
+//        params.push_back("true");
+//    } else {
+//        params.push_back("false");
+//    }
+//
+//    //构造返回的字符串数组
+//    int length = 17;
+//    jclass stringClass = env->FindClass("java/lang/String");
+//    jobjectArray stringArray = env->NewObjectArray(length, stringClass, NULL);
+//    for (int i = 0; i < length; i++) {
+//        jstring element = env->NewStringUTF(params[i].c_str());
+//        env->SetObjectArrayElement(stringArray, i, element);
+//        env->DeleteLocalRef(element);
+//    }
+//    return stringArray;
 }

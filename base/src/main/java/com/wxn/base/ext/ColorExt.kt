@@ -65,4 +65,9 @@ fun Int.toColor(): AndroidColor? {
     }
 }
 
+fun Int.toComposeColor(): ComposeColor {
+    return ComposeColor(this)
+}
+
 fun ComposeColor.toAndroidColor(): AndroidColor? = this.toArgb().toColor()
+

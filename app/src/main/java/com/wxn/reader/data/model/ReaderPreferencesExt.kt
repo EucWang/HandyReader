@@ -5,6 +5,7 @@ import androidx.core.graphics.alpha
 import androidx.core.graphics.blue
 import androidx.core.graphics.green
 import androidx.core.graphics.red
+import androidx.paging.Config
 import androidx.compose.ui.text.style.TextAlign as ComposeTextAlign
 import org.readium.r2.navigator.preferences.TextAlign as RediumTextAlign
 import org.readium.r2.navigator.preferences.Color as RediumColor
@@ -67,4 +68,11 @@ fun ConfigReadingProgression.toRedium(): ReadingProgression =
         ConfigReadingProgression.LTR -> ReadingProgression.LTR
         ConfigReadingProgression.RTL -> ReadingProgression.RTL
         else -> ReadingProgression.LTR
+    }
+
+fun ReadingProgression.toConfig(): ConfigReadingProgression =
+    when(this){
+        ReadingProgression.RTL -> ConfigReadingProgression.RTL
+        ReadingProgression.LTR -> ConfigReadingProgression.LTR
+        else -> ConfigReadingProgression.LTR
     }

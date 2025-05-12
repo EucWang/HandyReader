@@ -1,4 +1,6 @@
 package com.wxn.mobi.data.model
 
-class FileCrc {
-}
+data class FileCrc(
+    val path: String,
+    val crc: Int
+)

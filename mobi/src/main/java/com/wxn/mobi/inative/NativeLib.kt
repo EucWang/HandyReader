@@ -2,6 +2,7 @@ package com.wxn.mobi.inative
 
 import android.content.Context
 import com.wxn.mobi.data.model.FileCrc
+import com.wxn.mobi.data.model.MobiInfo
 
 object NativeLib {
 
@@ -14,5 +15,5 @@ object NativeLib {
 
     external fun nativeFilesCrc(paths: Array<String>) : Array<FileCrc>?
 
-    external fun loadMobi(context: Context, path:String) : Array<String>?
+    external fun loadMobi(context: Context, path:String) : MobiInfo? // Array<String>?
 }

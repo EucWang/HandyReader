@@ -25,6 +25,8 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.wxn.reader.R
 import com.wxn.bookread.data.model.preference.ReaderPreferences
+import com.wxn.reader.data.model.toConfig
+import com.wxn.reader.data.model.toRedium
 import com.wxn.reader.presentation.bookReader.BookReaderViewModel
 import org.readium.r2.navigator.preferences.ReadingProgression
 import org.readium.r2.shared.ExperimentalReadiumApi
@@ -143,19 +145,19 @@ fun ReaderSettings(
                     ).forEach { (readingProgression, label) ->
                         FilledTonalButton(
                             colors = ButtonDefaults.buttonColors(
-                                containerColor = if (readerPreferences.readingProgression == readingProgression) {
+                                containerColor = if (readerPreferences.readingProgression.toRedium() == readingProgression) {
                                     MaterialTheme.colorScheme.primaryContainer
                                 } else {
                                     MaterialTheme.colorScheme.surfaceVariant
                                 },
-                                contentColor = if (readerPreferences.readingProgression == readingProgression) {
+                                contentColor = if (readerPreferences.readingProgression.toRedium() == readingProgression) {
                                     MaterialTheme.colorScheme.onPrimaryContainer
                                 } else {
                                     MaterialTheme.colorScheme.onSurfaceVariant
                                 }
                             ),
                             onClick = {
-                                viewModel.updateReaderPreferences(readerPreferences.copy(readingProgression = readingProgression))
+                                viewModel.updateReaderPreferences(readerPreferences.copy(readingProgression = readingProgression.toConfig()))
                             }
                         ) {
                             Text(text = label, style = MaterialTheme.typography.bodySmall)

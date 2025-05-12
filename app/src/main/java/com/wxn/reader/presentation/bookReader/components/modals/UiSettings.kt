@@ -36,6 +36,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -43,6 +44,8 @@ import androidx.navigation.NavHostController
 import com.elixer.palette.Presets
 import com.elixer.palette.constraints.HorizontalAlignment
 import com.elixer.palette.constraints.VerticalAlignment
+import com.wxn.base.ext.toColor
+import com.wxn.base.ext.toComposeColor
 import com.wxn.reader.R
 import com.wxn.reader.data.model.AppPreferences
 import com.wxn.bookread.data.model.preference.ReaderPreferences
@@ -129,16 +132,15 @@ fun UiSettings(
 
             Spacer(modifier = Modifier.height(16.dp))
 
-
             ColorSection(
                 title = stringResource(R.string.background_color),
-                currentColor = readerPreferences.backgroundColor,
+                currentColor = readerPreferences.backgroundColor.toComposeColor(),
                 predefinedColors = predefinedColors,
                 onColorSelected = { color ->
                     viewModel.updateReaderPreferences(
                         readerPreferences.copy(
-                            backgroundColor = color,
-                            textColor = if (color == Color.Black) Color.White else Color.Black
+                            backgroundColor = color.toArgb(),
+                            textColor = if (color == Color.Black) Color.White.toArgb() else Color.Black.toArgb()
                         )
                     )
                 },
@@ -161,10 +163,10 @@ fun UiSettings(
 
             ColorSection(
                 title = stringResource(R.string.text_color),
-                currentColor = readerPreferences.textColor,
+                currentColor = readerPreferences.textColor.toComposeColor(),
                 predefinedColors = predefinedColors,
                 onColorSelected = { color ->
-                    viewModel.updateReaderPreferences(readerPreferences.copy(textColor = color))
+                    viewModel.updateReaderPreferences(readerPreferences.copy(textColor = color.toArgb()))
                 },
                 onCustomColorClicked = {
                     if (appPreferences.isPremium) {
@@ -199,8 +201,8 @@ fun UiSettings(
                     ColorPicker(
                         isVisible = isPaletteVisible,
                         defaultColor = when (editingColorType) {
-                            ColorType.BACKGROUND -> readerPreferences.backgroundColor
-                            ColorType.TEXT -> readerPreferences.textColor
+                            ColorType.BACKGROUND -> readerPreferences.backgroundColor.toComposeColor()
+                            ColorType.TEXT -> readerPreferences.textColor.toComposeColor()
                         },
                         buttonSize = 70.dp,
                         swatches = Presets.material(),
@@ -215,11 +217,11 @@ fun UiSettings(
                             viewModel.updateReaderPreferences(
                                 when (editingColorType) {
                                     ColorType.BACKGROUND -> readerPreferences.copy(
-                                        backgroundColor = color,
-                                        textColor = if (color == Color.Black) Color.White else Color.Black
+                                        backgroundColor = color.toArgb(),
+                                        textColor = if (color == Color.Black) Color.White.toArgb() else Color.Black.toArgb()
                                     )
 
-                                    ColorType.TEXT -> readerPreferences.copy(textColor = color)
+                                    ColorType.TEXT -> readerPreferences.copy(textColor = color.toArgb())
                                 }
                             )
                         }
