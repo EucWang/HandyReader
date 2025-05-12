@@ -9,20 +9,14 @@ import android.graphics.pdf.PdfRenderer
 import android.media.MediaMetadataRetriever
 import android.net.Uri
 import android.provider.DocumentsContract
-import android.util.Log
 import androidx.compose.runtime.mutableStateOf
 import androidx.documentfile.provider.DocumentFile
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import androidx.paging.PagingData
-import androidx.paging.PagingSource
 import androidx.paging.cachedIn
-import androidx.paging.filter
 import com.wxn.bookparser.FileParser
-import com.wxn.bookparser.TextParser
 import com.wxn.bookparser.domain.book.Book
-import com.wxn.bookparser.domain.file.CachedFile
-import com.wxn.bookparser.domain.file.CachedFileBuilder
 import com.wxn.bookparser.domain.file.CachedFileCompat
 import com.wxn.reader.R
 import com.wxn.reader.data.model.AppPreferences
@@ -41,7 +35,6 @@ import com.wxn.reader.domain.use_case.books.GetBookUrisUseCase
 import com.wxn.reader.domain.use_case.books.GetBooksUseCase
 import com.wxn.reader.domain.use_case.books.InsertBookUseCase
 import com.wxn.reader.domain.use_case.books.UpdateBookUseCase
-import com.wxn.reader.domain.use_case.permission.GrantPersistableUriPermission
 import com.wxn.reader.domain.use_case.shelves.AddBookToShelfUseCase
 import com.wxn.reader.domain.use_case.shelves.AddShelfUseCase
 import com.wxn.reader.domain.use_case.shelves.GetBooksForShelfUseCase
@@ -52,9 +45,8 @@ import com.wxn.reader.presentation.home.states.ImportProgressState
 import com.wxn.reader.presentation.home.states.SnackbarState
 import com.wxn.reader.ui.theme.stringResource
 import com.wxn.reader.util.ImageUtils
-import com.wxn.reader.util.Logger
+import com.wxn.base.util.Logger
 import com.wxn.reader.util.PurchaseHelper
-import com.wxn.reader.util.launchIO
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.CoroutineExceptionHandler
 import kotlinx.coroutines.Dispatchers
@@ -67,7 +59,6 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.first
-import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import org.readium.r2.shared.publication.Publication

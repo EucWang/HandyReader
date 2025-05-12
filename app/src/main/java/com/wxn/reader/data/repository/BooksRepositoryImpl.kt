@@ -1,16 +1,7 @@
 package com.wxn.reader.data.repository
 
-import android.annotation.SuppressLint
-import androidx.annotation.RestrictTo
 import androidx.paging.PagingSource
-import androidx.paging.PagingSource.LoadResult.Page
-import androidx.paging.PagingState
-import androidx.room.InvalidationTracker
-import androidx.room.RoomDatabase
-import androidx.room.paging.util.INVALID
-import androidx.room.paging.util.ThreadSafeInvalidationObserver
 import com.wxn.bookparser.domain.book.Book
-import com.wxn.reader.data.dto.BookEntity
 import com.wxn.reader.data.dto.FileType
 import com.wxn.reader.data.dto.ReadingStatus
 import com.wxn.reader.data.mapper.annotation.BookAnnotationMapper
@@ -32,20 +23,10 @@ import com.wxn.reader.domain.model.Bookmark
 import com.wxn.reader.domain.model.Note
 import com.wxn.reader.domain.model.ReadingActive
 import com.wxn.reader.domain.repository.BooksRepository
-import com.wxn.reader.util.Coroutines
-import com.wxn.reader.util.Logger
-import kotlinx.coroutines.CoroutineExceptionHandler
-import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.SupervisorJob
-import kotlinx.coroutines.async
 import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.flow.map
-import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withContext
-import java.util.concurrent.atomic.AtomicBoolean
-import java.util.concurrent.atomic.AtomicInteger
 import javax.inject.Inject
 import javax.inject.Singleton
 

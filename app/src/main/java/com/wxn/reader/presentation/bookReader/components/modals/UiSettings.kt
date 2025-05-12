@@ -45,7 +45,7 @@ import com.elixer.palette.constraints.HorizontalAlignment
 import com.elixer.palette.constraints.VerticalAlignment
 import com.wxn.reader.R
 import com.wxn.reader.data.model.AppPreferences
-import com.wxn.reader.data.model.ReaderPreferences
+import com.wxn.bookread.data.model.preference.ReaderPreferences
 import com.wxn.reader.navigation.Screens
 import com.wxn.reader.presentation.bookReader.BookReaderViewModel
 //import com.ricsdev.uread.presentation.sharedComponents.PremiumModal

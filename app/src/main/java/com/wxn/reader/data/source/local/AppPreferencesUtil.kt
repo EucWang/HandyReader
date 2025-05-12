@@ -1,7 +1,6 @@
 package com.wxn.reader.data.source.local
 
 import android.content.Context
-import android.util.Log
 import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.intPreferencesKey
@@ -15,7 +14,7 @@ import com.wxn.reader.data.model.Layout
 import com.wxn.reader.data.dto.ReadingStatus
 import com.wxn.reader.data.model.SortOption
 import com.wxn.reader.data.model.SortOrder
-import com.wxn.reader.util.Logger
+import com.wxn.base.util.Logger
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map

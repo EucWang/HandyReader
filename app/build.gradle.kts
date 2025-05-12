@@ -132,8 +132,6 @@ android {
 //    }
 //}
 
-
-
 dependencies {
 
     implementation(libs.androidx.core.ktx)
@@ -169,16 +167,11 @@ dependencies {
 //    implementation(libs.readium.opds)
 //    implementation(libs.readium.lcp)
 
-
     implementation(libs.androidx.media3.exoplayer)
     implementation(libs.androidx.media3.exoplayer.dash)
     implementation(libs.androidx.media3.ui)
     implementation(libs.androidx.media3.common)
     implementation(libs.androidx.media3.session)
-
-
-
-    implementation(libs.timber)
 
 
     coreLibraryDesugaring(libs.desugar.jdk.libs)
@@ -242,4 +235,6 @@ dependencies {
 //    implementation("com.google.android.libraries.identity.googleid:googleid:1.1.1")
 
     implementation(project(":bookparser"))
+    implementation(project(":bookread"))
+    implementation(project(":base"))
 }

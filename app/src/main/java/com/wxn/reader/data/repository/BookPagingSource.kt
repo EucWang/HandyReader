@@ -10,7 +10,7 @@ import com.wxn.reader.data.dto.ReadingStatus
 import com.wxn.reader.data.mapper.book.BookMapper
 import com.wxn.reader.data.model.SortOption
 import com.wxn.reader.data.source.local.dao.BookDao
-import com.wxn.reader.util.Logger
+import com.wxn.base.util.Logger
 import kotlinx.coroutines.CoroutineExceptionHandler
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob

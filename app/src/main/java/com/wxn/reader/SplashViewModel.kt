@@ -1,7 +1,6 @@
 package com.wxn.reader
 
 import android.app.Application
-import android.util.Log
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.wxn.reader.data.model.AppLanguage
@@ -9,7 +8,7 @@ import com.wxn.reader.data.model.AppPreferences
 import com.wxn.reader.data.source.local.AppPreferencesUtil
 import com.wxn.reader.navigation.Screens
 import com.wxn.reader.util.LanguageHelper
-import com.wxn.reader.util.Logger
+import com.wxn.base.util.Logger
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow

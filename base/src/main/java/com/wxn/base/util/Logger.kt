@@ -1,12 +1,10 @@
-package com.wxn.reader.util
+package com.wxn.base.util
 
 import android.os.Build
 import android.os.StrictMode
-import com.wxn.reader.BuildConfig
 import timber.log.Timber
 import java.util.concurrent.Executors
 import kotlin.coroutines.cancellation.CancellationException
-
 
 fun Throwable.toast(prefix: String = "") {
     if (this is CancellationException) return
@@ -17,8 +15,8 @@ fun Throwable.toast(prefix: String = "") {
 
 object Logger {
 
-    fun init() {
-        if (BuildConfig.DEBUG) {
+    fun init(isDebug:Boolean) {
+        if (isDebug) {
 //            enableStrictMode()
             Timber.plant(Timber.DebugTree())
         }

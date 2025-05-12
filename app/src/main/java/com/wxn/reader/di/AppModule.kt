@@ -3,8 +3,7 @@ package com.wxn.reader.di
 import android.app.Application
 import android.content.Context
 import androidx.room.Room
-import com.wxn.bookparser.FileParser
-import com.wxn.bookparser.impl.FileParserImpl
+import com.wxn.bookread.data.source.local.ReaderPreferencesUtil
 import com.wxn.reader.data.mapper.annotation.BookAnnotationMapper
 import com.wxn.reader.data.mapper.annotation.BookAnnotationMapperImpl
 import com.wxn.reader.data.mapper.book.BookMapper
@@ -24,7 +23,6 @@ import com.wxn.reader.data.repository.PermissionRepositoryImpl
 import com.wxn.reader.data.repository.ShelfRepositoryImpl
 import com.wxn.reader.data.source.local.AppDatabase
 import com.wxn.reader.data.source.local.AppPreferencesUtil
-import com.wxn.reader.data.source.local.ReaderPreferencesUtil
 import com.wxn.reader.data.source.local.dao.AnnotationDao
 import com.wxn.reader.data.source.local.dao.BookDao
 import com.wxn.reader.data.source.local.dao.BookShelfDao
@@ -167,13 +165,6 @@ object AppModule {
     @Singleton
     fun provideReadingActivityDao(appDatabase: AppDatabase): ReadingActivityDao {
         return appDatabase.readingActivityDao()
-    }
-
-
-    @Provides
-    @Singleton
-    fun provideReaderPreferences(@ApplicationContext context: Context): ReaderPreferencesUtil {
-        return ReaderPreferencesUtil(context)
     }
 
     @Provides

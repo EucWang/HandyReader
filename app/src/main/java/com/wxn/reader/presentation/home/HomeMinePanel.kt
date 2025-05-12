@@ -1,6 +1,5 @@
 package com.wxn.reader.presentation.home
 
-import android.util.Log
 import androidx.activity.ComponentActivity
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.isSystemInDarkTheme
@@ -46,7 +45,7 @@ import com.wxn.reader.data.model.AppTheme
 import com.wxn.reader.navigation.LocalNavController
 import com.wxn.reader.navigation.Screens
 import com.wxn.reader.presentation.settings.SetListItem
-import com.wxn.reader.util.Logger
+import com.wxn.base.util.Logger
 
 @Composable
 fun HomeMinePanel(innerPadding: PaddingValues, viewModel: HomeViewModel) {

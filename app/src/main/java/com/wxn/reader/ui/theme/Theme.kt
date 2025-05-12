@@ -18,7 +18,6 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.wxn.reader.BookApplication
 import com.wxn.reader.R
 import com.wxn.reader.data.model.AppTheme
-import com.wxn.reader.util.Logger
 
 fun stringResource(@StringRes res: Int, vararg args: Any) : String {
 //    if (args.size > 0) {

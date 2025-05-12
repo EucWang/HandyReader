@@ -3,7 +3,6 @@ package com.wxn.reader.presentation.bookReader
 import android.app.Application
 import android.content.Context
 import android.net.Uri
-import android.util.Log
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.toArgb
 import androidx.lifecycle.AndroidViewModel
@@ -14,11 +13,11 @@ import com.wxn.bookparser.domain.book.Book
 import com.wxn.reader.domain.model.BookAnnotation
 import com.wxn.reader.domain.model.Bookmark
 import com.wxn.reader.domain.model.Note
-import com.wxn.reader.data.model.ReaderPreferences
+import com.wxn.bookread.data.model.preference.ReaderPreferences
 import com.wxn.reader.data.dto.ReadingStatus
-import com.wxn.reader.data.model.toEpubPreferences
+import com.wxn.bookread.data.model.preference.toEpubPreferences
+import com.wxn.bookread.data.source.local.ReaderPreferencesUtil
 import com.wxn.reader.data.source.local.AppPreferencesUtil
-import com.wxn.reader.data.source.local.ReaderPreferencesUtil
 import com.wxn.reader.domain.model.ReadingActive
 import com.wxn.reader.domain.use_case.annotations.*
 import com.wxn.reader.domain.use_case.bookmarks.AddBookmarkUseCase
@@ -34,7 +33,8 @@ import com.wxn.reader.domain.use_case.notes.UpdateNoteUseCase
 import com.wxn.reader.domain.use_case.reading_activity.AddReadingActivityUseCase
 import com.wxn.reader.domain.use_case.reading_activity.GetReadingActivityByDateUseCase
 import com.wxn.reader.domain.use_case.reading_progress.*
-import com.wxn.reader.util.Logger
+import com.wxn.base.util.Logger
+import com.wxn.reader.data.model.toRediumEpubPreferences
 import com.wxn.reader.util.PurchaseHelper
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Dispatchers
@@ -62,7 +62,6 @@ import java.util.Calendar
 import javax.inject.Inject
 import kotlin.time.Duration
 import kotlin.time.Duration.Companion.seconds
-
 
 @OptIn(ExperimentalReadiumApi::class)
 @HiltViewModel
@@ -114,7 +113,7 @@ class BookReaderViewModel @Inject constructor(
     val readerPreferences: StateFlow<ReaderPreferences> = _readerPreferences.asStateFlow()
 
     private val _epubPreferences =
-        MutableStateFlow(ReaderPreferencesUtil.defaultPreferences.toEpubPreferences())
+        MutableStateFlow(ReaderPreferencesUtil.defaultPreferences.toRediumEpubPreferences())
     val epubPreferences: StateFlow<EpubPreferences> = _epubPreferences.asStateFlow()
 
     private val _annotations = MutableStateFlow<List<BookAnnotation>>(emptyList())
@@ -193,10 +192,9 @@ class BookReaderViewModel @Inject constructor(
                 // Fetch the book details
                 fetchBook(bookId)
 
-
                 readerPreferencesUtil.readerPreferencesFlow.collect { preferences ->
                     _readerPreferences.value = preferences
-                    _epubPreferences.value = preferences.toEpubPreferences()
+                    _epubPreferences.value = preferences.toRediumEpubPreferences()
                 }
 
 

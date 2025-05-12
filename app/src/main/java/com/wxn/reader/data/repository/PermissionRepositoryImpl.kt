@@ -3,8 +3,7 @@ package com.wxn.reader.data.repository
 import android.app.Application
 import android.content.Intent
 import android.net.Uri
-import android.util.Log
-import com.wxn.reader.util.Logger
+import com.wxn.base.util.Logger
 import javax.inject.Inject
 import javax.inject.Singleton
 

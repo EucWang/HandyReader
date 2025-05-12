@@ -58,6 +58,8 @@ import androidx.navigation.NavHostController
 import coil.compose.AsyncImage
 import coil.request.ImageRequest
 import coil.size.Scale
+import com.wxn.base.ext.toAndroidColor
+import com.wxn.base.ext.toCompatibleArgb
 //import com.google.android.gms.ads.AdError
 //import com.google.android.gms.ads.AdRequest
 //import com.google.android.gms.ads.FullScreenContentCallback
@@ -70,7 +72,7 @@ import com.wxn.reader.data.model.AppPreferences
 import com.wxn.bookparser.domain.book.Book
 import com.wxn.reader.domain.model.BookAnnotation
 import com.wxn.reader.domain.model.Note
-import com.wxn.reader.data.model.ReaderPreferences
+import com.wxn.bookread.data.model.preference.ReaderPreferences
 import com.wxn.reader.domain.model.DecorationStyleAnnotationMark
 import com.wxn.reader.navigation.LocalNavController
 import com.wxn.reader.navigation.PurchaseHelperController
@@ -707,7 +709,7 @@ fun EpubReaderView(
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(color = readerPreferences.backgroundColor)
+            .background(color = Color(readerPreferences.backgroundColor))
     ) {
         AndroidView(
             factory = { context ->
@@ -817,7 +819,7 @@ fun EpubReaderView(
                     contentDescription = "Bookmark",
                     modifier = Modifier
                         .size(32.dp),
-                    tint = if (readerPreferences.backgroundColor == Color.White) Color.Black else Color.White
+                    tint = if (Color(readerPreferences.backgroundColor) == Color.White) Color.Black else Color.White
                 )
             }
         }
@@ -1125,15 +1127,17 @@ fun EpubReaderView(
             onRemoveAnnotation = {
                 viewModel.deleteAnnotation(it)
             },
-            colorHistory = readerPreferences.colorHistory,
+            colorHistory = readerPreferences.colorHistory.map { it ->
+                Color(it.toCompatibleArgb())
+            },
             onColorHistoryUpdated = { newHistory ->
-                viewModel.updateReaderPreferences(readerPreferences.copy(colorHistory = newHistory))
+                viewModel.updateReaderPreferences(readerPreferences.copy(colorHistory = newHistory.mapNotNull { it ->
+                    it.toAndroidColor()
+                }))
             },
             showColorSelectionPanel = showColorSelectionPanel
         )
     }
-
-
 
 
     DisposableEffect(Unit) {

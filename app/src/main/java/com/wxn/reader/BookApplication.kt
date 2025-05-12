@@ -1,7 +1,7 @@
 package com.wxn.reader
 
 import android.app.Application
-import com.wxn.reader.util.Logger
+import com.wxn.base.util.Logger
 import dagger.hilt.android.HiltAndroidApp
 
 @HiltAndroidApp
@@ -19,6 +19,6 @@ class BookApplication : Application() {
     }
 
     private fun initComponent() {
-        Logger.init()
+        Logger.init(BuildConfig.DEBUG)
     }
 }

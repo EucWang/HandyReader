@@ -11,7 +11,9 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.wxn.reader.R
-import com.wxn.reader.data.model.ReaderPreferences
+import com.wxn.bookread.data.model.preference.ReaderPreferences
+import com.wxn.reader.data.model.toCompose
+import com.wxn.reader.data.model.toRedium
 import com.wxn.reader.presentation.bookReader.BookReaderViewModel
 import org.readium.r2.navigator.preferences.TextAlign
 import org.readium.r2.shared.ExperimentalReadiumApi
@@ -79,8 +81,8 @@ fun PageSettings(
             //can be changed on publisher styles
             SettingsRange(
                 title = stringResource(R.string.page_margins),
-                value = readerPreferences.pageMargins,
-                onValueChange = { viewModel.updateReaderPreferences( readerPreferences.copy(pageMargins = it) ) },
+                value = readerPreferences.pageHorizontalMargins,
+                onValueChange = { viewModel.updateReaderPreferences( readerPreferences.copy(pageHorizontalMargins = it) ) },
 
                 valueRange = minPageMargins..maxPageMargins,
                 valueDisplay = { String.format(Locale.getDefault(), "%.1f", it) }
@@ -125,12 +127,12 @@ fun PageSettings(
                     ).forEach { (alignment, label) ->
                         FilledTonalButton(
                             colors = ButtonDefaults.buttonColors(
-                                containerColor = if (readerPreferences.textAlign == alignment) {
+                                containerColor = if (readerPreferences.textAlign.toRedium() == alignment) {
                                     MaterialTheme.colorScheme.primaryContainer
                                 } else {
                                     MaterialTheme.colorScheme.surfaceVariant
                                 },
-                                contentColor = if (readerPreferences.textAlign == alignment) {
+                                contentColor = if (readerPreferences.textAlign.toRedium() == alignment) {
                                     MaterialTheme.colorScheme.onPrimaryContainer
                                 } else {
                                     MaterialTheme.colorScheme.onSurfaceVariant
@@ -144,7 +146,7 @@ fun PageSettings(
                                         Toast.LENGTH_SHORT
                                     ).show()
                                 } else {
-                                    viewModel.updateReaderPreferences( readerPreferences.copy(textAlign = alignment) )
+                                    viewModel.updateReaderPreferences( readerPreferences.copy(textAlign = alignment.toCompose()) )
                                 }
 
                             }

@@ -12,7 +12,6 @@ data class AppPreferences(
     val language: String,
 
 
-
     //Ui settings
     val appTheme: AppTheme,
     val colorScheme: String,

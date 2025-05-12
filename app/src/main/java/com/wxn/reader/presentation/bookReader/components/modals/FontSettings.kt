@@ -14,7 +14,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.wxn.reader.R
-import com.wxn.reader.data.model.ReaderPreferences
+import com.wxn.bookread.data.model.preference.ReaderPreferences
 import com.wxn.reader.presentation.bookReader.BookReaderViewModel
 import org.readium.r2.shared.ExperimentalReadiumApi
 import java.util.Locale

@@ -32,6 +32,10 @@ sealed class ReaderText {
     data object Separator : ReaderText()
 
 
+    @Immutable data class ImageSource(
+        val path: String,
+        ) : ReaderText()
+
     /***
      * 图像
      */

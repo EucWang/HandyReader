@@ -1,4 +1,4 @@
-package com.wxn.reader.util
+package com.wxn.base.util
 
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.CoroutineExceptionHandler
