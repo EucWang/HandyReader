@@ -11,6 +11,7 @@ import com.wxn.bookread.data.source.local.ReaderPreferencesUtil
 import com.wxn.bookread.ext.dp
 import com.wxn.bookread.ext.sp
 import com.wxn.base.util.Coroutines
+import com.wxn.bookread.data.source.local.ReadTipPreferencesUtil
 import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.launch
 import javax.inject.Inject
@@ -19,6 +20,9 @@ open class PreferencesUser{
 
     @Inject
     lateinit var readerPreferencesUtil: ReaderPreferencesUtil
+
+    @Inject
+    lateinit var readTipPreferencesUtil: ReadTipPreferencesUtil
 
 }
 

@@ -17,6 +17,7 @@ import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.rememberNavController
+import com.wxn.base.ui.BaseActivity
 //import com.google.android.gms.ads.MobileAds
 import com.wxn.reader.data.model.AppLanguage
 import com.wxn.reader.data.source.local.AppPreferencesUtil
@@ -33,7 +34,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 
 @AndroidEntryPoint
-class MainActivity : AppCompatActivity() {
+class MainActivity : BaseActivity() {
 
 
     val viewModel: SplashViewModel by viewModels()
