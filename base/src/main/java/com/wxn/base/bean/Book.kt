@@ -1,4 +1,5 @@
-package com.wxn.bookparser.domain.book
+package com.wxn.base.bean
+
 
 import android.os.Parcelable
 import androidx.compose.runtime.Immutable

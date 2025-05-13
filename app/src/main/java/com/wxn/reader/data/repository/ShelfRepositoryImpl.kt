@@ -1,6 +1,6 @@
 package com.wxn.reader.data.repository
 
-import com.wxn.bookparser.domain.book.Book
+import com.wxn.base.bean.Book
 import com.wxn.reader.data.mapper.book.BookMapper
 import com.wxn.reader.data.mapper.bookshelf.BookShelfMapper
 import com.wxn.reader.data.mapper.shelf.ShelfMapper

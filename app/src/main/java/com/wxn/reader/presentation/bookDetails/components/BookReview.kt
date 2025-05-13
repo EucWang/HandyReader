@@ -48,7 +48,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
-import com.wxn.bookparser.domain.book.Book
+import com.wxn.base.bean.Book
 import com.wxn.reader.R
 import com.wxn.reader.presentation.bookDetails.BookDetailsViewModel
 import com.wxn.reader.presentation.sharedComponents.dialogs.RatingDialog

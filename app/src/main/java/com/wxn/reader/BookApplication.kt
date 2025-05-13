@@ -2,6 +2,7 @@ package com.wxn.reader
 
 import android.app.Application
 import com.wxn.base.util.Logger
+import com.wxn.base.util.ToastUtil
 import dagger.hilt.android.HiltAndroidApp
 
 @HiltAndroidApp
@@ -20,5 +21,6 @@ class BookApplication : Application() {
 
     private fun initComponent() {
         Logger.init(BuildConfig.DEBUG)
+        ToastUtil.init(this)
     }
 }

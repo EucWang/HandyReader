@@ -6,7 +6,7 @@ import android.net.Uri
 import android.provider.DocumentsContract
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
-import com.wxn.bookparser.domain.book.Book
+import com.wxn.base.bean.Book
 import com.wxn.reader.domain.use_case.books.DeleteBookUseCase
 import com.wxn.reader.domain.use_case.books.GetDeletedBooksUseCase
 import com.wxn.reader.domain.use_case.books.UpdateBookUseCase

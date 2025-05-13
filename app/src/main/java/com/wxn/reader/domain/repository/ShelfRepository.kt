@@ -1,5 +1,5 @@
 package com.wxn.reader.domain.repository
-import com.wxn.bookparser.domain.book.Book
+import com.wxn.base.bean.Book
 import com.wxn.reader.domain.model.Shelf
 import kotlinx.coroutines.flow.Flow
 

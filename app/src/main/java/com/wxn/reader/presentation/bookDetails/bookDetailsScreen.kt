@@ -56,7 +56,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavHostController
 import coil.compose.rememberAsyncImagePainter
-import com.wxn.bookparser.domain.book.Book
+import com.wxn.base.bean.Book
 import com.wxn.reader.R
 import com.wxn.reader.navigation.LocalNavController
 import com.wxn.reader.presentation.bookDetails.components.BookDescription

@@ -1,6 +1,7 @@
 plugins {
     alias(libs.plugins.android.library)
     alias(libs.plugins.jetbrains.kotlin.android)
+    id("kotlin-parcelize")
 }
 
 android {
@@ -42,4 +43,6 @@ dependencies {
 
     implementation(libs.timber)
     implementation(libs.androidx.ui.graphics)
+
+    implementation(libs.toaster)
 }

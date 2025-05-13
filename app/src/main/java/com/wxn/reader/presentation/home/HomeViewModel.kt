@@ -16,7 +16,7 @@ import androidx.lifecycle.viewModelScope
 import androidx.paging.PagingData
 import androidx.paging.cachedIn
 import com.wxn.bookparser.FileParser
-import com.wxn.bookparser.domain.book.Book
+import com.wxn.base.bean.Book
 import com.wxn.bookparser.domain.file.CachedFileCompat
 import com.wxn.reader.R
 import com.wxn.reader.data.model.AppPreferences

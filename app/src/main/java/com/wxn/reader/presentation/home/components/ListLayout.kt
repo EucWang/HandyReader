@@ -27,7 +27,7 @@ import androidx.paging.compose.itemKey
 //import com.google.android.gms.ads.interstitial.InterstitialAdLoadCallback
 import com.wxn.reader.BuildConfig
 import com.wxn.reader.data.model.AppPreferences
-import com.wxn.bookparser.domain.book.Book
+import com.wxn.base.bean.Book
 import com.wxn.reader.data.dto.FileType
 import com.wxn.reader.data.dto.FileType.Companion.stringToFileType
 import com.wxn.reader.navigation.LocalNavController

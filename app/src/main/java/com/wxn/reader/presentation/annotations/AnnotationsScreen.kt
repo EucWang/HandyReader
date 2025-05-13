@@ -55,7 +55,7 @@ import androidx.navigation.NavHostController
 import com.github.skydoves.colorpicker.compose.HsvColorPicker
 import com.github.skydoves.colorpicker.compose.rememberColorPickerController
 import com.wxn.reader.data.dto.AnnotationType
-import com.wxn.bookparser.domain.book.Book
+import com.wxn.base.bean.Book
 import com.wxn.reader.domain.model.BookAnnotation
 import kotlinx.coroutines.launch
 import org.json.JSONObject

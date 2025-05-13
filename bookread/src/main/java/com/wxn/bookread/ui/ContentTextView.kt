@@ -1,0 +1,587 @@
+package com.wxn.bookread.ui
+
+import android.content.Context
+import android.graphics.Canvas
+import android.graphics.Color
+import android.graphics.Paint
+import android.graphics.RectF
+import android.util.AttributeSet
+import android.view.View
+import androidx.core.graphics.toColorInt
+import com.wxn.base.ext.getCompatColor
+import com.wxn.base.util.Coroutines
+import com.wxn.base.util.Logger
+import com.wxn.bookread.R
+import com.wxn.bookread.ReadBook
+import com.wxn.bookread.data.model.TextChar
+import com.wxn.bookread.data.model.TextLine
+import com.wxn.bookread.data.model.TextPage
+import com.wxn.bookread.provider.ChapterProvider
+import com.wxn.bookread.provider.ImageProvider
+import kotlinx.coroutines.flow.firstOrNull
+import kotlinx.coroutines.launch
+import kotlin.math.min
+
+/**
+ * 阅读内容界面,
+ * 文字和图片在界面上的显示
+ * 控制文字的选中
+ */
+class ContentTextView(context: Context, attrs: AttributeSet?) : View(context, attrs) {
+
+    /***
+     * 是否允许选中文本
+     */
+    var selectAble = true
+
+    var upView: ((TextPage) -> Unit)? = null
+
+    /***
+     * 选中文字的画笔
+     */
+    private val selectedPaint by lazy {
+        Paint().apply {
+            color = context.getCompatColor(R.color.btn_bg_press_2)
+            style = Paint.Style.FILL
+        }
+    }
+
+    private lateinit var callback: SelectTextCallback
+
+    /**
+     * 可视矩形
+     */
+    private val visibleRect = RectF()
+
+    /**
+     * 选择字符的开始位置
+     * 三个值对应： 页面索引，行索引，字符索引
+     */
+    private val selectStart = arrayOf(0, 0, 0)
+
+    /***
+     * 选择字符的结束位置
+     * 三个值对应： 页面索引，行索引，字符索引
+     */
+    private val selectEnd = arrayOf(0, 0, 0)
+
+    /**
+     * 当前显示的TextPage
+     */
+    private var textPage: TextPage = TextPage()
+
+    //滚动参数
+    private val pageFactory: TextPageFactory get() = callback.pageFactory
+
+    //滚动偏移量
+    private var pageOffset = 0f
+
+    init {
+//        callBack = activity as CallBack //TODO
+        contentDescription = textPage.text
+    }
+
+    fun setContent(textPage: TextPage) {
+        this.textPage = textPage
+        contentDescription = textPage.text
+        invalidate()
+    }
+
+    /***
+     * 刷新可见矩形区域
+     */
+    fun refreshVisibleRect() {
+        val left = ChapterProvider.paddingLeft.toFloat()
+        val top = ChapterProvider.paddingTop.toFloat()
+        val right = ChapterProvider.visibleRight.toFloat()
+        val bottom = ChapterProvider.visibleBottom.toFloat()
+        visibleRect.set(left, top, right, bottom)
+    }
+
+    override fun onSizeChanged(w: Int, h: Int, oldw: Int, oldh: Int) {
+        super.onSizeChanged(w, h, oldw, oldh)
+        ChapterProvider.setViewSize(w, h)
+        refreshVisibleRect()
+        textPage.format()
+    }
+
+    override fun onDraw(canvas: Canvas) {
+        super.onDraw(canvas)
+        canvas.clipRect(visibleRect)
+        drawPage(canvas)
+    }
+
+    /***
+     * 绘制页，或者滚动中的下一页或者下下一页
+     */
+    private fun drawPage(canvas: Canvas) {
+        var relativeOffset = relativeOffset(0)
+
+        textPage.textLines.forEach { textLine ->
+            drawLine(canvas, textLine, relativeOffset)
+        }
+
+        if (!callback.isScroll) return          //非滚动翻页，跳过
+        if (!pageFactory.hasNext()) return      //没有下一页，跳过
+
+        val nextPage = relativePage(1)
+        relativeOffset = relativeOffset(1)
+        nextPage.textLines.forEach { textLine ->        //绘制下一页
+            drawLine(canvas, textLine, relativeOffset)
+        }
+
+        if (!pageFactory.hasNextPlus()) return
+        relativeOffset = relativeOffset(2)
+        if (relativeOffset < ChapterProvider.visibleHeight) {   //绘制下下一页
+            val nextNextPage = relativePage(2)
+            nextNextPage.textLines.forEach { textLine ->
+                drawLine(canvas, textLine, relativeOffset)
+            }
+        }
+    }
+
+    /***
+     * 绘制行
+     */
+    private fun drawLine(canvas: Canvas, textLine: TextLine, relativeOffset: Float) {
+        val lineTop = textLine.lineTop + relativeOffset
+        val lineBase = textLine.lineBase + relativeOffset
+        val lineBottom = textLine.lineBottom + relativeOffset
+
+        if (textLine.isImage) {
+            drawImage(canvas, textLine, lineTop, lineBottom) //绘制图片
+        } else {
+            drawChars(
+                canvas, textLine.textChars, lineTop, lineBase, lineBottom,
+                isTitle = textLine.isTitle,
+                isReadAloud = textLine.isReadAloud
+            )
+        }
+    }
+
+    private fun drawChars(
+        canvas: Canvas,
+        textChars: List<TextChar>,
+        lineTop: Float,
+        lineBase: Float,
+        lineBottom: Float,
+        isTitle: Boolean,
+        isReadAloud: Boolean
+    ) {
+        Coroutines.mainScope().launch {
+            //标题或者文本内容的textPaint
+            val textPaint = if (isTitle) {
+                ChapterProvider.titlePaint
+            } else {
+                ChapterProvider.contentPaint
+            }
+            //文字颜色
+            textPaint.color = if (isReadAloud) {
+                //  "accentColor": "#AD1457",
+                //  "accentColor": "#E0E0E0",
+                // "accentColor": "#FFFFFF",
+                "#FFAD1457".toColorInt()
+            } else {
+                ChapterProvider.readerPreferencesUtil.readerPreferencesFlow.firstOrNull()?.textColor ?: Color.BLACK
+            }
+            textChars.forEach { ch ->
+                canvas.drawText(ch.charData, ch.start, lineBase, textPaint) //绘制每一个字
+                if (ch.selected) {
+                    canvas.drawRect(ch.start, lineTop, ch.end, lineBottom, selectedPaint) //绘制选择文字时的背景框
+                }
+            }
+        }
+    }
+
+    /***
+     * 绘制图片
+     */
+    private fun drawImage(canvas: Canvas, textLine: TextLine, lineTop: Float, lineBottom: Float) {
+        textLine.textChars.forEach { textChar ->
+            ReadBook.book?.let { book ->
+                val rectF = RectF(textChar.start, lineTop, textChar.end, lineBottom)
+                ImageProvider.getImage(book, textPage.chapterIndex, textChar.charData, true)?.let { bmp ->
+                    canvas.drawBitmap(bmp, null, rectF, null)
+                }
+            }
+        }
+    }
+
+    //------------------------------------------------------------------------------------------------
+
+    /**
+     * 滚动事件时，修改偏移量
+     */
+    fun onScroll(mOffset: Float) {
+        if (mOffset == 0f) return
+        pageOffset += mOffset //累加偏移量
+
+        if (!pageFactory.hasPrev() && pageOffset > 0) { //在没有上一页的情况下，pageOffset不能大于0
+            pageOffset = 0f
+        } else if (!pageFactory.hasNext()  //在没有下一页的情况下，pageOffset不能小于0
+            && pageOffset < 0
+            && pageOffset + textPage.height < ChapterProvider.visibleHeight
+        ) {
+            val offset = ChapterProvider.visibleHeight - textPage.height
+            pageOffset = min(0f, offset)
+        } else if (pageOffset > 0) {  //当pageOffset > 0时
+            pageFactory.moveToPrev(false)       //ReadBook中配置移动到上一页/或者上一个章节
+            textPage = pageFactory.currentPage  //修改当前页为变化之后的TextPage
+            pageOffset -= textPage.height       //则pageOffset减去一页的高度
+            upView?.invoke(textPage)
+        } else if (pageOffset < -textPage.height) { //当pageOffset < 一页高度时
+            pageFactory.moveToNext(false)           //ReadBook中配置移动到下一页/或者下一个章节
+            pageOffset += textPage.height           //则pageOffset 加上一页的高度
+            textPage = pageFactory.currentPage      //修改当前页为变化之后的TextPage
+            upView?.invoke(textPage)
+        }
+        invalidate()                                //刷新界面显示，重新绘制内容
+    }
+
+    /**
+     * 重置偏移量为0f
+     */
+    fun resetPageOffset() {
+        pageOffset = 0f
+    }
+
+    /**
+     * 选中文字
+     */
+    fun selectText(x: Float, y: Float, select: (relativePage: Int, lineIndex: Int, charIndex: Int) -> Unit) {
+        if (!selectAble) return //如果禁止选择文字
+        if (!visibleRect.contains(x, y)) return  //当前位置超过了可视区域
+
+        var relativeOffset: Float
+        for (relativePos in 0..2) { //前中后三个TextPage
+            relativeOffset = relativeOffset(relativePos) //3个页面的offset
+            if (relativePos > 0) {
+                if (!callback.isScroll) return                                  //非滚动翻页
+                if (relativeOffset >= ChapterProvider.visibleHeight) return     //超过了可视高度
+            }
+
+            val page = relativePage(relativePos) //对应的TextPage
+            var top = 0f
+            var bottom = 0f
+            var start = 0f
+            var end = 0f
+            for ((lineIndex, textLine) in page.textLines.withIndex()) {
+                top = textLine.lineTop
+                bottom = textLine.lineBottom + relativeOffset
+                if (y > top && y < bottom) {
+                    for ((charIndex, textChar) in textLine.textChars.withIndex()) {
+                        start = textChar.start
+                        end = textChar.end
+                        if (x > start && x < end) {
+                            if (textChar.isImage) { //选中图片时， 显示个弹窗 TODO
+
+                            } else {
+                                textChar.selected = true
+                                invalidate()
+                                select(relativePos, lineIndex, charIndex)
+                            }
+                            return
+                        }
+                    }
+                    return
+                }
+            }
+        }
+    }
+
+    /***
+     * 开始选择符 移动
+     */
+    fun selectStartMove(x: Float, y: Float) {
+        if (!visibleRect.contains(x, y)) return // 不在可视区域内，则跳过
+        var relativeOffset: Float
+        for (relativePos in 0..2) {
+            relativeOffset = relativeOffset(relativePos)
+            if (relativePos > 0) {
+                if (!callback.isScroll) return
+                if (relativeOffset >= ChapterProvider.visibleHeight) return
+            }
+
+            val page = relativePage(relativePos)
+            var top = 0f
+            var bottom = 0f
+            var start = 0f
+            var end = 0f
+            for ((lineIndex, textLine) in page.textLines.withIndex()) {
+                top = textLine.lineTop + relativeOffset
+                bottom = textLine.lineBottom + relativeOffset
+                if (y > top && y < bottom) {
+                    for ((charIndex, textChar) in textLine.textChars.withIndex()) {
+                        start = textChar.start
+                        end = textChar.end
+                        if (x > start && x < end) {
+                            if (selectStart[0] != relativePos
+                                || selectStart[1] != lineIndex
+                                || selectStart[2] != charIndex
+                            ) {
+                                //如果选择的开始位置超过了结束位置
+                                if (selectToInt(relativePos, lineIndex, charIndex) > selectToInt(selectEnd)) {
+                                    return
+                                }
+                                selectStart[0] = relativePos
+                                selectStart[1] = lineIndex
+                                selectStart[2] = charIndex
+                                upSelectedStart(
+                                    textChar.start,
+                                    textLine.lineBottom + relativeOffset,
+                                    textLine.lineTop + relativeOffset
+                                )
+                                upSelectChars()
+                            }
+                            return
+                        }
+                    }
+                    return
+                }
+            }
+        }
+    }
+
+    /***
+     * 结束选择符 移动
+     */
+    fun selectEndMove(x: Float, y: Float) {
+        if (!visibleRect.contains(x, y)) return
+
+        var relativeOffset: Float
+        for (relativePos in 0..2) {
+            relativeOffset = relativeOffset(relativePos)
+            if (relativePos > 0) {
+                if (!callback.isScroll) return
+                if (relativeOffset >= ChapterProvider.visibleHeight) return
+            }
+
+            Logger.d("ContentTextView:selectEndMove:x=$x,y=$y")
+            val page = relativePage(relativePos)
+            var top: Float
+            var bottom: Float
+            var start : Float
+            var end : Float
+            for((lineIndex, textLine) in page.textLines.withIndex()) {
+                top = textLine.lineTop + relativeOffset
+                bottom = textLine.lineBottom + relativeOffset
+                if (y > top && y < bottom) {
+                    for((charIndex, textChar) in textLine.textChars.withIndex()) {
+                        start = textChar.start
+                        end = textChar.end
+                        if (x > start && x < end) {
+                            if (selectEnd[0] != relativePos ||
+                                selectEnd[1] != lineIndex ||
+                                selectEnd[2] != charIndex) { //当前字符不是最后一个选中的字符
+                                //选中结束符的位置跑到选中开始符的前面去了
+                                if (selectToInt(relativePos, lineIndex, charIndex) < selectToInt(selectStart)) {
+                                    return
+                                }
+                                selectEnd[0] = relativePos
+                                selectEnd[1] = lineIndex
+                                selectEnd[2] = charIndex
+                                upSelectedEnd(textChar.end, textLine.lineBottom + relativeOffset)
+                                upSelectChars()
+                            }
+                            return
+                        }
+                    }
+                    return
+                }
+            }
+        }
+    }
+
+
+    /***
+     * 设置 选中开始符
+     */
+    fun selectStartMoveIndex(relativePage: Int, lineIndex: Int, charIndex: Int) {
+        selectStart[0] = relativePage
+        selectStart[1] = lineIndex
+        selectStart[2] = charIndex
+
+        val textLine = relativePage(relativePage).textLines[lineIndex]
+        val textChar = textLine.textChars[charIndex]
+        upSelectedStart(
+            textChar.start,
+            textLine.lineBottom + relativeOffset(relativePage),
+            textLine.lineTop + relativeOffset(relativePage)
+        )
+    }
+
+    /***
+     * 设置 选中结束符
+     */
+    fun selectEndMoveIndex(relativePage: Int, lineIndex: Int, charIndex: Int) {
+        selectEnd[0] = relativePage
+        selectEnd[1] = lineIndex
+        selectEnd[2] = charIndex
+
+        val textLine = relativePage(relativePage).textLines[lineIndex]
+        val textChar = textLine.textChars[charIndex]
+        upSelectedEnd(textChar.end, textLine.lineBottom + relativeOffset(relativePage))
+        upSelectChars()
+    }
+
+    /****
+     * 取消选中
+     */
+    fun cancelSelect() {
+        val last = if (callback.isScroll) 2 else 0
+        for(relativePos in 0..last) {
+            relativePage(relativePos).textLines.forEach{ textLine ->
+                textLine.textChars.forEach { ch ->
+                    ch.selected = false
+                }
+            }
+        }
+        invalidate()
+        callback.onCancelSelect()
+    }
+
+    val selectText: String
+        get() {
+            val stringBuilder = StringBuilder()
+            for (relativePos in selectStart[0]..selectEnd[0]) {
+                val textPage = relativePage(relativePos)
+                if (relativePos == selectStart[0] && relativePos == selectEnd[0]) {
+                    for (lineIndex in selectStart[1]..selectEnd[1]) {
+                        if (lineIndex == selectStart[1] && lineIndex == selectEnd[1]) {
+                            stringBuilder.append(
+                                textPage.textLines[lineIndex].text.substring(
+                                    selectStart[2],
+                                    selectEnd[2] + 1
+                                )
+                            )
+                        } else if (lineIndex == selectStart[1]) {
+                            stringBuilder.append(
+                                textPage.textLines[lineIndex].text.substring(
+                                    selectStart[2]
+                                )
+                            )
+                        } else if (lineIndex == selectEnd[1]) {
+                            stringBuilder.append(
+                                textPage.textLines[lineIndex].text.substring(0, selectEnd[2] + 1)
+                            )
+                        } else {
+                            stringBuilder.append(textPage.textLines[lineIndex].text)
+                        }
+                    }
+                } else if (relativePos == selectStart[0]) {
+                    for (lineIndex in selectStart[1] until relativePage(relativePos).textLines.size) {
+                        if (lineIndex == selectStart[1]) {
+                            stringBuilder.append(
+                                textPage.textLines[lineIndex].text.substring(
+                                    selectStart[2]
+                                )
+                            )
+                        } else {
+                            stringBuilder.append(textPage.textLines[lineIndex].text)
+                        }
+                    }
+                } else if (relativePos == selectEnd[0]) {
+                    for (lineIndex in 0..selectEnd[1]) {
+                        if (lineIndex == selectEnd[1]) {
+                            stringBuilder.append(
+                                textPage.textLines[lineIndex].text.substring(0, selectEnd[2] + 1)
+                            )
+                        } else {
+                            stringBuilder.append(textPage.textLines[lineIndex].text)
+                        }
+                    }
+                } else if (relativePos in selectStart[0] + 1 until selectEnd[0]) {
+                    for (lineIndex in selectStart[1]..selectEnd[1]) {
+                        stringBuilder.append(textPage.textLines[lineIndex].text)
+                    }
+                }
+            }
+            return stringBuilder.toString()
+        }
+
+
+    private fun upSelectedStart(x: Float, y: Float, top: Float) {
+        callback.apply {
+            upSelectedStart(x, y + headerHeight, top + headerHeight)
+        }
+    }
+
+    private fun upSelectedEnd(x: Float, y : Float) {
+        callback.apply {
+            upSelectedEnd(x, y + headerHeight)
+        }
+    }
+
+    /***
+     * 更新字符的选中状态
+     */
+    private fun upSelectChars() {
+        val last = if (callback.isScroll) 2 else 0
+
+        for(relativePos in 0..last) {
+            val page = relativePage(relativePos)
+            for((lineIndex, textLine) in page.textLines.withIndex()) {
+                for((charIndex, textChar) in textLine.textChars.withIndex()) {
+                    textChar.selected =  if (relativePos == selectStart[0]
+                        && relativePos == selectEnd[0]
+                        && lineIndex == selectStart[1]
+                        && lineIndex == selectEnd[1]
+                    ) {
+                        charIndex in selectStart[2]..selectEnd[2]
+                    } else if (relativePos == selectStart[0] && lineIndex == selectStart[1]) {
+                        charIndex >= selectStart[2]
+                    } else if (relativePos == selectEnd[0] && lineIndex == selectEnd[1]) {
+                        charIndex <= selectEnd[2]
+                    } else if (relativePos == selectStart[0] && relativePos == selectEnd[0]) {
+                        lineIndex in (selectStart[1] + 1) until selectEnd[1]
+                    } else if (relativePos == selectStart[0]) {
+                        lineIndex > selectStart[1]
+                    } else if (relativePos == selectEnd[0]) {
+                        lineIndex < selectEnd[1]
+                    } else {
+                        relativePos in selectStart[0] + 1 until selectEnd[0]
+                    }
+                }
+            }
+        }
+        invalidate()
+    }
+
+    /***
+     * 三个索引值 页面索引， 行索引， 字符索引
+     * 转换成一个int值
+     */
+    private fun selectToInt(page: Int, line: Int, char: Int): Int {
+        return page * 10_000_000 + line * 100_000 + char
+    }
+
+    /***
+     *  三个索引值 页面索引， 行索引， 字符索引
+     *  转换成一个int值
+     */
+    private fun selectToInt(select: Array<Int>): Int {
+        return select[0] * 10000000 + select[1] * 100000 + select[2]
+    }
+
+    /***
+     * 相对偏移量
+     */
+    private fun relativeOffset(relativePos: Int): Float {
+        return when (relativePos) {
+            0 -> pageOffset
+            1 -> pageOffset + textPage.height
+            else -> pageOffset + textPage.height + pageFactory.nextPage.height
+        }
+    }
+
+    /****
+     * 现对的当前页，或者下一页，或者下下一页
+     */
+    private fun relativePage(relativePos: Int): TextPage {
+        return when (relativePos) {
+            0 -> textPage
+            1 -> pageFactory.nextPage
+            else -> pageFactory.nextPagePlus
+        }
+    }
+}

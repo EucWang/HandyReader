@@ -5,7 +5,7 @@ import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.wxn.reader.data.dto.AnnotationType
 import com.wxn.reader.data.model.AppPreferences
-import com.wxn.bookparser.domain.book.Book
+import com.wxn.base.bean.Book
 import com.wxn.reader.domain.model.BookAnnotation
 import com.wxn.reader.domain.model.Note
 import com.wxn.reader.domain.model.ReadingActive

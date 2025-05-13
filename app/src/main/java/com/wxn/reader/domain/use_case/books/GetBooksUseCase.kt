@@ -3,7 +3,7 @@ package com.wxn.reader.domain.use_case.books
 import androidx.paging.Pager
 import androidx.paging.PagingConfig
 import androidx.paging.PagingData
-import com.wxn.bookparser.domain.book.Book
+import com.wxn.base.bean.Book
 import com.wxn.reader.data.dto.FileType
 import com.wxn.reader.data.dto.ReadingStatus
 import com.wxn.reader.data.model.SortOption

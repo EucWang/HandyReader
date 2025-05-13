@@ -5,7 +5,7 @@ import androidx.documentfile.provider.DocumentFile
 import com.anggrayudi.storage.file.baseName
 import com.anggrayudi.storage.file.extension
 import com.wxn.bookparser.FileParser
-import com.wxn.bookparser.domain.book.Book
+import com.wxn.base.bean.Book
 import com.wxn.bookparser.domain.book.BookWithCover
 import com.wxn.bookparser.domain.file.CachedFile
 import com.wxn.bookparser.exts.rawFile

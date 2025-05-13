@@ -69,4 +69,5 @@ dependencies {
     implementation("org.commonmark:commonmark:0.24.0")
 
     implementation(project(":mobi"))
+    implementation(project(":base"))
 }

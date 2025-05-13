@@ -11,7 +11,6 @@ import com.wxn.bookread.data.source.local.ReaderPreferencesUtil
 import com.wxn.bookread.ext.dp
 import com.wxn.bookread.ext.sp
 import com.wxn.base.util.Coroutines
-import com.wxn.bookread.di.ReadModule
 import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.launch
 import javax.inject.Inject
@@ -207,6 +206,19 @@ object ChapterProvider: PreferencesUser() {
             //更新屏幕参数
             upVisibleSize()
 
+        }
+    }
+
+    /***
+     * 设置View尺寸
+     */
+    fun setViewSize(width: Int, height: Int) {
+        if (width > 0 && height > 0) {
+            viewWidth = width
+            viewHeight = height
+            Coroutines.mainScope().launch {
+                upVisibleSize()
+            }
         }
     }
 

@@ -11,7 +11,7 @@ import com.anggrayudi.storage.file.openInputStream
 import com.anggrayudi.storage.file.toRawFile
 import com.wxn.bookparser.FileParser
 import com.wxn.bookparser.R
-import com.wxn.bookparser.domain.book.Book
+import com.wxn.base.bean.Book
 import com.wxn.bookparser.domain.book.BookWithCover
 import com.wxn.bookparser.domain.file.CachedFile
 import com.wxn.bookparser.util.FileUtil

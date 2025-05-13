@@ -13,10 +13,12 @@ import org.readium.r2.navigator.preferences.ReadingProgression as ReadingProgres
 import com.wxn.bookread.data.model.preference.ReaderPreferences
 import org.readium.r2.navigator.epub.EpubPreferences
 import com.wxn.bookread.data.model.config.ConfigReadingProgression
+import org.readium.r2.shared.ExperimentalReadiumApi
 
 import androidx.compose.ui.graphics.Color as ComposeColor
 
 // Extension function to convert ReaderPreferences to EpubPreferences
+@OptIn(ExperimentalReadiumApi::class)
 fun ReaderPreferences.toRediumEpubPreferences(): EpubPreferences {
 
     return EpubPreferences(

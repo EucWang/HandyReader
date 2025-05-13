@@ -44,7 +44,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavController
 import androidx.navigation.NavHostController
 import com.wxn.reader.R
-import com.wxn.bookparser.domain.book.Book
+import com.wxn.base.bean.Book
 import com.wxn.reader.navigation.LocalNavController
 import com.wxn.reader.presentation.settings.viewmodels.DeletedBooksViewModel
 import com.wxn.reader.presentation.settings.states.DeletedBooksState

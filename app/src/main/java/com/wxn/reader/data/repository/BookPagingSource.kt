@@ -3,7 +3,7 @@ package com.wxn.reader.data.repository
 import androidx.paging.PagingSource
 import androidx.paging.PagingSource.LoadResult.Page
 import androidx.paging.PagingState
-import com.wxn.bookparser.domain.book.Book
+import com.wxn.base.bean.Book
 import com.wxn.reader.data.dto.BookEntity
 import com.wxn.reader.data.dto.FileType
 import com.wxn.reader.data.dto.ReadingStatus

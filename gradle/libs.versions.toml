@@ -39,6 +39,7 @@ googleGmsGoogleServices = "4.4.2"
 googleFirebaseCrashlytics = "3.0.3"
 timber = "5.0.1"
 material = "1.12.0"
+toaster = "12.8"
 
 
 [libraries]
@@ -106,6 +107,7 @@ androidx-runtime-livedata = { group = "androidx.compose.runtime", name = "runtim
 androidx-palette-ktx = { group = "androidx.palette", name = "palette-ktx", version.ref = "paletteKtx" }
 firebase-crashlytics = { group = "com.google.firebase", name = "firebase-crashlytics", version.ref = "firebaseCrashlytics" }
 material = { group = "com.google.android.material", name = "material", version.ref = "material" }
+toaster = { module = "com.github.getActivity:Toaster", version.ref = "toaster" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }

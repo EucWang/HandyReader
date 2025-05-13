@@ -32,7 +32,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
-import com.wxn.bookparser.domain.book.Book
+import com.wxn.base.bean.Book
 import com.wxn.reader.R
 import com.wxn.reader.data.dto.ReadingStatus
 import com.wxn.reader.data.dto.ReadingStatus.Companion.intToReadStatus
@@ -86,7 +86,7 @@ fun ReadingProgress(
                     ReadingStatus.NOT_STARTED -> Icons.Outlined.Book
                     ReadingStatus.IN_PROGRESS -> Icons.Outlined.AutoStories
                     ReadingStatus.FINISHED -> Icons.Outlined.CheckCircle
-                    null -> Icons.Outlined.Book
+                    else -> Icons.Outlined.Book
                 },
                 contentDescription = intToReadStatus(book.readingStatus).name,
             )

@@ -9,7 +9,7 @@ import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.viewModelScope
 import com.wxn.reader.data.model.AppPreferences
-import com.wxn.bookparser.domain.book.Book
+import com.wxn.base.bean.Book
 import com.wxn.reader.domain.model.BookAnnotation
 import com.wxn.reader.domain.model.Bookmark
 import com.wxn.reader.domain.model.Note
