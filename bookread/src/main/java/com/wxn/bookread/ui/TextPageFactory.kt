@@ -2,7 +2,6 @@ package com.wxn.bookread.ui
 
 import com.wxn.bookread.ReadBook
 import com.wxn.bookread.data.model.TextPage
-import javax.sql.DataSource
 
 class TextPageFactory(dataSource: IDataSource) : IPageFactory<TextPage>(dataSource) {
 

@@ -21,6 +21,7 @@ import javax.inject.Inject
 
 private val Context.readerPreferencesDataStore by preferencesDataStore(name = "reader_preferences")
 
+
 class ReaderPreferencesUtil @Inject constructor(
     val context: Context
 ) {
