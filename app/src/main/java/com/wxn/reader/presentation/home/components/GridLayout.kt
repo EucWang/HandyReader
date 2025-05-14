@@ -47,6 +47,7 @@ fun GridLayout(
     viewModel: HomeViewModel,
     isLoading: Boolean,
     appPreferences: AppPreferences,
+    openBook: (Book) -> Unit
 ) {
     val navController = LocalNavController.current
 
@@ -144,37 +145,7 @@ fun GridLayout(
             ) {
                 BookCard(
                     book = book,
-                    openBook = { openedBook ->
-                        if (selectionMode) {
-                            toggleSelection(book)
-                        } else if (!isBookOpen) {
-                            clearSearch()
-                            val shouldShowAd =
-                                !appPreferences.isPremium && Random.nextFloat() < 0.25f // 25% chance to show ad
-                            val navigateToBook = {
-                                val encodedUri = Uri.encode(openedBook.filePath)
-                                isBookOpen = true
-                                Logger.d("OpenBook::isBookOpen=$isBookOpen,book.fileType=${openedBook.fileType},encodedUri=${encodedUri},id=${openedBook.id}")
-                                val route = when (stringToFileType(openedBook.fileType)) {
-                                    FileType.EPUB -> Screens.BookReaderScreen.route + "/${openedBook.id}/${encodedUri}"
-                                    FileType.PDF -> Screens.PdfReaderScreen.route + "/${openedBook.id}/${encodedUri}"
-                                    FileType.AUDIOBOOK -> Screens.AudiobookReaderScreen.route + "/${openedBook.id}/${encodedUri}"
-                                    else -> {
-                                        "" //TODO
-                                    }
-                                }
-                                if (route.isNotEmpty()) {
-                                    navController.navigate(route = route)
-                                }
-                            }
-                            if (shouldShowAd) {
-                                navigateToBook()
-                                showInterstitialAd(navigateToBook)
-                            } else {
-                                navigateToBook()
-                            }
-                        }
-                    },
+                    openBook = openBook,
                     updateLastOpened = {
                         viewModel.updateBook(book.copy(lastOpened = System.currentTimeMillis()))
                     },

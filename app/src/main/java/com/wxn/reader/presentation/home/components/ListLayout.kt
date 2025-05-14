@@ -46,12 +46,12 @@ fun ListLayout(
     viewModel: HomeViewModel,
     isLoading: Boolean,
     appPreferences: AppPreferences,
+    openBook: (Book) -> Unit
 ) {
     val listAdUnit = BuildConfig.OPEN_BOOK_LIST_AD_UNIT
     val navController: NavHostController = LocalNavController.current
 
     val context = LocalContext.current
-    var isBookOpen by remember { mutableStateOf(false) }
 //    var mInterstitialAd by remember { mutableStateOf<InterstitialAd?>(null) }
 
     fun loadInterstitialAd() {
@@ -129,35 +129,7 @@ fun ListLayout(
             ) {
                 BookListCard(
                     book = book,
-                    openBook = { openedBook ->
-                        if (selectionMode) {
-                            toggleSelection(book)
-                        } else if (!isBookOpen) {  // Only open a book if no book is currently open
-                            clearSearch()
-                            val shouldShowAd =
-                                !appPreferences.isPremium && Random.nextFloat() < 0.25f // 25% chance to show ad
-                            val navigateToBook = {
-                                val encodedUri = Uri.encode(openedBook.filePath)
-                                isBookOpen = true  // Set the state to indicate a book is open
-                                val route = when (stringToFileType(openedBook.fileType)) {
-                                    FileType.EPUB -> Screens.BookReaderScreen.route + "/${openedBook.id}/${encodedUri}"
-                                    FileType.PDF -> Screens.PdfReaderScreen.route + "/${openedBook.id}/${encodedUri}"
-                                    FileType.AUDIOBOOK -> Screens.AudiobookReaderScreen.route + "/${openedBook.id}/${encodedUri}"
-                                    else -> {
-                                        "" //TODO
-                                    }
-                                }
-                                Logger.d("OpenBook::isBookOpen=$isBookOpen,book.fileType=${openedBook.fileType},encodedUri=${encodedUri},id=${openedBook.id},route=$route")
-                                navController.navigate(route = route)
-                            }
-                            if (shouldShowAd) {
-                                navigateToBook()
-                                showInterstitialAd(navigateToBook)
-                            } else {
-                                navigateToBook()
-                            }
-                        }
-                    },
+                    openBook = openBook,
                     updateLastOpened = {
                         viewModel.updateBook(book.copy(lastOpened = System.currentTimeMillis()))
                     },

@@ -136,7 +136,6 @@ fun BookReaderScreen(
 
     val book by viewModel.book.collectAsStateWithLifecycle()
 
-
     // Add a state to control the visibility of the EpubReaderView
     var showReader by remember { mutableStateOf(false) }
     var coverAlpha by remember { mutableFloatStateOf(1f) }
@@ -145,7 +144,6 @@ fun BookReaderScreen(
     val appPreferences by viewModel.appPreferences.collectAsStateWithLifecycle()
 
     var areToolbarsVisible by remember { mutableStateOf(false) }
-
 
     KeepScreenOn(readerPreferences.keepScreenOn)
 

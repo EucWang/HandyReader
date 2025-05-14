@@ -8,6 +8,8 @@ sealed class Screens(val route: String) {
     data object BookReaderScreen: Screens("book_reader_screen")
     data object PdfReaderScreen: Screens("pdf_reader_screen")
     data object AudiobookReaderScreen: Screens("audiobook_reader_screen")
+    data object MainReaderScreen: Screens("main_book_read_screen")  //main reader screen
+
     data object BookDetailsScreen: Screens("book_details_screen")
     data object SettingsScreen: Screens("settings_screen")
     data object GeneralSettingsScreen: Screens("general_settings")

@@ -1,5 +1,6 @@
 package com.wxn.reader.presentation.home
 
+import android.net.Uri
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
@@ -24,7 +25,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.IntOffset
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.navigation.NavHostController
 import androidx.paging.compose.collectAsLazyPagingItems
+import com.wxn.base.bean.Book
 import com.wxn.reader.R
 import com.wxn.reader.data.model.Layout
 import com.wxn.reader.presentation.bookDetails.components.EditMetadataModal
@@ -35,6 +38,10 @@ import com.wxn.reader.presentation.home.components.ListLayout
 import com.wxn.reader.presentation.home.components.SortFilterModal
 import com.wxn.reader.presentation.sharedComponents.Shelves
 import com.wxn.base.util.Logger
+import com.wxn.reader.data.dto.FileType
+import com.wxn.reader.data.dto.FileType.Companion.stringToFileType
+import com.wxn.reader.navigation.LocalNavController
+import com.wxn.reader.navigation.Screens
 
 
 @Composable fun HomeShelfsPanel(innerPadding: PaddingValues, pagerState: PagerState, viewModel: HomeViewModel) {
@@ -193,6 +200,30 @@ fun HomeMainPanel(viewModel: HomeViewModel) {
 //                                EmptyShelfContent("Library")
 //                            }
 
+    var isBookOpen by remember { mutableStateOf(false) }
+    val navController: NavHostController = LocalNavController.current
+
+    fun openBook(openedBook: Book) {
+        if (!isBookOpen) {  // Only open a book if no book is currently open
+            val navigateToBook = {
+                val encodedUri = Uri.encode(openedBook.filePath)
+                isBookOpen = true  // Set the state to indicate a book is open
+                val route = when (stringToFileType(openedBook.fileType)) {
+                    FileType.EPUB -> Screens.BookReaderScreen.route + "/${openedBook.id}/${encodedUri}"
+                    FileType.PDF -> Screens.PdfReaderScreen.route + "/${openedBook.id}/${encodedUri}"
+                    FileType.AUDIOBOOK -> Screens.AudiobookReaderScreen.route + "/${openedBook.id}/${encodedUri}"
+                    else -> {
+                        "" //TODO
+                    }
+                }
+                Logger.d("OpenBook::isBookOpen=$isBookOpen,book.fileType=${openedBook.fileType},encodedUri=${encodedUri},id=${openedBook.id},route=$route")
+                navController.navigate(route = route)
+            }
+            navigateToBook()
+        }
+    }
+
+
     if (appPreferences.homeLayout == Layout.Grid || appPreferences.homeLayout == Layout.CoverOnly) {
         AnimatedVisibility(
             visible = visible,
@@ -211,6 +242,7 @@ fun HomeMainPanel(viewModel: HomeViewModel) {
                 viewModel = viewModel,
                 isLoading = isAddingBooks,
                 appPreferences = appPreferences,
+                openBook = ::openBook,
             )
         }
     } else {
@@ -231,6 +263,7 @@ fun HomeMainPanel(viewModel: HomeViewModel) {
                 viewModel = viewModel,
                 isLoading = isAddingBooks,
                 appPreferences = appPreferences,
+                openBook = ::openBook
             )
         }
     }

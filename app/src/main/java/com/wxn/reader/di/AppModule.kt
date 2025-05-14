@@ -8,6 +8,8 @@ import com.wxn.reader.data.mapper.annotation.BookAnnotationMapper
 import com.wxn.reader.data.mapper.annotation.BookAnnotationMapperImpl
 import com.wxn.reader.data.mapper.book.BookMapper
 import com.wxn.reader.data.mapper.book.BookMapperImpl
+import com.wxn.reader.data.mapper.book.ChapterMapper
+import com.wxn.reader.data.mapper.book.ChapterMapperImpl
 import com.wxn.reader.data.mapper.bookmark.BookmarkMapper
 import com.wxn.reader.data.mapper.bookmark.BookmarkMapperImpl
 import com.wxn.reader.data.mapper.bookshelf.BookShelfMapper
@@ -27,6 +29,7 @@ import com.wxn.reader.data.source.local.dao.AnnotationDao
 import com.wxn.reader.data.source.local.dao.BookDao
 import com.wxn.reader.data.source.local.dao.BookShelfDao
 import com.wxn.reader.data.source.local.dao.BookmarkDao
+import com.wxn.reader.data.source.local.dao.ChapterDao
 import com.wxn.reader.data.source.local.dao.NoteDao
 import com.wxn.reader.data.source.local.dao.ReadingActivityDao
 import com.wxn.reader.data.source.local.dao.ShelfDao
@@ -60,12 +63,16 @@ object AppModule {
         return context
     }
 
-
-
     @Provides
     @Singleton
     fun provideBookMapper(): BookMapper {
         return BookMapperImpl()
+    }
+
+    @Provides
+    @Singleton
+    fun provideChapterMapper(): ChapterMapper {
+        return ChapterMapperImpl()
     }
 
     @Provides
@@ -130,6 +137,15 @@ object AppModule {
     fun provideBookDao(appDatabase: AppDatabase): BookDao {
         return appDatabase.bookDao()
     }
+
+
+    @Provides
+    @Singleton
+    fun provideChapterDao(appDatabase: AppDatabase): ChapterDao {
+        return appDatabase.bookChapterDao()
+    }
+
+
 
     @Provides
     @Singleton
