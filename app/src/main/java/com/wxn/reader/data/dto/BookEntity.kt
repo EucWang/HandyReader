@@ -42,8 +42,11 @@ data class BookEntity(
     val duration: Long? = null, // Total duration of the audiobook in milliseconds
     val narrator: String? = null, // Name of the audiobook narrator
 
-    var scrollIndex: Int = 0,  //+
-    var scrollOffset: Int = 0 //+
+    var scrollIndex: Int = 0,           // + 当前阅读的章节索引
+    var scrollOffset: Int = 0,          // +  当前阅读的章节中的字符偏移量
+
+    var cachedDir: String = "",         //+ 缓存目录, 当缓存目录创建成功之后，会设置这个值
+    var crc: Int = 0,                   //+  文件校验码
 )
 
 enum class FileType {

@@ -2,6 +2,7 @@ package com.wxn.reader.data.repository
 
 import androidx.paging.PagingSource
 import com.wxn.base.bean.Book
+import com.wxn.reader.data.dto.BookEntity
 import com.wxn.reader.data.dto.FileType
 import com.wxn.reader.data.dto.ReadingStatus
 import com.wxn.reader.data.mapper.annotation.BookAnnotationMapper
@@ -117,6 +118,23 @@ class BooksRepositoryImpl @Inject constructor(
         if (!getAllBookUris().toSet().contains(entity.uri)){
             bookDao.insertBook(entity)
             1
+        } else {
+            0
+        }
+    }
+
+    override suspend fun insertBooks(books: List<Book>) : Int = withContext(Dispatchers.IO) {
+        val entities = arrayListOf<BookEntity>()
+        val uris = getAllBookUris().toSet()
+        for(book in books) {
+            val entity = bookMapper.toBookEntity(book)
+            if (!uris.contains(entity.uri)) {
+                entities.add(entity)
+            }
+        }
+        if (entities.size > 0) {
+            bookDao.insertBooks(entities)
+            entities.size
         } else {
             0
         }

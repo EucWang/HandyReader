@@ -173,15 +173,18 @@ class HomeViewModel
     private suspend fun addPublicDomainBooksIfNeeded() {
         val publicDomainBooks = listOf("alice_in_wonderlands.epub", "romeo_and_juliet.epub")
         val existingUris = getBookUrisUseCase().toSet()
+        var books = arrayListOf<Book>()
         publicDomainBooks.forEach { fileName ->
             val internalFile = copyAssetToInternalStorage(fileName)
             val internalUri = Uri.fromFile(internalFile)
             if (!existingUris.contains(internalUri.toString())) {
                 getBookInfoFromInternalFile(internalFile)?.let { book ->
-                    insertBookUseCase(book)
+//                    insertBookUseCase(book)
+                    books.add(book)
                 }
             }
         }
+        insertBookUseCase.insert(books)
 //        val initialPreferences = appPreferencesUtil.appPreferencesFlow.first()
 //        val updatedAppPreferences = initialPreferences.copy(isAssetsBooksFetched = true)
 //        appPreferencesUtil.updateAppPreferences(updatedAppPreferences)

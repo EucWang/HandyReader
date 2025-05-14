@@ -16,9 +16,9 @@ data class Book(
     val filePath: String,
     val coverImage: String?,
 
-    val scrollIndex: Int,
-    val scrollOffset: Int,
-    val progress: Float,
+    val scrollIndex: Int, //对应章节位置
+    val scrollOffset: Int,  //对应章节内偏移位置，从而确定当前阅读位置
+    val progress: Float,    //阅读进度,  取值：0~100
 
     val lastOpened: Long?,
     val category: String?,
@@ -47,4 +47,6 @@ data class Book(
     val duration: Long? = null, // Total duration of the audiobook in milliseconds
     val narrator: String? = null, // Name of the audiobook narrator
 
+    var crc: Int = 0,
+    var cachedDir: String? = null
 ) : Parcelable

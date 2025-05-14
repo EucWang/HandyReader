@@ -2,10 +2,17 @@ package com.wxn.mobi
 
 import android.content.Context
 import android.util.Log
+import com.wxn.mobi.data.model.FileCrc
 import com.wxn.mobi.data.model.MobiInfo
 import com.wxn.mobi.inative.NativeLib
 
 object MobiParser {
+
+    fun getFileCrc(path: String): FileCrc? {
+        val fileCrc = NativeLib.nativeFilesCrc(arrayOf(path))?.firstOrNull()
+        Log.d("MobiParser", "getFileCrc:path=$path,result crc is ${fileCrc?.crc}")
+        return fileCrc
+    }
 
     fun getMobiInfo(context: Context, path: String): MobiInfo? {
         Log.d("MobiParser", "getMobiInfo:path=$path")

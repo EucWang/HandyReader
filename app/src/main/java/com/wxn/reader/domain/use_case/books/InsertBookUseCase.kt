@@ -10,4 +10,8 @@ class InsertBookUseCase @Inject constructor(private val repository: BooksReposit
     suspend operator fun invoke(book: Book): Int = withContext(Dispatchers.IO) {
         repository.insertBook(book)
     }
+
+    suspend fun insert(books: List<Book>): Int = withContext(Dispatchers.IO) {
+        repository.insertBooks(books)
+    }
 }

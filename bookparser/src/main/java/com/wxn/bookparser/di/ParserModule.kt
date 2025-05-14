@@ -94,6 +94,7 @@ object ParserModule {
     @Provides
     @Singleton
     fun provideFileParser(
+        context: Context,
         txtFileParser: TxtFileParser,
         pdfFileParser: PdfFileParser,
         epubFileParser: EpubFileParser,
@@ -102,6 +103,7 @@ object ParserModule {
         audioFileParser: AudioFileParser,
         mobiFileParser: MobiFileParser,
     ): FileParser = FileParserImpl(
+        context,
         txtFileParser,
         pdfFileParser,
         epubFileParser,
