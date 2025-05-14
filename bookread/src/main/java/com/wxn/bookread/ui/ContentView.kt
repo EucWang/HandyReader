@@ -83,7 +83,9 @@ class ContentView(context: Context) : FrameLayout(context) {
         }
     }
 
-
+    /****
+     * 更新显示的样式
+     */
     fun upStyle() {
         binding.apply {
             Coroutines.mainScope().launch {
@@ -164,7 +166,9 @@ class ContentView(context: Context) : FrameLayout(context) {
         }
     }
 
-    //
+    /***
+     * 更新提示信息显示的控件， 这些控件的显示内容会根据设置不同而排列不同的内容
+     */
     fun upTipStyle() {
         binding.apply {
             Coroutines.mainScope().launch {
@@ -290,20 +294,35 @@ class ContentView(context: Context) : FrameLayout(context) {
         }
     }
 
+    /****
+     * 更新背景显示
+     */
     fun setBg(bg: Drawable?) {
         binding.pagePanel.background = bg
     }
 
-    //
+    fun setBg(bgColor: Int) {
+        binding.pagePanel.setBackgroundColor(bgColor)
+    }
+
+    /**
+     * 更新时间显示
+     */
     fun upTime() {
         tvTime?.text = SimpleDateFormat("HH:mm").format(Date(System.currentTimeMillis()))
     }
 
+    /****
+     * 更新电池显示
+     */
     fun upBattery(battery: Int) {
         this.battery = battery
         tvBattery?.setBattery(battery)
     }
 
+    /****
+     * 设置需要显示的TextPage内容
+     */
     fun setContent(textPage: TextPage, resetPageOffset: Boolean = true) {
         setProgress(textPage)
         if (resetPageOffset)
@@ -311,10 +330,16 @@ class ContentView(context: Context) : FrameLayout(context) {
         binding.contentTextView.setContent(textPage)
     }
 
+    /***
+     * 重置 界面移动时的偏移值
+     */
     fun resetPageOffset() {
         binding.contentTextView.resetPageOffset()
     }
 
+    /****
+     * 显示进度设置
+     */
     @SuppressLint("SetTextI18n")
     fun setProgress(textPage: TextPage) = textPage.apply {
         tvBookName?.text = ReadBook.book?.title
@@ -324,14 +349,24 @@ class ContentView(context: Context) : FrameLayout(context) {
         tvPageAndTotal?.text = "${index.plus(1)}/$pageSize  $readProgress"
     }
 
+
+    /***
+     * 移动时，设置显示界面的偏移
+     */
     fun onScroll(offset: Float) {
         binding.contentTextView.onScroll(offset)
     }
 
+    /***
+     * 是否运行选中文本
+     */
     fun upSelectAble(selectAble: Boolean) {
         binding.contentTextView.selectAble = selectAble
     }
 
+    /****
+     * 选中文本
+     */
     fun selectText(
         x: Float, y: Float,
         select: (relativePage: Int, lineIndex: Int, charIndex: Int) -> Unit
@@ -342,6 +377,9 @@ class ContentView(context: Context) : FrameLayout(context) {
         }
     }
 
+    /****
+     * 移动 选中结束符
+     */
     fun selectStartMove(x: Float, y: Float) {
         Coroutines.mainScope().launch {
             val headerHeight = getHeaderHeight()
@@ -349,10 +387,16 @@ class ContentView(context: Context) : FrameLayout(context) {
         }
     }
 
+    /****
+     * 选中开始符 的位置设置
+     */
     fun selectStartMoveIndex(relativePage: Int, lineIndex: Int, charIndex: Int) {
         binding.contentTextView.selectStartMoveIndex(relativePage, lineIndex, charIndex)
     }
 
+    /****
+     * 移动 选中结束符
+     */
     fun selectEndMove(x: Float, y: Float) {
         Coroutines.mainScope().launch {
             val headerHeight = getHeaderHeight()
@@ -360,14 +404,22 @@ class ContentView(context: Context) : FrameLayout(context) {
         }
     }
 
-    //
+    /***
+     * 选中结束符 的位置设置
+     */
     fun selectEndMoveIndex(relativePage: Int, lineIndex: Int, charIndex: Int) {
         binding.contentTextView.selectEndMoveIndex(relativePage, lineIndex, charIndex)
     }
 
+    /****
+     * 取消选中文字
+     */
     fun cancelSelect() {
         binding.contentTextView.cancelSelect()
     }
 
+    /***
+     * 获取选中的文本内容
+     */
     val selectedText: String get() = binding.contentTextView.selectText
 }

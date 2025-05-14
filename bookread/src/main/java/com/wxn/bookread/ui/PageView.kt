@@ -1,0 +1,526 @@
+package com.wxn.bookread.ui
+
+import android.annotation.SuppressLint
+import android.content.Context
+import android.graphics.Canvas
+import android.graphics.Rect
+import android.graphics.RectF
+import android.util.AttributeSet
+import android.view.ViewConfiguration
+import android.widget.FrameLayout
+import com.wxn.base.ext.activity
+import com.wxn.bookread.ReadBook
+import com.wxn.bookread.data.model.TextChapter
+import com.wxn.bookread.ui.delegate.PageDelegate
+import android.graphics.Paint
+import android.view.MotionEvent
+import androidx.core.graphics.toColorInt
+import com.wxn.base.ext.screenshot
+import com.wxn.base.util.Coroutines
+import com.wxn.bookread.provider.ChapterProvider
+import com.wxn.bookread.ui.delegate.CoverPageDelegate
+import com.wxn.bookread.ui.delegate.NoAnimPageDelegate
+import com.wxn.bookread.ui.delegate.ScrollPageDelegate
+import com.wxn.bookread.ui.delegate.SimulationPageDelegate
+import com.wxn.bookread.ui.delegate.SlidePageDelegate
+import kotlinx.coroutines.flow.firstOrNull
+import kotlinx.coroutines.launch
+import kotlin.math.abs
+
+/****
+ * 包含三个ContentView， 对应前页，当前页，下一页 三个页面
+ * 控制界面切换， 长按，点击等事件处理
+ */
+class PageView(context: Context, attrs: AttributeSet) : FrameLayout(context, attrs), IDataSource {
+
+    val callback: PageViewCallback
+        get() {
+            val cb = activity as? PageViewCallback?
+            if (cb == null) {
+                throw IllegalStateException("PageView is not in the activity which implemente PageViewCallback")
+            } else {
+                return cb
+            }
+        }
+
+    override val currentChapter: TextChapter?
+        get() {
+            return if (callback.isInitFinish) {
+                ReadBook.textChapter(0)
+            } else {
+                null
+            }
+        }
+
+    override val nextChapter: TextChapter?
+        get() {
+            return if (callback.isInitFinish) {
+                ReadBook.textChapter(1)
+            } else {
+                null
+            }
+        }
+
+    override val prevChapter: TextChapter?
+        get() {
+            return if (callback.isInitFinish) {
+                ReadBook.textChapter(-1)
+            } else {
+                null
+            }
+        }
+
+    override fun hasNextChapter(): Boolean {
+        return ReadBook.durChapterIndex < ReadBook.chapterSize - 1
+    }
+
+    override fun hasPrevChapter(): Boolean {
+        return ReadBook.durChapterIndex > 0
+    }
+
+    var pageFactory: TextPageFactory = TextPageFactory(this)
+
+    var pageDelegate: PageDelegate? = null
+        private set(value) {
+            field?.onDestroy()
+            field = null
+            field = value
+            upContent()
+        }
+
+    var isScroll = false
+
+    /***
+     * 前一页
+     */
+    var prevPage: ContentView = ContentView(context)
+
+    /***
+     * 当前页
+     */
+    var curPage: ContentView = ContentView(context)
+
+    /***
+     * 下一页
+     */
+    var nextPage: ContentView = ContentView(context)
+
+    /***
+     * 默认的动画播放速度
+     */
+    val defaultAnimationSpeed = 300
+
+    /***
+     * 是否按下
+     */
+    private var pressDown = false
+
+    /***
+     * 是否移动
+     */
+    private var isMove = false
+
+
+    //起始点
+    var startX: Float = 0f
+    var startY: Float = 0f
+
+    //上一个触碰点
+    var lastX: Float = 0f
+    var lastY: Float = 0f
+
+    //触碰点
+    var touchX: Float = 0f
+    var touchY: Float = 0f
+
+    //是否停止动画动作
+    var isAbortAnim = false
+
+    //长按
+    private var longPressed = false
+
+    // 长按超时时间
+    private val longPressTimeout = 600L
+
+    //超时时，触发长按事件
+    private val longPressRunnable = Runnable {
+        longPressed = true
+        onLongPress()
+    }
+
+    //是否文本选中
+    var isTextSelected = false
+
+    //是否按下文本选中
+    private var pressOnTextSelected = false
+
+    //
+    private var firstRelativePage = 0
+
+    private var firstLineIndex: Int = 0
+
+    private var firstCharIndex: Int = 0
+
+    val slopSquare by lazy { ViewConfiguration.get(context).scaledTouchSlop }                       //用户手势滑动的最小距离
+
+    private val centerRectF = RectF(width * 0.33f, height * 0.33f, width * 0.66f, height * 0.66f)   //中间矩形区域
+
+    private val autoPageRect by lazy { Rect() }
+
+    private val autoPagePint by lazy {
+        Paint().apply {
+//            color = context.accentColor
+            color = "#FFAD1457".toColorInt()
+        }
+    }
+
+    private var clickTurnPage: Boolean = true //从配置里得到的控制变量
+    private var clickAllNext: Boolean = false //从配置里得到的控制变量
+
+    init {
+        addView(nextPage)               //添加三个界面
+        addView(curPage)
+        addView(prevPage)
+        upBg()                          //更新背景
+        setWillNotDraw(false)           //init时不绘制自身
+        upPageAnim()
+
+        Coroutines.mainScope().launch {
+            ChapterProvider.readTipPreferencesUtil.readTIpPreferencesFlow.firstOrNull()?.let { preference ->
+                clickTurnPage = preference.clickTurnPage
+                clickAllNext = preference.clickAllNext
+            }
+        }
+    }
+
+    override fun onSizeChanged(w: Int, h: Int, oldw: Int, oldh: Int) {
+        super.onSizeChanged(w, h, oldw, oldh)
+        centerRectF.set(width * 0.33f, height * 0.33f, width * 0.66f, height * 0.66f)
+        prevPage.x = -w.toFloat()
+        pageDelegate?.setViewSize(w, h)
+        if (oldw != 0 && oldh != 0) {
+            ReadBook.loadContent(resetPageOffset = false)
+        }
+    }
+
+    override fun dispatchDraw(canvas: Canvas) {
+        super.dispatchDraw(canvas)
+        pageDelegate?.onDraw(canvas)
+        if (!isInEditMode && callback.isAutoPage && !isScroll) {            //非编辑模式，非滚动中， 自动阅读中
+            nextPage.screenshot()?.let {                                    //将下一页转换成bitmap，然后绘制到canvas上
+                val bottom = callback.autoPageProgress
+                autoPageRect.set(0, 0, width, bottom)
+                canvas.drawBitmap(it, autoPageRect, autoPageRect, null)     //将下一页绘制到canvas上
+                canvas.drawRect(                                            //沿着底部绘制一条分割线
+                    0f,
+                    bottom.toFloat() - 1,
+                    width.toFloat(),
+                    bottom.toFloat(),
+                    autoPagePint
+                )
+            }
+        }
+    }
+
+    override fun computeScroll() {
+        pageDelegate?.scroll()
+    }
+
+    override fun onInterceptTouchEvent(ev: MotionEvent?): Boolean {
+        return true
+    }
+
+    /**
+     * 触摸事件
+     */
+    @SuppressLint("ClickableViewAccessibility")
+    override fun onTouchEvent(event: MotionEvent): Boolean {
+        callback.screenOffTimerStart()
+        when (event.action) {
+            MotionEvent.ACTION_DOWN -> {
+                if (isTextSelected) {
+                    curPage.cancelSelect()
+                    isTextSelected = false
+                    pressOnTextSelected = true
+                } else {
+                    pressOnTextSelected = false
+                }
+                longPressed = false
+                postDelayed(longPressRunnable, longPressTimeout)
+                pressDown = true
+                isMove = false
+                pageDelegate?.onTouch(event)
+                pageDelegate?.onDown()
+                setStartPoint(event.x, event.y)
+            }
+
+            MotionEvent.ACTION_MOVE -> {
+                pressDown = true
+                if (!isMove) {
+                    isMove =
+                        abs(startX - event.x) > slopSquare || abs(startY - event.y) > slopSquare
+                }
+                if (isMove) {
+                    longPressed = false
+                    removeCallbacks(longPressRunnable)
+                    if (isTextSelected) {
+                        selectText(event.x, event.y)
+                    } else {
+                        pageDelegate?.onTouch(event)
+                    }
+                }
+            }
+
+            MotionEvent.ACTION_CANCEL, MotionEvent.ACTION_UP -> {
+                removeCallbacks(longPressRunnable)
+                if (!pressDown) return true
+                if (!isMove) {
+                    if (!longPressed && !pressOnTextSelected) {
+                        onSingleTapUp()
+                        return true
+                    }
+                }
+                if (isTextSelected) {
+                    callback.showTextActionMenu()
+                } else if (isMove) {
+                    pageDelegate?.onTouch(event)
+                }
+                pressOnTextSelected = false
+            }
+        }
+        return true
+    }
+
+    /****
+     * 更新系统状态栏
+     */
+    fun upStatusBar() {
+        curPage.upStatusBar()
+        prevPage.upStatusBar()
+        nextPage.upStatusBar()
+    }
+
+    /**
+     * 保存开始位置， 刷新显示
+     */
+    fun setStartPoint(x: Float, y: Float, invalidate: Boolean = true) {
+        startX = x
+        startY = y
+        lastX = x
+        lastY = y
+        touchX = x
+        touchY = y
+
+        if (invalidate) {
+            invalidate()
+        }
+    }
+
+    /**
+     * 保存当前位置,开始滚动
+     */
+    fun setTouchPoint(x: Float, y: Float, invalidate: Boolean = true) {
+        lastX = touchX
+        lastY = touchY
+        touchX = x
+        touchY = y
+        if (invalidate) {
+            invalidate()
+        }
+        pageDelegate?.onScroll()
+    }
+
+    /**
+     * 长按选择
+     */
+    private fun onLongPress() {
+        curPage.selectText(startX, startY) { relativePage, lineIndex, charIndex ->
+            isTextSelected = true
+            firstRelativePage = relativePage
+            firstLineIndex = lineIndex
+            firstCharIndex = charIndex
+            curPage.selectStartMoveIndex(firstRelativePage, firstLineIndex, firstCharIndex)
+            curPage.selectEndMoveIndex(firstRelativePage, firstLineIndex, firstCharIndex)
+        }
+    }
+
+    /**
+     * 单击
+     */
+    private fun onSingleTapUp(): Boolean {
+        if (isTextSelected) {
+            isTextSelected = false
+            return true
+        }
+        if (centerRectF.contains(startX, startY)) {
+            if (!isAbortAnim) {
+                callback.clickCenter()
+            }
+        } else if (clickTurnPage) {
+            if (startX > width / 2 || clickAllNext) {
+                pageDelegate?.nextPageByAnim(defaultAnimationSpeed)
+            } else {
+                pageDelegate?.prevPageByAnim(defaultAnimationSpeed)
+            }
+        }
+        return true
+    }
+
+
+    /**
+     * 选择文本
+     */
+    private fun selectText(x: Float, y: Float) {
+        curPage.selectText(x, y) { relativePage, lineIndex, charIndex ->
+            when {
+                relativePage > firstRelativePage -> {
+                    curPage.selectStartMoveIndex(firstRelativePage, firstLineIndex, firstCharIndex)
+                    curPage.selectEndMoveIndex(relativePage, lineIndex, charIndex)
+                }
+                relativePage < firstRelativePage -> {
+                    curPage.selectEndMoveIndex(firstRelativePage, firstLineIndex, firstCharIndex)
+                    curPage.selectStartMoveIndex(relativePage, lineIndex, charIndex)
+                }
+                lineIndex > firstLineIndex -> {
+                    curPage.selectStartMoveIndex(firstRelativePage, firstLineIndex, firstCharIndex)
+                    curPage.selectEndMoveIndex(relativePage, lineIndex, charIndex)
+                }
+                lineIndex < firstLineIndex -> {
+                    curPage.selectEndMoveIndex(firstRelativePage, firstLineIndex, firstCharIndex)
+                    curPage.selectStartMoveIndex(relativePage, lineIndex, charIndex)
+                }
+                charIndex > firstCharIndex -> {
+                    curPage.selectStartMoveIndex(firstRelativePage, firstLineIndex, firstCharIndex)
+                    curPage.selectEndMoveIndex(relativePage, lineIndex, charIndex)
+                }
+                else -> {
+                    curPage.selectEndMoveIndex(firstRelativePage, firstLineIndex, firstCharIndex)
+                    curPage.selectStartMoveIndex(relativePage, lineIndex, charIndex)
+                }
+            }
+        }
+    }
+
+
+    /****
+     * 根据方向，切换到上一页或者下一页
+     */
+    fun fillPage(direction: PageDelegate.Direction) {
+        when (direction) {
+            PageDelegate.Direction.PREV -> {
+                pageFactory.moveToPrev(true)
+            }
+            PageDelegate.Direction.NEXT -> {
+                pageFactory.moveToNext(true)
+            }
+            else -> Unit
+        }
+    }
+
+    /***
+     * 更新页面切换动画类型
+     */
+    fun upPageAnim() {
+        Coroutines.mainScope().launch {
+            ChapterProvider.readTipPreferencesUtil.readTIpPreferencesFlow.firstOrNull()?.let{ preference ->
+                val pageAnim = preference.pageAnim
+                isScroll = pageAnim == 3
+                when (pageAnim) {
+                    0 -> if (pageDelegate !is CoverPageDelegate) {
+                        pageDelegate = CoverPageDelegate(this@PageView)
+                    }
+                    1 -> if (pageDelegate !is SlidePageDelegate) {
+                        pageDelegate = SlidePageDelegate(this@PageView)
+                    }
+                    2 -> if (pageDelegate !is SimulationPageDelegate) {
+                        pageDelegate = SimulationPageDelegate(this@PageView)
+                    }
+                    3 -> if (pageDelegate !is ScrollPageDelegate) {
+                        pageDelegate = ScrollPageDelegate(this@PageView)
+                    }
+                    else -> if (pageDelegate !is NoAnimPageDelegate) {
+                        pageDelegate = NoAnimPageDelegate(this@PageView)
+                    }
+                }
+            }
+        }
+    }
+
+    /***
+     * 更新界面内容
+     */
+    override fun upContent(relativePosition: Int, resetPageOffset: Boolean) {
+        if (isScroll && !callback.isAutoPage) {
+            curPage.setContent(pageFactory.currentPage, resetPageOffset)
+        } else {
+            curPage.resetPageOffset()
+            when (relativePosition) {
+                -1 -> prevPage.setContent(pageFactory.prevPage)
+                1 -> nextPage.setContent(pageFactory.nextPage)
+                else -> {
+                    curPage.setContent(pageFactory.currentPage)
+                    nextPage.setContent(pageFactory.nextPage)
+                    prevPage.setContent(pageFactory.prevPage)
+                }
+            }
+        }
+        callback.screenOffTimerStart()
+    }
+
+    /***
+     * 更新提示样式
+     */
+    fun upTipStyle() {
+        curPage.upTipStyle()
+        prevPage.upTipStyle()
+        nextPage.upTipStyle()
+    }
+
+    /****
+     * 更新显示样式
+     */
+    fun upStyle() {
+        ChapterProvider.upStyle()
+        curPage.upStyle()
+        prevPage.upStyle()
+        nextPage.upStyle()
+    }
+
+
+    /***
+     * 更新背景
+     */
+    fun upBg() {
+        Coroutines.mainScope().launch {
+            ChapterProvider.readerPreferencesUtil.readerPreferencesFlow.firstOrNull()?.let{ preference ->
+                val bgColor = preference.backgroundColor
+                curPage.setBg(bgColor)
+                prevPage.setBg(bgColor)
+                nextPage.setBg(bgColor)
+            }
+        }
+
+//        ReadBookConfig.bg ?: let {
+//            ReadBookConfig.upBg()
+//        }
+    }
+
+    /***
+     * 更新时间显示
+     */
+    fun upTime() {
+        curPage.upTime()
+        prevPage.upTime()
+        nextPage.upTime()
+    }
+
+    /***
+     * 更新电池显示
+     */
+    fun upBattery(battery: Int) {
+        curPage.upBattery(battery)
+        prevPage.upBattery(battery)
+        nextPage.upBattery(battery)
+    }
+
+}

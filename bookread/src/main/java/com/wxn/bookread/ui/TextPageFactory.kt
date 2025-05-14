@@ -5,7 +5,6 @@ import com.wxn.bookread.data.model.TextPage
 
 class TextPageFactory(dataSource: IDataSource) : IPageFactory<TextPage>(dataSource) {
 
-
     /***
      * 是否有上页
      */
@@ -29,17 +28,17 @@ class TextPageFactory(dataSource: IDataSource) : IPageFactory<TextPage>(dataSour
 
 
     override fun moveToFirst() {
-//        ReadBook.setPageIndex(0) //TODO
+        ReadBook.setPageIndex(0)
     }
 
     override fun moveToLast() = with(dataSource) {
-//        currentChapter?.let {
-//            if (it.pageSize == 0) {
-//                ReadBook.setPageIndex(0)
-//            } else {
-//                ReadBook.setPageIndex(it.pageSize.minus(1))
-//            }
-//        } ?: ReadBook.setPageIndex(0) //TODO
+        currentChapter?.let {
+            if (it.pageSize == 0) {
+                ReadBook.setPageIndex(0)
+            } else {
+                ReadBook.setPageIndex(it.pageSize.minus(1))
+            }
+        } ?: ReadBook.setPageIndex(0)
     }
 
 

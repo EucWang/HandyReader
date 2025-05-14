@@ -28,7 +28,6 @@ object ReadBook {
     var nextTextChapter: TextChapter? = null
     var msg: String? = null
 
-
     /***
      * 正在加载中的章节的索引列表
      * 防止重复添加
@@ -72,12 +71,9 @@ object ReadBook {
 //        }
 //    }
 
-
-
     fun moveToNextChapter(upContent: Boolean): Boolean { //TODO
         return false
     }
-
 
     fun setPageIndex(pageIndex: Int) { //TODO
         durPageIndex = pageIndex
@@ -88,5 +84,44 @@ object ReadBook {
 
     fun moveToPrevChapter(upContent: Boolean, toLast: Boolean = true): Boolean { //TODO
         return false
+    }
+
+
+    /**
+     * chapterOnDur: 0为当前页,1为下一页,-1为上一页
+     */
+    fun textChapter(chapterOnDur: Int = 0): TextChapter? {
+        return when (chapterOnDur) {
+            0 -> curTextChapter
+            1 -> nextTextChapter
+            -1 -> prevTextChapter
+            else -> null
+        }
+    }
+
+    /***
+     * 当前章节中正在显示的页面的索引
+     */
+    fun durChapterPos(): Int {
+        curTextChapter?.let {
+            if (durPageIndex < it.pageSize) {
+                return durPageIndex
+            }
+            return it.pageSize - 1
+        }
+        return durPageIndex
+    }
+
+    /**
+     * 加载章节内容
+     */
+    fun loadContent(resetPageOffset: Boolean) {
+        loadContent(durChapterIndex, resetPageOffset = resetPageOffset)
+        loadContent(durChapterIndex + 1, resetPageOffset = resetPageOffset)
+        loadContent(durChapterIndex - 1, resetPageOffset = resetPageOffset)
+    }
+
+    fun loadContent(index: Int, upContent: Boolean = true, resetPageOffset: Boolean) {
+        //TODO
     }
 }

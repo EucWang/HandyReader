@@ -8,6 +8,7 @@ import android.graphics.RectF
 import android.util.AttributeSet
 import android.view.View
 import androidx.core.graphics.toColorInt
+import com.wxn.base.ext.activity
 import com.wxn.base.ext.getCompatColor
 import com.wxn.base.util.Coroutines
 import com.wxn.base.util.Logger
@@ -20,6 +21,7 @@ import com.wxn.bookread.provider.ChapterProvider
 import com.wxn.bookread.provider.ImageProvider
 import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.launch
+import java.lang.IllegalStateException
 import kotlin.math.min
 
 /**
@@ -77,7 +79,13 @@ class ContentTextView(context: Context, attrs: AttributeSet?) : View(context, at
     private var pageOffset = 0f
 
     init {
-//        callBack = activity as CallBack //TODO
+        val cb = activity as? SelectTextCallback?
+        if (cb == null) {
+            throw IllegalStateException("ContentTextView is not in a activity which implemente SelectTextCallback")
+        } else {
+            callback = cb
+        }
+
         contentDescription = textPage.text
     }
 
