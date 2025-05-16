@@ -12,6 +12,9 @@ import kotlinx.coroutines.flow.Flow
     @Query("SELECT * FROM chapters WHERE bookId = :bookId ORDER By chapterIndex")
     fun getChapters(bookId:Long): Flow<List<BookChapterEntity>>
 
+    @Query("SELECT * FROM chapters WHERE bookId = :bookId AND chapterIndex = :chapterIndex")
+    fun getChapter(bookId: Long, chapterIndex: Int): Flow<BookChapterEntity>
+
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     fun insertChapters(chapters: List<BookChapterEntity>)
 

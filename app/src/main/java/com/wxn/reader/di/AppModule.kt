@@ -21,6 +21,7 @@ import com.wxn.reader.data.mapper.readingactive.ReadingActiveMapperImpl
 import com.wxn.reader.data.mapper.shelf.ShelfMapper
 import com.wxn.reader.data.mapper.shelf.ShelfMapperImpl
 import com.wxn.reader.data.repository.BooksRepositoryImpl
+import com.wxn.reader.data.repository.ChaptersRepositoryImpl
 import com.wxn.reader.data.repository.PermissionRepositoryImpl
 import com.wxn.reader.data.repository.ShelfRepositoryImpl
 import com.wxn.reader.data.source.local.AppDatabase
@@ -34,6 +35,7 @@ import com.wxn.reader.data.source.local.dao.NoteDao
 import com.wxn.reader.data.source.local.dao.ReadingActivityDao
 import com.wxn.reader.data.source.local.dao.ShelfDao
 import com.wxn.reader.domain.repository.BooksRepository
+import com.wxn.reader.domain.repository.ChaptersRepository
 import com.wxn.reader.domain.repository.PermissionRepository
 import com.wxn.reader.domain.repository.ShelfRepository
 import com.wxn.reader.util.LanguageHelper
@@ -187,6 +189,18 @@ object AppModule {
     @Singleton
     fun provideAppPreferencesUtil(@ApplicationContext context: Context): AppPreferencesUtil {
         return AppPreferencesUtil(context)
+    }
+
+    @Provides
+    @Singleton
+    fun provideChaptersRepository(
+        chapterDao: ChapterDao,
+        chapterMapper: ChapterMapper
+    ) : ChaptersRepository {
+        return ChaptersRepositoryImpl(
+            chapterDao,
+            chapterMapper
+        )
     }
 
     @Provides

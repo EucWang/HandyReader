@@ -1,11 +1,19 @@
 package com.wxn.reader.presentation.mainReader
 
 import android.app.Application
-import android.net.Uri
+import android.content.Context
+import androidx.compose.ui.graphics.asAndroidBitmap
+import androidx.core.net.toUri
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.viewModelScope
 import com.wxn.base.bean.Book
+import com.wxn.base.bean.BookChapter
+import com.wxn.base.util.Logger
+import com.wxn.bookparser.TextParser
+import com.wxn.bookparser.domain.file.CachedFileCompat
+import com.wxn.bookparser.domain.reader.ReaderText
+import com.wxn.bookparser.util.FileUtil
 import com.wxn.bookread.data.model.preference.ReaderPreferences
 import com.wxn.bookread.data.source.local.ReaderPreferencesUtil
 import com.wxn.reader.data.model.AppPreferences
@@ -21,6 +29,9 @@ import com.wxn.reader.domain.use_case.bookmarks.GetBookmarksForBookUseCase
 import com.wxn.reader.domain.use_case.bookmarks.UpdateBookmarkUseCase
 import com.wxn.reader.domain.use_case.books.GetBookByIdUseCase
 import com.wxn.reader.domain.use_case.books.UpdateBookUseCase
+import com.wxn.reader.domain.use_case.chapters.GetChapterByIdUserCase
+import com.wxn.reader.domain.use_case.chapters.GetChaptersByBookIdUserCase
+import com.wxn.reader.domain.use_case.chapters.InsertChaptersUserCase
 import com.wxn.reader.domain.use_case.notes.AddNoteUseCase
 import com.wxn.reader.domain.use_case.notes.DeleteNoteUseCase
 import com.wxn.reader.domain.use_case.notes.GetNotesForBookUseCase
@@ -31,19 +42,22 @@ import com.wxn.reader.domain.use_case.reading_progress.GetReadingProgressUseCase
 import com.wxn.reader.domain.use_case.reading_progress.SetReadingProgressUseCase
 import com.wxn.reader.presentation.bookReader.BookReaderUiState
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
-import org.json.JSONObject
 import org.readium.r2.navigator.epub.EpubPreferences
 import org.readium.r2.shared.ExperimentalReadiumApi
 import org.readium.r2.shared.publication.Locator
 import org.readium.r2.shared.util.asset.AssetRetriever
-import org.readium.r2.shared.util.toAbsoluteUrl
 import org.readium.r2.streamer.PublicationOpener
+import java.io.BufferedWriter
+import java.io.File
+import java.io.FileWriter
 import java.util.Calendar
+import java.util.UUID
 import javax.inject.Inject
 
 @OptIn(ExperimentalReadiumApi::class)
@@ -70,11 +84,18 @@ class MainReadViewModel @Inject constructor(
     private val updateBookmarkUseCase: UpdateBookmarkUseCase,
     private val deleteBookmarkUseCase: DeleteBookmarkUseCase,
 
+    private val getChapterByIdUserCase: GetChapterByIdUserCase,
+    private val getChaptersByBookIdUserCase: GetChaptersByBookIdUserCase,
+    private val insertChaptersUserCase: InsertChaptersUserCase,
+
     private val addOrUpdateReadingActivityUseCase: AddReadingActivityUseCase,
     private val getReadingActivityByDateUseCase: GetReadingActivityByDateUseCase,
     private val readerPreferencesUtil: ReaderPreferencesUtil,
     private val assetRetriever: AssetRetriever,
     private val publicationOpener: PublicationOpener,
+
+    private val textParser: TextParser,
+
     savedStateHandle: SavedStateHandle
 ) : AndroidViewModel(context) {
     private val _appPreferences = MutableStateFlow(AppPreferencesUtil.defaultPreferences)
@@ -145,11 +166,24 @@ class MainReadViewModel @Inject constructor(
                 // Fetch the book details
                 fetchBook(bookId)
 
+                getChaptersByBookIdUserCase(bookId).collect { chapters ->
+                    var allChapters = chapters
+                    Logger.d("MainReadViewModel::allChapters.size:${allChapters.size}")
+                    if (allChapters.isEmpty()) {
+                        allChapters = cacheBookChapter(context, bookId, bookUri)
+                        if (allChapters.isNotEmpty()) {
+                            launch(Dispatchers.IO) {
+                                insertChaptersUserCase(allChapters)
+                            }
+                        }
+                    }
+                    //TODO 获取章节数据，对章节数据进行处理，给予界面显示
+                }
+
                 readerPreferencesUtil.readerPreferencesFlow.collect { preferences ->
                     _readerPreferences.value = preferences
                     _epubPreferences.value = preferences.toRediumEpubPreferences()
                 }
-
 
                 // Continue collecting preferences updates
                 appPreferencesUtil.appPreferencesFlow.collect { preferences ->
@@ -185,5 +219,125 @@ class MainReadViewModel @Inject constructor(
     }
 
 
+    /***
+     * 获取章节对应的缓存文件
+     */
+    fun getChapterFile(context: Context, bookId: Long, chapterPathName: String): File {
+        val path = context.filesDir.absolutePath + File.separator + "chapters" + File.separator + bookId.toString() + File.separator + chapterPathName
+        val destFile = File(path)
+        destFile.parentFile?.takeIf { !it.exists() }?.mkdirs()
+        return destFile
+    }
 
+    /**
+     * 获取章节中对应的缓存资源文件
+     */
+    fun getChapterResourcePath(context: Context, bookId: Long, resourceName: String): File {
+        val path =
+            context.filesDir.absolutePath + File.separator + "chapters" + File.separator + bookId.toString() + File.separator + "src" + File.separator + resourceName
+        val destFile = File(path)
+        destFile.parentFile?.takeIf { !it.exists() }?.mkdirs()
+        return destFile
+    }
+
+    suspend fun cacheBookChapter(context: Context, bookId: Long, bookUri: String?): List<BookChapter> {
+        val start = System.currentTimeMillis()
+        var chapters = arrayListOf<BookChapter>()
+        Logger.d("MainReadViewModel::cacheBookChapter::bookId=$bookId,bookUri=$bookUri, ")
+        bookUri?.let { uri ->
+            val cachedFile = CachedFileCompat.fromUri(context, uri.toUri())
+            val texts = textParser.parse(cachedFile)
+            Logger.d("MainReadViewModel::texts.size=${texts.size}")
+
+            var curChapter: BookChapter? = null
+            var chapterIndex = 0
+            var chapterPath = ""
+            var cachedTxtWriter: BufferedWriter? = null
+
+            try {
+                for (text in texts) {
+                    when (text) {
+                        is ReaderText.Chapter -> {
+                            if (curChapter != null) {
+                                chapters.add(curChapter)
+                            }
+                            if (cachedTxtWriter != null) {
+                                cachedTxtWriter.flush()
+                                cachedTxtWriter.close()
+                                Logger.d("MainReadViewModel:write chapter: $chapterPath")
+                                cachedTxtWriter = null
+                            }
+                            //------------------------------
+                            curChapter = null
+                            curChapter = BookChapter(
+                                bookId = bookId,
+                                chapterIndex = chapterIndex++,
+                                chapterName = text.title,
+                                cachedName = text.id.toString()
+                            )
+                            var cachedName = text.id.toString()
+                            val file = getChapterFile(context, bookId, cachedName)
+                            chapterPath = file.absolutePath
+                            cachedTxtWriter = BufferedWriter(FileWriter(file))
+                            cachedTxtWriter.write(cachedName)
+                            cachedTxtWriter.newLine()
+                        }
+
+                        is ReaderText.Text -> {
+                            cachedTxtWriter?.apply {
+                                write(text.line.toString())
+                                newLine()
+                            }
+                        }
+
+                        is ReaderText.Image -> {
+                            val resName = UUID.randomUUID().toString() + ".jpg"
+                            val width = text.imageBitmap.width
+                            val height = text.imageBitmap.height
+                            if (FileUtil.saveBitmapToFile(
+                                    context,
+                                    text.imageBitmap.asAndroidBitmap(),
+                                    getChapterResourcePath(context, bookId, resName).absolutePath
+                                )
+                            ) {
+                                cachedTxtWriter?.apply {
+                                    write("<img src=\"${resName}\" width=\"$width\" height=\"$height\" />")
+                                    newLine()
+                                }
+                            }
+                        }
+
+                        is ReaderText.Separator -> {
+                            cachedTxtWriter?.apply {
+                                write("---")
+                                newLine()
+                            }
+                        }
+
+                        else -> {
+                        }
+                    }
+                }
+                if (curChapter != null) {
+                    chapters.add(curChapter)
+                }
+                if (cachedTxtWriter != null) {
+                    cachedTxtWriter.flush()
+                    cachedTxtWriter.close()
+                    cachedTxtWriter = null
+                }
+            } catch (ex: Exception) {
+                Logger.e(ex)
+                chapters.clear()
+            } finally {
+                try {
+                    cachedTxtWriter?.close()
+                } catch (ex: Exception) {
+                }
+            }
+        }
+        val spendTime = System.currentTimeMillis() - start
+        Logger.d("MainReadViewModel::chapters.size=${chapters.size}, spendTime=${spendTime}")
+        return chapters
+    }
 }

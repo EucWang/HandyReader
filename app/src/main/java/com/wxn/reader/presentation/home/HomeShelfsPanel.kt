@@ -213,11 +213,13 @@ fun HomeMainPanel(viewModel: HomeViewModel) {
                     FileType.PDF -> Screens.PdfReaderScreen.route + "/${openedBook.id}/${encodedUri}"
                     FileType.AUDIOBOOK -> Screens.AudiobookReaderScreen.route + "/${openedBook.id}/${encodedUri}"
                     else -> {
-                        "" //TODO
+                        Screens.MainReaderScreen.route + "/${openedBook.id}/${encodedUri}"
                     }
                 }
                 Logger.d("OpenBook::isBookOpen=$isBookOpen,book.fileType=${openedBook.fileType},encodedUri=${encodedUri},id=${openedBook.id},route=$route")
-                navController.navigate(route = route)
+                if (route.isNotEmpty()) {
+                    navController.navigate(route = route)
+                }
             }
             navigateToBook()
         }

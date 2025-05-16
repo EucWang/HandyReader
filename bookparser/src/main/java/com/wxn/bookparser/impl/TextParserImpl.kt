@@ -1,6 +1,7 @@
 package com.wxn.bookparser.impl
 
 import android.util.Log
+import com.wxn.base.util.Logger
 import com.wxn.bookparser.TextParser
 import com.wxn.bookparser.domain.file.CachedFile
 import com.wxn.bookparser.domain.reader.ReaderText
@@ -32,34 +33,39 @@ class TextParserImpl @Inject constructor(
             return emptyList()
         }
 
-        val fileFormat = ".${cachedFile.name.substringAfterLast(".")}".lowercase().trim()
+        val fileFormat = cachedFile.extension
+        Logger.d("TextParserImpl:parse:fileFormat=$fileFormat")
         return withContext(Dispatchers.IO) {
             when (fileFormat) {
-                ".pdf" -> {
+                "pdf" -> {
                     pdfTextParser.parse(cachedFile)
                 }
 
-                ".epub" -> {
+                "epub" -> {
                     epubTextParser.parse(cachedFile)
                 }
 
-                ".txt" -> {
+//                in listOf("mobi", "azw3") -> {
+//                    mobiFileParser.parse(file)
+//                }
+
+                "txt" -> {
                     txtTextParser.parse(cachedFile)
                 }
 
-                ".fb2" -> {
+                "fb2" -> {
                     xmlTextParser.parse(cachedFile)
                 }
 
-                ".html" -> {
+                "html" -> {
                     htmlTextParser.parse(cachedFile)
                 }
 
-                ".htm" -> {
+                "htm" -> {
                     htmlTextParser.parse(cachedFile)
                 }
 
-                ".md" -> {
+                "md" -> {
                     htmlTextParser.parse(cachedFile)
                 }
 

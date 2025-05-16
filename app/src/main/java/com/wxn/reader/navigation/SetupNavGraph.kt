@@ -4,7 +4,6 @@ import androidx.compose.runtime.Composable
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
-import com.wxn.reader.navigation.Screens.MainReaderScreen
 import com.wxn.reader.presentation.annotations.AnnotationsScreen
 import com.wxn.reader.presentation.audioBookReader.AudiobookReaderScreen
 import com.wxn.reader.presentation.bookDetails.BookDetailsScreen

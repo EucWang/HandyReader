@@ -3,6 +3,7 @@ package com.wxn.bookparser.di
 import android.app.Application
 import android.content.Context
 import com.wxn.bookparser.FileParser
+import com.wxn.bookparser.TextParser
 import com.wxn.bookparser.impl.FileParserImpl
 import com.wxn.bookparser.impl.TextParserImpl
 import com.wxn.bookparser.parser.audio.AudioFileParser
@@ -123,6 +124,6 @@ object ParserModule {
         epubTextParser: EpubTextParser,
         htmlTextParser: HtmlTextParser,
         xmlTextParser: XmlTextParser
-    ): TextParserImpl = TextParserImpl(txtTextParser, pdfTextParser, epubTextParser, htmlTextParser, xmlTextParser)
+    ): TextParser = TextParserImpl(txtTextParser, pdfTextParser, epubTextParser, htmlTextParser, xmlTextParser)
 
 }
