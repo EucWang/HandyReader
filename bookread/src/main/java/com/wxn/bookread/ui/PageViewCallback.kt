@@ -5,17 +5,17 @@ interface PageViewCallback {
     /***
      *
      */
-    val isInitFinish: Boolean
+    var isInitFinish: Boolean
 
     /***
      *
      */
-    val isAutoPage: Boolean
+    var isAutoPage: Boolean
 
     /***
      *
      */
-    val autoPageProgress: Int
+    var autoPageProgress: Int
 
     /***
      *

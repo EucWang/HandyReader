@@ -36,8 +36,6 @@ object ReadBook {
 //    private val readRecord = ReadRecord() //TODO
     var readStartTime: Long = System.currentTimeMillis()
 
-
-
     fun resetData(book: Book) {
         this.book = book
         //设置阅读记录的书名

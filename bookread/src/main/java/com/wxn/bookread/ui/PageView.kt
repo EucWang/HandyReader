@@ -9,7 +9,7 @@ import android.util.AttributeSet
 import android.view.ViewConfiguration
 import android.widget.FrameLayout
 import com.wxn.base.ext.activity
-import com.wxn.bookread.ReadBook
+//import com.wxn.bookread.ReadBook
 import com.wxn.bookread.data.model.TextChapter
 import com.wxn.bookread.ui.delegate.PageDelegate
 import android.graphics.Paint
@@ -31,22 +31,24 @@ import kotlin.math.abs
  * 包含三个ContentView， 对应前页，当前页，下一页 三个页面
  * 控制界面切换， 长按，点击等事件处理
  */
-class PageView(context: Context, attrs: AttributeSet) : FrameLayout(context, attrs), IDataSource {
+class PageView(context: Context, attrs: AttributeSet? = null) : FrameLayout(context, attrs), IDataSource {
 
-    val callback: PageViewCallback
-        get() {
-            val cb = activity as? PageViewCallback?
-            if (cb == null) {
-                throw IllegalStateException("PageView is not in the activity which implemente PageViewCallback")
-            } else {
-                return cb
-            }
-        }
+    var dataProvider: PageViewDataProvider? = null
+
+    var callback: PageViewCallback? = null
+//        get() {
+//            val cb = activity as? PageViewCallback?
+//            if (cb == null) {
+//                throw IllegalStateException("PageView is not in the activity which implemente PageViewCallback")
+//            } else {
+//                return cb
+//            }
+//        }
 
     override val currentChapter: TextChapter?
         get() {
-            return if (callback.isInitFinish) {
-                ReadBook.textChapter(0)
+            return if (callback?.isInitFinish == true) {
+                dataProvider?.textChapter(0)
             } else {
                 null
             }
@@ -54,8 +56,8 @@ class PageView(context: Context, attrs: AttributeSet) : FrameLayout(context, att
 
     override val nextChapter: TextChapter?
         get() {
-            return if (callback.isInitFinish) {
-                ReadBook.textChapter(1)
+            return if (callback?.isInitFinish == true) {
+                dataProvider?.textChapter(1)
             } else {
                 null
             }
@@ -63,19 +65,19 @@ class PageView(context: Context, attrs: AttributeSet) : FrameLayout(context, att
 
     override val prevChapter: TextChapter?
         get() {
-            return if (callback.isInitFinish) {
-                ReadBook.textChapter(-1)
+            return if (callback?.isInitFinish == true) {
+                dataProvider?.textChapter(-1)
             } else {
                 null
             }
         }
 
     override fun hasNextChapter(): Boolean {
-        return ReadBook.durChapterIndex < ReadBook.chapterSize - 1
+        return  (dataProvider?.durChapterIndex ?: 0) <  (dataProvider?.chapterSize?:0) - 1
     }
 
     override fun hasPrevChapter(): Boolean {
-        return ReadBook.durChapterIndex > 0
+        return (dataProvider?.durChapterIndex?:0) > 0
     }
 
     var pageFactory: TextPageFactory = TextPageFactory(this)
@@ -199,16 +201,16 @@ class PageView(context: Context, attrs: AttributeSet) : FrameLayout(context, att
         prevPage.x = -w.toFloat()
         pageDelegate?.setViewSize(w, h)
         if (oldw != 0 && oldh != 0) {
-            ReadBook.loadContent(resetPageOffset = false)
+            dataProvider?.loadContent(resetPageOffset = false)
         }
     }
 
     override fun dispatchDraw(canvas: Canvas) {
         super.dispatchDraw(canvas)
         pageDelegate?.onDraw(canvas)
-        if (!isInEditMode && callback.isAutoPage && !isScroll) {            //非编辑模式，非滚动中， 自动阅读中
+        if (!isInEditMode && callback?.isAutoPage == true && !isScroll) {            //非编辑模式，非滚动中， 自动阅读中
             nextPage.screenshot()?.let {                                    //将下一页转换成bitmap，然后绘制到canvas上
-                val bottom = callback.autoPageProgress
+                val bottom = callback?.autoPageProgress ?: return
                 autoPageRect.set(0, 0, width, bottom)
                 canvas.drawBitmap(it, autoPageRect, autoPageRect, null)     //将下一页绘制到canvas上
                 canvas.drawRect(                                            //沿着底部绘制一条分割线
@@ -235,7 +237,7 @@ class PageView(context: Context, attrs: AttributeSet) : FrameLayout(context, att
      */
     @SuppressLint("ClickableViewAccessibility")
     override fun onTouchEvent(event: MotionEvent): Boolean {
-        callback.screenOffTimerStart()
+        callback?.screenOffTimerStart()
         when (event.action) {
             MotionEvent.ACTION_DOWN -> {
                 if (isTextSelected) {
@@ -281,7 +283,7 @@ class PageView(context: Context, attrs: AttributeSet) : FrameLayout(context, att
                     }
                 }
                 if (isTextSelected) {
-                    callback.showTextActionMenu()
+                    callback?.showTextActionMenu()
                 } else if (isMove) {
                     pageDelegate?.onTouch(event)
                 }
@@ -354,7 +356,7 @@ class PageView(context: Context, attrs: AttributeSet) : FrameLayout(context, att
         }
         if (centerRectF.contains(startX, startY)) {
             if (!isAbortAnim) {
-                callback.clickCenter()
+                callback?.clickCenter()
             }
         } else if (clickTurnPage) {
             if (startX > width / 2 || clickAllNext) {
@@ -450,7 +452,7 @@ class PageView(context: Context, attrs: AttributeSet) : FrameLayout(context, att
      * 更新界面内容
      */
     override fun upContent(relativePosition: Int, resetPageOffset: Boolean) {
-        if (isScroll && !callback.isAutoPage) {
+        if (isScroll && callback?.isAutoPage != true) {
             curPage.setContent(pageFactory.currentPage, resetPageOffset)
         } else {
             curPage.resetPageOffset()
@@ -464,7 +466,7 @@ class PageView(context: Context, attrs: AttributeSet) : FrameLayout(context, att
                 }
             }
         }
-        callback.screenOffTimerStart()
+        callback?.screenOffTimerStart()
     }
 
     /***

@@ -14,8 +14,11 @@ import com.wxn.bookparser.TextParser
 import com.wxn.bookparser.domain.file.CachedFileCompat
 import com.wxn.bookparser.domain.reader.ReaderText
 import com.wxn.bookparser.util.FileUtil
+import com.wxn.bookread.data.model.TextChapter
 import com.wxn.bookread.data.model.preference.ReaderPreferences
 import com.wxn.bookread.data.source.local.ReaderPreferencesUtil
+import com.wxn.bookread.ui.PageViewCallback
+import com.wxn.bookread.ui.PageViewDataProvider
 import com.wxn.reader.data.model.AppPreferences
 import com.wxn.reader.data.model.toRediumEpubPreferences
 import com.wxn.reader.data.source.local.AppPreferencesUtil
@@ -96,8 +99,13 @@ class MainReadViewModel @Inject constructor(
 
     private val textParser: TextParser,
 
-    savedStateHandle: SavedStateHandle
-) : AndroidViewModel(context) {
+    savedStateHandle: SavedStateHandle,
+    override var durChapterIndex: Int,
+    override var chapterSize: Int,
+    override var isInitFinish: Boolean,
+    override var isAutoPage: Boolean,
+    override var autoPageProgress: Int
+) : AndroidViewModel(context) , PageViewDataProvider, PageViewCallback {
     private val _appPreferences = MutableStateFlow(AppPreferencesUtil.defaultPreferences)
     val appPreferences: StateFlow<AppPreferences> = _appPreferences.asStateFlow()
 
@@ -339,5 +347,26 @@ class MainReadViewModel @Inject constructor(
         val spendTime = System.currentTimeMillis() - start
         Logger.d("MainReadViewModel::chapters.size=${chapters.size}, spendTime=${spendTime}")
         return chapters
+    }
+
+    override fun textChapter(index: Int): TextChapter? {
+//        TODO("Not yet implemented")
+        return null
+    }
+
+    override fun loadContent(resetPageOffset: Boolean) {
+//        TODO("Not yet implemented")
+    }
+
+    override fun clickCenter() {
+//        TODO("Not yet implemented")
+    }
+
+    override fun screenOffTimerStart() {
+//        TODO("Not yet implemented")
+    }
+
+    override fun showTextActionMenu() {
+//        TODO("Not yet implemented")
     }
 }
