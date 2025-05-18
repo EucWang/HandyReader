@@ -4,11 +4,17 @@ import com.wxn.bookread.data.model.TextChapter
 
 interface PageViewDataProvider {
 
+    /**
+     * chapterOnDur: 0为当前页,1为下一页,-1为上一页
+     */
     fun textChapter(index: Int) : TextChapter?
 
     var durChapterIndex: Int
 
     var chapterSize: Int
 
+    /**
+     * 加载章节内容
+     */
     fun loadContent(resetPageOffset: Boolean)
 }

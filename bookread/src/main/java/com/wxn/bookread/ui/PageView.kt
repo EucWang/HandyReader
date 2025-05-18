@@ -45,6 +45,14 @@ class PageView(context: Context, attrs: AttributeSet? = null) : FrameLayout(cont
 //            }
 //        }
 
+    /***
+     * 当前章节中正在显示的页面的索引
+     */
+    override var pageIndex: Int = 0
+        get() {
+            return callback?.durChapterPos() ?: 0
+        }
+
     override val currentChapter: TextChapter?
         get() {
             return if (callback?.isInitFinish == true) {
@@ -80,7 +88,6 @@ class PageView(context: Context, attrs: AttributeSet? = null) : FrameLayout(cont
         return (dataProvider?.durChapterIndex?:0) > 0
     }
 
-    var pageFactory: TextPageFactory = TextPageFactory(this)
 
     var pageDelegate: PageDelegate? = null
         private set(value) {
@@ -193,6 +200,12 @@ class PageView(context: Context, attrs: AttributeSet? = null) : FrameLayout(cont
                 clickAllNext = preference.clickAllNext
             }
         }
+    }
+
+    fun setSelectTextCallback(callback: SelectTextCallback) {
+        nextPage.setSelectTextCallback(callback)
+        curPage.setSelectTextCallback(callback)
+        prevPage.setSelectTextCallback(callback)
     }
 
     override fun onSizeChanged(w: Int, h: Int, oldw: Int, oldh: Int) {
@@ -408,6 +421,7 @@ class PageView(context: Context, attrs: AttributeSet? = null) : FrameLayout(cont
      * 根据方向，切换到上一页或者下一页
      */
     fun fillPage(direction: PageDelegate.Direction) {
+        val pageFactory = callback?.pageFactory ?: return
         when (direction) {
             PageDelegate.Direction.PREV -> {
                 pageFactory.moveToPrev(true)
@@ -452,6 +466,7 @@ class PageView(context: Context, attrs: AttributeSet? = null) : FrameLayout(cont
      * 更新界面内容
      */
     override fun upContent(relativePosition: Int, resetPageOffset: Boolean) {
+        val pageFactory = callback?.pageFactory ?: return
         if (isScroll && callback?.isAutoPage != true) {
             curPage.setContent(pageFactory.currentPage, resetPageOffset)
         } else {

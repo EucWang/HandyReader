@@ -13,6 +13,7 @@ import androidx.navigation.NavHostController
 import com.wxn.base.bean.Book
 import com.wxn.bookread.data.model.preference.ReaderPreferences
 import com.wxn.bookread.ui.PageView
+import com.wxn.bookread.ui.TextPageFactory
 import com.wxn.reader.data.model.AppPreferences
 import com.wxn.reader.presentation.bookReader.BookReaderViewModel
 import com.wxn.reader.util.PurchaseHelper
@@ -42,8 +43,10 @@ fun ReaderView(
         AndroidView(
             factory = { context ->
                 PageView(context).apply{
-                    this.dataProvider = viewModel
-                    this.callback = viewModel
+                    viewModel.pageController.pageFactory = TextPageFactory(this)
+                    this.dataProvider = viewModel.pageController
+                    this.callback = viewModel.pageController
+                    setSelectTextCallback(viewModel.pageController)
                 }
             },
             modifier = Modifier

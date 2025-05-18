@@ -1,6 +1,6 @@
 package com.wxn.bookread.ui
 
-interface PageViewCallback {
+interface PageViewCallback  : TextPageFactoryCallback {
 
     /***
      *
@@ -32,4 +32,8 @@ interface PageViewCallback {
      */
     fun showTextActionMenu()
 
+    /***
+     * 当前章节中正在显示的页面的索引
+     */
+    fun durChapterPos(): Int
 }

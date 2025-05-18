@@ -169,7 +169,7 @@ abstract class PageDelegate(protected val pageView: PageView) {
      * 判断是否有上一页
      */
     fun hasPrev(): Boolean {
-        val hasPrev = pageView.pageFactory.hasPrev()
+        val hasPrev = pageView.callback?.pageFactory?.hasPrev() == true
         if (!hasPrev) {
             if (!snackBar.isShown) {
                 snackBar.setText(R.string.no_prev_page)
@@ -179,12 +179,11 @@ abstract class PageDelegate(protected val pageView: PageView) {
         return hasPrev
     }
 
-
     /**
      * 判断是否有下一页
      */
     fun hasNext(): Boolean {
-        val hasNext = pageView.pageFactory.hasNext()
+        val hasNext = pageView.callback?.pageFactory?.hasNext() == true
         if (!hasNext) {
             if (!snackBar.isShown) {
                 snackBar.setText(R.string.no_next_page)

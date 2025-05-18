@@ -83,6 +83,10 @@ class ContentView(context: Context) : FrameLayout(context) {
         }
     }
 
+    fun setSelectTextCallback(callback: SelectTextCallback) {
+        binding.contentTextView.callback = callback
+    }
+
     /****
      * 更新显示的样式
      */

@@ -7,7 +7,8 @@ enum class AppLanguage(val code: String, val displayName: String) {
     GERMAN("de", "Deutsch"),            //德语
     SPANISH("es", "Español"),           //西班牙语
     PORTUGUESE("pt", "Português"),      //葡萄牙语
-    CHINESE("zh", "中文"),               //中文
+    CHINESES_SIMPLE("zh-CN", "中文（繁体）"),               //中文
+    CHINESE_TRADITIONAL("zh-TW", "中文（繁体）"),               //中文
     JAPANESE("ja", "日本語"),            //日语
     RUSSIAN("ru", "Русский"),           //俄罗斯语
     ARABIC("ar", "العربية"),            //阿拉伯语

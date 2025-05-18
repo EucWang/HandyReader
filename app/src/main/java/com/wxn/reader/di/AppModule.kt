@@ -38,6 +38,8 @@ import com.wxn.reader.domain.repository.BooksRepository
 import com.wxn.reader.domain.repository.ChaptersRepository
 import com.wxn.reader.domain.repository.PermissionRepository
 import com.wxn.reader.domain.repository.ShelfRepository
+import com.wxn.reader.domain.use_case.chapters.GetChapterByIdUserCase
+import com.wxn.reader.presentation.mainReader.PageViewController
 import com.wxn.reader.util.LanguageHelper
 import com.wxn.reader.util.PdfBitmapConverter
 import dagger.Module
@@ -148,7 +150,6 @@ object AppModule {
     }
 
 
-
     @Provides
     @Singleton
     fun provideAnnotationDao(appDatabase: AppDatabase): AnnotationDao {
@@ -193,10 +194,20 @@ object AppModule {
 
     @Provides
     @Singleton
+    fun providePageViewController(
+        @ApplicationContext context: Context,
+        getChapterByIdUserCase: GetChapterByIdUserCase,
+        appPreferencesUtil: AppPreferencesUtil
+    ): PageViewController {
+        return PageViewController(context, getChapterByIdUserCase, appPreferencesUtil)
+    }
+
+    @Provides
+    @Singleton
     fun provideChaptersRepository(
         chapterDao: ChapterDao,
         chapterMapper: ChapterMapper
-    ) : ChaptersRepository {
+    ): ChaptersRepository {
         return ChaptersRepositoryImpl(
             chapterDao,
             chapterMapper
@@ -206,7 +217,7 @@ object AppModule {
     @Provides
     @Singleton
     fun provideBooksRepository(
-        db : AppDatabase,
+        db: AppDatabase,
         bookDao: BookDao,
         annotationDao: AnnotationDao,
         noteDao: NoteDao,
@@ -220,7 +231,8 @@ object AppModule {
         shelfMapper: ShelfMapper,
         bookShelfMapper: BookShelfMapper
     ): BooksRepository {
-        return BooksRepositoryImpl(db,
+        return BooksRepositoryImpl(
+            db,
             bookDao,
             annotationDao,
             noteDao,
@@ -233,23 +245,27 @@ object AppModule {
             readingActiveMapper,
             shelfMapper,
             bookShelfMapper
-            )
+        )
     }
 
     @Provides
     @Singleton
-    fun provideShelfRepository(shelfDao: ShelfDao,
-                               bookShelfDao: BookShelfDao,
-                               bookDao: BookDao,
-                               shelfMapper: ShelfMapper,
-                               bookMapper: BookMapper,
-                               bookShelfMapper: BookShelfMapper): ShelfRepository {
-        return ShelfRepositoryImpl(shelfDao,
+    fun provideShelfRepository(
+        shelfDao: ShelfDao,
+        bookShelfDao: BookShelfDao,
+        bookDao: BookDao,
+        shelfMapper: ShelfMapper,
+        bookMapper: BookMapper,
+        bookShelfMapper: BookShelfMapper
+    ): ShelfRepository {
+        return ShelfRepositoryImpl(
+            shelfDao,
             bookShelfDao,
             bookDao,
             shelfMapper,
             bookMapper,
-            bookShelfMapper)
+            bookShelfMapper
+        )
     }
 
     @Provides
@@ -298,7 +314,8 @@ object AppModule {
 
     @Provides
     @Singleton
-    fun providePermissionRepository(application: Application): PermissionRepository = PermissionRepositoryImpl(application)
+    fun providePermissionRepository(application: Application): PermissionRepository =
+        PermissionRepositoryImpl(application)
 }
 //
 //@Singleton

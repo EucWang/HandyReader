@@ -1,3 +1,4 @@
+import org.gradle.kotlin.dsl.implementation
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.io.FileInputStream
@@ -133,6 +134,8 @@ android {
 //}
 
 dependencies {
+//    implementation (fileTree(dir: 'libs', include: ['*.aar']))
+    implementation(fileTree("libs"))
 
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.lifecycle.runtime.ktx)

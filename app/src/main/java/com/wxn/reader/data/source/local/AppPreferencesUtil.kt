@@ -17,6 +17,7 @@ import com.wxn.reader.data.model.SortOrder
 import com.wxn.base.util.Logger
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.runBlocking
 import javax.inject.Inject
@@ -137,6 +138,24 @@ class AppPreferencesUtil @Inject constructor(
             fileTypes = preferences[FILE_TYPE]?.map { FileType.valueOf(it) }?.toSet() ?: defaultPreferences.fileTypes,
             isPremium = preferences[IS_PREMIUM] ?: defaultPreferences.isPremium
         )
+    }
+
+    /***
+     * 返回中文转换器类型：
+     * 1： 中文jianti
+     * 2 ： 中文繁体
+     * 0  其他
+     */
+    suspend fun chineseConverterType(): Int {
+        appPreferencesFlow.firstOrNull()?.let {
+            val code = it.language
+            return when {
+                code == "zh-CN" || code == "ZH-HANS" -> 1
+                code == "zh-TW" || code == "zh-HK" || code == "ZH-HANT" -> 2
+                else -> 0
+            }
+        }
+        return 0
     }
 
 

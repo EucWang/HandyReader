@@ -14,11 +14,8 @@ import com.wxn.bookparser.TextParser
 import com.wxn.bookparser.domain.file.CachedFileCompat
 import com.wxn.bookparser.domain.reader.ReaderText
 import com.wxn.bookparser.util.FileUtil
-import com.wxn.bookread.data.model.TextChapter
 import com.wxn.bookread.data.model.preference.ReaderPreferences
 import com.wxn.bookread.data.source.local.ReaderPreferencesUtil
-import com.wxn.bookread.ui.PageViewCallback
-import com.wxn.bookread.ui.PageViewDataProvider
 import com.wxn.reader.data.model.AppPreferences
 import com.wxn.reader.data.model.toRediumEpubPreferences
 import com.wxn.reader.data.source.local.AppPreferencesUtil
@@ -32,6 +29,7 @@ import com.wxn.reader.domain.use_case.bookmarks.GetBookmarksForBookUseCase
 import com.wxn.reader.domain.use_case.bookmarks.UpdateBookmarkUseCase
 import com.wxn.reader.domain.use_case.books.GetBookByIdUseCase
 import com.wxn.reader.domain.use_case.books.UpdateBookUseCase
+import com.wxn.reader.domain.use_case.chapters.BookHelper
 import com.wxn.reader.domain.use_case.chapters.GetChapterByIdUserCase
 import com.wxn.reader.domain.use_case.chapters.GetChaptersByBookIdUserCase
 import com.wxn.reader.domain.use_case.chapters.InsertChaptersUserCase
@@ -98,14 +96,11 @@ class MainReadViewModel @Inject constructor(
     private val publicationOpener: PublicationOpener,
 
     private val textParser: TextParser,
+    val pageController: PageViewController,
 
     savedStateHandle: SavedStateHandle,
-    override var durChapterIndex: Int,
-    override var chapterSize: Int,
-    override var isInitFinish: Boolean,
-    override var isAutoPage: Boolean,
-    override var autoPageProgress: Int
-) : AndroidViewModel(context) , PageViewDataProvider, PageViewCallback {
+
+) : AndroidViewModel(context) {
     private val _appPreferences = MutableStateFlow(AppPreferencesUtil.defaultPreferences)
     val appPreferences: StateFlow<AppPreferences> = _appPreferences.asStateFlow()
 
@@ -135,7 +130,9 @@ class MainReadViewModel @Inject constructor(
 
     private suspend fun fetchBook(bookId: Long) {
         try {
-            _book.value = getBookByIdUseCase(bookId)
+            val book = getBookByIdUseCase(bookId)
+            _book.value = book
+            pageController.book = book
         } catch (e: Exception) {
             _uiState.value = BookReaderUiState.Error(e.message ?: "An error occurred")
         }
@@ -154,6 +151,7 @@ class MainReadViewModel @Inject constructor(
         val openedBookId = savedStateHandle.get<String>("bookId")?.toLongOrNull()
         val bookUri = savedStateHandle.get<String>("bookUri")
         resetCurrentDayStartTime()
+        pageController.scope = viewModelScope
 
         viewModelScope.launch {
             appPreferencesUtil.appPreferencesFlow.first().let { initialPreferences ->
@@ -178,7 +176,7 @@ class MainReadViewModel @Inject constructor(
                     var allChapters = chapters
                     Logger.d("MainReadViewModel::allChapters.size:${allChapters.size}")
                     if (allChapters.isEmpty()) {
-                        allChapters = cacheBookChapter(context, bookId, bookUri)
+                        allChapters = BookHelper.cacheBookChapter(context, bookId, bookUri, textParser)
                         if (allChapters.isNotEmpty()) {
                             launch(Dispatchers.IO) {
                                 insertChaptersUserCase(allChapters)
@@ -227,146 +225,5 @@ class MainReadViewModel @Inject constructor(
     }
 
 
-    /***
-     * 获取章节对应的缓存文件
-     */
-    fun getChapterFile(context: Context, bookId: Long, chapterPathName: String): File {
-        val path = context.filesDir.absolutePath + File.separator + "chapters" + File.separator + bookId.toString() + File.separator + chapterPathName
-        val destFile = File(path)
-        destFile.parentFile?.takeIf { !it.exists() }?.mkdirs()
-        return destFile
-    }
 
-    /**
-     * 获取章节中对应的缓存资源文件
-     */
-    fun getChapterResourcePath(context: Context, bookId: Long, resourceName: String): File {
-        val path =
-            context.filesDir.absolutePath + File.separator + "chapters" + File.separator + bookId.toString() + File.separator + "src" + File.separator + resourceName
-        val destFile = File(path)
-        destFile.parentFile?.takeIf { !it.exists() }?.mkdirs()
-        return destFile
-    }
-
-    suspend fun cacheBookChapter(context: Context, bookId: Long, bookUri: String?): List<BookChapter> {
-        val start = System.currentTimeMillis()
-        var chapters = arrayListOf<BookChapter>()
-        Logger.d("MainReadViewModel::cacheBookChapter::bookId=$bookId,bookUri=$bookUri, ")
-        bookUri?.let { uri ->
-            val cachedFile = CachedFileCompat.fromUri(context, uri.toUri())
-            val texts = textParser.parse(cachedFile)
-            Logger.d("MainReadViewModel::texts.size=${texts.size}")
-
-            var curChapter: BookChapter? = null
-            var chapterIndex = 0
-            var chapterPath = ""
-            var cachedTxtWriter: BufferedWriter? = null
-
-            try {
-                for (text in texts) {
-                    when (text) {
-                        is ReaderText.Chapter -> {
-                            if (curChapter != null) {
-                                chapters.add(curChapter)
-                            }
-                            if (cachedTxtWriter != null) {
-                                cachedTxtWriter.flush()
-                                cachedTxtWriter.close()
-                                Logger.d("MainReadViewModel:write chapter: $chapterPath")
-                                cachedTxtWriter = null
-                            }
-                            //------------------------------
-                            curChapter = null
-                            curChapter = BookChapter(
-                                bookId = bookId,
-                                chapterIndex = chapterIndex++,
-                                chapterName = text.title,
-                                cachedName = text.id.toString()
-                            )
-                            var cachedName = text.id.toString()
-                            val file = getChapterFile(context, bookId, cachedName)
-                            chapterPath = file.absolutePath
-                            cachedTxtWriter = BufferedWriter(FileWriter(file))
-                            cachedTxtWriter.write(cachedName)
-                            cachedTxtWriter.newLine()
-                        }
-
-                        is ReaderText.Text -> {
-                            cachedTxtWriter?.apply {
-                                write(text.line.toString())
-                                newLine()
-                            }
-                        }
-
-                        is ReaderText.Image -> {
-                            val resName = UUID.randomUUID().toString() + ".jpg"
-                            val width = text.imageBitmap.width
-                            val height = text.imageBitmap.height
-                            if (FileUtil.saveBitmapToFile(
-                                    context,
-                                    text.imageBitmap.asAndroidBitmap(),
-                                    getChapterResourcePath(context, bookId, resName).absolutePath
-                                )
-                            ) {
-                                cachedTxtWriter?.apply {
-                                    write("<img src=\"${resName}\" width=\"$width\" height=\"$height\" />")
-                                    newLine()
-                                }
-                            }
-                        }
-
-                        is ReaderText.Separator -> {
-                            cachedTxtWriter?.apply {
-                                write("---")
-                                newLine()
-                            }
-                        }
-
-                        else -> {
-                        }
-                    }
-                }
-                if (curChapter != null) {
-                    chapters.add(curChapter)
-                }
-                if (cachedTxtWriter != null) {
-                    cachedTxtWriter.flush()
-                    cachedTxtWriter.close()
-                    cachedTxtWriter = null
-                }
-            } catch (ex: Exception) {
-                Logger.e(ex)
-                chapters.clear()
-            } finally {
-                try {
-                    cachedTxtWriter?.close()
-                } catch (ex: Exception) {
-                }
-            }
-        }
-        val spendTime = System.currentTimeMillis() - start
-        Logger.d("MainReadViewModel::chapters.size=${chapters.size}, spendTime=${spendTime}")
-        return chapters
-    }
-
-    override fun textChapter(index: Int): TextChapter? {
-//        TODO("Not yet implemented")
-        return null
-    }
-
-    override fun loadContent(resetPageOffset: Boolean) {
-//        TODO("Not yet implemented")
-    }
-
-    override fun clickCenter() {
-//        TODO("Not yet implemented")
-    }
-
-    override fun screenOffTimerStart() {
-//        TODO("Not yet implemented")
-    }
-
-    override fun showTextActionMenu() {
-//        TODO("Not yet implemented")
-    }
 }
