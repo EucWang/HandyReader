@@ -39,6 +39,7 @@ import com.wxn.reader.domain.repository.ChaptersRepository
 import com.wxn.reader.domain.repository.PermissionRepository
 import com.wxn.reader.domain.repository.ShelfRepository
 import com.wxn.reader.domain.use_case.chapters.GetChapterByIdUserCase
+import com.wxn.reader.domain.use_case.chapters.GetChapterCountByBookIdUserCase
 import com.wxn.reader.presentation.mainReader.PageViewController
 import com.wxn.reader.util.LanguageHelper
 import com.wxn.reader.util.PdfBitmapConverter
@@ -197,9 +198,10 @@ object AppModule {
     fun providePageViewController(
         @ApplicationContext context: Context,
         getChapterByIdUserCase: GetChapterByIdUserCase,
+        getChapterCountByBookIdUserCase : GetChapterCountByBookIdUserCase,
         appPreferencesUtil: AppPreferencesUtil
     ): PageViewController {
-        return PageViewController(context, getChapterByIdUserCase, appPreferencesUtil)
+        return PageViewController(context, getChapterByIdUserCase, getChapterCountByBookIdUserCase, appPreferencesUtil)
     }
 
     @Provides

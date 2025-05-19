@@ -10,4 +10,6 @@ interface ChaptersRepository {
     fun getChapter(bookId:Long, chapterIndex: Int): Flow<BookChapter>
 
     suspend fun insertChapters(chapters: List<BookChapter>)
+
+    fun getChapterCount(bookId:Long): Flow<Int>
 }

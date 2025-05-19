@@ -9,6 +9,9 @@ import kotlinx.coroutines.flow.Flow
 
 @Dao interface ChapterDao {
 
+    @Query("SELECT count(*) FROM chapters WHERE bookId = :bookId")
+    fun getChapterCount(bookId: Long): Flow<Int>
+
     @Query("SELECT * FROM chapters WHERE bookId = :bookId ORDER By chapterIndex")
     fun getChapters(bookId:Long): Flow<List<BookChapterEntity>>
 

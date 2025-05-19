@@ -6,13 +6,13 @@ import kotlin.math.min
  * 用于显示的章节内容，包含若干的TextPage
  */
 data class TextChapter(
-    val position: Int,
-    val title: String,
-    val chapterId: Int,
-    val pages: List<TextPage>,
-    val pageLines: List<Int>,
-    val pageLengths: List<Int>,
-    val chaptersSize: Int
+    val position: Int,              //章节索引
+    val title: String,              //章节名称
+    val chapterId: Long,            //章节id，对应数据库中的id
+    val pages: List<TextPage>,      //章节中一共有多少页
+    val pageLines: List<Int>,       //章节中每一页显示的行数
+    val pageLengths: List<Int>,     //章节中每一页显示的字符数
+    val chaptersSize: Int           //总章节数
 ) {
 
     fun page(index: Int): TextPage? {

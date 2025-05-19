@@ -31,6 +31,7 @@ import com.wxn.reader.domain.use_case.books.GetBookByIdUseCase
 import com.wxn.reader.domain.use_case.books.UpdateBookUseCase
 import com.wxn.reader.domain.use_case.chapters.BookHelper
 import com.wxn.reader.domain.use_case.chapters.GetChapterByIdUserCase
+import com.wxn.reader.domain.use_case.chapters.GetChapterCountByBookIdUserCase
 import com.wxn.reader.domain.use_case.chapters.GetChaptersByBookIdUserCase
 import com.wxn.reader.domain.use_case.chapters.InsertChaptersUserCase
 import com.wxn.reader.domain.use_case.notes.AddNoteUseCase
@@ -88,6 +89,7 @@ class MainReadViewModel @Inject constructor(
     private val getChapterByIdUserCase: GetChapterByIdUserCase,
     private val getChaptersByBookIdUserCase: GetChaptersByBookIdUserCase,
     private val insertChaptersUserCase: InsertChaptersUserCase,
+    private val getChapterCountByBookIdUserCase: GetChapterCountByBookIdUserCase,
 
     private val addOrUpdateReadingActivityUseCase: AddReadingActivityUseCase,
     private val getReadingActivityByDateUseCase: GetReadingActivityByDateUseCase,
@@ -130,9 +132,11 @@ class MainReadViewModel @Inject constructor(
 
     private suspend fun fetchBook(bookId: Long) {
         try {
-            val book = getBookByIdUseCase(bookId)
-            _book.value = book
-            pageController.book = book
+            val theBook = getBookByIdUseCase(bookId)
+            if (theBook != null) {
+                _book.value = theBook
+                pageController.resetBook(theBook)
+            }
         } catch (e: Exception) {
             _uiState.value = BookReaderUiState.Error(e.message ?: "An error occurred")
         }
@@ -180,6 +184,11 @@ class MainReadViewModel @Inject constructor(
                         if (allChapters.isNotEmpty()) {
                             launch(Dispatchers.IO) {
                                 insertChaptersUserCase(allChapters)
+                                _book.collect { book ->
+                                    if (book != null) {
+                                        pageController.resetBook(book)  //重新加载章节数
+                                    }
+                                }
                             }
                         }
                     }

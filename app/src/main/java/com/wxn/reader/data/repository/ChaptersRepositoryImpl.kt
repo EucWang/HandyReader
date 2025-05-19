@@ -31,4 +31,8 @@ class ChaptersRepositoryImpl @Inject constructor(
             chapterDao.insertChapters(entities)
         }
     }
+
+    override fun getChapterCount(bookId:Long): Flow<Int> {
+        return chapterDao.getChapterCount(bookId)
+    }
 }

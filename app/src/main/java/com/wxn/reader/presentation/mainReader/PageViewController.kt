@@ -2,7 +2,6 @@ package com.wxn.reader.presentation.mainReader
 
 import android.content.Context
 import androidx.lifecycle.MutableLiveData
-import com.spreada.utils.chinese.ZHConverter
 import com.wxn.base.bean.Book
 import com.wxn.base.util.launchIO
 import com.wxn.bookread.PageCallback
@@ -16,11 +15,13 @@ import com.wxn.bookread.ui.TextPageFactory
 import com.wxn.reader.data.source.local.AppPreferencesUtil
 import com.wxn.reader.domain.use_case.chapters.BookHelper
 import com.wxn.reader.domain.use_case.chapters.GetChapterByIdUserCase
+import com.wxn.reader.domain.use_case.chapters.GetChapterCountByBookIdUserCase
 import kotlinx.coroutines.CoroutineScope
 import javax.inject.Inject
 
 open class PageViewController @Inject constructor(val context: Context,
     val getChapterByIdUserCase: GetChapterByIdUserCase,
+    val getChapterCountByBookIdUserCase : GetChapterCountByBookIdUserCase,
     val appPreferencesUtil: AppPreferencesUtil,
 ): PageViewDataProvider, PageViewCallback, SelectTextCallback  {
 
@@ -48,7 +49,7 @@ open class PageViewController @Inject constructor(val context: Context,
     override var headerHeight: Int = 0
 
     /***
-     * 章节包含的文字数量
+     * 章节数
      */
     override var chapterSize: Int= 0
 
@@ -60,6 +61,13 @@ open class PageViewController @Inject constructor(val context: Context,
     override var pageFactory: TextPageFactory? = null
 
     override var isScroll: Boolean= false
+
+    suspend fun resetBook(book:Book){
+        this.book = book
+        getChapterCountByBookIdUserCase.invoke(book.id).collect { count->
+            this.chapterSize = count
+        }
+    }
 
     /**
      * chapterOnDur: 0为当前页,1为下一页,-1为上一页
@@ -88,7 +96,7 @@ open class PageViewController @Inject constructor(val context: Context,
                     val contents = BookHelper.disposeContent(appPreferencesUtil, chapter, content)
                     when(chapter.chapterIndex) {
                         durChapterIndex -> {  //当前章节
-                            ChapterProvider.getTextChapter(context, curBook, chapter, contents)
+                            ChapterProvider.getTextChapter(context, curBook, chapter, contents, imageStyles = "", chapterSize)
                         }
                         durChapterIndex -1 -> { //上一个章节
 
