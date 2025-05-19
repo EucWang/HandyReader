@@ -48,6 +48,7 @@ class BookMapperImpl @Inject constructor() : BookMapper {
 
             crc = book.crc,
             cachedDir = book.cachedDir.orEmpty()
+
         )
     }
 

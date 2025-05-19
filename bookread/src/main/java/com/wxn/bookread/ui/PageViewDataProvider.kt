@@ -13,8 +13,16 @@ interface PageViewDataProvider : PageViewCallback{
 
     var chapterSize: Int
 
+    var msg: String?
+
     /**
      * 加载章节内容
      */
     fun loadContent(resetPageOffset: Boolean)
+
+    fun setPageIndex(index: Int)
+
+    fun moveToNextChapter(upContent: Boolean)
+
+    fun moveToPrevChapter(upContent: Boolean)
 }

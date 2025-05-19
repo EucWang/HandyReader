@@ -13,6 +13,7 @@ import com.wxn.bookread.ui.PageViewDataProvider
 import com.wxn.bookread.ui.SelectTextCallback
 import com.wxn.bookread.ui.TextPageFactory
 import com.wxn.reader.data.source.local.AppPreferencesUtil
+import com.wxn.reader.domain.use_case.books.UpdateBookUseCase
 import com.wxn.reader.domain.use_case.chapters.BookHelper
 import com.wxn.reader.domain.use_case.chapters.GetChapterByIdUserCase
 import com.wxn.reader.domain.use_case.chapters.GetChapterCountByBookIdUserCase
@@ -22,6 +23,7 @@ import javax.inject.Inject
 open class PageViewController @Inject constructor(val context: Context,
     val getChapterByIdUserCase: GetChapterByIdUserCase,
     val getChapterCountByBookIdUserCase : GetChapterCountByBookIdUserCase,
+      val updateBookUseCase: UpdateBookUseCase,
     val appPreferencesUtil: AppPreferencesUtil,
 ): PageViewDataProvider, PageViewCallback, SelectTextCallback  {
 
@@ -37,7 +39,7 @@ open class PageViewController @Inject constructor(val context: Context,
     var prevTextChapter: TextChapter? = null
     var curTextChapter: TextChapter? = null
     var nextTextChapter: TextChapter? = null
-    var msg: String? = null
+    override var msg: String? = null            //对应章节名？
     /***
      * 正在加载中的章节的索引列表
      * 防止重复添加
@@ -64,10 +66,16 @@ open class PageViewController @Inject constructor(val context: Context,
 
     override var isScroll: Boolean= false
 
+    init {
+        ChapterProvider.tryCreatePreference(context)
+    }
+
     suspend fun resetBook(book:Book){
+        Logger.i("PageViewController::resetBook:book=$book")
         this.book = book
         getChapterCountByBookIdUserCase.invoke(book.id).collect { count->
             this.chapterSize = count
+            Logger.d("PageViewController::resetBook:chapterSize=$chapterSize")
             loadContent(true)
         }
     }
@@ -110,6 +118,38 @@ open class PageViewController @Inject constructor(val context: Context,
         loadContent(durChapterIndex - 1, resetPageOffset = resetPageOffset)
     }
 
+    override fun setPageIndex(index: Int) {
+        durPageIndex = index
+        saveRead()
+        callBack?.pageChanged() // 通知界面刷新进度
+    }
+
+    private fun saveRead() {
+        val curBook = book ?: return
+        scope?.launchIO {
+            curBook.lastOpened = System.currentTimeMillis()
+            curBook.scrollIndex = durChapterIndex
+            curBook.scrollOffset = durPageIndex
+            updateBookUseCase(curBook)
+        }
+    }
+
+    fun upMsg(msg: String?) {
+        if (this.msg != msg) {
+            this.msg = msg
+            callBack?.upContent()
+        }
+    }
+
+
+    override fun moveToNextChapter(upContent: Boolean) {
+        TODO("Not yet implemented")
+    }
+
+    override fun moveToPrevChapter(upContent: Boolean) {
+        TODO("Not yet implemented")
+    }
+
     private fun loadContent(index: Int, upContent: Boolean = true, resetPageOffset: Boolean) {
         Logger.i("PageViewController::loadContent:index=$index,upContent=$upContent,resetPageOffset=$resetPageOffset")
         if (index < 0) return
@@ -127,6 +167,7 @@ open class PageViewController @Inject constructor(val context: Context,
                     when(chapter.chapterIndex) {
                         durChapterIndex -> {    //加载的是当前章节
                             curTextChapter = textChapter
+                            if (upContent) callBack?.upContent(resetPageOffset = resetPageOffset)
                             callBack?.upView()
                         }
                         durChapterIndex -1 -> { //加载的是上一章节

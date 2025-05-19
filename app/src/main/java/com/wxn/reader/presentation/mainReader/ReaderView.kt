@@ -42,7 +42,7 @@ fun ReaderView(
         AndroidView(
             factory = { context ->
                 PageView(context).apply{
-                    viewModel.pageController.pageFactory = TextPageFactory(this)
+                    viewModel.pageController.pageFactory = TextPageFactory(this , viewModel.pageController)
                     this.dataProvider = viewModel.pageController
                     setSelectTextCallback(viewModel.pageController)
                 }

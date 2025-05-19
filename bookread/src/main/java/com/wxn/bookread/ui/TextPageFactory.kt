@@ -1,9 +1,10 @@
 package com.wxn.bookread.ui
 
-import com.wxn.bookread.ReadBook
+//import com.wxn.bookread.ReadBook
 import com.wxn.bookread.data.model.TextPage
 
-class TextPageFactory(dataSource: IDataSource) : IPageFactory<TextPage>(dataSource) {
+class TextPageFactory(dataSource: IDataSource, val provider: PageViewDataProvider) :
+    IPageFactory<TextPage>(dataSource) {
 
     /***
      * 是否有上页
@@ -28,17 +29,17 @@ class TextPageFactory(dataSource: IDataSource) : IPageFactory<TextPage>(dataSour
 
 
     override fun moveToFirst() {
-        ReadBook.setPageIndex(0)
+        provider.setPageIndex(0)
     }
 
     override fun moveToLast() = with(dataSource) {
         currentChapter?.let {
             if (it.pageSize == 0) {
-                ReadBook.setPageIndex(0)
+                provider.setPageIndex(0)
             } else {
-                ReadBook.setPageIndex(it.pageSize.minus(1))
+                provider.setPageIndex(it.pageSize.minus(1))
             }
-        } ?: ReadBook.setPageIndex(0)
+        } ?: provider.setPageIndex(0)
     }
 
 
@@ -48,9 +49,9 @@ class TextPageFactory(dataSource: IDataSource) : IPageFactory<TextPage>(dataSour
     override fun moveToNext(upContent: Boolean): Boolean = with(dataSource) {
         return if (hasNext()) {
             if (currentChapter?.isLastIndex(pageIndex) == true) {
-                ReadBook.moveToNextChapter(upContent)
+                provider.moveToNextChapter(upContent)
             } else {
-                ReadBook.setPageIndex(pageIndex.plus(1))
+                provider.setPageIndex(pageIndex.plus(1))
             }
             if (upContent) upContent(resetPageOffset = false)
             true
@@ -62,9 +63,9 @@ class TextPageFactory(dataSource: IDataSource) : IPageFactory<TextPage>(dataSour
     override fun moveToPrev(upContent: Boolean): Boolean = with(dataSource) {
         return if (hasPrev()) {
             if (pageIndex <= 0) {
-                ReadBook.moveToPrevChapter(upContent)
+                provider.moveToPrevChapter(upContent)
             } else {
-                ReadBook.setPageIndex(pageIndex.minus(1))
+                provider.setPageIndex(pageIndex.minus(1))
             }
             if (upContent) upContent(resetPageOffset = false)
             true
@@ -75,7 +76,7 @@ class TextPageFactory(dataSource: IDataSource) : IPageFactory<TextPage>(dataSour
 
     override val currentPage: TextPage
         get() = with(dataSource) {
-            ReadBook.msg?.let {
+            provider.msg?.let {
                 return@with TextPage(text = it).format()
             }
             currentChapter?.let {
@@ -87,7 +88,7 @@ class TextPageFactory(dataSource: IDataSource) : IPageFactory<TextPage>(dataSour
 
     override val nextPage: TextPage
         get() = with(dataSource) {
-            ReadBook.msg?.let {
+            provider.msg?.let {
                 return@with TextPage(text = it).format()
             }
             currentChapter?.let {
@@ -108,7 +109,7 @@ class TextPageFactory(dataSource: IDataSource) : IPageFactory<TextPage>(dataSour
 
     override val prevPage: TextPage
         get() = with(dataSource) {
-            ReadBook.msg?.let {
+            provider.msg?.let {
                 return@with TextPage(text = it).format()
             }
             if (pageIndex > 0) {

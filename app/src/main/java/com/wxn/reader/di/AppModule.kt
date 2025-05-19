@@ -38,6 +38,7 @@ import com.wxn.reader.domain.repository.BooksRepository
 import com.wxn.reader.domain.repository.ChaptersRepository
 import com.wxn.reader.domain.repository.PermissionRepository
 import com.wxn.reader.domain.repository.ShelfRepository
+import com.wxn.reader.domain.use_case.books.UpdateBookUseCase
 import com.wxn.reader.domain.use_case.chapters.GetChapterByIdUserCase
 import com.wxn.reader.domain.use_case.chapters.GetChapterCountByBookIdUserCase
 import com.wxn.reader.presentation.mainReader.PageViewController
@@ -199,9 +200,10 @@ object AppModule {
         @ApplicationContext context: Context,
         getChapterByIdUserCase: GetChapterByIdUserCase,
         getChapterCountByBookIdUserCase : GetChapterCountByBookIdUserCase,
+        updateBookUseCase: UpdateBookUseCase,
         appPreferencesUtil: AppPreferencesUtil
     ): PageViewController {
-        return PageViewController(context, getChapterByIdUserCase, getChapterCountByBookIdUserCase, appPreferencesUtil)
+        return PageViewController(context, getChapterByIdUserCase, getChapterCountByBookIdUserCase, updateBookUseCase, appPreferencesUtil)
     }
 
     @Provides

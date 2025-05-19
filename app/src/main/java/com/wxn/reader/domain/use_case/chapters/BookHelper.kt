@@ -130,7 +130,7 @@ object BookHelper {
      * 从缓存文件中加载章节内容
      */
     fun loadChpaterContent(context: Context, bookId: Long, chapter: BookChapter): String? {
-        val chapterCachedName = chapter.chapterName ?: return null
+        val chapterCachedName = chapter.cachedName ?: return null
         ChapterProvider.getChapterFile(context, bookId, chapterCachedName).let { file ->
             if (file.exists()) {
                 return file.readText()

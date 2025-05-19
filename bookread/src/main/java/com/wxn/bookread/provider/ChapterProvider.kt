@@ -127,7 +127,7 @@ object ChapterProvider {
      */
     lateinit var contentPaint: TextPaint
 
-    private fun tryCreatePreference(context : Context) {
+    fun tryCreatePreference(context : Context) {
         if (readerPreferencesUtil == null) {
             readerPreferencesUtil = ReaderPreferencesUtil(context)
         }

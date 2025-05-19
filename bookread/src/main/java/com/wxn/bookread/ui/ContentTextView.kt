@@ -190,7 +190,7 @@ class ContentTextView(context: Context, attrs: AttributeSet?) : View(context, at
                 // "accentColor": "#FFFFFF",
                 "#FFAD1457".toColorInt()
             } else {
-                ChapterProvider.readerPreferencesUtil.readerPreferencesFlow.firstOrNull()?.textColor ?: Color.BLACK
+                ChapterProvider.readerPreferencesUtil?.readerPreferencesFlow?.firstOrNull()?.textColor ?: Color.BLACK
             }
             textChars.forEach { ch ->
                 canvas.drawText(ch.charData, ch.start, lineBase, textPaint) //绘制每一个字

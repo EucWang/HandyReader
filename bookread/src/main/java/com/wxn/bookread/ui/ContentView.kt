@@ -64,7 +64,7 @@ class ContentView(context: Context) : FrameLayout(context) {
      */
     suspend fun getHeaderHeight(): Int {
         val tipPreference =
-            ChapterProvider.readTipPreferencesUtil.readTIpPreferencesFlow.firstOrNull()
+            ChapterProvider.readTipPreferencesUtil?.readTIpPreferencesFlow?.firstOrNull()
                 ?: return 0
         val h1 = if (tipPreference.hideStatusBar) 0 else context.statusBarHeight
         val h2 = if (binding.llHeader.isGone) 0 else binding.llHeader.height
@@ -95,11 +95,12 @@ class ContentView(context: Context) : FrameLayout(context) {
     fun upStyle() {
         binding.apply {
             Coroutines.mainScope().launch {
+                ChapterProvider.tryCreatePreference(context)
                 val tipPreference =
-                    ChapterProvider.readTipPreferencesUtil.readTIpPreferencesFlow.firstOrNull()
+                    ChapterProvider.readTipPreferencesUtil?.readTIpPreferencesFlow?.firstOrNull()
                         ?: return@launch
                 val readPreference =
-                    ChapterProvider.readerPreferencesUtil.readerPreferencesFlow.firstOrNull()
+                    ChapterProvider.readerPreferencesUtil?.readerPreferencesFlow?.firstOrNull()
                         ?: return@launch
                 val textColor = readPreference.textColor ?: Color.BLACK
 //
@@ -161,8 +162,9 @@ class ContentView(context: Context) : FrameLayout(context) {
             setPadding(paddingLeft, context.statusBarHeight, paddingRight, paddingBottom)
 
             Coroutines.mainScope().launch {
+                ChapterProvider.tryCreatePreference(context)
                 val tipPreference =
-                    ChapterProvider.readTipPreferencesUtil.readTIpPreferencesFlow.firstOrNull()
+                    ChapterProvider.readTipPreferencesUtil?.readTIpPreferencesFlow?.firstOrNull()
                         ?: return@launch
                 tipPreference.hideStatusBar
 
@@ -178,8 +180,9 @@ class ContentView(context: Context) : FrameLayout(context) {
     fun upTipStyle() {
         binding.apply {
             Coroutines.mainScope().launch {
+                ChapterProvider.tryCreatePreference(context)
                 val tipPreference =
-                    ChapterProvider.readTipPreferencesUtil.readTIpPreferencesFlow.firstOrNull()
+                    ChapterProvider.readTipPreferencesUtil?.readTIpPreferencesFlow?.firstOrNull()
                         ?: return@launch
 
                 val tipHeaderLeft = tipPreference.tipHeaderLeft

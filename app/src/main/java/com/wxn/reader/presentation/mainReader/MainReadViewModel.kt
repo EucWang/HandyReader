@@ -176,7 +176,6 @@ class MainReadViewModel @Inject constructor(
 
                 // Fetch the book details
 
-
                 Logger.i("MainReadViewModel::init::bookId=$bookId")
                 var allChapters = getChaptersByBookIdUserCase.invoke(bookId).firstOrNull()
                 if (allChapters.isNullOrEmpty()) {
@@ -184,9 +183,9 @@ class MainReadViewModel @Inject constructor(
                     if (allChapters.isNotEmpty()) {
                         launch(Dispatchers.IO) {
                             insertChaptersUserCase(allChapters)
-                            _book.collect { book ->
-                                if (book != null) {
-                                    pageController.resetBook(book)  //重新加载章节数
+                            fetchBook(bookId) { newBook ->
+                                launch(Dispatchers.IO) {
+                                    pageController.resetBook(newBook)  //重新加载章节数
                                 }
                             }
                         }

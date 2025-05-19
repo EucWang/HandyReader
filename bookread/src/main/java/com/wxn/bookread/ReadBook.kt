@@ -4,10 +4,17 @@ import androidx.lifecycle.MutableLiveData
 import com.wxn.base.bean.Book
 import com.wxn.bookread.data.model.TextChapter
 
+/***
+ * 页面回调， 通过PageCallback，来控制界面刷新
+ */
 interface PageCallback {
     fun loadChapterList(book: Book)
     fun upContent(relativePosition: Int = 0, resetPageOffset: Boolean = true)
     fun upView()
+
+    /***
+     * 通知界面刷新进度
+     */
     fun pageChanged()
     fun contentLoadFinish()
     fun upPageAnim()
