@@ -2,7 +2,7 @@ package com.wxn.bookread.ui
 
 import com.wxn.bookread.data.model.TextChapter
 
-interface PageViewDataProvider {
+interface PageViewDataProvider : PageViewCallback{
 
     /**
      * chapterOnDur: 0为当前页,1为下一页,-1为上一页

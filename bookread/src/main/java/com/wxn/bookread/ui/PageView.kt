@@ -8,8 +8,6 @@ import android.graphics.RectF
 import android.util.AttributeSet
 import android.view.ViewConfiguration
 import android.widget.FrameLayout
-import com.wxn.base.ext.activity
-//import com.wxn.bookread.ReadBook
 import com.wxn.bookread.data.model.TextChapter
 import com.wxn.bookread.ui.delegate.PageDelegate
 import android.graphics.Paint
@@ -35,27 +33,17 @@ class PageView(context: Context, attrs: AttributeSet? = null) : FrameLayout(cont
 
     var dataProvider: PageViewDataProvider? = null
 
-    var callback: PageViewCallback? = null
-//        get() {
-//            val cb = activity as? PageViewCallback?
-//            if (cb == null) {
-//                throw IllegalStateException("PageView is not in the activity which implemente PageViewCallback")
-//            } else {
-//                return cb
-//            }
-//        }
-
     /***
      * 当前章节中正在显示的页面的索引
      */
     override var pageIndex: Int = 0
         get() {
-            return callback?.durChapterPos() ?: 0
+            return dataProvider?.durChapterPos() ?: 0
         }
 
     override val currentChapter: TextChapter?
         get() {
-            return if (callback?.isInitFinish == true) {
+            return if (dataProvider?.isInitFinish == true) {
                 dataProvider?.textChapter(0)
             } else {
                 null
@@ -64,7 +52,7 @@ class PageView(context: Context, attrs: AttributeSet? = null) : FrameLayout(cont
 
     override val nextChapter: TextChapter?
         get() {
-            return if (callback?.isInitFinish == true) {
+            return if (dataProvider?.isInitFinish == true) {
                 dataProvider?.textChapter(1)
             } else {
                 null
@@ -73,7 +61,7 @@ class PageView(context: Context, attrs: AttributeSet? = null) : FrameLayout(cont
 
     override val prevChapter: TextChapter?
         get() {
-            return if (callback?.isInitFinish == true) {
+            return if (dataProvider?.isInitFinish == true) {
                 dataProvider?.textChapter(-1)
             } else {
                 null
@@ -195,7 +183,7 @@ class PageView(context: Context, attrs: AttributeSet? = null) : FrameLayout(cont
         upPageAnim()
 
         Coroutines.mainScope().launch {
-            ChapterProvider.readTipPreferencesUtil.readTIpPreferencesFlow.firstOrNull()?.let { preference ->
+            ChapterProvider.readTipPreferencesUtil?.readTIpPreferencesFlow?.firstOrNull()?.let { preference ->
                 clickTurnPage = preference.clickTurnPage
                 clickAllNext = preference.clickAllNext
             }
@@ -221,9 +209,9 @@ class PageView(context: Context, attrs: AttributeSet? = null) : FrameLayout(cont
     override fun dispatchDraw(canvas: Canvas) {
         super.dispatchDraw(canvas)
         pageDelegate?.onDraw(canvas)
-        if (!isInEditMode && callback?.isAutoPage == true && !isScroll) {            //非编辑模式，非滚动中， 自动阅读中
+        if (!isInEditMode && dataProvider?.isAutoPage == true && !isScroll) {            //非编辑模式，非滚动中， 自动阅读中
             nextPage.screenshot()?.let {                                    //将下一页转换成bitmap，然后绘制到canvas上
-                val bottom = callback?.autoPageProgress ?: return
+                val bottom = dataProvider?.autoPageProgress ?: return
                 autoPageRect.set(0, 0, width, bottom)
                 canvas.drawBitmap(it, autoPageRect, autoPageRect, null)     //将下一页绘制到canvas上
                 canvas.drawRect(                                            //沿着底部绘制一条分割线
@@ -250,7 +238,7 @@ class PageView(context: Context, attrs: AttributeSet? = null) : FrameLayout(cont
      */
     @SuppressLint("ClickableViewAccessibility")
     override fun onTouchEvent(event: MotionEvent): Boolean {
-        callback?.screenOffTimerStart()
+        dataProvider?.screenOffTimerStart()
         when (event.action) {
             MotionEvent.ACTION_DOWN -> {
                 if (isTextSelected) {
@@ -296,7 +284,7 @@ class PageView(context: Context, attrs: AttributeSet? = null) : FrameLayout(cont
                     }
                 }
                 if (isTextSelected) {
-                    callback?.showTextActionMenu()
+                    dataProvider?.showTextActionMenu()
                 } else if (isMove) {
                     pageDelegate?.onTouch(event)
                 }
@@ -369,7 +357,7 @@ class PageView(context: Context, attrs: AttributeSet? = null) : FrameLayout(cont
         }
         if (centerRectF.contains(startX, startY)) {
             if (!isAbortAnim) {
-                callback?.clickCenter()
+                dataProvider?.clickCenter()
             }
         } else if (clickTurnPage) {
             if (startX > width / 2 || clickAllNext) {
@@ -421,7 +409,7 @@ class PageView(context: Context, attrs: AttributeSet? = null) : FrameLayout(cont
      * 根据方向，切换到上一页或者下一页
      */
     fun fillPage(direction: PageDelegate.Direction) {
-        val pageFactory = callback?.pageFactory ?: return
+        val pageFactory = dataProvider?.pageFactory ?: return
         when (direction) {
             PageDelegate.Direction.PREV -> {
                 pageFactory.moveToPrev(true)
@@ -438,7 +426,7 @@ class PageView(context: Context, attrs: AttributeSet? = null) : FrameLayout(cont
      */
     fun upPageAnim() {
         Coroutines.mainScope().launch {
-            ChapterProvider.readTipPreferencesUtil.readTIpPreferencesFlow.firstOrNull()?.let{ preference ->
+            ChapterProvider.readTipPreferencesUtil?.readTIpPreferencesFlow?.firstOrNull()?.let{ preference ->
                 val pageAnim = preference.pageAnim
                 isScroll = pageAnim == 3
                 when (pageAnim) {
@@ -466,8 +454,8 @@ class PageView(context: Context, attrs: AttributeSet? = null) : FrameLayout(cont
      * 更新界面内容
      */
     override fun upContent(relativePosition: Int, resetPageOffset: Boolean) {
-        val pageFactory = callback?.pageFactory ?: return
-        if (isScroll && callback?.isAutoPage != true) {
+        val pageFactory = dataProvider?.pageFactory ?: return
+        if (isScroll && dataProvider?.isAutoPage != true) {
             curPage.setContent(pageFactory.currentPage, resetPageOffset)
         } else {
             curPage.resetPageOffset()
@@ -481,7 +469,7 @@ class PageView(context: Context, attrs: AttributeSet? = null) : FrameLayout(cont
                 }
             }
         }
-        callback?.screenOffTimerStart()
+        dataProvider?.screenOffTimerStart()
     }
 
     /***
@@ -497,7 +485,7 @@ class PageView(context: Context, attrs: AttributeSet? = null) : FrameLayout(cont
      * 更新显示样式
      */
     fun upStyle() {
-        ChapterProvider.upStyle()
+        ChapterProvider.upStyle(context)
         curPage.upStyle()
         prevPage.upStyle()
         nextPage.upStyle()
@@ -509,7 +497,7 @@ class PageView(context: Context, attrs: AttributeSet? = null) : FrameLayout(cont
      */
     fun upBg() {
         Coroutines.mainScope().launch {
-            ChapterProvider.readerPreferencesUtil.readerPreferencesFlow.firstOrNull()?.let{ preference ->
+            ChapterProvider.readerPreferencesUtil?.readerPreferencesFlow?.firstOrNull()?.let{ preference ->
                 val bgColor = preference.backgroundColor
                 curPage.setBg(bgColor)
                 prevPage.setBg(bgColor)

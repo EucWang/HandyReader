@@ -34,7 +34,6 @@ fun ReaderView(
     areToolbarsVisible: Boolean,
     onToolbarsVisibilityChanged: () -> Unit,
 ) {
-
     Box(
         modifier = Modifier
             .fillMaxSize()
@@ -45,7 +44,6 @@ fun ReaderView(
                 PageView(context).apply{
                     viewModel.pageController.pageFactory = TextPageFactory(this)
                     this.dataProvider = viewModel.pageController
-                    this.callback = viewModel.pageController
                     setSelectTextCallback(viewModel.pageController)
                 }
             },
@@ -53,6 +51,8 @@ fun ReaderView(
                 .fillMaxSize()
                 .padding(bottom = 28.dp, top = 48.dp),
             update = { view ->
+                view.dataProvider?.book = book
+                view.dataProvider?.loadContent(true)
             }
         )
     }

@@ -3,9 +3,9 @@ package com.wxn.reader.presentation.mainReader
 import android.content.Context
 import androidx.lifecycle.MutableLiveData
 import com.wxn.base.bean.Book
+import com.wxn.base.util.Logger
 import com.wxn.base.util.launchIO
 import com.wxn.bookread.PageCallback
-import com.wxn.bookread.ReadBook
 import com.wxn.bookread.data.model.TextChapter
 import com.wxn.bookread.provider.ChapterProvider
 import com.wxn.bookread.ui.PageViewCallback
@@ -27,7 +27,9 @@ open class PageViewController @Inject constructor(val context: Context,
 
     var scope: CoroutineScope? = null
     var titleDate = MutableLiveData<String>()
-    var book: Book? = null
+
+    override var book: Book? = null
+
     var inBookshelf = false
     var durPageIndex = 0
     var isLocalBook = true
@@ -66,6 +68,25 @@ open class PageViewController @Inject constructor(val context: Context,
         this.book = book
         getChapterCountByBookIdUserCase.invoke(book.id).collect { count->
             this.chapterSize = count
+            loadContent(true)
+        }
+    }
+
+    /***
+     * 是否正确的将章节索引加入到loadingChapters集合中，
+     * 已经有了，则返回false
+     */
+    private fun addLoading(index: Int): Boolean {
+        synchronized(this) {
+            if (loadingChapters.contains(index)) return false
+            loadingChapters.add(index)
+            return true
+        }
+    }
+
+    fun removeLoading(index: Int) {
+        synchronized(this) {
+            loadingChapters.remove(index)
         }
     }
 
@@ -82,30 +103,47 @@ open class PageViewController @Inject constructor(val context: Context,
     }
 
     override fun loadContent(resetPageOffset: Boolean) {
-        ReadBook.loadContent(durChapterIndex, resetPageOffset = resetPageOffset)
+        ChapterProvider.init(context)
+        Logger.i("PageViewController::loadContent:resetPageOffset=$resetPageOffset")
+        loadContent(durChapterIndex, resetPageOffset = resetPageOffset)
         loadContent(durChapterIndex + 1, resetPageOffset = resetPageOffset)
         loadContent(durChapterIndex - 1, resetPageOffset = resetPageOffset)
     }
 
     private fun loadContent(index: Int, upContent: Boolean = true, resetPageOffset: Boolean) {
+        Logger.i("PageViewController::loadContent:index=$index,upContent=$upContent,resetPageOffset=$resetPageOffset")
+        if (index < 0) return
         val curBook = book ?: return
         scope?.launchIO {
             val bookId = curBook.id
+            Logger.i("PageViewController::loadContent:index=$index,upContent=$upContent,resetPageOffset=$resetPageOffset,bookId=$bookId")
+            if (!addLoading(index)) return@launchIO
             getChapterByIdUserCase(bookId, index).collect { chapter ->
+                Logger.i("PageViewController::loadContent:index=$index,upContent=$upContent,resetPageOffset=$resetPageOffset,bookId=$bookId,chapter=$chapter")
                 BookHelper.loadChpaterContent(context, bookId, chapter)?.let { content ->
                     val contents = BookHelper.disposeContent(appPreferencesUtil, chapter, content)
+                    Logger.i("PageViewController::loadContent:index=$index,upContent=$upContent,resetPageOffset=$resetPageOffset,bookId=$bookId,chapter=$chapter,contents.size=${contents.size}")
+                    val textChapter = ChapterProvider.getTextChapter(context, curBook, chapter, contents, imageStyles = "", chapterSize)
                     when(chapter.chapterIndex) {
-                        durChapterIndex -> {  //当前章节
-                            ChapterProvider.getTextChapter(context, curBook, chapter, contents, imageStyles = "", chapterSize)
+                        durChapterIndex -> {    //加载的是当前章节
+                            curTextChapter = textChapter
+                            callBack?.upView()
                         }
-                        durChapterIndex -1 -> { //上一个章节
-
+                        durChapterIndex -1 -> { //加载的是上一章节
+                            prevTextChapter = textChapter
+                            if (upContent) {
+                                callBack?.upContent(-1, resetPageOffset)
+                            }
                         }
-                        durChapterIndex + 1 -> { //下一个章节
-
+                        durChapterIndex + 1 -> {    //加载的是下一章节
+                            nextTextChapter = textChapter
+                            if (upContent) {
+                                callBack?.upContent(1, resetPageOffset)
+                            }
                         }
                     }
                 }
+                removeLoading(index)
             }
         }
     }
@@ -114,13 +152,13 @@ open class PageViewController @Inject constructor(val context: Context,
      * 当前章节中正在显示的页面的索引
      */
     override fun durChapterPos(): Int {
-        ReadBook.curTextChapter?.let {
-            if (ReadBook.durPageIndex < it.pageSize) {
-                return ReadBook.durPageIndex
+        curTextChapter?.let {
+            if (durPageIndex < it.pageSize) {
+                return durPageIndex
             }
             return it.pageSize - 1
         }
-        return ReadBook.durPageIndex
+        return durPageIndex
     }
 
     override fun clickCenter() {

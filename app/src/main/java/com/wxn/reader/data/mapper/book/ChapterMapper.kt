@@ -7,5 +7,5 @@ interface ChapterMapper {
 
     suspend fun toChapterEntity(chapter: BookChapter): BookChapterEntity
 
-    suspend fun toChapter(entity: BookChapterEntity) : BookChapter
+    suspend fun toChapter(entity: BookChapterEntity?) : BookChapter?
 }

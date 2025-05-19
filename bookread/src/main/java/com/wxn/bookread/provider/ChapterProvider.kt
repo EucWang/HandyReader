@@ -11,7 +11,6 @@ import android.text.StaticLayout
 import android.text.TextPaint
 import com.wxn.base.bean.Book
 import com.wxn.base.bean.BookChapter
-import com.wxn.base.ext.imgRegex
 import com.wxn.base.ext.isContentPath
 import com.wxn.base.ext.toStringArray
 import com.wxn.base.util.PathUtil
@@ -29,21 +28,10 @@ import com.wxn.bookread.textHeight
 import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.launch
 import java.io.File
-import java.util.Locale
 import java.util.regex.Pattern
-import javax.inject.Inject
 
-open class PreferencesUser {
 
-    @Inject
-    lateinit var readerPreferencesUtil: ReaderPreferencesUtil
-
-    @Inject
-    lateinit var readTipPreferencesUtil: ReadTipPreferencesUtil
-
-}
-
-object ChapterProvider : PreferencesUser() {
+object ChapterProvider {
 
     val JS_PATTERN: Pattern =
         Pattern.compile("(<js>[\\w\\W]*?</js>|@js:[\\w\\W]*$)", Pattern.CASE_INSENSITIVE)
@@ -59,6 +47,9 @@ object ChapterProvider : PreferencesUser() {
     val authorRegex = Regex(".*?作\\s*?者[:：]")
     val fileNameRegex = Regex("[\\\\/:*?\"<>|.]")
     val splitGroupRegex = Regex("[,;，；]")
+
+    var readerPreferencesUtil: ReaderPreferencesUtil? = null
+    var readTipPreferencesUtil: ReadTipPreferencesUtil? = null
 
 
     /**
@@ -136,12 +127,22 @@ object ChapterProvider : PreferencesUser() {
      */
     lateinit var contentPaint: TextPaint
 
+    private fun tryCreatePreference(context : Context) {
+        if (readerPreferencesUtil == null) {
+            readerPreferencesUtil = ReaderPreferencesUtil(context)
+        }
+        if (readTipPreferencesUtil == null){
+            readTipPreferencesUtil = ReadTipPreferencesUtil(context)
+        }
+    }
 
     /**
      * 更新绘制尺寸
      */
-    private suspend fun upVisibleSize() {
-        val readerPreferences = readerPreferencesUtil.readerPreferencesFlow.firstOrNull()
+    private suspend fun upVisibleSize(context: Context) {
+        tryCreatePreference(context)
+
+        val readerPreferences = readerPreferencesUtil?.readerPreferencesFlow?.firstOrNull()
         if (viewWidth > 0 && viewHeight > 0) {
             paddingLeft = readerPreferences?.pageHorizontalMargins?.dp?.toInt() ?: 0         //页面左边距
             paddingTop =
@@ -157,10 +158,10 @@ object ChapterProvider : PreferencesUser() {
     /**
      * 更新样式
      */
-    fun upStyle() {
+    fun upStyle(context: Context) {
         Coroutines.mainScope().launch {
-            val context = readerPreferencesUtil.context
-            val readerPreferences = readerPreferencesUtil.readerPreferencesFlow.firstOrNull()
+            tryCreatePreference(context)
+            val readerPreferences = readerPreferencesUtil?.readerPreferencesFlow?.firstOrNull()
 
             //更新字体
             typeface = try {
@@ -194,7 +195,7 @@ object ChapterProvider : PreferencesUser() {
                 readerPreferences?.copy(
                     font = ""
                 )?.let { it ->
-                    readerPreferencesUtil.updatePreferences(it)
+                    readerPreferencesUtil?.updatePreferences(it)
                 }
 
                 Typeface.SANS_SERIF
@@ -256,8 +257,7 @@ object ChapterProvider : PreferencesUser() {
             titleBottomSpacing = readerPreferences?.titleBottomSpacing?.dp?.toInt()
                 ?: 0                           //标题底部间距
             //更新屏幕参数
-            upVisibleSize()
-
+            upVisibleSize(context)
         }
     }
 
@@ -504,7 +504,7 @@ object ChapterProvider : PreferencesUser() {
      * 段落的第一行，非标题，有缩进，处理两端对齐
      */
     private suspend fun addCharsToLineFirst(textLine: TextLine, words: Array<String>, textPaint: TextPaint, desiredWidth: Float) {
-        val tipPreference = readTipPreferencesUtil.readTIpPreferencesFlow.firstOrNull()
+        val tipPreference = readTipPreferencesUtil?.readTIpPreferencesFlow?.firstOrNull()
         val textFullJustify = tipPreference?.textFullJustify == true
         val bodyIndent = paragraphIndent    //段落首行缩进的2个tab
 
@@ -528,7 +528,7 @@ object ChapterProvider : PreferencesUser() {
      * 段落的中间行， 两端对齐
      */
     private suspend fun addCharsToLineMiddle(textLine: TextLine, words: Array<String>, textPaint: TextPaint, desiredWidth: Float,  offsetX: Float) {
-        val tipPreference = readTipPreferencesUtil.readTIpPreferencesFlow.firstOrNull()
+        val tipPreference = readTipPreferencesUtil?.readTIpPreferencesFlow?.firstOrNull()
         val textFullJustify = tipPreference?.textFullJustify == true
         if (!textFullJustify) { //非两端对齐, 即左对齐
             addCharsToLineLast(textLine, words, textPaint, offsetX)
@@ -585,20 +585,23 @@ object ChapterProvider : PreferencesUser() {
     /***
      * 设置View尺寸
      */
-    fun setViewSize(width: Int, height: Int) {
+    fun setViewSize(context: Context, width: Int, height: Int) {
         if (width > 0 && height > 0) {
             viewWidth = width
             viewHeight = height
             Coroutines.mainScope().launch {
-                upVisibleSize()
+                upVisibleSize(context)
             }
         }
     }
+//
+//    init {
+//        upStyle()
+//    }
 
-    init {
-        upStyle()
+    fun init(context : Context) {
+        upStyle(context)
     }
-
 
     var paragraphIndent: String = "　　" //段落缩进
 

@@ -15,7 +15,6 @@ import com.wxn.base.ext.statusBarHeight
 import com.wxn.base.ui.BaseActivity
 import com.wxn.base.util.Coroutines
 import com.wxn.bookread.R
-import com.wxn.bookread.ReadBook
 import com.wxn.bookread.data.model.TextPage
 import com.wxn.bookread.data.source.local.ReadTipPreferencesUtil.Companion.ReadTip_battery
 import com.wxn.bookread.data.source.local.ReadTipPreferencesUtil.Companion.ReadTip_bookName
@@ -83,7 +82,10 @@ class ContentView(context: Context) : FrameLayout(context) {
         }
     }
 
+    var callback: SelectTextCallback? = null
+
     fun setSelectTextCallback(callback: SelectTextCallback) {
+        this.callback = callback
         binding.contentTextView.callback = callback
     }
 
@@ -346,13 +348,12 @@ class ContentView(context: Context) : FrameLayout(context) {
      */
     @SuppressLint("SetTextI18n")
     fun setProgress(textPage: TextPage) = textPage.apply {
-        tvBookName?.text = ReadBook.book?.title
+        tvBookName?.text = callback?.book?.title.orEmpty()
         tvTitle?.text = textPage.title
         tvPage?.text = "${index.plus(1)}/$pageSize"
         tvTotalProgress?.text = readProgress
         tvPageAndTotal?.text = "${index.plus(1)}/$pageSize  $readProgress"
     }
-
 
     /***
      * 移动时，设置显示界面的偏移

@@ -8,12 +8,10 @@ import android.graphics.RectF
 import android.util.AttributeSet
 import android.view.View
 import androidx.core.graphics.toColorInt
-import com.wxn.base.ext.activity
 import com.wxn.base.ext.getCompatColor
 import com.wxn.base.util.Coroutines
 import com.wxn.base.util.Logger
 import com.wxn.bookread.R
-import com.wxn.bookread.ReadBook
 import com.wxn.bookread.data.model.TextChar
 import com.wxn.bookread.data.model.TextLine
 import com.wxn.bookread.data.model.TextPage
@@ -108,7 +106,7 @@ class ContentTextView(context: Context, attrs: AttributeSet?) : View(context, at
 
     override fun onSizeChanged(w: Int, h: Int, oldw: Int, oldh: Int) {
         super.onSizeChanged(w, h, oldw, oldh)
-        ChapterProvider.setViewSize(w, h)
+        ChapterProvider.setViewSize(context, w, h)
         refreshVisibleRect()
         textPage.format()
     }
@@ -208,7 +206,7 @@ class ContentTextView(context: Context, attrs: AttributeSet?) : View(context, at
      */
     private fun drawImage(canvas: Canvas, textLine: TextLine, lineTop: Float, lineBottom: Float) {
         textLine.textChars.forEach { textChar ->
-            ReadBook.book?.let { book ->
+            callback?.book?.let { book ->
                 val rectF = RectF(textChar.start, lineTop, textChar.end, lineBottom)
                 ImageProvider.getImage(book, textPage.chapterIndex, textChar.charData, true)?.let { bmp ->
                     canvas.drawBitmap(bmp, null, rectF, null)

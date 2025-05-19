@@ -20,7 +20,8 @@ class ChapterMapperImpl @Inject constructor()  : ChapterMapper{
         )
     }
 
-    override suspend fun toChapter(entity: BookChapterEntity): BookChapter {
+    override suspend fun toChapter(entity: BookChapterEntity?): BookChapter? {
+        entity ?: return null
         return BookChapter(
             id = entity.id,
             bookId = entity.bookId,

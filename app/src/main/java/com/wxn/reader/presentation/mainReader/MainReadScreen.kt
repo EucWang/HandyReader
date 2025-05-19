@@ -144,10 +144,11 @@ fun MainReadScreen(
 //                                areToolbarsVisible = !areToolbarsVisible
 //                            }
 //                        )
-                        ReaderView( book = book,
+                        ReaderView(
+                            book = book,
                             purchaseHelper = purchaseHelper,
                             navController = navController,
-                                                        onLocatorChange = { locator ->
+                            onLocatorChange = { locator ->
 //                                viewModel.updateCurrentLocator(locator)
                             },
 //                            initialLocator =  initialLocator,
@@ -158,7 +159,7 @@ fun MainReadScreen(
                             onToolbarsVisibilityChanged = {
                                 areToolbarsVisible = !areToolbarsVisible
                             }
-                            )
+                        )
                     }
                 }
             }

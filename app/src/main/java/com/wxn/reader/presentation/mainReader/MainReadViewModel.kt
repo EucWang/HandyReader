@@ -49,6 +49,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.launch
 import org.readium.r2.navigator.epub.EpubPreferences
 import org.readium.r2.shared.ExperimentalReadiumApi
@@ -130,12 +131,12 @@ class MainReadViewModel @Inject constructor(
     private var isReadingSessionActive = false
     private var lastLocatorChangeTime = 0L
 
-    private suspend fun fetchBook(bookId: Long) {
+    private suspend fun fetchBook(bookId: Long, loadCallback: (Book)->Unit) {
         try {
             val theBook = getBookByIdUseCase(bookId)
             if (theBook != null) {
                 _book.value = theBook
-                pageController.resetBook(theBook)
+                loadCallback.invoke(theBook)
             }
         } catch (e: Exception) {
             _uiState.value = BookReaderUiState.Error(e.message ?: "An error occurred")
@@ -174,26 +175,47 @@ class MainReadViewModel @Inject constructor(
 //                }
 
                 // Fetch the book details
-                fetchBook(bookId)
 
-                getChaptersByBookIdUserCase(bookId).collect { chapters ->
-                    var allChapters = chapters
-                    Logger.d("MainReadViewModel::allChapters.size:${allChapters.size}")
-                    if (allChapters.isEmpty()) {
-                        allChapters = BookHelper.cacheBookChapter(context, bookId, bookUri, textParser)
-                        if (allChapters.isNotEmpty()) {
-                            launch(Dispatchers.IO) {
-                                insertChaptersUserCase(allChapters)
-                                _book.collect { book ->
-                                    if (book != null) {
-                                        pageController.resetBook(book)  //重新加载章节数
-                                    }
+
+                Logger.i("MainReadViewModel::init::bookId=$bookId")
+                var allChapters = getChaptersByBookIdUserCase.invoke(bookId).firstOrNull()
+                if (allChapters.isNullOrEmpty()) {
+                    allChapters = BookHelper.cacheBookChapter(context, bookId, bookUri, textParser)
+                    if (allChapters.isNotEmpty()) {
+                        launch(Dispatchers.IO) {
+                            insertChaptersUserCase(allChapters)
+                            _book.collect { book ->
+                                if (book != null) {
+                                    pageController.resetBook(book)  //重新加载章节数
                                 }
                             }
                         }
                     }
-                    //TODO 获取章节数据，对章节数据进行处理，给予界面显示
+                } else {
+                    fetchBook(bookId) { newBook ->
+                        launch(Dispatchers.IO) {
+                            pageController.resetBook(newBook)  //重新加载章节数
+                        }
+                    }
                 }
+//                getChaptersByBookIdUserCase(bookId).collect { chapters ->
+//                    var allChapters = chapters
+//                    Logger.d("MainReadViewModel::allChapters.size:${allChapters.size}")
+//                    if (allChapters.isEmpty()) {
+//                        allChapters = BookHelper.cacheBookChapter(context, bookId, bookUri, textParser)
+//                        if (allChapters.isNotEmpty()) {
+//                            launch(Dispatchers.IO) {
+//                                insertChaptersUserCase(allChapters)
+//                                _book.collect { book ->
+//                                    if (book != null) {
+//                                        pageController.resetBook(book)  //重新加载章节数
+//                                    }
+//                                }
+//                            }
+//                        }
+//                    }
+//                    //TODO 获取章节数据，对章节数据进行处理，给予界面显示
+//                }
 
                 readerPreferencesUtil.readerPreferencesFlow.collect { preferences ->
                     _readerPreferences.value = preferences

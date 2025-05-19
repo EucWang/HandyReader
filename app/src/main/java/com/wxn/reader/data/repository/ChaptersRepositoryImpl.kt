@@ -6,6 +6,7 @@ import com.wxn.reader.data.source.local.dao.ChapterDao
 import com.wxn.reader.domain.repository.ChaptersRepository
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.mapNotNull
 import javax.inject.Inject
 
 class ChaptersRepositoryImpl @Inject constructor(
@@ -14,13 +15,13 @@ class ChaptersRepositoryImpl @Inject constructor(
 ) : ChaptersRepository {
     override fun getAllChapters(bookId: Long): Flow<List<BookChapter>> =
         chapterDao.getChapters(bookId).map { entities ->
-            entities.map { entity ->
+            entities.mapNotNull { entity ->
                 chapterMapper.toChapter(entity)
             }
         }
 
     override fun getChapter(bookId: Long, chapterIndex: Int): Flow<BookChapter> =
-        chapterDao.getChapter(bookId, chapterIndex).map { entity ->
+        chapterDao.getChapter(bookId, chapterIndex).mapNotNull { entity ->
             chapterMapper.toChapter(entity)
         }
 
