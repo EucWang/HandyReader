@@ -9,7 +9,6 @@ import android.os.Build
 import android.text.Layout
 import android.text.StaticLayout
 import android.text.TextPaint
-import android.util.DisplayMetrics
 import com.wxn.base.bean.Book
 import com.wxn.base.bean.BookChapter
 import com.wxn.base.ext.isContentPath
@@ -252,7 +251,7 @@ object ChapterProvider {
             Logger.d("ChapterProvider::upStyle::contentPaint.textSize=${contentPaint.textSize}")
             contentPaint.isAntiAlias = true                                                     //设置抗锯齿
             //间距
-            lineSpacingExtra = readerPreferences?.lineHeight?.toInt() ?: 0  //TODO              //行间距
+            lineSpacingExtra = readerPreferences?.lineSpacingExtra?.toInt() ?: 0                //行间距系数，除上10 再和lineHeight相乘
             Logger.d("ChapterProvider::upStyle::lineSpacingExtra=${lineSpacingExtra}")
             paragraphSpacing = readerPreferences?.paragraphSpacing?.toInt() ?: 0                 //段落缩进
             Logger.d("ChapterProvider::upStyle::paragraphSpacing=${paragraphSpacing}")
@@ -464,7 +463,7 @@ object ChapterProvider {
                 textLine.text = "$words\n"          //增加一次换行
                 isLastLine = true
                 val x = if (isTitle) {
-                    (visibleWidth - layout.getLineWidth(lineIndex)) / 2  //标题栏居中显示，左偏移
+                    (visibleWidth - desiredWidth) / 2  //标题栏居中显示，左偏移
                 } else {
                     0f
                 }

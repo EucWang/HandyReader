@@ -48,7 +48,9 @@ fun ReaderView(
                     layoutParams = FrameLayout.LayoutParams(FrameLayout.LayoutParams.MATCH_PARENT, FrameLayout.LayoutParams.MATCH_PARENT)
                     viewModel.pageController.pageFactory = TextPageFactory(this , viewModel.pageController)
                     this.dataProvider = viewModel.pageController
+                    viewModel.pageController.callBack = this
                     setSelectTextCallback(viewModel.pageController)
+
                 }
             },
             modifier = Modifier

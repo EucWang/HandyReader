@@ -31,6 +31,7 @@ class ReaderPreferencesUtil @Inject constructor(
         val FONT_SIZE = doublePreferencesKey("font_size")                                   //字体大小
         val LETTER_SPACING = doublePreferencesKey("letter_spacing")                         //字母间距
         val LINE_HEIGHT = doublePreferencesKey("line_height")                               //行高
+        val lINE_SPACING_EXTRA = doublePreferencesKey("lineSpacingExtra")
 
         val FONT_FAMILY = stringPreferencesKey("font_family")                                      //字体
         val FONT_BOLD = intPreferencesKey("font_bold")                                      //字体是否粗体
@@ -73,6 +74,7 @@ class ReaderPreferencesUtil @Inject constructor(
             titleBottomSpacing = 0.0,
             letterSpacing = 0.0,
             lineHeight = 32.0,
+            lineSpacingExtra = 13.0,
             pageHorizontalMargins = 1.0,
             pageTopMargins = 1.0,
             paragraphIndent = 0.0,
@@ -126,21 +128,22 @@ class ReaderPreferencesUtil @Inject constructor(
             fontBold = preferences[FONT_BOLD] ?: defaultPreferences.fontBold,
             titleSize = preferences[TITLE_FONT_SIZE] ?: defaultPreferences.titleSize,
             titleTopSpacing = preferences[TITLE_TOP_SPACING] ?: defaultPreferences.titleTopSpacing,
-            titleBottomSpacing = preferences[TITLE_BOTTOM_SPACING] ?: defaultPreferences.titleBottomSpacing
+            titleBottomSpacing = preferences[TITLE_BOTTOM_SPACING] ?: defaultPreferences.titleBottomSpacing,
+            lineSpacingExtra = preferences[lINE_SPACING_EXTRA] ?: defaultPreferences.lineSpacingExtra,
         )
     }
 
     suspend fun updatePreferences(newPreferences: ReaderPreferences) {
         dataStore.edit { preferences ->
-            preferences[FONT_SIZE] = newPreferences.fontSize?.toDouble() ?: 0.0
-            preferences[LINE_HEIGHT] = newPreferences.lineHeight?.toDouble() ?: 0.0
-            preferences[LETTER_SPACING] = newPreferences.letterSpacing?.toDouble() ?: 0.0
-            preferences[WORD_SPACING] = newPreferences.wordSpacing?.toDouble() ?: 0.0
+            preferences[FONT_SIZE] = newPreferences.fontSize.toDouble()
+            preferences[LINE_HEIGHT] = newPreferences.lineHeight.toDouble()
+            preferences[LETTER_SPACING] = newPreferences.letterSpacing.toDouble()
+            preferences[WORD_SPACING] = newPreferences.wordSpacing.toDouble()
 
-            preferences[PAGE_HORIZONTAL_MARGINS] = newPreferences.pageHorizontalMargins?.toDouble() ?: 0.0
-            preferences[PAGE_TOP_MARGINS] = newPreferences.pageTopMargins?.toDouble() ?: 0.0
-            preferences[PARAGRAPH_INDENT] = newPreferences.paragraphIndent?.toDouble() ?: 0.0
-            preferences[PARAGRAPH_SPACING] = newPreferences.paragraphSpacing?.toDouble() ?: 0.0
+            preferences[PAGE_HORIZONTAL_MARGINS] = newPreferences.pageHorizontalMargins.toDouble()
+            preferences[PAGE_TOP_MARGINS] = newPreferences.pageTopMargins.toDouble()
+            preferences[PARAGRAPH_INDENT] = newPreferences.paragraphIndent.toDouble()
+            preferences[PARAGRAPH_SPACING] = newPreferences.paragraphSpacing.toDouble()
             preferences[TEXT_ALIGN] = newPreferences.textAlign.toString()
 
             preferences[BACKGROUND_COLOR] = newPreferences.backgroundColor
@@ -158,9 +161,10 @@ class ReaderPreferencesUtil @Inject constructor(
 
             preferences[FONT_FAMILY] = newPreferences.font
             preferences[FONT_BOLD] = newPreferences.fontBold
-            preferences[TITLE_FONT_SIZE] = newPreferences.titleSize?.toDouble() ?: 0.0
-            preferences[TITLE_TOP_SPACING] = newPreferences.titleTopSpacing?.toDouble() ?: 0.0
-            preferences[TITLE_BOTTOM_SPACING] = newPreferences.titleBottomSpacing?.toDouble() ?: 0.0
+            preferences[TITLE_FONT_SIZE] = newPreferences.titleSize.toDouble()
+            preferences[TITLE_TOP_SPACING] = newPreferences.titleTopSpacing.toDouble()
+            preferences[TITLE_BOTTOM_SPACING] = newPreferences.titleBottomSpacing.toDouble()
+            preferences[lINE_SPACING_EXTRA] = newPreferences.lineSpacingExtra.toDouble()
         }
     }
 

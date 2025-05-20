@@ -21,6 +21,7 @@ data class ReaderPreferences constructor(
     val lineHeight: Double,                     //行高
     val pageHorizontalMargins: Double,          //页面左右边距
     val pageTopMargins: Double,                     //页面顶部边距
+    val lineSpacingExtra: Double,               //行高系数， 最终会除上10， 默认值13
 
     val paragraphIndent: Double,                //段落缩进
     val paragraphSpacing: Double,               //段落间距

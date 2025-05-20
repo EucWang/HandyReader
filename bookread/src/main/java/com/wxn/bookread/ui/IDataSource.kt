@@ -2,7 +2,7 @@ package com.wxn.bookread.ui
 
 import com.wxn.bookread.data.model.TextChapter
 
-interface IDataSource {
+interface IDataSource : PageChangeCallback {
     /***
      * 当前章节中正在显示的页面的索引
      */
@@ -17,6 +17,10 @@ interface IDataSource {
     fun hasNextChapter(): Boolean
 
     fun hasPrevChapter(): Boolean
+
+}
+
+interface PageChangeCallback {
 
     fun upContent(relativePosition: Int = 0, resetPageOffset: Boolean = true)
 }

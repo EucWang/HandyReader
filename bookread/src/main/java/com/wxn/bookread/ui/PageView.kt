@@ -13,9 +13,11 @@ import com.wxn.bookread.ui.delegate.PageDelegate
 import android.graphics.Paint
 import android.view.MotionEvent
 import androidx.core.graphics.toColorInt
+import com.wxn.base.bean.Book
 import com.wxn.base.ext.screenshot
 import com.wxn.base.util.Coroutines
 import com.wxn.base.util.Logger
+import com.wxn.bookread.PageCallback
 import com.wxn.bookread.provider.ChapterProvider
 import com.wxn.bookread.ui.delegate.CoverPageDelegate
 import com.wxn.bookread.ui.delegate.NoAnimPageDelegate
@@ -30,7 +32,7 @@ import kotlin.math.abs
  * 包含三个ContentView， 对应前页，当前页，下一页 三个页面
  * 控制界面切换， 长按，点击等事件处理
  */
-class PageView: FrameLayout, IDataSource {
+class PageView: FrameLayout, IDataSource, PageCallback {
 
     constructor(context: Context) : super(context) {
         Logger.i("PageView::constructor1")
@@ -438,10 +440,26 @@ class PageView: FrameLayout, IDataSource {
         }
     }
 
+    override fun loadChapterList(book: Book) {
+//        TODO("Not yet implemented")
+    }
+
+    override fun upView() {
+//        TODO("Not yet implemented")
+    }
+
+    override fun pageChanged() {
+//        TODO("Not yet implemented")
+    }
+
+    override fun contentLoadFinish() {
+//        TODO("Not yet implemented")
+    }
+
     /***
      * 更新页面切换动画类型
      */
-    fun upPageAnim() {
+    override fun upPageAnim() {
         Coroutines.mainScope().launch {
             ChapterProvider.tryCreatePreference(context)
             ChapterProvider.readTipPreferencesUtil?.readTIpPreferencesFlow?.firstOrNull()?.let{ preference ->

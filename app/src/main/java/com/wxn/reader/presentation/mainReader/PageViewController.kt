@@ -5,9 +5,9 @@ import androidx.lifecycle.MutableLiveData
 import com.wxn.base.bean.Book
 import com.wxn.base.util.Logger
 import com.wxn.base.util.launchIO
-import com.wxn.bookread.PageCallback
 import com.wxn.bookread.data.model.TextChapter
 import com.wxn.bookread.provider.ChapterProvider
+import com.wxn.bookread.ui.PageCallback
 import com.wxn.bookread.ui.PageViewCallback
 import com.wxn.bookread.ui.PageViewDataProvider
 import com.wxn.bookread.ui.SelectTextCallback
@@ -77,7 +77,6 @@ open class PageViewController @Inject constructor(val context: Context,
             this.chapterSize = count
             durChapterIndex = book.scrollIndex
             Logger.d("PageViewController::resetBook:chapterSize=$chapterSize, durChapterIndex=$durChapterIndex")
-            loadContent(true)
             isInitFinish = true
             Logger.d("PageViewController::resetBook:isInitFinish=$isInitFinish")
         }
@@ -114,7 +113,7 @@ open class PageViewController @Inject constructor(val context: Context,
     }
 
     override fun loadContent(resetPageOffset: Boolean) {
-        Logger.i("PageViewController::loadContent:resetPageOffset=$resetPageOffset")
+        Logger.i("PageViewController::loadContent:resetPageOffset=$resetPageOffset,durChapterIndex=$durChapterIndex")
         scope?.launchIO {
             loadContent(durChapterIndex, resetPageOffset = resetPageOffset)
             loadContent(durChapterIndex + 1, resetPageOffset = resetPageOffset)
@@ -146,13 +145,6 @@ open class PageViewController @Inject constructor(val context: Context,
     }
 
 
-    override fun moveToNextChapter(upContent: Boolean) {
-        TODO("Not yet implemented")
-    }
-
-    override fun moveToPrevChapter(upContent: Boolean) {
-        TODO("Not yet implemented")
-    }
 
     private suspend fun loadContent(index: Int, upContent: Boolean = true, resetPageOffset: Boolean) {
         Logger.i("PageViewController::loadContent:index=$index,upContent=$upContent,resetPageOffset=$resetPageOffset")
@@ -204,6 +196,21 @@ open class PageViewController @Inject constructor(val context: Context,
         }
         Logger.i("PageViewController::durChapterPos::durPageIndex=$durPageIndex")
         return durPageIndex
+    }
+
+
+    fun moveToNextPage() {
+        durPageIndex++
+        callBack?.upContent()
+        saveRead()
+    }
+
+    override fun moveToNextChapter(upContent: Boolean) {
+        TODO("Not yet implemented")
+    }
+
+    override fun moveToPrevChapter(upContent: Boolean) {
+        TODO("Not yet implemented")
     }
 
     override fun clickCenter() {
