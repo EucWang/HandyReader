@@ -13,9 +13,9 @@ data class ReaderPreferences constructor(
     val font: String = "",                      //字体路径
     val fontBold: Int = 0,                      //是否粗体
 
-    val titleSize : Double = 5.0,           //标题文字大小
-    val titleTopSpacing: Double = 12.0,     //标题顶部间距
-    val titleBottomSpacing : Double = 0.0,      //标题底部间距
+    val titleSize : Double,           //标题文字大小
+    val titleTopSpacing: Double,     //标题顶部间距
+    val titleBottomSpacing : Double,      //标题底部间距
 
     val letterSpacing: Double,                  //字母间距
     val lineHeight: Double,                     //行高

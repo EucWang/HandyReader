@@ -14,6 +14,7 @@ import com.wxn.base.ext.getCompatColor
 import com.wxn.base.ext.statusBarHeight
 import com.wxn.base.ui.BaseActivity
 import com.wxn.base.util.Coroutines
+import com.wxn.base.util.Logger
 import com.wxn.bookread.R
 import com.wxn.bookread.data.model.TextPage
 import com.wxn.bookread.data.source.local.ReadTipPreferencesUtil.Companion.ReadTip_battery
@@ -333,6 +334,7 @@ class ContentView(context: Context) : FrameLayout(context) {
      * 设置需要显示的TextPage内容
      */
     fun setContent(textPage: TextPage, resetPageOffset: Boolean = true) {
+        Logger.i("ContentView::setContent::textPage.pageSize=${textPage.pageSize}")
         setProgress(textPage)
         if (resetPageOffset)
             resetPageOffset()

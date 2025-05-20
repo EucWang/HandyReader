@@ -389,11 +389,17 @@ int dump_cover2(const MOBIData *m, const char *title, /**/const char *targetDir,
     char name[512];
     snprintf(name, sizeof(name), "%s_cover.%s", title, ext);
 
+    char parent_path[FILENAME_MAX];
+    snprintf(parent_path, FILENAME_MAX, "%s%s%s", targetDir, "/", "covers");    //covers 目录
+    if (!dir_exists(parent_path) && make_directory(parent_path) != SUCCESS) {
+        return ERROR;
+    }
+
     char cover_path[FILENAME_MAX];
 //    if (create_path(cover_path, sizeof(cover_path), targetDir, name) == ERROR) {
 //        return ERROR;
 //    }
-    snprintf(cover_path, FILENAME_MAX, "%s%s%s", targetDir, "/" ,name);
+    snprintf(cover_path, FILENAME_MAX, "%s%s%s", parent_path, "/" ,name);
 
     LOGD("Saving cover to %s\n", cover_path);
 

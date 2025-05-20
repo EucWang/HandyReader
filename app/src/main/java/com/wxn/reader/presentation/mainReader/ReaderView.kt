@@ -1,5 +1,6 @@
 package com.wxn.reader.presentation.mainReader
 
+import android.widget.FrameLayout
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
@@ -11,6 +12,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.navigation.NavHostController
 import com.wxn.base.bean.Book
+import com.wxn.base.util.Logger
 import com.wxn.bookread.data.model.preference.ReaderPreferences
 import com.wxn.bookread.ui.PageView
 import com.wxn.bookread.ui.TextPageFactory
@@ -34,6 +36,7 @@ fun ReaderView(
     areToolbarsVisible: Boolean,
     onToolbarsVisibilityChanged: () -> Unit,
 ) {
+    Logger.i("ReaderView::load")
     Box(
         modifier = Modifier
             .fillMaxSize()
@@ -42,6 +45,7 @@ fun ReaderView(
         AndroidView(
             factory = { context ->
                 PageView(context).apply{
+                    layoutParams = FrameLayout.LayoutParams(FrameLayout.LayoutParams.MATCH_PARENT, FrameLayout.LayoutParams.MATCH_PARENT)
                     viewModel.pageController.pageFactory = TextPageFactory(this , viewModel.pageController)
                     this.dataProvider = viewModel.pageController
                     setSelectTextCallback(viewModel.pageController)

@@ -9,6 +9,7 @@ import android.os.Build
 import android.text.Layout
 import android.text.StaticLayout
 import android.text.TextPaint
+import android.util.DisplayMetrics
 import com.wxn.base.bean.Book
 import com.wxn.base.bean.BookChapter
 import com.wxn.base.ext.isContentPath
@@ -142,30 +143,39 @@ object ChapterProvider {
     private suspend fun upVisibleSize(context: Context) {
         tryCreatePreference(context)
 
+        if (viewWidth == 0 || viewHeight == 0) {
+            val metrics = context.resources.displayMetrics
+            viewWidth = metrics.widthPixels
+            viewHeight = metrics.heightPixels
+            Logger.d("ChapterProvider::viewWidth=$viewWidth,viewHeight=$viewHeight")
+        }
+
         val readerPreferences = readerPreferencesUtil?.readerPreferencesFlow?.firstOrNull()
         if (viewWidth > 0 && viewHeight > 0) {
             paddingLeft = readerPreferences?.pageHorizontalMargins?.dp?.toInt() ?: 0         //页面左边距
-            paddingTop =
-                readerPreferences?.pageTopMargins?.dp?.toInt() ?: 0                 //页面顶部间距
-            visibleWidth =
-                (viewWidth - paddingLeft * 2).toInt()                                //可视宽度
+            paddingTop = readerPreferences?.pageTopMargins?.dp?.toInt() ?: 0                 //页面顶部间距
+            visibleWidth = (viewWidth - paddingLeft * 2).toInt()                                //可视宽度
             visibleHeight = (viewHeight - paddingTop * 2).toInt()                            //可视高度
             visibleRight = paddingLeft + visibleWidth                                       //可视右边
             visibleBottom = paddingTop + visibleHeight                                      //可视底部
         }
+        Logger.d("ChapterProvider::upVisibleSize::viewWidth=$viewWidth, viewHeight=$viewHeight, visibleWidth=$visibleWidth,visibleHeight=$visibleHeight,visibleRight=$visibleRight,visibleBottom=$visibleBottom")
     }
 
     /**
      * 更新样式
      */
     fun upStyle(context: Context) {
+        Logger.i("ChapterProvider::upStyle")
         Coroutines.mainScope().launch {
             tryCreatePreference(context)
             val readerPreferences = readerPreferencesUtil?.readerPreferencesFlow?.firstOrNull()
+            Logger.d("ChapterProvider::upStyle::readerPreferences =${readerPreferences}")
 
             //更新字体
             typeface = try {
                 val fontPath = readerPreferences?.font.orEmpty()
+                Logger.d("ChapterProvider::upStyle::fontPath=$fontPath")
 //            val fontPath = ReadBookConfig.textFont  //字体路径
                 when {
                     //android26以上版本, 根据file descriptor得到字体类
@@ -197,7 +207,6 @@ object ChapterProvider {
                 )?.let { it ->
                     readerPreferencesUtil?.updatePreferences(it)
                 }
-
                 Typeface.SANS_SERIF
             }
             // 字体统一处理
@@ -224,40 +233,36 @@ object ChapterProvider {
 
             //标题的Paint
             titlePaint = TextPaint()
-
-            titlePaint.color =
-                readerPreferences?.textColor ?: Color.BLACK                       //设置标题文字颜色
-            titlePaint.letterSpacing =
-                readerPreferences?.letterSpacing?.toFloat() ?: 0f        //设置标题字母间距
-            titlePaint.typeface =
-                titleFont                                                     //设置标题字体
+            titlePaint.color = readerPreferences?.textColor ?: Color.BLACK                       //设置标题文字颜色
+            Logger.d("ChapterProvider::upStyle::titlePaint.color=${titlePaint.color}")
+            titlePaint.letterSpacing = readerPreferences?.letterSpacing?.toFloat() ?: 0f        //设置标题字母间距
+            Logger.d("ChapterProvider::upStyle::titlePaint.letterSpacing=${titlePaint.letterSpacing}")
+            titlePaint.typeface = titleFont                                                     //设置标题字体
 //        titlePaint.textSize = with(ReadBookConfig) { textSize + titleSize }.sp.toFloat()    //设置标题字体大小
             titlePaint.textSize = readerPreferences?.titleSize?.sp?.toFloat() ?: 0.0f
-            titlePaint.isAntiAlias =
-                true                                                       //设置抗锯齿
+            Logger.d("ChapterProvider::upStyle::titlePaint.textSize=${titlePaint.textSize}")
+            titlePaint.isAntiAlias = true                                                       //设置抗锯齿
             //正文的Paint
             contentPaint = TextPaint()
-            contentPaint.color =
-                readerPreferences?.textColor ?: Color.BLACK                    //设置正文文字颜色
-            contentPaint.letterSpacing =
-                readerPreferences?.letterSpacing?.toFloat() ?: 0.0f               //设置正文文字间距
-            contentPaint.typeface =
-                textFont                                                    //设置正文字体
-            contentPaint.textSize =
-                readerPreferences?.fontSize?.sp?.toFloat() ?: 0.0f                     //设置字体大小
-            contentPaint.isAntiAlias =
-                true                                                     //设置抗锯齿
+            contentPaint.color = readerPreferences?.textColor ?: Color.BLACK                    //设置正文文字颜色
+            contentPaint.letterSpacing = readerPreferences?.letterSpacing?.toFloat() ?: 0.0f               //设置正文文字间距
+            Logger.d("ChapterProvider::upStyle::contentPaint.letterSpacing=${contentPaint.letterSpacing}")
+            contentPaint.typeface = textFont                                                    //设置正文字体
+            contentPaint.textSize = readerPreferences?.fontSize?.sp?.toFloat() ?: 0.0f                     //设置字体大小
+            Logger.d("ChapterProvider::upStyle::contentPaint.textSize=${contentPaint.textSize}")
+            contentPaint.isAntiAlias = true                                                     //设置抗锯齿
             //间距
-            lineSpacingExtra =
-                readerPreferences?.lineHeight?.toInt() ?: 0  //TODO              //行间距
-            paragraphSpacing =
-                readerPreferences?.paragraphSpacing?.toInt() ?: 0                 //段落缩进
-            titleTopSpacing =
-                readerPreferences?.titleTopSpacing?.dp?.toInt() ?: 0               //标题顶部间距
-            titleBottomSpacing = readerPreferences?.titleBottomSpacing?.dp?.toInt()
-                ?: 0                           //标题底部间距
+            lineSpacingExtra = readerPreferences?.lineHeight?.toInt() ?: 0  //TODO              //行间距
+            Logger.d("ChapterProvider::upStyle::lineSpacingExtra=${lineSpacingExtra}")
+            paragraphSpacing = readerPreferences?.paragraphSpacing?.toInt() ?: 0                 //段落缩进
+            Logger.d("ChapterProvider::upStyle::paragraphSpacing=${paragraphSpacing}")
+            titleTopSpacing = readerPreferences?.titleTopSpacing?.dp?.toInt() ?: 0               //标题顶部间距
+            Logger.d("ChapterProvider::upStyle::titleTopSpacing=${titleTopSpacing}")
+            titleBottomSpacing = readerPreferences?.titleBottomSpacing?.dp?.toInt() ?: 0                           //标题底部间距
+            Logger.d("ChapterProvider::upStyle::titleBottomSpacing=${titleBottomSpacing}")
             //更新屏幕参数
             upVisibleSize(context)
+            Logger.d("ChapterProvider::upStyle done")
         }
     }
 
@@ -586,6 +591,7 @@ object ChapterProvider {
      * 设置View尺寸
      */
     fun setViewSize(context: Context, width: Int, height: Int) {
+        Logger.d("ChapterProvider::setViewSize,width=$width, height=$height")
         if (width > 0 && height > 0) {
             viewWidth = width
             viewHeight = height
@@ -593,6 +599,7 @@ object ChapterProvider {
                 upVisibleSize(context)
             }
         }
+        Logger.d("ChapterProvider::setViewSize,viewWidth=$viewWidth, viewHeight=$viewHeight")
     }
 //
 //    init {

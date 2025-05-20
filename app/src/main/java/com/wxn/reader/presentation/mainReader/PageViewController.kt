@@ -75,8 +75,11 @@ open class PageViewController @Inject constructor(val context: Context,
         this.book = book
         getChapterCountByBookIdUserCase.invoke(book.id).collect { count->
             this.chapterSize = count
-            Logger.d("PageViewController::resetBook:chapterSize=$chapterSize")
+            durChapterIndex = book.scrollIndex
+            Logger.d("PageViewController::resetBook:chapterSize=$chapterSize, durChapterIndex=$durChapterIndex")
             loadContent(true)
+            isInitFinish = true
+            Logger.d("PageViewController::resetBook:isInitFinish=$isInitFinish")
         }
     }
 
@@ -111,11 +114,12 @@ open class PageViewController @Inject constructor(val context: Context,
     }
 
     override fun loadContent(resetPageOffset: Boolean) {
-        ChapterProvider.init(context)
         Logger.i("PageViewController::loadContent:resetPageOffset=$resetPageOffset")
-        loadContent(durChapterIndex, resetPageOffset = resetPageOffset)
-        loadContent(durChapterIndex + 1, resetPageOffset = resetPageOffset)
-        loadContent(durChapterIndex - 1, resetPageOffset = resetPageOffset)
+        scope?.launchIO {
+            loadContent(durChapterIndex, resetPageOffset = resetPageOffset)
+            loadContent(durChapterIndex + 1, resetPageOffset = resetPageOffset)
+            loadContent(durChapterIndex - 1, resetPageOffset = resetPageOffset)
+        }
     }
 
     override fun setPageIndex(index: Int) {
@@ -150,42 +154,40 @@ open class PageViewController @Inject constructor(val context: Context,
         TODO("Not yet implemented")
     }
 
-    private fun loadContent(index: Int, upContent: Boolean = true, resetPageOffset: Boolean) {
+    private suspend fun loadContent(index: Int, upContent: Boolean = true, resetPageOffset: Boolean) {
         Logger.i("PageViewController::loadContent:index=$index,upContent=$upContent,resetPageOffset=$resetPageOffset")
         if (index < 0) return
         val curBook = book ?: return
-        scope?.launchIO {
-            val bookId = curBook.id
-            Logger.i("PageViewController::loadContent:index=$index,upContent=$upContent,resetPageOffset=$resetPageOffset,bookId=$bookId")
-            if (!addLoading(index)) return@launchIO
-            getChapterByIdUserCase(bookId, index).collect { chapter ->
-                Logger.i("PageViewController::loadContent:index=$index,upContent=$upContent,resetPageOffset=$resetPageOffset,bookId=$bookId,chapter=$chapter")
-                BookHelper.loadChpaterContent(context, bookId, chapter)?.let { content ->
-                    val contents = BookHelper.disposeContent(appPreferencesUtil, chapter, content)
-                    Logger.i("PageViewController::loadContent:index=$index,upContent=$upContent,resetPageOffset=$resetPageOffset,bookId=$bookId,chapter=$chapter,contents.size=${contents.size}")
-                    val textChapter = ChapterProvider.getTextChapter(context, curBook, chapter, contents, imageStyles = "", chapterSize)
-                    when(chapter.chapterIndex) {
-                        durChapterIndex -> {    //加载的是当前章节
-                            curTextChapter = textChapter
-                            if (upContent) callBack?.upContent(resetPageOffset = resetPageOffset)
-                            callBack?.upView()
+        val bookId = curBook.id
+        Logger.i("PageViewController::loadContent:index=$index,bookId=$bookId")
+        if (!addLoading(index)) return
+        getChapterByIdUserCase(bookId, index).collect { chapter ->
+            Logger.i("PageViewController::loadContent:index=$index, chapter=$chapter")
+            BookHelper.loadChpaterContent(context, bookId, chapter)?.let { content ->
+                val contents = BookHelper.disposeContent(appPreferencesUtil, chapter, content)
+                Logger.i("PageViewController::loadContent:index=$index, contents.size=${contents.size}")
+                val textChapter = ChapterProvider.getTextChapter(context, curBook, chapter, contents, imageStyles = "", chapterSize)
+                when(chapter.chapterIndex) {
+                    durChapterIndex -> {    //加载的是当前章节
+                        curTextChapter = textChapter
+                        if (upContent) callBack?.upContent(resetPageOffset = resetPageOffset)
+                        callBack?.upView()
+                    }
+                    durChapterIndex -1 -> { //加载的是上一章节
+                        prevTextChapter = textChapter
+                        if (upContent) {
+                            callBack?.upContent(-1, resetPageOffset)
                         }
-                        durChapterIndex -1 -> { //加载的是上一章节
-                            prevTextChapter = textChapter
-                            if (upContent) {
-                                callBack?.upContent(-1, resetPageOffset)
-                            }
-                        }
-                        durChapterIndex + 1 -> {    //加载的是下一章节
-                            nextTextChapter = textChapter
-                            if (upContent) {
-                                callBack?.upContent(1, resetPageOffset)
-                            }
+                    }
+                    durChapterIndex + 1 -> {    //加载的是下一章节
+                        nextTextChapter = textChapter
+                        if (upContent) {
+                            callBack?.upContent(1, resetPageOffset)
                         }
                     }
                 }
-                removeLoading(index)
             }
+            removeLoading(index)
         }
     }
 
@@ -193,36 +195,44 @@ open class PageViewController @Inject constructor(val context: Context,
      * 当前章节中正在显示的页面的索引
      */
     override fun durChapterPos(): Int {
+        Logger.i("PageViewController::durChapterPos")
         curTextChapter?.let {
             if (durPageIndex < it.pageSize) {
                 return durPageIndex
             }
             return it.pageSize - 1
         }
+        Logger.i("PageViewController::durChapterPos::durPageIndex=$durPageIndex")
         return durPageIndex
     }
 
     override fun clickCenter() {
+        Logger.i("PageViewController::clickCenter")
 //        TODO("Not yet implemented")
     }
 
     override fun screenOffTimerStart() {
+        Logger.i("PageViewController::screenOffTimerStart")
 //        TODO("Not yet implemented")
     }
 
     override fun showTextActionMenu() {
+        Logger.i("PageViewController::showTextActionMenu")
 //        TODO("Not yet implemented")
     }
 
     override fun upSelectedStart(x: Float, y: Float, top: Float) {
+        Logger.i("PageViewController::upSelectedStart")
 //        TODO("Not yet implemented")
     }
 
     override fun upSelectedEnd(x: Float, y: Float) {
+        Logger.i("PageViewController::upSelectedEnd")
 //        TODO("Not yet implemented")
     }
 
     override fun onCancelSelect() {
+        Logger.i("PageViewController::onCancelSelect")
 //        TODO("Not yet implemented")
     }
 }

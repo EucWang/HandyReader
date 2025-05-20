@@ -76,7 +76,7 @@ class ContentTextView(context: Context, attrs: AttributeSet?) : View(context, at
     //滚动偏移量
     private var pageOffset = 0f
 
-//    init {
+    init {
 //        val cb = activity as? SelectTextCallback?
 //        if (cb == null) {
 //            throw IllegalStateException("ContentTextView is not in a activity which implemente SelectTextCallback")
@@ -84,8 +84,9 @@ class ContentTextView(context: Context, attrs: AttributeSet?) : View(context, at
 //            callback = cb
 //        }
 //
-//        contentDescription = textPage.text
-//    }
+        contentDescription = textPage.text
+        Logger.i("ContentTextView::init")
+    }
 
     fun setContent(textPage: TextPage) {
         this.textPage = textPage

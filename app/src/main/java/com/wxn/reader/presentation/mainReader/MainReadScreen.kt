@@ -27,6 +27,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import coil.compose.AsyncImage
 import coil.request.ImageRequest
 import coil.size.Scale
+import com.wxn.base.util.Logger
 import com.wxn.reader.navigation.LocalNavController
 import com.wxn.reader.navigation.PurchaseHelperController
 import com.wxn.reader.presentation.bookReader.BookReaderUiState
@@ -61,12 +62,12 @@ fun MainReadScreen(
 
     KeepScreenOn(readerPreferences.keepScreenOn)
 
-
     LaunchedEffect(uiState) {
         viewModel.fetchInitialLocator()
-        if (uiState is BookReaderUiState.Success) {
+        if (uiState is BookReaderUiState.LOAD_SUCCESS) {
             delay(2000)
             showReader = true
+            Logger.d("MainReadScreen::showReader=$showReader")
             // Animate the transition
             animate(1f, 0f, animationSpec = tween(durationMillis = 500)) { value, _ ->
                 coverAlpha = value
@@ -83,7 +84,6 @@ fun MainReadScreen(
         }
     }
 
-
     SetFullScreen(context, showSystemBars = areToolbarsVisible)
 
 
@@ -93,8 +93,9 @@ fun MainReadScreen(
             .background(MaterialTheme.colorScheme.background),
         contentAlignment = Alignment.Center
     ) {
+//        Logger.d("MainReadScreen::uiState=$uiState")
         when (uiState) {
-            is BookReaderUiState.Loading, is BookReaderUiState.Success -> {
+            is BookReaderUiState.Loading, is BookReaderUiState.LOAD_SUCCESS -> {
                 // Book cover
                 Box(
                     modifier = Modifier
@@ -118,32 +119,13 @@ fun MainReadScreen(
                 }
 
                 // reader
-                if (showReader && uiState is BookReaderUiState.Success) {
-                    val successState = uiState as BookReaderUiState.Success
+                if (showReader && uiState is BookReaderUiState.LOAD_SUCCESS) {
+//                    val successState = uiState as BookReaderUiState.Success
                     Box(
                         modifier = Modifier
                             .fillMaxSize()
                             .alpha(readerAlpha)
                     ) {
-                        //TODO
-//                        EpubReaderView(
-//                            book = book,
-//                            purchaseHelper = purchaseHelper,
-//                            navController = navController,
-//                            publication = successState.publication,
-//                            onLocatorChange = { locator ->
-//                                viewModel.updateCurrentLocator(locator)
-//                            },
-//                            initialLocator = initialLocator,
-//                            readerPreferences = readerPreferences,
-//                            epubPreferences = epubPreferences,
-//                            viewModel = viewModel,
-//                            appPreferences = appPreferences,
-//                            areToolbarsVisible = areToolbarsVisible,
-//                            onToolbarsVisibilityChanged = {
-//                                areToolbarsVisible = !areToolbarsVisible
-//                            }
-//                        )
                         ReaderView(
                             book = book,
                             purchaseHelper = purchaseHelper,
@@ -165,6 +147,8 @@ fun MainReadScreen(
             }
 
             is BookReaderUiState.Error -> Text((uiState as BookReaderUiState.Error).message)
+
+            is BookReaderUiState.Success -> {} //nothing
         }
     }
 }

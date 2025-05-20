@@ -16,6 +16,7 @@ import com.wxn.bookparser.domain.reader.ReaderText
 import com.wxn.bookparser.util.FileUtil
 import com.wxn.bookread.data.model.preference.ReaderPreferences
 import com.wxn.bookread.data.source.local.ReaderPreferencesUtil
+import com.wxn.bookread.provider.ChapterProvider
 import com.wxn.reader.data.model.AppPreferences
 import com.wxn.reader.data.model.toRediumEpubPreferences
 import com.wxn.reader.data.source.local.AppPreferencesUtil
@@ -137,9 +138,12 @@ class MainReadViewModel @Inject constructor(
             if (theBook != null) {
                 _book.value = theBook
                 loadCallback.invoke(theBook)
+                _uiState.value = BookReaderUiState.LOAD_SUCCESS(theBook)
+                Logger.d("MainReadViewModel:fetchBook::_uiState.value=${_uiState.value}")
             }
         } catch (e: Exception) {
             _uiState.value = BookReaderUiState.Error(e.message ?: "An error occurred")
+            Logger.d("MainReadViewModel:fetchBook::_uiState.value=${_uiState.value}")
         }
     }
 
@@ -153,6 +157,8 @@ class MainReadViewModel @Inject constructor(
     }
 
     init {
+        ChapterProvider.init(context)
+
         val openedBookId = savedStateHandle.get<String>("bookId")?.toLongOrNull()
         val bookUri = savedStateHandle.get<String>("bookUri")
         resetCurrentDayStartTime()

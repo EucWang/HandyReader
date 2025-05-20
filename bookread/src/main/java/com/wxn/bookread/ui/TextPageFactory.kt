@@ -1,6 +1,5 @@
 package com.wxn.bookread.ui
 
-//import com.wxn.bookread.ReadBook
 import com.wxn.bookread.data.model.TextPage
 
 class TextPageFactory(dataSource: IDataSource, val provider: PageViewDataProvider) :

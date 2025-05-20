@@ -15,6 +15,7 @@ import android.view.MotionEvent
 import androidx.core.graphics.toColorInt
 import com.wxn.base.ext.screenshot
 import com.wxn.base.util.Coroutines
+import com.wxn.base.util.Logger
 import com.wxn.bookread.provider.ChapterProvider
 import com.wxn.bookread.ui.delegate.CoverPageDelegate
 import com.wxn.bookread.ui.delegate.NoAnimPageDelegate
@@ -29,7 +30,17 @@ import kotlin.math.abs
  * 包含三个ContentView， 对应前页，当前页，下一页 三个页面
  * 控制界面切换， 长按，点击等事件处理
  */
-class PageView(context: Context, attrs: AttributeSet? = null) : FrameLayout(context, attrs), IDataSource {
+class PageView: FrameLayout, IDataSource {
+
+    constructor(context: Context) : super(context) {
+        Logger.i("PageView::constructor1")
+    }
+
+    constructor(context: Context, attributeSet: AttributeSet):super(context, attributeSet) {
+        Logger.i("PageView::constructor2")
+    }
+
+
 
     var dataProvider: PageViewDataProvider? = null
 
@@ -69,11 +80,15 @@ class PageView(context: Context, attrs: AttributeSet? = null) : FrameLayout(cont
         }
 
     override fun hasNextChapter(): Boolean {
-        return  (dataProvider?.durChapterIndex ?: 0) <  (dataProvider?.chapterSize?:0) - 1
+        val retVal = (dataProvider?.durChapterIndex ?: 0) <  (dataProvider?.chapterSize?:0) - 1
+        Logger.d("PageView::HasNextChapter::retVal=$retVal")
+        return retVal
     }
 
     override fun hasPrevChapter(): Boolean {
-        return (dataProvider?.durChapterIndex?:0) > 0
+        val retVal = (dataProvider?.durChapterIndex?:0) > 0
+        Logger.d("PageView::hasPrevChapter::retVal=$retVal")
+        return retVal
     }
 
 
@@ -175,6 +190,8 @@ class PageView(context: Context, attrs: AttributeSet? = null) : FrameLayout(cont
     private var clickAllNext: Boolean = false //从配置里得到的控制变量
 
     init {
+        Logger.d("PageView::init")
+        ChapterProvider.init(context)
         addView(nextPage)               //添加三个界面
         addView(curPage)
         addView(prevPage)
@@ -426,6 +443,7 @@ class PageView(context: Context, attrs: AttributeSet? = null) : FrameLayout(cont
      */
     fun upPageAnim() {
         Coroutines.mainScope().launch {
+            ChapterProvider.tryCreatePreference(context)
             ChapterProvider.readTipPreferencesUtil?.readTIpPreferencesFlow?.firstOrNull()?.let{ preference ->
                 val pageAnim = preference.pageAnim
                 isScroll = pageAnim == 3
@@ -446,6 +464,7 @@ class PageView(context: Context, attrs: AttributeSet? = null) : FrameLayout(cont
                         pageDelegate = NoAnimPageDelegate(this@PageView)
                     }
                 }
+                Logger.d("PageView::upPageAnim:pageAnim=$pageAnim,isScroll=$isScroll,pageDelegate=${pageDelegate}")
             }
         }
     }
@@ -454,6 +473,7 @@ class PageView(context: Context, attrs: AttributeSet? = null) : FrameLayout(cont
      * 更新界面内容
      */
     override fun upContent(relativePosition: Int, resetPageOffset: Boolean) {
+        Logger.i("PageView:upContent:relativePosition=$relativePosition, resetPageOffset=$resetPageOffset")
         val pageFactory = dataProvider?.pageFactory ?: return
         if (isScroll && dataProvider?.isAutoPage != true) {
             curPage.setContent(pageFactory.currentPage, resetPageOffset)
@@ -497,6 +517,7 @@ class PageView(context: Context, attrs: AttributeSet? = null) : FrameLayout(cont
      */
     fun upBg() {
         Coroutines.mainScope().launch {
+            ChapterProvider.tryCreatePreference(context)
             ChapterProvider.readerPreferencesUtil?.readerPreferencesFlow?.firstOrNull()?.let{ preference ->
                 val bgColor = preference.backgroundColor
                 curPage.setBg(bgColor)

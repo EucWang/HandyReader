@@ -65,14 +65,14 @@ class ReaderPreferencesUtil @Inject constructor(
         // Default values
 //        @OptIn(ExperimentalReadiumApi::class)
         val defaultPreferences = ReaderPreferences(
-            fontSize = 1.0,
+            fontSize = 14.0,
             font = "serif",
             fontBold = 0,
-            titleSize = 1.0,
+            titleSize = 18.0,
             titleTopSpacing = 5.0,
             titleBottomSpacing = 0.0,
             letterSpacing = 0.0,
-            lineHeight = 1.5,
+            lineHeight = 32.0,
             pageHorizontalMargins = 1.0,
             pageTopMargins = 1.0,
             paragraphIndent = 0.0,
@@ -122,7 +122,7 @@ class ReaderPreferencesUtil @Inject constructor(
             textNormalization = preferences[TEXT_NORMALIZATION]
                 ?: defaultPreferences.textNormalization,
 
-            font = preferences[FONT_FAMILY].orEmpty(),
+            font = preferences[FONT_FAMILY] ?: defaultPreferences.font.orEmpty(),
             fontBold = preferences[FONT_BOLD] ?: defaultPreferences.fontBold,
             titleSize = preferences[TITLE_FONT_SIZE] ?: defaultPreferences.titleSize,
             titleTopSpacing = preferences[TITLE_TOP_SPACING] ?: defaultPreferences.titleTopSpacing,
