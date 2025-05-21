@@ -110,14 +110,19 @@ class ContentView(context: Context) : FrameLayout(context) {
                 var headerPaddingRight: Int = tipPreference.headerPaddingRight
                 var headerPaddingTop: Int = tipPreference.headerPaddingTop
                 var headerPaddingBottom: Int = tipPreference.headerPaddingBottom
+
                 var footerPaddingBottom: Int = tipPreference.footerPaddingBottom
                 var footerPaddingLeft: Int = tipPreference.footerPaddingLeft
                 var footerPaddingRight: Int = tipPreference.footerPaddingRight
                 var footerPaddingTop: Int = tipPreference.footerPaddingTop
+
                 var showHeaderLine: Boolean = !tipPreference.hideHeader
                 var showFooterLine: Boolean = !tipPreference.hideFooter
 
-//        ReadBookConfig.apply {
+                Logger.d("ContentView::upStyle::headerPaddingLeft=$headerPaddingLeft,headerPaddingRight=$headerPaddingRight,headerPaddingTop=$headerPaddingTop,headerPaddingBottom=$headerPaddingBottom," +
+                        "footerPaddingBottom=$footerPaddingBottom,footerPaddingLeft=$footerPaddingLeft,footerPaddingRight=$footerPaddingRight,footerPaddingTop=$footerPaddingTop," +
+                        "showHeaderLine=$showHeaderLine,showFooterLine=$showFooterLine, textColor=0x$${textColor.toString(16)}")
+
                 bvHeaderLeft.typeface = ChapterProvider.typeface
                 tvHeaderLeft.typeface = ChapterProvider.typeface
                 tvHeaderMiddle.typeface = ChapterProvider.typeface

@@ -52,7 +52,7 @@ public data class EpubPreferences constructor(
     val backgroundColor: Int? = null,
     val columnCount: ConfigColumnCount? = null,
     val fontFamily: ConfigFontFamily? = null,
-    val fontSize: Double? = null,
+    val fontSize: Double? = null,       //取值 0.5 ～ 2.0 之间， 基础字体大小的系数，16.sp
     val fontWeight: Double? = null,
     val hyphens: Boolean? = null,
     val imageFilter: ConfigImageFilter? = null,

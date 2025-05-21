@@ -86,11 +86,8 @@ fun MainReadScreen(
 
     SetFullScreen(context, showSystemBars = areToolbarsVisible)
 
-
     Box(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(MaterialTheme.colorScheme.background),
+        modifier = Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background),
         contentAlignment = Alignment.Center
     ) {
 //        Logger.d("MainReadScreen::uiState=$uiState")

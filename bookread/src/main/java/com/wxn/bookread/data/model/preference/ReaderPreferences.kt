@@ -3,25 +3,29 @@ package com.wxn.bookread.data.model.preference
 import android.graphics.Color
 import androidx.compose.ui.text.style.TextAlign
 import com.wxn.bookread.data.model.config.ConfigReadingProgression
+import com.wxn.bookread.ext.sp
+
+val BASE_FONT_SIZE : Float = 16.sp.toFloat()
+val BASE_TITLE_FONT_SIZE : Float = 24.sp.toFloat()
 
 /****
  * 阅读设置
  */
 data class ReaderPreferences constructor(
     //Font Settings
-    val fontSize: Double,                       //字体大小
+    val fontSize: Double,                       //字体大小   //取值 0.5 ～ 2.0 之间， 基础字体大小的系数， 基础大小16.sp
     val font: String = "",                      //字体路径
     val fontBold: Int = 0,                      //是否粗体
 
-    val titleSize : Double,           //标题文字大小
+    val titleSize : Double,           //标题文字大小  //取值 0.5 ～ 2.0 之间， 基础字体大小的系数， 基础大小 20.sp
     val titleTopSpacing: Double,     //标题顶部间距
     val titleBottomSpacing : Double,      //标题底部间距
 
     val letterSpacing: Double,                  //字母间距
-    val lineHeight: Double,                     //行高
+    val lineHeight: Double,                     //行高        取值 1.0 ～ 3.0 之间， 基础行高的系数，
     val pageHorizontalMargins: Double,          //页面左右边距
     val pageTopMargins: Double,                     //页面顶部边距
-    val lineSpacingExtra: Double,               //行高系数， 最终会除上10， 默认值13
+//    val lineSpacingExtra: Double,               //行高系数， 最终会除上10， 默认值13
 
     val paragraphIndent: Double,                //段落缩进
     val paragraphSpacing: Double,               //段落间距
@@ -40,7 +44,6 @@ data class ReaderPreferences constructor(
     val verticalText: Boolean,                      //垂直文本
     val publisherStyles: Boolean,                   //出版商样式
     val textNormalization: Boolean,                 //文字格式化
-
 )
 
 // Extension function to convert ReaderPreferences to EpubPreferences

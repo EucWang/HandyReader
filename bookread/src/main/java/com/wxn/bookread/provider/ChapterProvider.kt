@@ -23,6 +23,8 @@ import com.wxn.bookread.data.model.TextChapter
 import com.wxn.bookread.data.model.TextChar
 import com.wxn.bookread.data.model.TextLine
 import com.wxn.bookread.data.model.TextPage
+import com.wxn.bookread.data.model.preference.BASE_FONT_SIZE
+import com.wxn.bookread.data.model.preference.BASE_TITLE_FONT_SIZE
 import com.wxn.bookread.data.source.local.ReadTipPreferencesUtil
 import com.wxn.bookread.textHeight
 import kotlinx.coroutines.flow.firstOrNull
@@ -95,7 +97,7 @@ object ChapterProvider {
     /***
      * 行间距
      */
-    private var lineSpacingExtra = 0
+    private var lineSpacingExtra = 0f
 
     /***
      * 段落间距
@@ -140,13 +142,14 @@ object ChapterProvider {
      * 更新绘制尺寸
      */
     private suspend fun upVisibleSize(context: Context) {
+        Logger.i("ChapterProvider:upVisibleSize")
         tryCreatePreference(context)
 
         if (viewWidth == 0 || viewHeight == 0) {
             val metrics = context.resources.displayMetrics
             viewWidth = metrics.widthPixels
             viewHeight = metrics.heightPixels
-            Logger.d("ChapterProvider::viewWidth=$viewWidth,viewHeight=$viewHeight")
+            Logger.d("ChapterProvider::set screen size to view::viewWidth=$viewWidth,viewHeight=$viewHeight")
         }
 
         val readerPreferences = readerPreferencesUtil?.readerPreferencesFlow?.firstOrNull()
@@ -233,12 +236,12 @@ object ChapterProvider {
             //标题的Paint
             titlePaint = TextPaint()
             titlePaint.color = readerPreferences?.textColor ?: Color.BLACK                       //设置标题文字颜色
-            Logger.d("ChapterProvider::upStyle::titlePaint.color=${titlePaint.color}")
+            Logger.d("ChapterProvider::upStyle::titlePaint.color=0x${titlePaint.color.toString(16)}")
             titlePaint.letterSpacing = readerPreferences?.letterSpacing?.toFloat() ?: 0f        //设置标题字母间距
             Logger.d("ChapterProvider::upStyle::titlePaint.letterSpacing=${titlePaint.letterSpacing}")
             titlePaint.typeface = titleFont                                                     //设置标题字体
 //        titlePaint.textSize = with(ReadBookConfig) { textSize + titleSize }.sp.toFloat()    //设置标题字体大小
-            titlePaint.textSize = readerPreferences?.titleSize?.sp?.toFloat() ?: 0.0f
+            titlePaint.textSize = (readerPreferences?.titleSize?.toFloat() ?: 1.0f) * BASE_TITLE_FONT_SIZE
             Logger.d("ChapterProvider::upStyle::titlePaint.textSize=${titlePaint.textSize}")
             titlePaint.isAntiAlias = true                                                       //设置抗锯齿
             //正文的Paint
@@ -247,11 +250,11 @@ object ChapterProvider {
             contentPaint.letterSpacing = readerPreferences?.letterSpacing?.toFloat() ?: 0.0f               //设置正文文字间距
             Logger.d("ChapterProvider::upStyle::contentPaint.letterSpacing=${contentPaint.letterSpacing}")
             contentPaint.typeface = textFont                                                    //设置正文字体
-            contentPaint.textSize = readerPreferences?.fontSize?.sp?.toFloat() ?: 0.0f                     //设置字体大小
+            contentPaint.textSize = (readerPreferences?.fontSize?.toFloat() ?: 1.0f) * BASE_FONT_SIZE                   //设置字体大小
             Logger.d("ChapterProvider::upStyle::contentPaint.textSize=${contentPaint.textSize}")
             contentPaint.isAntiAlias = true                                                     //设置抗锯齿
             //间距
-            lineSpacingExtra = readerPreferences?.lineSpacingExtra?.toInt() ?: 0                //行间距系数，除上10 再和lineHeight相乘
+            lineSpacingExtra = readerPreferences?.lineHeight?.toFloat() ?: 1.0f                //行间距系数，除上10 再和lineHeight相乘
             Logger.d("ChapterProvider::upStyle::lineSpacingExtra=${lineSpacingExtra}")
             paragraphSpacing = readerPreferences?.paragraphSpacing?.toInt() ?: 0                 //段落缩进
             Logger.d("ChapterProvider::upStyle::paragraphSpacing=${paragraphSpacing}")
@@ -492,7 +495,7 @@ object ChapterProvider {
             val lastPage = textPages.last()
             lastPage.textLines.add(textLine)    //将新生成的一行加入到最后一页中
             textLine.upTopBottom(durY, textPaint)       //设置行的上，下，以及基线位置
-            durY += textPaint.textHeight * lineSpacingExtra / 10f   //将行高度，行间距加入到durY值中
+            durY += textPaint.textHeight * lineSpacingExtra   //将行高度，行间距加入到durY值中
             lastPage.height = durY
         }
 
@@ -591,11 +594,13 @@ object ChapterProvider {
      */
     fun setViewSize(context: Context, width: Int, height: Int) {
         Logger.d("ChapterProvider::setViewSize,width=$width, height=$height")
-        if (width > 0 && height > 0) {
+        val refreshStyle = (width != viewWidth || height != viewHeight)
+        if (width > 0 && height > 0 && refreshStyle) {
             viewWidth = width
             viewHeight = height
             Coroutines.mainScope().launch {
                 upVisibleSize(context)
+                upStyle(context)
             }
         }
         Logger.d("ChapterProvider::setViewSize,viewWidth=$viewWidth, viewHeight=$viewHeight")

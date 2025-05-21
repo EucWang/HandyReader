@@ -102,10 +102,12 @@ class ContentTextView(context: Context, attrs: AttributeSet?) : View(context, at
         val top = ChapterProvider.paddingTop.toFloat()
         val right = ChapterProvider.visibleRight.toFloat()
         val bottom = ChapterProvider.visibleBottom.toFloat()
+        Logger.d("ContentTextView::refreshVisibleRect::left=$left, top=$top,right=$right,bottom=$bottom")
         visibleRect.set(left, top, right, bottom)
     }
 
     override fun onSizeChanged(w: Int, h: Int, oldw: Int, oldh: Int) {
+        Logger.i("ContentTextView:onSizeChanged:w=$w,h=$h,oldw=$oldw,oldh=$oldh")
         super.onSizeChanged(w, h, oldw, oldh)
         ChapterProvider.setViewSize(context, w, h)
         refreshVisibleRect()

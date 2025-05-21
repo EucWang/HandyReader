@@ -31,7 +31,6 @@ class ReaderPreferencesUtil @Inject constructor(
         val FONT_SIZE = doublePreferencesKey("font_size")                                   //字体大小
         val LETTER_SPACING = doublePreferencesKey("letter_spacing")                         //字母间距
         val LINE_HEIGHT = doublePreferencesKey("line_height")                               //行高
-        val lINE_SPACING_EXTRA = doublePreferencesKey("lineSpacingExtra")
 
         val FONT_FAMILY = stringPreferencesKey("font_family")                                      //字体
         val FONT_BOLD = intPreferencesKey("font_bold")                                      //字体是否粗体
@@ -66,17 +65,16 @@ class ReaderPreferencesUtil @Inject constructor(
         // Default values
 //        @OptIn(ExperimentalReadiumApi::class)
         val defaultPreferences = ReaderPreferences(
-            fontSize = 14.0,
+            fontSize = 1.0,
             font = "serif",
             fontBold = 0,
-            titleSize = 18.0,
+            titleSize = 1.0,
             titleTopSpacing = 5.0,
             titleBottomSpacing = 0.0,
             letterSpacing = 0.0,
-            lineHeight = 32.0,
-            lineSpacingExtra = 13.0,
-            pageHorizontalMargins = 1.0,
-            pageTopMargins = 1.0,
+            lineHeight = 1.2,
+            pageHorizontalMargins = 12.0,
+            pageTopMargins = 18.0,
             paragraphIndent = 0.0,
             paragraphSpacing = 0.0,
             wordSpacing = 0.0,
@@ -121,15 +119,13 @@ class ReaderPreferencesUtil @Inject constructor(
             ),
             verticalText = preferences[VERTICAL_TEXT] ?: defaultPreferences.verticalText,
             publisherStyles = preferences[PUBLISHER_STYLES] ?: defaultPreferences.publisherStyles,
-            textNormalization = preferences[TEXT_NORMALIZATION]
-                ?: defaultPreferences.textNormalization,
+            textNormalization = preferences[TEXT_NORMALIZATION] ?: defaultPreferences.textNormalization,
 
-            font = preferences[FONT_FAMILY] ?: defaultPreferences.font.orEmpty(),
+            font = if (preferences[FONT_FAMILY].isNullOrEmpty()) { defaultPreferences.font } else { preferences[FONT_FAMILY].orEmpty() },
             fontBold = preferences[FONT_BOLD] ?: defaultPreferences.fontBold,
             titleSize = preferences[TITLE_FONT_SIZE] ?: defaultPreferences.titleSize,
             titleTopSpacing = preferences[TITLE_TOP_SPACING] ?: defaultPreferences.titleTopSpacing,
             titleBottomSpacing = preferences[TITLE_BOTTOM_SPACING] ?: defaultPreferences.titleBottomSpacing,
-            lineSpacingExtra = preferences[lINE_SPACING_EXTRA] ?: defaultPreferences.lineSpacingExtra,
         )
     }
 
@@ -164,18 +160,18 @@ class ReaderPreferencesUtil @Inject constructor(
             preferences[TITLE_FONT_SIZE] = newPreferences.titleSize.toDouble()
             preferences[TITLE_TOP_SPACING] = newPreferences.titleTopSpacing.toDouble()
             preferences[TITLE_BOTTOM_SPACING] = newPreferences.titleBottomSpacing.toDouble()
-            preferences[lINE_SPACING_EXTRA] = newPreferences.lineSpacingExtra.toDouble()
+//            preferences[lINE_SPACING_EXTRA] = newPreferences.lineSpacingExtra.toDouble()
         }
     }
 
 
     suspend fun resetFontPreferences() {
         dataStore.edit { preferences ->
-            preferences[FONT_SIZE] = defaultPreferences.fontSize?.toDouble() ?: 0.0
-            preferences[LINE_HEIGHT] = defaultPreferences.lineHeight?.toDouble() ?: 0.0
-            preferences[LETTER_SPACING] = defaultPreferences.letterSpacing?.toDouble() ?: 0.0
-            preferences[WORD_SPACING] = defaultPreferences.wordSpacing?.toDouble() ?: 0.0
-            preferences[TITLE_FONT_SIZE] = defaultPreferences.titleSize?.toDouble() ?: 0.0
+            preferences[FONT_SIZE] = defaultPreferences.fontSize.toDouble() ?: 1.0
+            preferences[LINE_HEIGHT] = defaultPreferences.lineHeight.toDouble() ?: 1.0
+            preferences[LETTER_SPACING] = defaultPreferences.letterSpacing.toDouble() ?: 1.0
+            preferences[WORD_SPACING] = defaultPreferences.wordSpacing.toDouble() ?: 1.0
+            preferences[TITLE_FONT_SIZE] = defaultPreferences.titleSize.toDouble() ?: 1.0
 
             preferences[FONT_FAMILY] = defaultPreferences.font
             preferences[FONT_BOLD] = defaultPreferences.fontBold
@@ -214,7 +210,6 @@ class ReaderPreferencesUtil @Inject constructor(
         }
     }
 
-
     private fun serializeColorHistory(colors: List<Color>): String {
         return colors.joinToString(",") { it.toCompatibleArgb().toString() }
     }
@@ -234,5 +229,4 @@ class ReaderPreferencesUtil @Inject constructor(
                 }
             }
     }
-
 }
