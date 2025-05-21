@@ -41,3 +41,15 @@ fun CoroutineScope.launchIO(exceptionHandler: ((Throwable)->Unit)? = null, block
     val context = this.coroutineContext + dispatcher + exceptionHandler + job
     launch(context = context, block = block)
 }
+
+fun CoroutineScope.launchMain(exceptionHandler: ((Throwable)->Unit)? = null, block: suspend CoroutineScope.() -> Unit) {
+    val job = SupervisorJob()
+    val dispatcher = Dispatchers.Main
+    val exceptionHandler = CoroutineExceptionHandler{
+            ctx, throwable ->
+        Logger.e(throwable)
+        exceptionHandler?.invoke(throwable)
+    }
+    val context = this.coroutineContext + dispatcher + exceptionHandler + job
+    launch(context = context, block = block)
+}

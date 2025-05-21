@@ -15,6 +15,7 @@ import com.wxn.base.ext.statusBarHeight
 import com.wxn.base.ui.BaseActivity
 import com.wxn.base.util.Coroutines
 import com.wxn.base.util.Logger
+import com.wxn.base.util.launchMain
 import com.wxn.bookread.R
 import com.wxn.bookread.data.model.TextPage
 import com.wxn.bookread.data.source.local.ReadTipPreferencesUtil.Companion.ReadTip_battery
@@ -194,21 +195,20 @@ class ContentView(context: Context) : FrameLayout(context) {
                 val tipFooterMiddle = tipPreference.tipFooterMiddle
                 val hideHeader = tipPreference.hideHeader
                 val hideFooter = tipPreference.hideFooter
-
-//                ReadTipConfig.apply {
+                Logger.d("ContentView::upTipStyle::tipHeaderLeft=$tipHeaderLeft,tipHeaderRight=$tipHeaderRight,tipHeaderMiddle=$tipHeaderMiddle," +
+                        "tipFooterLeft=$tipFooterLeft,tipFooterRight=$tipFooterRight,tipFooterMiddle=$tipFooterMiddle," +
+                        "hideHeader=$hideHeader,hideFooter=$hideFooter")
+                //tipHeaderLeft=2,tipHeaderRight=3,tipHeaderMiddle=0,tipFooterLeft=1,tipFooterRight=6,tipFooterMiddle=0,hideHeader=true,hideFooter=false
                 tvHeaderLeft.isInvisible = tipHeaderLeft != ReadTip_chapterTitle
-                bvHeaderLeft.isInvisible =
-                    tipHeaderLeft == ReadTip_none || !tvHeaderLeft.isInvisible
+                bvHeaderLeft.isInvisible = tipHeaderLeft == ReadTip_none || !tvHeaderLeft.isInvisible
                 tvHeaderRight.isGone = tipHeaderRight == ReadTip_none
                 tvHeaderMiddle.isGone = tipHeaderMiddle == ReadTip_none
                 tvFooterLeft.isInvisible = tipFooterLeft != ReadTip_chapterTitle
-                bvFooterLeft.isInvisible =
-                    tipFooterLeft == ReadTip_none || !tvFooterLeft.isInvisible
+                bvFooterLeft.isInvisible = tipFooterLeft == ReadTip_none || !tvFooterLeft.isInvisible
                 tvFooterRight.isGone = tipFooterRight == ReadTip_none
                 tvFooterMiddle.isGone = tipFooterMiddle == ReadTip_none
                 binding.llHeader.isGone = hideHeader
                 llFooter.isGone = hideFooter
-//                }
                 tvTitle = when (ReadTip_chapterTitle) {
                     tipHeaderLeft -> tvHeaderLeft
                     tipHeaderMiddle -> tvHeaderMiddle
@@ -335,10 +335,13 @@ class ContentView(context: Context) : FrameLayout(context) {
      */
     fun setContent(textPage: TextPage, resetPageOffset: Boolean = true) {
         Logger.i("ContentView::setContent::textPage.pageSize=${textPage.pageSize}")
-        setProgress(textPage)
-        if (resetPageOffset)
-            resetPageOffset()
-        binding.contentTextView.setContent(textPage)
+        Coroutines.mainScope().launchMain {
+            setProgress(textPage)
+            if (resetPageOffset) {
+                resetPageOffset()
+            }
+            binding.contentTextView.setContent(textPage)
+        }
     }
 
     /***
@@ -353,11 +356,12 @@ class ContentView(context: Context) : FrameLayout(context) {
      */
     @SuppressLint("SetTextI18n")
     fun setProgress(textPage: TextPage) = textPage.apply {
-        tvBookName?.text = callback?.book?.title.orEmpty()
-        tvTitle?.text = textPage.title
-        tvPage?.text = "${index.plus(1)}/$pageSize"
-        tvTotalProgress?.text = readProgress
-        tvPageAndTotal?.text = "${index.plus(1)}/$pageSize  $readProgress"
+            tvBookName?.text = callback?.book?.title.orEmpty()
+            tvTitle?.text = textPage.title
+            tvPage?.text = "${index.plus(1)}/$pageSize"
+            tvTotalProgress?.text = readProgress
+            tvPageAndTotal?.text = "${index.plus(1)}/$pageSize  $readProgress"
+
     }
 
     /***

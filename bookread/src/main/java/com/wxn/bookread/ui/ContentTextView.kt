@@ -76,21 +76,22 @@ class ContentTextView(context: Context, attrs: AttributeSet?) : View(context, at
     //滚动偏移量
     private var pageOffset = 0f
 
+    private var textPaintColor: Int =  Color.BLACK
+
     init {
-//        val cb = activity as? SelectTextCallback?
-//        if (cb == null) {
-//            throw IllegalStateException("ContentTextView is not in a activity which implemente SelectTextCallback")
-//        } else {
-//            callback = cb
-//        }
-//
         contentDescription = textPage.text
+        Coroutines.mainScope().launch {
+            textPaintColor = ChapterProvider.readerPreferencesUtil?.readerPreferencesFlow?.firstOrNull()?.textColor ?: Color.BLACK
+        }
         Logger.i("ContentTextView::init")
     }
 
     fun setContent(textPage: TextPage) {
         this.textPage = textPage
         contentDescription = textPage.text
+        Coroutines.mainScope().launch {
+            textPaintColor = ChapterProvider.readerPreferencesUtil?.readerPreferencesFlow?.firstOrNull()?.textColor ?: Color.BLACK
+        }
         invalidate()
     }
 
@@ -123,6 +124,7 @@ class ContentTextView(context: Context, attrs: AttributeSet?) : View(context, at
      */
     private fun drawPage(canvas: Canvas) {
         var relativeOffset = relativeOffset(0)
+        Logger.i("ContentTextView::drawPage:relativeOffset=$relativeOffset, paddingOffset =$pageOffset, textPage.height=${textPage.height}")
 
         textPage.textLines.forEach { textLine ->
             drawLine(canvas, textLine, relativeOffset)
@@ -168,6 +170,7 @@ class ContentTextView(context: Context, attrs: AttributeSet?) : View(context, at
         }
     }
 
+
     private fun drawChars(
         canvas: Canvas,
         textChars: List<TextChar>,
@@ -177,27 +180,25 @@ class ContentTextView(context: Context, attrs: AttributeSet?) : View(context, at
         isTitle: Boolean,
         isReadAloud: Boolean
     ) {
-        Coroutines.mainScope().launch {
-            //标题或者文本内容的textPaint
-            val textPaint = if (isTitle) {
-                ChapterProvider.titlePaint
-            } else {
-                ChapterProvider.contentPaint
-            }
-            //文字颜色
-            textPaint.color = if (isReadAloud) {
-                //  "accentColor": "#AD1457",
-                //  "accentColor": "#E0E0E0",
-                // "accentColor": "#FFFFFF",
-                "#FFAD1457".toColorInt()
-            } else {
-                ChapterProvider.readerPreferencesUtil?.readerPreferencesFlow?.firstOrNull()?.textColor ?: Color.BLACK
-            }
-            textChars.forEach { ch ->
-                canvas.drawText(ch.charData, ch.start, lineBase, textPaint) //绘制每一个字
-                if (ch.selected) {
-                    canvas.drawRect(ch.start, lineTop, ch.end, lineBottom, selectedPaint) //绘制选择文字时的背景框
-                }
+        //标题或者文本内容的textPaint
+        val textPaint = if (isTitle) {
+            ChapterProvider.titlePaint
+        } else {
+            ChapterProvider.contentPaint
+        }
+        //文字颜色
+        textPaint.color = if (isReadAloud) {
+            //  "accentColor": "#AD1457",
+            //  "accentColor": "#E0E0E0",
+            // "accentColor": "#FFFFFF",
+            "#FFAD1457".toColorInt()
+        } else {
+            textPaintColor
+        }
+        textChars.forEach { ch ->
+            canvas.drawText(ch.charData, ch.start, lineBase, textPaint) //绘制每一个字
+            if (ch.selected) {
+                canvas.drawRect(ch.start, lineTop, ch.end, lineBottom, selectedPaint) //绘制选择文字时的背景框
             }
         }
     }

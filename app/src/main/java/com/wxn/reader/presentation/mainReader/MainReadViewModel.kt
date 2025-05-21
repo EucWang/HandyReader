@@ -169,18 +169,8 @@ class MainReadViewModel @Inject constructor(
                 _appPreferences.value = initialPreferences
             }
 
-
             openedBookId?.let { bookId ->
                 _currentBookId.value = bookId
-
-                //TODO
-//                bookUri?.let { uri ->
-//                    Uri.parse(uri).toAbsoluteUrl()?.let {
-//                        openBook(it, context)
-//                    }
-//                }
-
-                // Fetch the book details
 
                 Logger.i("MainReadViewModel::init::bookId=$bookId")
                 var allChapters = getChaptersByBookIdUserCase.invoke(bookId).firstOrNull()
@@ -203,24 +193,6 @@ class MainReadViewModel @Inject constructor(
                         }
                     }
                 }
-//                getChaptersByBookIdUserCase(bookId).collect { chapters ->
-//                    var allChapters = chapters
-//                    Logger.d("MainReadViewModel::allChapters.size:${allChapters.size}")
-//                    if (allChapters.isEmpty()) {
-//                        allChapters = BookHelper.cacheBookChapter(context, bookId, bookUri, textParser)
-//                        if (allChapters.isNotEmpty()) {
-//                            launch(Dispatchers.IO) {
-//                                insertChaptersUserCase(allChapters)
-//                                _book.collect { book ->
-//                                    if (book != null) {
-//                                        pageController.resetBook(book)  //重新加载章节数
-//                                    }
-//                                }
-//                            }
-//                        }
-//                    }
-//                    //TODO 获取章节数据，对章节数据进行处理，给予界面显示
-//                }
 
                 readerPreferencesUtil.readerPreferencesFlow.collect { preferences ->
                     _readerPreferences.value = preferences
@@ -259,7 +231,4 @@ class MainReadViewModel @Inject constructor(
         isReadingSessionActive = false
         lastLocatorChangeTime = 0L
     }
-
-
-
 }

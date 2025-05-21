@@ -60,6 +60,7 @@ open class PageViewController @Inject constructor(val context: Context,
     override var isInitFinish: Boolean= false
 
     override var isAutoPage: Boolean= false
+
     override var autoPageProgress: Int= 0
 
     override var pageFactory: TextPageFactory? = null
@@ -72,6 +73,13 @@ open class PageViewController @Inject constructor(val context: Context,
 
     suspend fun resetBook(book:Book){
         Logger.i("PageViewController::resetBook:book=$book")
+        this.prevTextChapter = null
+        this.curTextChapter = null
+        this.nextTextChapter = null
+        chapterSize = 0
+        durChapterIndex = 0
+        isScroll = false
+
         this.book = book
         getChapterCountByBookIdUserCase.invoke(book.id).collect { count->
             this.chapterSize = count
@@ -86,19 +94,19 @@ open class PageViewController @Inject constructor(val context: Context,
      * 是否正确的将章节索引加入到loadingChapters集合中，
      * 已经有了，则返回false
      */
-    private fun addLoading(index: Int): Boolean {
-        synchronized(this) {
-            if (loadingChapters.contains(index)) return false
-            loadingChapters.add(index)
-            return true
-        }
-    }
+//    private fun addLoading(index: Int): Boolean {
+//        synchronized(this) {
+//            if (loadingChapters.contains(index)) return false
+//            loadingChapters.add(index)
+//            return true
+//        }
+//    }
 
-    fun removeLoading(index: Int) {
-        synchronized(this) {
-            loadingChapters.remove(index)
-        }
-    }
+//    fun removeLoading(index: Int) {
+//        synchronized(this) {
+//            loadingChapters.remove(index)
+//        }
+//    }
 
     /**
      * chapterOnDur: 0为当前页,1为下一页,-1为上一页
@@ -144,15 +152,13 @@ open class PageViewController @Inject constructor(val context: Context,
         }
     }
 
-
-
     private suspend fun loadContent(index: Int, upContent: Boolean = true, resetPageOffset: Boolean) {
         Logger.i("PageViewController::loadContent:index=$index,upContent=$upContent,resetPageOffset=$resetPageOffset")
         if (index < 0) return
         val curBook = book ?: return
         val bookId = curBook.id
         Logger.i("PageViewController::loadContent:index=$index,bookId=$bookId")
-        if (!addLoading(index)) return
+//        if (!addLoading(index)) return
         getChapterByIdUserCase(bookId, index).collect { chapter ->
             Logger.i("PageViewController::loadContent:index=$index, chapter=$chapter")
             BookHelper.loadChpaterContent(context, bookId, chapter)?.let { content ->
@@ -162,7 +168,10 @@ open class PageViewController @Inject constructor(val context: Context,
                 when(chapter.chapterIndex) {
                     durChapterIndex -> {    //加载的是当前章节
                         curTextChapter = textChapter
-                        if (upContent) callBack?.upContent(resetPageOffset = resetPageOffset)
+                        if (upContent) {
+
+                            callBack?.upContent(resetPageOffset = resetPageOffset)
+                        }
                         callBack?.upView()
                     }
                     durChapterIndex -1 -> { //加载的是上一章节
@@ -179,7 +188,7 @@ open class PageViewController @Inject constructor(val context: Context,
                     }
                 }
             }
-            removeLoading(index)
+//            removeLoading(index)
         }
     }
 

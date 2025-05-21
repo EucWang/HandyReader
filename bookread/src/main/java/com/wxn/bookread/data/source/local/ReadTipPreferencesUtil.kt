@@ -79,7 +79,7 @@ class ReadTipPreferencesUtil @Inject constructor(
             tipFooterRight = 6,
 
             hideHeader = true,
-            hideFooter = false,
+            hideFooter = true,
 
             pageAnim = 0,
 

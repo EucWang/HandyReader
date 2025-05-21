@@ -17,7 +17,6 @@ import com.wxn.base.bean.Book
 import com.wxn.base.ext.screenshot
 import com.wxn.base.util.Coroutines
 import com.wxn.base.util.Logger
-import com.wxn.bookread.PageCallback
 import com.wxn.bookread.provider.ChapterProvider
 import com.wxn.bookread.ui.delegate.CoverPageDelegate
 import com.wxn.bookread.ui.delegate.NoAnimPageDelegate
