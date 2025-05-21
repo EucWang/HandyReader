@@ -19,7 +19,6 @@ import com.wxn.bookread.provider.ChapterProvider
 import com.wxn.bookread.provider.ImageProvider
 import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.launch
-import java.lang.IllegalStateException
 import kotlin.math.min
 
 /**

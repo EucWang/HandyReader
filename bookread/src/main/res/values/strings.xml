@@ -2,4 +2,7 @@
 <resources>
     <string name="no_next_page">No more pages</string>
     <string name="no_prev_page">No more previous pages</string>
+
+    <string name="toc_updating">Updating Chapters</string>
+
 </resources>

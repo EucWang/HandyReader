@@ -3,7 +3,6 @@ package com.wxn.reader.di
 import android.app.Application
 import android.content.Context
 import androidx.room.Room
-import com.wxn.bookread.data.source.local.ReaderPreferencesUtil
 import com.wxn.reader.data.mapper.annotation.BookAnnotationMapper
 import com.wxn.reader.data.mapper.annotation.BookAnnotationMapperImpl
 import com.wxn.reader.data.mapper.book.BookMapper

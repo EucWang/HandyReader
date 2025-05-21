@@ -15,6 +15,8 @@ interface PageViewDataProvider : PageViewCallback{
 
     var msg: String?
 
+    fun upMsg(msg:String?)
+
     /**
      * 加载章节内容
      */
@@ -22,7 +24,7 @@ interface PageViewDataProvider : PageViewCallback{
 
     fun setPageIndex(index: Int)
 
-    fun moveToNextChapter(upContent: Boolean)
+    fun moveToNextChapter(upContent: Boolean) : Boolean
 
-    fun moveToPrevChapter(upContent: Boolean)
+    fun moveToPrevChapter(upContent: Boolean, toLast:Boolean = true) : Boolean
 }

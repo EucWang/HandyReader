@@ -41,8 +41,6 @@ class PageView: FrameLayout, IDataSource, PageCallback {
         Logger.i("PageView::constructor2")
     }
 
-
-
     var dataProvider: PageViewDataProvider? = null
 
     /***
@@ -440,19 +438,32 @@ class PageView: FrameLayout, IDataSource, PageCallback {
     }
 
     override fun loadChapterList(book: Book) {
-//        TODO("Not yet implemented")
+        dataProvider?.upMsg(context.getString(com.wxn.bookread.R.string.toc_updating))
     }
 
+    /***
+     * 更新菜单的显示
+     */
     override fun upView() {
 //        TODO("Not yet implemented")
     }
 
+    /***
+     * 跳转到对应界面
+     */
     override fun pageChanged() {
 //        TODO("Not yet implemented")
     }
 
+    /****
+     * 处理tts  TODO
+     */
     override fun contentLoadFinish() {
-//        TODO("Not yet implemented")
+//        if (intent.getBooleanExtra("readAloud", false)) {
+//            intent.removeExtra("readAloud")
+//            ReadBook.readAloud()
+//        }
+//        loadStates = true
     }
 
     /***

@@ -3,6 +3,7 @@ package com.wxn.reader.presentation.mainReader
 import android.content.Context
 import androidx.lifecycle.MutableLiveData
 import com.wxn.base.bean.Book
+import com.wxn.base.util.Coroutines
 import com.wxn.base.util.Logger
 import com.wxn.base.util.launchIO
 import com.wxn.bookread.data.model.TextChapter
@@ -66,6 +67,8 @@ open class PageViewController @Inject constructor(val context: Context,
     override var pageFactory: TextPageFactory? = null
 
     override var isScroll: Boolean= false
+
+    private var screenTimeOut : Long = 0
 
     init {
         ChapterProvider.tryCreatePreference(context)
@@ -145,7 +148,7 @@ open class PageViewController @Inject constructor(val context: Context,
         }
     }
 
-    fun upMsg(msg: String?) {
+    override fun upMsg(msg: String?) {
         if (this.msg != msg) {
             this.msg = msg
             callBack?.upContent()
@@ -214,12 +217,64 @@ open class PageViewController @Inject constructor(val context: Context,
         saveRead()
     }
 
-    override fun moveToNextChapter(upContent: Boolean) {
-        TODO("Not yet implemented")
+    override fun moveToNextChapter(upContent: Boolean) :Boolean {
+        if (durChapterIndex >= chapterSize - 1) {
+            return false
+        }
+
+        val curBook = book ?: return false
+        durPageIndex = 0
+        durChapterIndex++
+        prevTextChapter = curTextChapter
+        curTextChapter = nextTextChapter
+        nextTextChapter = null
+        if (curTextChapter == null) {
+            Coroutines.mainScope().launchIO {
+                loadContent(durChapterIndex, upContent, false)
+            }
+        } else {
+            callBack?.upContent()
+        }
+        Coroutines.mainScope().launchIO {
+            loadContent(durChapterIndex.plus(1), upContent, false)
+        }
+        saveRead()
+        callBack?.upView()
+//        curPageChanged()
+        return true
     }
 
-    override fun moveToPrevChapter(upContent: Boolean) {
-        TODO("Not yet implemented")
+    override fun moveToPrevChapter(upContent: Boolean, toLast: Boolean) : Boolean {
+        if (durChapterIndex <= 0) {
+            return false
+        }
+        val curBook = book ?: return false
+
+        durPageIndex = if (toLast) {
+            prevTextChapter?.lastIndex ?: 0
+        } else {
+            0
+        }
+        durChapterIndex--
+
+        nextTextChapter = curTextChapter
+        curTextChapter = prevTextChapter
+        prevTextChapter = null
+
+        if (curTextChapter == null) {
+            Coroutines.mainScope().launchIO {
+                loadContent(durChapterIndex, upContent, false)
+            }
+        } else if (upContent) {
+            callBack?.upContent()
+        }
+
+        Coroutines.mainScope().launchIO {
+            loadContent(durChapterIndex.minus(1), upContent, false)
+        }
+        saveRead()
+        callBack?.upView()
+        return true
     }
 
     override fun clickCenter() {
@@ -227,9 +282,11 @@ open class PageViewController @Inject constructor(val context: Context,
 //        TODO("Not yet implemented")
     }
 
+    /****
+     * 设置屏幕常亮
+     */
     override fun screenOffTimerStart() {
         Logger.i("PageViewController::screenOffTimerStart")
-//        TODO("Not yet implemented")
     }
 
     override fun showTextActionMenu() {
