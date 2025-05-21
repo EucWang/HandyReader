@@ -36,6 +36,7 @@ import java.util.regex.Pattern
 
 object ChapterProvider {
 
+    val paragraphIndent: String = "　　" //段落缩进
     val JS_PATTERN: Pattern =
         Pattern.compile("(<js>[\\w\\W]*?</js>|@js:[\\w\\W]*$)", Pattern.CASE_INSENSITIVE)
     val EXP_PATTERN: Pattern = Pattern.compile("\\{\\{([\\w\\W]*?)\\}\\}")
@@ -615,7 +616,6 @@ object ChapterProvider {
         upStyle(context)
     }
 
-    var paragraphIndent: String = "　　" //段落缩进
 
     /***
      * 获取章节对应的缓存文件

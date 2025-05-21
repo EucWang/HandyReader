@@ -35,17 +35,12 @@ open class PageViewController @Inject constructor(val context: Context,
 
     var inBookshelf = false
     var durPageIndex = 0
-    var isLocalBook = true
+//    var isLocalBook = true
     var callBack: PageCallback? = null
     var prevTextChapter: TextChapter? = null
     var curTextChapter: TextChapter? = null
     var nextTextChapter: TextChapter? = null
     override var msg: String? = null            //对应章节名？
-    /***
-     * 正在加载中的章节的索引列表
-     * 防止重复添加
-     */
-    private val loadingChapters = arrayListOf<Int>()
 
     /***
      * 当前显示的章节索引
@@ -92,24 +87,6 @@ open class PageViewController @Inject constructor(val context: Context,
             Logger.d("PageViewController::resetBook:isInitFinish=$isInitFinish")
         }
     }
-
-    /***
-     * 是否正确的将章节索引加入到loadingChapters集合中，
-     * 已经有了，则返回false
-     */
-//    private fun addLoading(index: Int): Boolean {
-//        synchronized(this) {
-//            if (loadingChapters.contains(index)) return false
-//            loadingChapters.add(index)
-//            return true
-//        }
-//    }
-
-//    fun removeLoading(index: Int) {
-//        synchronized(this) {
-//            loadingChapters.remove(index)
-//        }
-//    }
 
     /**
      * chapterOnDur: 0为当前页,1为下一页,-1为上一页
@@ -307,5 +284,24 @@ open class PageViewController @Inject constructor(val context: Context,
     override fun onCancelSelect() {
         Logger.i("PageViewController::onCancelSelect")
 //        TODO("Not yet implemented")
+    }
+
+    fun clear() {
+        book = null
+        callBack = null
+        prevTextChapter = null
+        curTextChapter = null
+        nextTextChapter = null
+        durChapterIndex = 0
+        durPageIndex = 0
+        msg = null
+        headerHeight = 0
+        chapterSize = 0
+        isInitFinish = false
+        isAutoPage = false
+        autoPageProgress = 0
+        pageFactory = null
+        isScroll = false
+        Logger.i("PageViewController:clear()")
     }
 }

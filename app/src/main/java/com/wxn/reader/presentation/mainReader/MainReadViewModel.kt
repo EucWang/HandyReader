@@ -231,4 +231,17 @@ class MainReadViewModel @Inject constructor(
         isReadingSessionActive = false
         lastLocatorChangeTime = 0L
     }
+
+    override fun onCleared() {
+        currentDayStartTime = 0
+        _initialLocator.value = null
+        _currentBookId.value = null
+        _uiState.value = BookReaderUiState.Loading
+        _book.value = null
+        isReadingSessionActive = false
+        lastLocatorChangeTime = 0L
+        super.onCleared()
+        pageController.clear()
+        Logger.i("MainReadViewModel::onCleared")
+    }
 }
