@@ -41,14 +41,14 @@ class ContentView(context: Context) : FrameLayout(context) {
         LayoutInflater.from(context), this, true
     )
 
-    private var battery = 100
-    private var tvTitle: BatteryView? = null            //标题 章节名
-    private var tvTime: BatteryView? = null             //时间
-    private var tvBattery: BatteryView? = null          //电量
-    private var tvPage: BatteryView? = null             //
-    private var tvTotalProgress: BatteryView? = null    //总进度
-    private var tvPageAndTotal: BatteryView? = null     //页数和总数
-    private var tvBookName: BatteryView? = null         //书名
+//    private var battery = 100
+//    private var tvTitle: BatteryView? = null            //标题 章节名
+//    private var tvTime: BatteryView? = null             //时间
+//    private var tvBattery: BatteryView? = null          //电量
+//    private var tvPage: BatteryView? = null             //
+//    private var tvTotalProgress: BatteryView? = null    //总进度
+//    private var tvPageAndTotal: BatteryView? = null     //页数和总数
+//    private var tvBookName: BatteryView? = null         //书名
 
     //
 //    /***
@@ -64,14 +64,13 @@ class ContentView(context: Context) : FrameLayout(context) {
     /**
      *  头部高度 = 系统状态栏 + 标题高度
      */
-    suspend fun getHeaderHeight(): Int {
-        val tipPreference =
-            ChapterProvider.readTipPreferencesUtil?.readTIpPreferencesFlow?.firstOrNull()
-                ?: return 0
-        val h1 = if (tipPreference.hideStatusBar) 0 else context.statusBarHeight
-        val h2 = if (binding.llHeader.isGone) 0 else binding.llHeader.height
-        return h1 + h2
-    }
+//    suspend fun getHeaderHeight(): Int {
+//        val tipPreference = ChapterProvider.readTipPreferencesUtil?.readTIpPreferencesFlow?.firstOrNull()
+//                ?: return 0
+//        val h1 = if (tipPreference.hideStatusBar) 0 else context.statusBarHeight
+//        val h2 = if (binding.llHeader.isGone) 0 else binding.llHeader.height
+//        return h1 //+ h2
+//    }
 
     //
     init {
@@ -79,9 +78,9 @@ class ContentView(context: Context) : FrameLayout(context) {
         setBackgroundColor(context.getCompatColor(R.color.background))
         upTipStyle()
         upStyle()
-        binding.contentTextView.upView = {
-            setProgress(it)
-        }
+//        binding.contentTextView.upView = {
+//            setProgress(it)
+//        }
     }
 
     var callback: SelectTextCallback? = null
@@ -123,41 +122,41 @@ class ContentView(context: Context) : FrameLayout(context) {
                         "footerPaddingBottom=$footerPaddingBottom,footerPaddingLeft=$footerPaddingLeft,footerPaddingRight=$footerPaddingRight,footerPaddingTop=$footerPaddingTop," +
                         "showHeaderLine=$showHeaderLine,showFooterLine=$showFooterLine, textColor=0x$${textColor.toString(16)}")
 
-                bvHeaderLeft.typeface = ChapterProvider.typeface
-                tvHeaderLeft.typeface = ChapterProvider.typeface
-                tvHeaderMiddle.typeface = ChapterProvider.typeface
-                tvHeaderRight.typeface = ChapterProvider.typeface
-                bvFooterLeft.typeface = ChapterProvider.typeface
-                tvFooterLeft.typeface = ChapterProvider.typeface
-                tvFooterMiddle.typeface = ChapterProvider.typeface
-                tvFooterRight.typeface = ChapterProvider.typeface
-                bvHeaderLeft.setColor(textColor)
-                tvHeaderLeft.setColor(textColor)
-                tvHeaderMiddle.setColor(textColor)
-                tvHeaderRight.setColor(textColor)
-                bvFooterLeft.setColor(textColor)
-                tvFooterLeft.setColor(textColor)
-                tvFooterMiddle.setColor(textColor)
-                tvFooterRight.setColor(textColor)
+//                bvHeaderLeft.typeface = ChapterProvider.typeface
+//                tvHeaderLeft.typeface = ChapterProvider.typeface
+//                tvHeaderMiddle.typeface = ChapterProvider.typeface
+//                tvHeaderRight.typeface = ChapterProvider.typeface
+//                bvFooterLeft.typeface = ChapterProvider.typeface
+//                tvFooterLeft.typeface = ChapterProvider.typeface
+//                tvFooterMiddle.typeface = ChapterProvider.typeface
+//                tvFooterRight.typeface = ChapterProvider.typeface
+//                bvHeaderLeft.setColor(textColor)
+//                tvHeaderLeft.setColor(textColor)
+//                tvHeaderMiddle.setColor(textColor)
+//                tvHeaderRight.setColor(textColor)
+//                bvFooterLeft.setColor(textColor)
+//                tvFooterLeft.setColor(textColor)
+//                tvFooterMiddle.setColor(textColor)
+//                tvFooterRight.setColor(textColor)
                 upStatusBar()
-                binding.llHeader.setPadding(
-                    headerPaddingLeft.dp,
-                    headerPaddingTop.dp,
-                    headerPaddingRight.dp,
-                    headerPaddingBottom.dp
-                )
-                llFooter.setPadding(
-                    footerPaddingLeft.dp,
-                    footerPaddingTop.dp,
-                    footerPaddingRight.dp,
-                    footerPaddingBottom.dp
-                )
-                vwTopDivider.visibility = if (showHeaderLine) View.VISIBLE else View.GONE
-                vwBottomDivider.visibility = if (showFooterLine) View.VISIBLE else View.GONE
+//                binding.llHeader.setPadding(
+//                    headerPaddingLeft.dp,
+//                    headerPaddingTop.dp,
+//                    headerPaddingRight.dp,
+//                    headerPaddingBottom.dp
+//                )
+//                llFooter.setPadding(
+//                    footerPaddingLeft.dp,
+//                    footerPaddingTop.dp,
+//                    footerPaddingRight.dp,
+//                    footerPaddingBottom.dp
+//                )
+//                vwTopDivider.visibility = if (showHeaderLine) View.VISIBLE else View.GONE
+//                vwBottomDivider.visibility = if (showFooterLine) View.VISIBLE else View.GONE
                 binding.contentTextView.refreshVisibleRect()
             }
-            upTime()
-            upBattery(battery)
+//            upTime()
+//            upBattery(battery)
         }
     }
 
@@ -170,13 +169,9 @@ class ContentView(context: Context) : FrameLayout(context) {
 
             Coroutines.mainScope().launch {
                 ChapterProvider.tryCreatePreference(context)
-                val tipPreference =
-                    ChapterProvider.readTipPreferencesUtil?.readTIpPreferencesFlow?.firstOrNull()
-                        ?: return@launch
-                tipPreference.hideStatusBar
+                val tipPreference = ChapterProvider.readTipPreferencesUtil?.readTIpPreferencesFlow?.firstOrNull() ?: return@launch
 
-                isGone =
-                    tipPreference.hideStatusBar || (activity as? BaseActivity)?.isInMultiWindow == true
+//                isGone = tipPreference.hideStatusBar || (activity as? BaseActivity)?.isInMultiWindow == true
             }
         }
     }
@@ -204,107 +199,107 @@ class ContentView(context: Context) : FrameLayout(context) {
                         "tipFooterLeft=$tipFooterLeft,tipFooterRight=$tipFooterRight,tipFooterMiddle=$tipFooterMiddle," +
                         "hideHeader=$hideHeader,hideFooter=$hideFooter")
                 //tipHeaderLeft=2,tipHeaderRight=3,tipHeaderMiddle=0,tipFooterLeft=1,tipFooterRight=6,tipFooterMiddle=0,hideHeader=true,hideFooter=false
-                tvHeaderLeft.isInvisible = tipHeaderLeft != ReadTip_chapterTitle
-                bvHeaderLeft.isInvisible = tipHeaderLeft == ReadTip_none || !tvHeaderLeft.isInvisible
-                tvHeaderRight.isGone = tipHeaderRight == ReadTip_none
-                tvHeaderMiddle.isGone = tipHeaderMiddle == ReadTip_none
-                tvFooterLeft.isInvisible = tipFooterLeft != ReadTip_chapterTitle
-                bvFooterLeft.isInvisible = tipFooterLeft == ReadTip_none || !tvFooterLeft.isInvisible
-                tvFooterRight.isGone = tipFooterRight == ReadTip_none
-                tvFooterMiddle.isGone = tipFooterMiddle == ReadTip_none
-                binding.llHeader.isGone = hideHeader
-                llFooter.isGone = hideFooter
-                tvTitle = when (ReadTip_chapterTitle) {
-                    tipHeaderLeft -> tvHeaderLeft
-                    tipHeaderMiddle -> tvHeaderMiddle
-                    tipHeaderRight -> tvHeaderRight
-                    tipFooterLeft -> tvFooterLeft
-                    tipFooterMiddle -> tvFooterMiddle
-                    tipFooterRight -> tvFooterRight
-                    else -> null
-                }
-                tvTitle?.apply {
-                    isBattery = false
-                    textSize = 12f
-                }
-                tvTime = when (ReadTip_time) {
-                    tipHeaderLeft -> bvHeaderLeft
-                    tipHeaderMiddle -> tvHeaderMiddle
-                    tipHeaderRight -> tvHeaderRight
-                    tipFooterLeft -> bvFooterLeft
-                    tipFooterMiddle -> tvFooterMiddle
-                    tipFooterRight -> tvFooterRight
-                    else -> null
-                }
-                tvTime?.apply {
-                    isBattery = false
-                    textSize = 12f
-                }
-                tvBattery = when (ReadTip_battery) {
-                    tipHeaderLeft -> bvHeaderLeft
-                    tipHeaderMiddle -> tvHeaderMiddle
-                    tipHeaderRight -> tvHeaderRight
-                    tipFooterLeft -> bvFooterLeft
-                    tipFooterMiddle -> tvFooterMiddle
-                    tipFooterRight -> tvFooterRight
-                    else -> null
-                }
-                tvBattery?.apply {
-                    isBattery = true
-                    textSize = 10f
-                }
-                tvPage = when (ReadTip_page) {
-                    tipHeaderLeft -> bvHeaderLeft
-                    tipHeaderMiddle -> tvHeaderMiddle
-                    tipHeaderRight -> tvHeaderRight
-                    tipFooterLeft -> bvFooterLeft
-                    tipFooterMiddle -> tvFooterMiddle
-                    tipFooterRight -> tvFooterRight
-                    else -> null
-                }
-                tvPage?.apply {
-                    isBattery = false
-                    textSize = 12f
-                }
-                tvTotalProgress = when (ReadTip_totalProgress) {
-                    tipHeaderLeft -> bvHeaderLeft
-                    tipHeaderMiddle -> tvHeaderMiddle
-                    tipHeaderRight -> tvHeaderRight
-                    tipFooterLeft -> bvFooterLeft
-                    tipFooterMiddle -> tvFooterMiddle
-                    tipFooterRight -> tvFooterRight
-                    else -> null
-                }
-                tvTotalProgress?.apply {
-                    isBattery = false
-                    textSize = 12f
-                }
-                tvPageAndTotal = when (ReadTip_pageAndTotal) {
-                    tipHeaderLeft -> bvHeaderLeft
-                    tipHeaderMiddle -> tvHeaderMiddle
-                    tipHeaderRight -> tvHeaderRight
-                    tipFooterLeft -> bvFooterLeft
-                    tipFooterMiddle -> tvFooterMiddle
-                    tipFooterRight -> tvFooterRight
-                    else -> null
-                }
-                tvPageAndTotal?.apply {
-                    isBattery = false
-                    textSize = 12f
-                }
-                tvBookName = when (ReadTip_bookName) {
-                    tipHeaderLeft -> bvHeaderLeft
-                    tipHeaderMiddle -> tvHeaderMiddle
-                    tipHeaderRight -> tvHeaderRight
-                    tipFooterLeft -> bvFooterLeft
-                    tipFooterMiddle -> tvFooterMiddle
-                    tipFooterRight -> tvFooterRight
-                    else -> null
-                }
-                tvBookName?.apply {
-                    isBattery = false
-                    textSize = 12f
-                }
+//                tvHeaderLeft.isInvisible = tipHeaderLeft != ReadTip_chapterTitle
+//                bvHeaderLeft.isInvisible = tipHeaderLeft == ReadTip_none || !tvHeaderLeft.isInvisible
+//                tvHeaderRight.isGone = tipHeaderRight == ReadTip_none
+//                tvHeaderMiddle.isGone = tipHeaderMiddle == ReadTip_none
+//                tvFooterLeft.isInvisible = tipFooterLeft != ReadTip_chapterTitle
+//                bvFooterLeft.isInvisible = tipFooterLeft == ReadTip_none || !tvFooterLeft.isInvisible
+//                tvFooterRight.isGone = tipFooterRight == ReadTip_none
+//                tvFooterMiddle.isGone = tipFooterMiddle == ReadTip_none
+//                binding.llHeader.isGone = hideHeader
+//                llFooter.isGone = hideFooter
+//                tvTitle = when (ReadTip_chapterTitle) {
+//                    tipHeaderLeft -> tvHeaderLeft
+//                    tipHeaderMiddle -> tvHeaderMiddle
+//                    tipHeaderRight -> tvHeaderRight
+//                    tipFooterLeft -> tvFooterLeft
+//                    tipFooterMiddle -> tvFooterMiddle
+//                    tipFooterRight -> tvFooterRight
+//                    else -> null
+//                }
+//                tvTitle?.apply {
+//                    isBattery = false
+//                    textSize = 12f
+//                }
+//                tvTime = when (ReadTip_time) {
+//                    tipHeaderLeft -> bvHeaderLeft
+//                    tipHeaderMiddle -> tvHeaderMiddle
+//                    tipHeaderRight -> tvHeaderRight
+//                    tipFooterLeft -> bvFooterLeft
+//                    tipFooterMiddle -> tvFooterMiddle
+//                    tipFooterRight -> tvFooterRight
+//                    else -> null
+//                }
+//                tvTime?.apply {
+//                    isBattery = false
+//                    textSize = 12f
+//                }
+//                tvBattery = when (ReadTip_battery) {
+//                    tipHeaderLeft -> bvHeaderLeft
+//                    tipHeaderMiddle -> tvHeaderMiddle
+//                    tipHeaderRight -> tvHeaderRight
+//                    tipFooterLeft -> bvFooterLeft
+//                    tipFooterMiddle -> tvFooterMiddle
+//                    tipFooterRight -> tvFooterRight
+//                    else -> null
+//                }
+//                tvBattery?.apply {
+//                    isBattery = true
+//                    textSize = 10f
+//                }
+//                tvPage = when (ReadTip_page) {
+//                    tipHeaderLeft -> bvHeaderLeft
+//                    tipHeaderMiddle -> tvHeaderMiddle
+//                    tipHeaderRight -> tvHeaderRight
+//                    tipFooterLeft -> bvFooterLeft
+//                    tipFooterMiddle -> tvFooterMiddle
+//                    tipFooterRight -> tvFooterRight
+//                    else -> null
+//                }
+//                tvPage?.apply {
+//                    isBattery = false
+//                    textSize = 12f
+//                }
+//                tvTotalProgress = when (ReadTip_totalProgress) {
+//                    tipHeaderLeft -> bvHeaderLeft
+//                    tipHeaderMiddle -> tvHeaderMiddle
+//                    tipHeaderRight -> tvHeaderRight
+//                    tipFooterLeft -> bvFooterLeft
+//                    tipFooterMiddle -> tvFooterMiddle
+//                    tipFooterRight -> tvFooterRight
+//                    else -> null
+//                }
+//                tvTotalProgress?.apply {
+//                    isBattery = false
+//                    textSize = 12f
+//                }
+//                tvPageAndTotal = when (ReadTip_pageAndTotal) {
+//                    tipHeaderLeft -> bvHeaderLeft
+//                    tipHeaderMiddle -> tvHeaderMiddle
+//                    tipHeaderRight -> tvHeaderRight
+//                    tipFooterLeft -> bvFooterLeft
+//                    tipFooterMiddle -> tvFooterMiddle
+//                    tipFooterRight -> tvFooterRight
+//                    else -> null
+//                }
+//                tvPageAndTotal?.apply {
+//                    isBattery = false
+//                    textSize = 12f
+//                }
+//                tvBookName = when (ReadTip_bookName) {
+//                    tipHeaderLeft -> bvHeaderLeft
+//                    tipHeaderMiddle -> tvHeaderMiddle
+//                    tipHeaderRight -> tvHeaderRight
+//                    tipFooterLeft -> bvFooterLeft
+//                    tipFooterMiddle -> tvFooterMiddle
+//                    tipFooterRight -> tvFooterRight
+//                    else -> null
+//                }
+//                tvBookName?.apply {
+//                    isBattery = false
+//                    textSize = 12f
+//                }
             }
         }
     }
@@ -323,17 +318,17 @@ class ContentView(context: Context) : FrameLayout(context) {
     /**
      * 更新时间显示
      */
-    fun upTime() {
-        tvTime?.text = SimpleDateFormat("HH:mm").format(Date(System.currentTimeMillis()))
-    }
+//    fun upTime() {
+//        tvTime?.text = SimpleDateFormat("HH:mm").format(Date(System.currentTimeMillis()))
+//    }
 
     /****
      * 更新电池显示
      */
-    fun upBattery(battery: Int) {
-        this.battery = battery
-        tvBattery?.setBattery(battery)
-    }
+//    fun upBattery(battery: Int) {
+//        this.battery = battery
+//        tvBattery?.setBattery(battery)
+//    }
 
     /****
      * 设置需要显示的TextPage内容
@@ -341,7 +336,7 @@ class ContentView(context: Context) : FrameLayout(context) {
     fun setContent(textPage: TextPage, resetPageOffset: Boolean = true) {
         Logger.i("ContentView::setContent::textPage.pageSize=${textPage.pageSize}")
         Coroutines.mainScope().launchMain {
-            setProgress(textPage)
+//            setProgress(textPage)
             if (resetPageOffset) {
                 resetPageOffset()
             }
@@ -359,15 +354,14 @@ class ContentView(context: Context) : FrameLayout(context) {
     /****
      * 显示进度设置
      */
-    @SuppressLint("SetTextI18n")
-    fun setProgress(textPage: TextPage) = textPage.apply {
-            tvBookName?.text = callback?.book?.title.orEmpty()
-            tvTitle?.text = textPage.title
-            tvPage?.text = "${index.plus(1)}/$pageSize"
-            tvTotalProgress?.text = readProgress
-            tvPageAndTotal?.text = "${index.plus(1)}/$pageSize  $readProgress"
-
-    }
+//    @SuppressLint("SetTextI18n")
+//    fun setProgress(textPage: TextPage) = textPage.apply {
+//            tvBookName?.text = callback?.book?.title.orEmpty()
+//            tvTitle?.text = textPage.title
+//            tvPage?.text = "${index.plus(1)}/$pageSize"
+//            tvTotalProgress?.text = readProgress
+//            tvPageAndTotal?.text = "${index.plus(1)}/$pageSize  $readProgress"
+//    }
 
     /***
      * 移动时，设置显示界面的偏移
@@ -391,7 +385,7 @@ class ContentView(context: Context) : FrameLayout(context) {
         select: (relativePage: Int, lineIndex: Int, charIndex: Int) -> Unit
     ) {
         Coroutines.mainScope().launch {
-            val headerHeight = getHeaderHeight()
+            val headerHeight = context.statusBarHeight
             binding.contentTextView.selectText(x, y - headerHeight, select)
         }
     }
@@ -401,7 +395,7 @@ class ContentView(context: Context) : FrameLayout(context) {
      */
     fun selectStartMove(x: Float, y: Float) {
         Coroutines.mainScope().launch {
-            val headerHeight = getHeaderHeight()
+            val headerHeight = context.statusBarHeight
             binding.contentTextView.selectStartMove(x, y - headerHeight)
         }
     }
@@ -418,7 +412,8 @@ class ContentView(context: Context) : FrameLayout(context) {
      */
     fun selectEndMove(x: Float, y: Float) {
         Coroutines.mainScope().launch {
-            val headerHeight = getHeaderHeight()
+            val headerHeight = context.statusBarHeight
+//            val headerHeight = getHeaderHeight()
             binding.contentTextView.selectEndMove(x, y - headerHeight)
         }
     }

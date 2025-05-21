@@ -539,7 +539,6 @@ class PageView: FrameLayout, IDataSource, PageCallback {
         nextPage.upStyle()
     }
 
-
     /***
      * 更新背景
      */
@@ -562,19 +561,19 @@ class PageView: FrameLayout, IDataSource, PageCallback {
     /***
      * 更新时间显示
      */
-    fun upTime() {
-        curPage.upTime()
-        prevPage.upTime()
-        nextPage.upTime()
-    }
+//    fun upTime() {
+//        curPage.upTime()
+//        prevPage.upTime()
+//        nextPage.upTime()
+//    }
 
     /***
      * 更新电池显示
      */
-    fun upBattery(battery: Int) {
-        curPage.upBattery(battery)
-        prevPage.upBattery(battery)
-        nextPage.upBattery(battery)
-    }
+//    fun upBattery(battery: Int) {
+//        curPage.upBattery(battery)
+//        prevPage.upBattery(battery)
+//        nextPage.upBattery(battery)
+//    }
 
 }

@@ -286,7 +286,7 @@ open class PageViewController @Inject constructor(val context: Context,
      * 设置屏幕常亮
      */
     override fun screenOffTimerStart() {
-        Logger.i("PageViewController::screenOffTimerStart")
+//        Logger.i("PageViewController::screenOffTimerStart")
     }
 
     override fun showTextActionMenu() {

@@ -4,6 +4,8 @@ import android.widget.FrameLayout
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.navigationBarsPadding
+import androidx.compose.foundation.layout.systemBarsPadding
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -33,7 +35,7 @@ fun ReaderView(
 ) {
     Logger.i("ReaderView::load")
     Box(
-        modifier = Modifier
+        modifier = Modifier//.navigationBarsPadding().systemBarsPadding()
             .fillMaxSize()
             .background(color = Color(readerPreferences.backgroundColor))
     ) {
@@ -50,10 +52,11 @@ fun ReaderView(
             modifier = Modifier.fillMaxSize(),
             update = { view ->
                 view.dataProvider?.book = book
+                view.upStyle()
                 view.upTipStyle()
                 view.upBg()
                 view.upStatusBar()
-                view.upTime()
+//                view.upTime()
                 view.dataProvider?.loadContent(true)
             }
         )

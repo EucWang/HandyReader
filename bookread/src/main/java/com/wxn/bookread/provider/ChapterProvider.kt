@@ -12,6 +12,7 @@ import android.text.TextPaint
 import com.wxn.base.bean.Book
 import com.wxn.base.bean.BookChapter
 import com.wxn.base.ext.isContentPath
+import com.wxn.base.ext.statusBarHeight
 import com.wxn.base.ext.toStringArray
 import com.wxn.base.util.PathUtil
 import com.wxn.bookread.data.source.local.ReaderPreferencesUtil
@@ -148,14 +149,14 @@ object ChapterProvider {
         if (viewWidth == 0 || viewHeight == 0) {
             val metrics = context.resources.displayMetrics
             viewWidth = metrics.widthPixels
-            viewHeight = metrics.heightPixels
+            viewHeight = metrics.heightPixels - context.statusBarHeight
             Logger.d("ChapterProvider::set screen size to view::viewWidth=$viewWidth,viewHeight=$viewHeight")
         }
 
         val readerPreferences = readerPreferencesUtil?.readerPreferencesFlow?.firstOrNull()
         if (viewWidth > 0 && viewHeight > 0) {
-            paddingLeft = readerPreferences?.pageHorizontalMargins?.dp?.toInt() ?: 0         //页面左边距
-            paddingTop = readerPreferences?.pageTopMargins?.dp?.toInt() ?: 0                 //页面顶部间距
+            paddingLeft = (((readerPreferences?.pageHorizontalMargins?.toDouble() ?:0.0) * 0.1 * viewWidth.toDouble()).toInt()) /2         //页面左边距
+            paddingTop = ((readerPreferences?.pageVerticalMargins ?: 0.0) * 0.1 * viewHeight.toDouble()).toInt() / 2                 //页面顶部间距
             visibleWidth = (viewWidth - paddingLeft * 2).toInt()                                //可视宽度
             visibleHeight = (viewHeight - paddingTop * 2).toInt()                            //可视高度
             visibleRight = paddingLeft + visibleWidth                                       //可视右边

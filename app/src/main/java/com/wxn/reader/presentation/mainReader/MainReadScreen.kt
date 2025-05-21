@@ -19,6 +19,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
@@ -87,7 +88,7 @@ fun MainReadScreen(
     SetFullScreen(context, showSystemBars = areToolbarsVisible)
 
     Box(
-        modifier = Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background),
+        modifier = Modifier.fillMaxSize() .background(color = Color(readerPreferences.backgroundColor)), //.background(MaterialTheme.colorScheme.background),
         contentAlignment = Alignment.Center
     ) {
 //        Logger.d("MainReadScreen::uiState=$uiState")

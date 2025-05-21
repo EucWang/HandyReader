@@ -35,8 +35,8 @@ data class ReadTipPreferences constructor(
      */
     val pageAnim: Int,
 
-    val hideStatusBar: Boolean,
-    val hideNavigationBar: Boolean,
+//    val hideStatusBar: Boolean,
+//    val hideNavigationBar: Boolean,
 
     val clickTurnPage: Boolean,
     val clickAllNext: Boolean,

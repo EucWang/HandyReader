@@ -51,8 +51,8 @@ class ReadTipPreferencesUtil @Inject constructor(
 
         val PageAnim = intPreferencesKey("page_anim")
 
-        val HideStatusBar = booleanPreferencesKey("hide_status_bar")
-        val HideNavigationBar = booleanPreferencesKey("hide_navigation_bar")
+//        val HideStatusBar = booleanPreferencesKey("hide_status_bar")
+//        val HideNavigationBar = booleanPreferencesKey("hide_navigation_bar")
 
         val ClickTurnPage = booleanPreferencesKey("click_turn_page")
         val ClickAllNext = booleanPreferencesKey("click_all_next")
@@ -83,8 +83,8 @@ class ReadTipPreferencesUtil @Inject constructor(
 
             pageAnim = 0,
 
-            hideStatusBar = true,
-            hideNavigationBar = true,
+//            hideStatusBar = true,
+//            hideNavigationBar = true,
 
             clickTurnPage = true,
             clickAllNext = false,
@@ -128,9 +128,8 @@ class ReadTipPreferencesUtil @Inject constructor(
 
             pageAnim = preference[PageAnim] ?: defaultReadTipPreference.pageAnim,
 
-            hideStatusBar = preference[HideStatusBar] ?: defaultReadTipPreference.hideStatusBar,
-            hideNavigationBar = preference[HideNavigationBar]
-                ?: defaultReadTipPreference.hideNavigationBar,
+//            hideStatusBar = preference[HideStatusBar] ?: defaultReadTipPreference.hideStatusBar,
+//            hideNavigationBar = preference[HideNavigationBar] ?: defaultReadTipPreference.hideNavigationBar,
 
             clickTurnPage = preference[ClickTurnPage] ?: defaultReadTipPreference.clickTurnPage,
             clickAllNext = preference[ClickAllNext] ?: defaultReadTipPreference.clickAllNext,
@@ -166,8 +165,8 @@ class ReadTipPreferencesUtil @Inject constructor(
 
             preference[PageAnim] = newPreferences.pageAnim
 
-            preference[HideStatusBar] = newPreferences.hideStatusBar
-            preference[HideNavigationBar] = newPreferences.hideNavigationBar
+//            preference[HideStatusBar] = newPreferences.hideStatusBar
+//            preference[HideNavigationBar] = newPreferences.hideNavigationBar
 
             preference[ClickTurnPage] = newPreferences.clickTurnPage
             preference[ClickAllNext] = newPreferences.clickAllNext
@@ -202,8 +201,8 @@ class ReadTipPreferencesUtil @Inject constructor(
 
             preference[PageAnim] = defaultReadTipPreference.pageAnim
 
-            preference[HideStatusBar] = defaultReadTipPreference.hideStatusBar
-            preference[HideNavigationBar] = defaultReadTipPreference.hideNavigationBar
+//            preference[HideStatusBar] = defaultReadTipPreference.hideStatusBar
+//            preference[HideNavigationBar] = defaultReadTipPreference.hideNavigationBar
 
             preference[ClickTurnPage] = defaultReadTipPreference.clickTurnPage
             preference[ClickAllNext] = defaultReadTipPreference.clickAllNext
