@@ -22,10 +22,10 @@ namespace fs = std::filesystem;
 class mobi_util {
 
 public:
+
     static int loadMobi(std::string fullpath,
                         std::string appFileDir,
                         std::string& coverPath,
-//                        std::string& epubPath,
 
                         std::string& title,
                         std::string& author,
@@ -46,6 +46,12 @@ public:
                         std::string& language,
                         std::string& identifier,
                         bool& isEncrypted);
+
+
+    static int convertToEpub(
+            std::string fullpath,
+            std::string appCacheeDir,
+            std::string& epubPath);
 
 private:
 

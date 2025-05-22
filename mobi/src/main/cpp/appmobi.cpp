@@ -184,43 +184,31 @@ Java_com_wxn_mobi_inative_NativeLib_loadMobi(
             env->NewStringUTF(coverPath.c_str())
     );
     return mobiInfoObj;
+}
+extern "C"
+JNIEXPORT jstring JNICALL
+Java_com_wxn_mobi_inative_NativeLib_convertToEpub(JNIEnv *env,
+                                                  jobject thiz,
+                                                  jobject context,
+                                                  jstring path) {
+    const char *nativeStr = env->GetStringUTFChars(path, NULL);
+    jclass contextClass = env->GetObjectClass(context);
+    jmethodID getCacheDirMethod = env->GetMethodID(contextClass, "getCacheDir", "()Ljava/io/File;");
+    //call getCacheDir(), return File object
+    jobject cacheDirObj = env->CallObjectMethod(context, getCacheDirMethod);
 
-//    std::vector<std::string> params;
-//    params.push_back(coverPath);
-////    params.push_back(epubPath);
-//
-//    params.push_back(title);
-//    params.push_back(author);
-//    params.push_back(contributor);
-//
-//    params.push_back(subject);
-//    params.push_back(publisher);
-//    params.push_back(date);
-//
-//    params.push_back(description);
-//    params.push_back(review);
-//    params.push_back(imprint);
-//
-//    params.push_back(copyright);
-//    params.push_back(isbn);
-//    params.push_back(asin);
-//
-//    params.push_back(language);
-//    params.push_back(identifier);
-//    if (isEncrypted) {
-//        params.push_back("true");
-//    } else {
-//        params.push_back("false");
-//    }
-//
-//    //构造返回的字符串数组
-//    int length = 17;
-//    jclass stringClass = env->FindClass("java/lang/String");
-//    jobjectArray stringArray = env->NewObjectArray(length, stringClass, NULL);
-//    for (int i = 0; i < length; i++) {
-//        jstring element = env->NewStringUTF(params[i].c_str());
-//        env->SetObjectArrayElement(stringArray, i, element);
-//        env->DeleteLocalRef(element);
-//    }
-//    return stringArray;
+    //call getAbsolutePath(), get full dir path
+    jclass fileClass = env->FindClass("java/io/File");
+    jmethodID getAbsolutePathMethod = env->GetMethodID(fileClass, "getAbsolutePath", "()Ljava/lang/String;");
+    jstring pathStr = (jstring)env->CallObjectMethod(cacheDirObj, getAbsolutePathMethod);
+    const char *appCacheDir = env->GetStringUTFChars(pathStr, NULL);
+
+    std::string epub_path;
+    mobi_util::convertToEpub(nativeStr, appCacheDir, epub_path);
+    LOGD("convertToEpub:target epub_path is [%s]", epub_path.c_str());
+
+    env->ReleaseStringUTFChars(path, nativeStr);
+    env->ReleaseStringUTFChars(pathStr, appCacheDir);
+
+    return env->NewStringUTF(epub_path.c_str());
 }

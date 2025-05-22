@@ -15,6 +15,7 @@ import com.wxn.bookparser.parser.fb2.Fb2FileParser
 import com.wxn.bookparser.parser.html.HtmlFileParser
 import com.wxn.bookparser.parser.html.HtmlTextParser
 import com.wxn.bookparser.parser.mobi.MobiFileParser
+import com.wxn.bookparser.parser.mobi.MobiTextParser
 import com.wxn.bookparser.parser.pdf.PdfFileParser
 import com.wxn.bookparser.parser.pdf.PdfTextParser
 import com.wxn.bookparser.parser.txt.TxtFileParser
@@ -90,6 +91,10 @@ object ParserModule {
 
     @Provides
     @Singleton
+    fun provideMobiTextParser(context: Context, documentParser: DocumentParser) : MobiTextParser = MobiTextParser(context, documentParser)
+
+    @Provides
+    @Singleton
     fun provideAudioFileParser(context: Context): AudioFileParser = AudioFileParser(context)
 
     @Provides
@@ -123,7 +128,8 @@ object ParserModule {
         // Document parser (HTML+Markdown)
         epubTextParser: EpubTextParser,
         htmlTextParser: HtmlTextParser,
-        xmlTextParser: XmlTextParser
-    ): TextParser = TextParserImpl(txtTextParser, pdfTextParser, epubTextParser, htmlTextParser, xmlTextParser)
+        xmlTextParser: XmlTextParser,
+        mobiTextParser: MobiTextParser
+    ): TextParser = TextParserImpl(txtTextParser, pdfTextParser, epubTextParser, htmlTextParser, xmlTextParser, mobiTextParser)
 
 }

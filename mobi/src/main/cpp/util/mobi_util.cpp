@@ -4,6 +4,45 @@
 
 #include "mobi_util.h"
 
+#include <iostream>
+#include <iomanip>
+#include <sstream>
+#include <random>
+
+std::string generate_uuid() {
+    std::random_device rd;
+    std::mt19937 gen(rd());
+    std::uniform_int_distribution<> dis(0, 15);
+    std::uniform_int_distribution<> dis2(8, 11);
+
+    std::stringstream ss;
+    int i;
+    ss << std::hex;
+    for (i = 0; i < 8; i++) {
+        ss << dis(gen);
+    }
+    ss << "-";
+    for (i = 0; i < 4; i++) {
+        ss << dis(gen);
+    }
+    ss << "-";
+    ss << dis2(gen);
+    for (i = 0; i < 3; i++) {
+        ss << dis(gen);
+    }
+    ss << "-";
+    ss << dis(gen) % 4 + 8;
+    for (i = 0; i < 3; i++) {
+        ss << dis(gen);
+    }
+    ss << "-";
+    for (i = 0; i < 12; i++) {
+        ss << dis(gen);
+    };
+    return ss.str();
+}
+
+
 std::string replaceExtension(const std::string& filePath, const std::string& newExt) {
     fs::path path(filePath);
 
@@ -17,6 +56,75 @@ std::string replaceExtension(const std::string& filePath, const std::string& new
 
     return path.string();
 }
+
+int mobi_util::convertToEpub(
+        std::string fullpath,
+        std::string appCacheDir,
+        std::string& epubPath
+        ) {
+    LOGI("%s fullPath=%s,appFileDir=$appFileDir,", __func__, fullpath.c_str());
+    MOBIData *mobi_data = mobi_init();
+    if (mobi_data == NULL) {
+        LOGE("%s mobi_init failed", __func__);
+        return ERROR;
+    }
+
+    FILE *file = fopen(fullpath.c_str(), "rb");
+    if (file == NULL) {
+        mobi_free(mobi_data);
+        LOGE("%s fopen failed", __func__);
+        return ERROR;
+    }
+
+    MOBI_RET mobi_ret = mobi_load_file(mobi_data, file);
+    fclose(file);
+    if (mobi_ret != MOBI_SUCCESS) {
+        const char *msg = libmobi_msg(mobi_ret);
+        LOGE("%s mobi_load_file failed, msg[%s]", __func__, msg);
+        mobi_free(mobi_data);
+        return ERROR;
+    }
+
+    MOBIRawml *rawml = mobi_init_rawml(mobi_data);
+    if (rawml == NULL) {
+        mobi_free(mobi_data);
+        LOGE("%s mobi_init_rawml failed, rawml is null", __func__);
+        return ERROR;
+    }
+
+    mobi_ret = mobi_parse_rawml(rawml, mobi_data);
+    if (mobi_ret != MOBI_SUCCESS) {
+        const char *msg = libmobi_msg(mobi_ret);
+        LOGE("%s mobi_parse_rawml failed, msg[%s]", __func__, msg);
+        mobi_free(mobi_data);
+        mobi_free_rawml(rawml);
+        return ERROR;
+    }
+
+    auto now = std::chrono::system_clock::now();
+    auto timestamp = std::chrono::duration_cast<std::chrono::milliseconds>(now.time_since_epoch()).count();
+
+    std::string basename = generate_uuid();
+//    ret = create_epub(rawml, fullpath.c_str());
+//------------- convert mobi to epub
+    std::string zipfile = appCacheDir + "/" + basename + ".epub";
+    int ret = epub_rawml_parts(rawml, zipfile.c_str());
+    LOGD("Saving EPUB to %s\n", zipfile.c_str());
+
+    if (ret == ERROR) {
+        LOGE("%s create epub failed, mobi path is [%s]", __func__, fullpath.c_str());
+        mobi_free_rawml(rawml);
+        mobi_free(mobi_data);
+        return ERROR;
+    }
+    auto now2 = std::chrono::system_clock::now();
+    auto timestamp2 = std::chrono::duration_cast<std::chrono::milliseconds>(now2.time_since_epoch()).count();
+    LOGD("%s: create_epub spend time :: [%lld]ms", __func__, timestamp2 - timestamp);
+//-------------
+    epubPath = zipfile;
+    return SUCCESS;
+}
+
 
 int mobi_util::loadMobi(std::string fullpath,
                         std::string appFileDir,
@@ -241,3 +349,4 @@ int mobi_util::loadMobi(std::string fullpath,
     mobi_free(mobi_data);
     return SUCCESS;
 }
+

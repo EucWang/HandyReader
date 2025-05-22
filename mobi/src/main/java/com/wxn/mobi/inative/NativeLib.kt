@@ -16,4 +16,6 @@ object NativeLib {
     external fun nativeFilesCrc(paths: Array<String>) : Array<FileCrc>?
 
     external fun loadMobi(context: Context, path:String) : MobiInfo? // Array<String>?
+
+    external fun convertToEpub(context: Context, path: String): String?
 }

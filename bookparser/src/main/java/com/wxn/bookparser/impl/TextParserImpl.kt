@@ -7,6 +7,7 @@ import com.wxn.bookparser.domain.file.CachedFile
 import com.wxn.bookparser.domain.reader.ReaderText
 import com.wxn.bookparser.parser.epub.EpubTextParser
 import com.wxn.bookparser.parser.html.HtmlTextParser
+import com.wxn.bookparser.parser.mobi.MobiTextParser
 import com.wxn.bookparser.parser.pdf.PdfTextParser
 import com.wxn.bookparser.parser.txt.TxtTextParser
 import com.wxn.bookparser.parser.xml.XmlTextParser
@@ -24,7 +25,8 @@ class TextParserImpl @Inject constructor(
     // Document parser (HTML+Markdown)
     private val epubTextParser: EpubTextParser,
     private val htmlTextParser: HtmlTextParser,
-    private val xmlTextParser: XmlTextParser
+    private val xmlTextParser: XmlTextParser,
+    private val mobiTextParser: MobiTextParser
 ) : TextParser {
 
     override suspend fun parse(cachedFile: CachedFile): List<ReaderText> {
@@ -45,9 +47,9 @@ class TextParserImpl @Inject constructor(
                     epubTextParser.parse(cachedFile)
                 }
 
-//                in listOf("mobi", "azw3") -> {
-//                    mobiFileParser.parse(file)
-//                }
+                in listOf("mobi", "azw3") -> {
+                    mobiTextParser.parse(cachedFile)
+                }
 
                 "txt" -> {
                     txtTextParser.parse(cachedFile)
