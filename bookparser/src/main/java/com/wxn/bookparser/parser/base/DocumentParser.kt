@@ -2,14 +2,20 @@ package com.wxn.bookparser.parser.base
 
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
+import android.os.Build
+import android.util.Log
+import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.asImageBitmap
+import com.wxn.base.util.Logger
 import com.wxn.bookparser.domain.reader.ReaderText
 import com.wxn.bookparser.exts.clearAllMarkdown
 import com.wxn.bookparser.exts.clearMarkdown
 import com.wxn.bookparser.exts.containsVisibleText
 import kotlinx.coroutines.yield
 import org.jsoup.nodes.Document
+import java.io.ByteArrayInputStream
 import java.io.File
+import java.util.Base64
 import java.util.zip.ZipEntry
 import java.util.zip.ZipFile
 import javax.inject.Inject
@@ -41,26 +47,26 @@ class DocumentParser @Inject constructor(
                 // Remove manual line breaks from all <p>, <a>
                 select("p").forEach { element ->
                     yield()
-                    element.html(element.html().replace(Regex("\\n+"), " "))
-                    element.append("\n")
+                    element.html(element.html().replace(Regex("\\n+"), " "))        //替换掉<p> 内部的手动换行
+                    element.append("\n") //在<p> 内部的尾部加上一个换行符
                 }
                 select("a").forEach { element ->
                     yield()
-                    element.html(element.html().replace(Regex("\\n+"), ""))
+                    element.html(element.html().replace(Regex("\\n+"), ""))         //替换掉<a> 内部的手动换行
                 }
 
                 // Remove <head>'s title
-                select("title").remove()
+                select("title").remove()                                            //移除掉<body>中的<title> 标签内容
 
                 // Markdown
-                select("hr").append("\n---\n")
-                select("b").append("**").prepend("**")
-                select("h1").append("**").prepend("**")
-                select("h2").append("**").prepend("**")
-                select("h3").append("**").prepend("**")
-                select("strong").append("**").prepend("**")
-                select("em").append("_").prepend("_")
-                select("a").forEach { element ->
+                select("hr").append("\n---\n")                                      //hr 标签 解析成 markdown 的 Section separator(---)
+                select("b").append("**").prepend("**")                              //b 标签 解析 成 markdown 的 Bold(**)
+                select("h1").append("**").prepend("**")                             //h1 标签 解析 成 markdown 的 Bold(**)
+                select("h2").append("**").prepend("**")                             //h2 标签 解析 成 markdown 的 Bold(**)
+                select("h3").append("**").prepend("**")                             //h3 标签 解析 成 markdown 的 Bold(**)
+                select("strong").append("**").prepend("**")                         //strong 标签 解析 成 markdown 的 Bold(**)
+                select("em").append("_").prepend("_")                               //em 标签 （斜体） 解析成 markdown 的 _
+                select("a").forEach { element ->                                    //a 标签 解析成 makrdown 的链接标签 [text](link)
                     var link = element.attr("href")
                     if (!link.startsWith("http") || element.wholeText().isBlank()) return@forEach
 
@@ -79,31 +85,42 @@ class DocumentParser @Inject constructor(
                         .substringAfterLast(File.separator)
                         .lowercase()
                         .takeIf {
-                            it.containsVisibleText() && imageEntries?.any { image ->
+                            it.containsVisibleText() && (imageEntries?.any { image ->
                                 it == image.name.substringAfterLast(File.separator).lowercase()
-                            } == true
+                            } == true || (it.startsWith("#") && null != document.selectFirst("binary[id=${it.substring(1)}]")))
                         } ?: return@forEach
 
                     val alt = element.attr("alt").trim().takeIf {
                         it.clearMarkdown().containsVisibleText()
                     } ?: src.substringBeforeLast(".")
+                    Logger.d("DocumentParser:innerParse:img:src=$src,alt=$alt")
 
                     element.append("\n[[$src|$alt]]\n")
                 }
 
                 // Image (<image>)
                 select("image").forEach { element ->
-                    val src = element.attr("xlink:href")
+                    val eleImage = element.select("image")
+                    val src = if (eleImage.hasAttr("xlink:href")) {
+                        eleImage.attr("xlink:href")
+                    } else if (eleImage.hasAttr("href")) {
+                        eleImage.attr("href")
+                    } else if (eleImage.hasAttr("l:href")) {
+                        eleImage.attr("l:href")
+                    } else {
+                        ""
+                    }
                         .trim()
                         .substringAfterLast(File.separator)
                         .lowercase()
                         .takeIf {
-                            it.containsVisibleText() && imageEntries?.any { image ->
+                            it.containsVisibleText() && (imageEntries?.any { image ->
                                 it == image.name.substringAfterLast(File.separator).lowercase()
-                            } == true
+                            } == true || (it.startsWith("#") && null != document.selectFirst("binary[id=${it.substring(1)}]")))
                         } ?: return@forEach
 
                     val alt = src.substringBeforeLast(".")
+                    Logger.d("DocumentParser:innerParse:image:src=$src,alt=$alt")
 
                     element.append("\n[[$src|$alt]]\n")
                 }
@@ -127,16 +144,36 @@ class DocumentParser @Inject constructor(
                             val src = trimmedLine.substringBefore("|")
                             val alt = "_${trimmedLine.substringAfter("|")}_"
 
-                            val image = try {
-                                val imageEntry = imageEntries?.find { image ->
-                                    src == image.name.substringAfterLast(File.separator).lowercase()
-                                } ?: return@forEach
+                            Logger.d("DocumentParser::image[$src,$alt]")
 
-                                zipFile?.getImage(imageEntry)?.asImageBitmap()
-                            } catch (e: Exception) {
-                                e.printStackTrace()
-                                null
-                            } ?: return@forEach
+                            val image : ImageBitmap = if (imageEntries != null) {
+                               try {
+                                    val imageEntry = imageEntries.find { image ->
+                                        src == image.name.substringAfterLast(File.separator).lowercase()
+                                    } ?: return@forEach
+                                    zipFile?.getImage(imageEntry)?.asImageBitmap()
+                                } catch (e: Exception) {
+                                    e.printStackTrace()
+                                    null
+                                } ?: return@forEach
+                            } else {
+                                try {
+                                    val binary = document.selectFirst("binary[id=${src.substring(1)}]")
+                                    //清理所有空白字符（包括换行、缩进、空格）
+                                    binary?.text()?.trim()?.replace("\\s+", "")?.let { data ->
+                                        val inputStream =
+//                                            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+//                                            ByteArrayInputStream(Base64.getDecoder().decode(data))
+//                                        } else {
+                                            ByteArrayInputStream(android.util.Base64.decode(data, android.util.Base64.DEFAULT))
+//                                        }
+                                        BitmapFactory.decodeStream(inputStream)?.asImageBitmap()
+                                    }
+                                } catch (ex: Exception) {
+                                    ex.printStackTrace()
+                                    null
+                                } ?: return@forEach
+                            }
 
                             image.prepareToDraw()
                             readerText.add( // Adding image

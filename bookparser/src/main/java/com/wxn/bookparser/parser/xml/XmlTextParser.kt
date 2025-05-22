@@ -22,7 +22,8 @@ class XmlTextParser @Inject constructor(
 
         return try {
             val readerText = cachedFile.openInputStream()?.use { stream ->
-                documentParser.parseDocument(Jsoup.parse(stream, null, "", Parser.xmlParser()))
+                val doc = Jsoup.parse(stream, null, "", Parser.xmlParser())
+                documentParser.parseDocument(doc)
             }
 
             yield()
