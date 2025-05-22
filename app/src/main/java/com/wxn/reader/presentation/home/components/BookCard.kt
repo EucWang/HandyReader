@@ -192,9 +192,9 @@ fun BookCard(
                     .zIndex(1f)
             ) {
                 AnimatedVisibility(
-                    visible = stringToFileType(book.fileType) == FileType.PDF && appPreferences.showPdfLabel,
+                    visible = appPreferences.showFileTypeLabel, //stringToFileType(book.fileType) == FileType.PDF &&
                 ) {
-                    PdfLabel()
+                    FileTypeLabel(stringToFileType(book.fileType))
                 }
             }
 
@@ -225,20 +225,22 @@ fun BookCard(
 
 
 @Composable
-fun PdfLabel() {
-    Box(
-        modifier = Modifier
-            .background(
-                MaterialTheme.colorScheme.secondary,
-                RoundedCornerShape(topStart = 8.dp, bottomEnd = 8.dp)
-            )
-            .padding(4.dp)
+fun FileTypeLabel(fileType: FileType) {
+    if (fileType.showName().isNotEmpty()) {
+        Box(
+            modifier = Modifier
+                .background(
+                    MaterialTheme.colorScheme.secondary,
+                    RoundedCornerShape(topStart = 8.dp, bottomEnd = 8.dp)
+                )
+                .padding(4.dp)
 
-    ) {
-        Text(
-            text = "PDF",
-            color = MaterialTheme.colorScheme.onSecondary,
-            style = MaterialTheme.typography.labelSmall
-        )
+        ) {
+            Text(
+                text = fileType.showName(),
+                color = MaterialTheme.colorScheme.onSecondary,
+                style = MaterialTheme.typography.labelSmall
+            )
+        }
     }
 }

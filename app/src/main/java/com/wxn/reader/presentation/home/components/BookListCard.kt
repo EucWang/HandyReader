@@ -339,9 +339,9 @@ fun BookListCard(
                     .zIndex(1f)
             ) {
                 AnimatedVisibility(
-                    visible = stringToFileType(book.fileType) == FileType.PDF && appPreferences.showPdfLabel,
+                    visible = appPreferences.showFileTypeLabel, //stringToFileType(book.fileType) == FileType.PDF &&
                 ) {
-                    PdfLabel()
+                    FileTypeLabel(stringToFileType(book.fileType))
                 }
             }
 

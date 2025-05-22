@@ -22,7 +22,7 @@ data class AppPreferences(
     val showRating: Boolean,
     val showReadingStatus: Boolean,
     val showReadingDates: Boolean,
-    val showPdfLabel: Boolean,
+    val showFileTypeLabel: Boolean,
 
 
     val sortBy: SortOption,

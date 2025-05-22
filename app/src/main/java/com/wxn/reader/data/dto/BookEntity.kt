@@ -57,6 +57,8 @@ enum class FileType {
     FB2,
     HTML,
     MD,
+    MOBI,
+    AZW3,
     UNKNOWN;
 
     companion object {
@@ -69,6 +71,8 @@ enum class FileType {
                 "fb2" -> FileType.FB2
                 "html", "htm" -> FileType.HTML
                 "md" -> FileType.MD
+                "mobi" -> FileType.MOBI
+                "azw3" -> FileType.AZW3
                 else -> FileType.UNKNOWN
             }
     }
@@ -82,8 +86,23 @@ enum class FileType {
             FB2 -> "fb2"
             HTML -> "html"
             MD -> "md"
+            MOBI -> "mobi"
+            AZW3 -> "azw3"
             UNKNOWN -> ""
         }
+
+    fun showName() : String = when(this) {
+        EPUB -> "EPUB"
+        PDF -> "PDF"
+        AUDIOBOOK -> "AUDIO"
+        TXT -> "TXT"
+        FB2 -> "FB2"
+        HTML -> "HTML"
+        MD -> "MD"
+        MOBI -> "MOBI"
+        AZW3 -> "AZW3"
+        UNKNOWN -> ""
+    }
 }
 
 

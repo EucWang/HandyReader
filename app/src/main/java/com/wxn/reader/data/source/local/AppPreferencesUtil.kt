@@ -70,7 +70,7 @@ class AppPreferencesUtil @Inject constructor(
             showRating = false,
             showReadingStatus = false,
             showReadingDates = false,
-            showPdfLabel = true,
+            showFileTypeLabel = true,
             sortBy = SortOption.LAST_ADDED,
             sortOrder = SortOrder.ASCENDING,
             readingStatus = emptySet(),
@@ -104,7 +104,7 @@ class AppPreferencesUtil @Inject constructor(
                 prefs[SHOW_RATING] = defaultPreferences.showRating
                 prefs[SHOW_READING_STATUS] = defaultPreferences.showReadingStatus
                 prefs[SHOW_READING_DATES] = defaultPreferences.showReadingDates
-                prefs[SHOW_PDF_LABEL] = defaultPreferences.showPdfLabel
+                prefs[SHOW_PDF_LABEL] = defaultPreferences.showFileTypeLabel
                 prefs[SORT_BY] = defaultPreferences.sortBy.name
                 prefs[SORT_ORDER] = defaultPreferences.sortOrder.name
                 prefs[READING_STATUS] = defaultPreferences.readingStatus.map { it.name }.toSet()
@@ -131,7 +131,7 @@ class AppPreferencesUtil @Inject constructor(
             showRating = preferences[SHOW_RATING] ?: defaultPreferences.showRating,
             showReadingStatus = preferences[SHOW_READING_STATUS] ?: defaultPreferences.showReadingStatus,
             showReadingDates = preferences[SHOW_READING_DATES] ?: defaultPreferences.showReadingDates,
-            showPdfLabel = preferences[SHOW_PDF_LABEL] ?: defaultPreferences.showPdfLabel,
+            showFileTypeLabel = preferences[SHOW_PDF_LABEL] ?: defaultPreferences.showFileTypeLabel,
             sortBy = SortOption.valueOf(preferences[SORT_BY] ?: defaultPreferences.sortBy.name),
             sortOrder = SortOrder.valueOf(preferences[SORT_ORDER] ?: defaultPreferences.sortOrder.name),
             readingStatus = preferences[READING_STATUS]?.map { ReadingStatus.valueOf(it) }?.toSet() ?: defaultPreferences.readingStatus,
@@ -178,7 +178,7 @@ class AppPreferencesUtil @Inject constructor(
             preferences[SHOW_RATING] = newPreferences.showRating
             preferences[SHOW_READING_STATUS] = newPreferences.showReadingStatus
             preferences[SHOW_READING_DATES] = newPreferences.showReadingDates
-            preferences[SHOW_PDF_LABEL] = newPreferences.showPdfLabel
+            preferences[SHOW_PDF_LABEL] = newPreferences.showFileTypeLabel
             preferences[SORT_BY] = newPreferences.sortBy.name
             preferences[SORT_ORDER] = newPreferences.sortOrder.name
             preferences[READING_STATUS] = newPreferences.readingStatus.map { it.name }.toSet()
@@ -197,7 +197,7 @@ class AppPreferencesUtil @Inject constructor(
             preferences[SHOW_RATING] = defaultPreferences.showRating
             preferences[SHOW_READING_STATUS] = defaultPreferences.showReadingStatus
             preferences[SHOW_READING_DATES] = defaultPreferences.showReadingDates
-            preferences[SHOW_PDF_LABEL] = defaultPreferences.showPdfLabel
+            preferences[SHOW_PDF_LABEL] = defaultPreferences.showFileTypeLabel
         }
     }
 }

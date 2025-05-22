@@ -234,8 +234,8 @@ fun LayoutModal(
                 item {
                     SettingsSwitch(
                         title = stringResource(R.string.show_pdf_label),
-                        checked = appPreferences.showPdfLabel,
-                        onCheckedChange = { viewModel.updateAppPreferences(appPreferences.copy(showPdfLabel = it)) }
+                        checked = appPreferences.showFileTypeLabel,
+                        onCheckedChange = { viewModel.updateAppPreferences(appPreferences.copy(showFileTypeLabel = it)) }
                     )
                 }
 
