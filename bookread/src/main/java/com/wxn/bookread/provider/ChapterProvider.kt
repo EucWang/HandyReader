@@ -291,7 +291,7 @@ object ChapterProvider {
                 val imgSrc = matcher.group(1) ?: ""
                 val imgWidth = matcher.group(2)?.toIntOrNull() ?: 0
                 val imgHeight = matcher.group(3)?.toIntOrNull() ?: 0
-                println("src: $imgSrc, width: $imgWidth, height: $imgHeight")
+                Logger.d("ChapterProvider:getTextChapter:src: $imgSrc, width: $imgWidth, height: $imgHeight")
 
                 if (imgSrc.isNotEmpty()) {
                     offsetY = setTypeImage(
@@ -358,6 +358,8 @@ object ChapterProvider {
     ): Float {
         var durY: Float = offsetY
         val imgPath = getChapterResourcePath(context, book.id, imgSrc).absolutePath
+        Logger.d("ChapterProvider::setTypeImage::bookId=${book.id},chapter.=${chapter.chapterIndex}," +
+                "imgSrc=${imgSrc}, imgPath=$imgPath, offsetY=$offsetY,imgWidth=$imgWidth, imgHeight=$imgHeight")
         if (imgPath.isNullOrEmpty()) {
             Logger.d("ChapterProvider::setTypeImage::bookId=${book.id},chapter.=${chapter.chapterIndex},imgSrc=${imgSrc}, did not find the imgSrc, pass")
             return offsetY

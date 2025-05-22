@@ -181,11 +181,11 @@ class DocumentParser @Inject constructor(
                                     imageBitmap = image
                                 )
                             )
-                            readerText.add( // Adding alternative text (caption) for image
-                                ReaderText.Text(
-                                    markdownParser.parse(alt)
-                                )
-                            )
+//                            readerText.add( // Adding alternative text (caption) for image
+//                                ReaderText.Text(
+//                                    markdownParser.parse(alt)
+//                                )
+//                            )
                         }
 
                         line == "---" || line == "***" -> readerText.add(ReaderText.Separator)
