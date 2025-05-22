@@ -69,12 +69,14 @@ class PdfFileParser @Inject constructor(
             val pages = document.numberOfPages
 
             val targetPath = getCoverPath(application.applicationContext, title)
-            val cover = if (saveBitmapToFile(application.applicationContext, PDFRenderer(document).renderImage(0, 0.3f, ImageType.RGB), targetPath)) {
+            val cover = if (saveBitmapToFile(application.applicationContext, PDFRenderer(document).renderImage(0, 0.5f, ImageType.RGB), targetPath)) {
                 targetPath
             } else {
                 ""
             }
-            Log.d("PdfFileParser", "innerParse::title=$title,author=$author,cover=$cover")
+            Log.d("PdfFileParser", "innerParse::title=$title,author=$author,description=$description," +
+                    "subject=$subject,keywords=$keywords,creator=$keywords," +
+                    "producer=$producer,creationDateMillis=$creationDateMillis,modificationDateMillis=$modificationDateMillis,cover=$cover")
 
             document.close()
 
