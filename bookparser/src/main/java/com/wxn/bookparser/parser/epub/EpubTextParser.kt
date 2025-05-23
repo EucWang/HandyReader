@@ -36,7 +36,7 @@ class EpubTextParser @Inject constructor(
     private val documentParser: DocumentParser
 ) : TextParser {
 
-    override suspend fun parse(bookId: Long, cachedFile: CachedFile): List<ReaderText> {
+    suspend fun parse(bookId: Long, cachedFile: CachedFile): List<ReaderText> {
         Log.i(EPUB_TAG, "Started EPUB parsing: ${cachedFile.name}.")
 
         return try {
@@ -343,7 +343,7 @@ class EpubTextParser @Inject constructor(
     /***
      * 解析得到章节列表
      */
-    override suspend fun parseChapterInfo(cachedFile: CachedFile): List<BookChapter> {
+    override suspend fun parseChapterInfo(bookId: Long, cachedFile: CachedFile): List<BookChapter> {
 
         return emptyList()
     }

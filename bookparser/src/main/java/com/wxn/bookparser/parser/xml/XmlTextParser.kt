@@ -35,7 +35,7 @@ class XmlTextParser @Inject constructor(
     private val markdownParser: MarkdownParser
 ) : TextParser {
 
-    override suspend fun parse(bookId: Long, cachedFile: CachedFile): List<ReaderText> {
+    suspend fun parse(bookId: Long, cachedFile: CachedFile): List<ReaderText> {
         Log.i(XML_TAG, "Started XML parsing: ${cachedFile.name}.")
 
         return try {
@@ -66,7 +66,7 @@ class XmlTextParser @Inject constructor(
     /***
      * 解析得到章节列表， 这里的章节 BookChapter 都没有bookId，需要后面组装
      */
-    override suspend fun parseChapterInfo(cachedFile: CachedFile): List<BookChapter> {
+    override suspend fun parseChapterInfo(bookId:Long, cachedFile: CachedFile): List<BookChapter> {
         return try {
             val chapters = arrayListOf<BookChapter>()
 
@@ -85,6 +85,7 @@ class XmlTextParser @Inject constructor(
                     chapters.add(
                         BookChapter(
                             bookId = 0,
+                            chapterId = "",
                             chapterIndex = index,
                             chapterName = title,
                             chaptersSize = chapterSize

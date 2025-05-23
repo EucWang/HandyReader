@@ -1,11 +1,18 @@
 package com.wxn.base.bean
 
+
 data class BookChapter(
 
     /***
      * 章节数据库id
      */
     var id : Long = 0,
+
+
+    /***
+     * 章节数据id
+     */
+    var chapterId : String = "",
 
     /***
      * 书籍id，对应数据库中的ID
@@ -43,9 +50,9 @@ data class BookChapter(
     var chapterUrl: String? = "",
 
     /***
-     * 章节本地缓存文件名
+     * 章节对应的文件名
      */
-    var cachedName: String? = "",
+    var srcName: String? = "",
 
     /***
      * 总章节数

@@ -25,8 +25,7 @@ class PdfTextParser @Inject constructor(
     /***
      * 解析得到章节列表
      */
-    override suspend fun parseChapterInfo(cachedFile: CachedFile): List<BookChapter> {
-
+    override suspend fun parseChapterInfo(bookId: Long, cachedFile: CachedFile): List<BookChapter> {
         return emptyList()
     }
 
@@ -38,7 +37,7 @@ class PdfTextParser @Inject constructor(
         return emptyList()
     }
 
-    override suspend fun parse(bookId:Long, cachedFile: CachedFile): List<ReaderText> {
+    suspend fun parse(bookId:Long, cachedFile: CachedFile): List<ReaderText> {
         Log.i(PDF_TAG, "Started PDF parsing: ${cachedFile.name}.")
 
         return try {

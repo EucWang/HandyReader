@@ -21,8 +21,8 @@ import kotlinx.coroutines.flow.Flow
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     fun insertChapters(chapters: List<BookChapterEntity>)
 
-    @Query("UPDATE chapters SET cachedName = :cachedName WHERE chapterIndex = :chapterIndex AND bookId = :bookId")
-    suspend fun setChapter(bookId: Long, chapterIndex: Int, cachedName: String)
+    @Query("UPDATE chapters SET srcName = :srcName WHERE chapterIndex = :chapterIndex AND bookId = :bookId")
+    suspend fun setChapter(bookId: Long, chapterIndex: Int, srcName: String)
 
     @Query("UPDATE chapters SET chaptersSize = :chaptersSize WHERE chapterIndex = :chapterIndex AND bookId = :bookId")
     suspend fun setChapter(bookId: Long, chapterIndex: Int, chaptersSize: Int)

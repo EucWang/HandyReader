@@ -2,6 +2,7 @@ package com.wxn.mobi
 
 import android.content.Context
 import android.util.Log
+import com.wxn.base.bean.BookChapter
 import com.wxn.mobi.data.model.FileCrc
 import com.wxn.mobi.data.model.MobiInfo
 import com.wxn.mobi.inative.NativeLib
@@ -21,10 +22,18 @@ object MobiParser {
         return mobiInfo
     }
 
-    fun toEpub(context: Context, path: String): String? {
-        Log.d("MobiParser", "toEpub:path=$path")
-        val epubPath: String? = NativeLib.convertToEpub(context, path)
-        Log.d("MobiParser", "toEpub = $epubPath")
-        return epubPath
+    fun getMobiChapter(context: Context, bookId: Long, path: String): Array<BookChapter>? {
+        Log.d("MobiParser", "getMobiChapter:path=$path")
+        val chapters : Array<BookChapter>? = NativeLib.getChapters(context, bookId, path)
+        Log.d("MobiParser", "getMobiChapter: = $chapters")
+        return chapters
     }
+
+
+//    fun toEpub(context: Context, path: String): String? {
+//        Log.d("MobiParser", "toEpub:path=$path")
+//        val epubPath: String? = NativeLib.convertToEpub(context, path)
+//        Log.d("MobiParser", "toEpub = $epubPath")
+//        return epubPath
+//    }
 }

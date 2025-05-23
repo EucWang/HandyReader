@@ -49,6 +49,8 @@ add_library(${CMAKE_PROJECT_NAME} SHARED
         util/mobi_util.h
         util/mobi_util.cpp
 
+        util/tinyxml2.h
+        util/tinyxml2.cpp
         util/string_ext.h
         util/string_ext.cpp
         util/file_searcher.h

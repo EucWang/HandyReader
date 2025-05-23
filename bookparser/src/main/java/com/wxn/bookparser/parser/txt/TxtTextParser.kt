@@ -12,7 +12,6 @@ import kotlinx.coroutines.withContext
 import kotlinx.coroutines.yield
 import javax.inject.Inject
 
-
 private const val TXT_TAG = "TXT Parser"
 
 class TxtTextParser @Inject constructor(
@@ -22,8 +21,15 @@ class TxtTextParser @Inject constructor(
     /***
      * 解析得到章节列表
      */
-    override suspend fun parseChapterInfo(cachedFile: CachedFile): List<BookChapter> {
-        return emptyList()
+    override suspend fun parseChapterInfo(bookId:Long, cachedFile: CachedFile): List<BookChapter> {
+        return arrayListOf<BookChapter>(
+            BookChapter(
+                bookId = 0,
+                chapterIndex = 0,
+                chapterName = "",
+                chaptersSize = 1
+            )
+        )
     }
 
     /***
@@ -37,7 +43,7 @@ class TxtTextParser @Inject constructor(
         }
     }
 
-    override suspend fun parse(bookId:Long, cachedFile: CachedFile): List<ReaderText> {
+    suspend fun parse(bookId:Long, cachedFile: CachedFile): List<ReaderText> {
         Log.i(TXT_TAG, "Started TXT parsing: ${cachedFile.name}.")
 
         return try {

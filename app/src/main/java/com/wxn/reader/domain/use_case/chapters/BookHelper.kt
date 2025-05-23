@@ -21,7 +21,7 @@ object BookHelper {
     suspend fun getChapters(context: Context, bookId: Long, bookUri: String?, textParser: TextParser): List<BookChapter> {
         bookUri?.let { uri ->
             val cachedFile = CachedFileCompat.fromUri(context, uri.toUri())
-            val chapters = textParser.parseChapterInfo(cachedFile)
+            val chapters = textParser.parseChapterInfo(bookId, cachedFile)
             chapters.forEach { chapter ->
                 chapter.bookId = bookId
             }

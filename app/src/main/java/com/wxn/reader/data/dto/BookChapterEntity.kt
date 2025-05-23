@@ -16,8 +16,10 @@ data class BookChapterEntity(
     val updateTimeValue: Long,
     val chapterUrl: String?,
 
-    val cachedName: String?,
+    val srcName: String?,
 
-    val chaptersSize: Int
+    val chaptersSize: Int,
+
+    val chapterId : String = "",
 ) {
 }

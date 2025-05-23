@@ -14,12 +14,12 @@ interface TextParser {
      * 解析文件，得到对应文件的内容的列表
      * ReaderText 是一个展示数据的一个封装
      */
-    suspend fun parse(bookId: Long, cachedFile: CachedFile): List<ReaderText>
+//    suspend fun parse(bookId: Long, cachedFile: CachedFile): List<ReaderText>
 
     /***
      * 解析得到章节列表
      */
-    suspend fun parseChapterInfo(cachedFile: CachedFile): List<BookChapter>
+    suspend fun parseChapterInfo(bookId: Long, cachedFile: CachedFile): List<BookChapter>
 
     /***
      * 解析得到给定章节数据

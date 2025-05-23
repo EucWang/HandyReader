@@ -8,6 +8,7 @@ class ChapterMapperImpl @Inject constructor()  : ChapterMapper{
     override suspend fun toChapterEntity(chapter: BookChapter): BookChapterEntity {
         return BookChapterEntity(
             id = chapter.id,
+            chapterId = chapter.chapterId,
             bookId = chapter.bookId,
             chapterIndex = chapter.chapterIndex,
             chapterName = chapter.chapterName,
@@ -15,7 +16,7 @@ class ChapterMapperImpl @Inject constructor()  : ChapterMapper{
             updateDate = chapter.updateDate,
             updateTimeValue = chapter.updateTimeValue,
             chapterUrl = chapter.chapterUrl,
-            cachedName = chapter.cachedName,
+            srcName = chapter.srcName,
             chaptersSize = chapter.chaptersSize
         )
     }
@@ -24,6 +25,7 @@ class ChapterMapperImpl @Inject constructor()  : ChapterMapper{
         entity ?: return null
         return BookChapter(
             id = entity.id,
+            chapterId = entity.chapterId,
             bookId = entity.bookId,
             chapterIndex = entity.chapterIndex,
             chapterName = entity.chapterName,
@@ -31,7 +33,7 @@ class ChapterMapperImpl @Inject constructor()  : ChapterMapper{
             updateDate = entity.updateDate,
             updateTimeValue = entity.updateTimeValue,
             chapterUrl = entity.chapterUrl,
-            cachedName = entity.cachedName,
+            srcName = entity.srcName,
             chaptersSize = entity.chaptersSize
         )
     }

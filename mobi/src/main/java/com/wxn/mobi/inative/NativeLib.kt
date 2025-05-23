@@ -1,6 +1,7 @@
 package com.wxn.mobi.inative
 
 import android.content.Context
+import com.wxn.base.bean.BookChapter
 import com.wxn.mobi.data.model.FileCrc
 import com.wxn.mobi.data.model.MobiInfo
 
@@ -17,5 +18,9 @@ object NativeLib {
 
     external fun loadMobi(context: Context, path:String) : MobiInfo? // Array<String>?
 
-    external fun convertToEpub(context: Context, path: String): String?
+//    external fun convertToEpub(context: Context, path: String): String?
+
+    external fun getChapters(context: Context, book_id: Long, path: String) : Array<BookChapter>?
+
+    external fun getChapter(context: Context, book_id:Long, path: String, chapterIndex: Int): String
 }
