@@ -228,9 +228,16 @@ class XmlTextParser @Inject constructor(
                                 val width = image.width.coerceAtLeast(0)
                                 val height = image.height.coerceAtLeast(0)
                                 val targetFile = PathUtil.getChapterResourcePath(context, bookId, "${srcName}.jpg")
-                                if (FileUtil.saveBitmapToFile(context, image, targetFile.absolutePath)) {
+
+                                if (!targetFile.exists() && targetFile.length() <= 0) {
+                                    if (FileUtil.saveBitmapToFile(context, image, targetFile.absolutePath)) {
+                                        texts.add(ReaderText.Image(path = targetFile.absolutePath, width = width, height = height))// Adding image
+                                    }
+                                } else {
                                     texts.add(ReaderText.Image(path = targetFile.absolutePath, width = width, height = height))// Adding image
                                 }
+                                image.recycle()
+                                yield()
                             }
 
                             line == "---" || line == "***" -> texts.add(ReaderText.Separator)
