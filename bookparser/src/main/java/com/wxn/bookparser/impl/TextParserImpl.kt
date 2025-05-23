@@ -1,10 +1,11 @@
 package com.wxn.bookparser.impl
 
 import android.util.Log
+import com.wxn.base.bean.BookChapter
+import com.wxn.base.bean.ReaderText
 import com.wxn.base.util.Logger
 import com.wxn.bookparser.TextParser
 import com.wxn.bookparser.domain.file.CachedFile
-import com.wxn.bookparser.domain.reader.ReaderText
 import com.wxn.bookparser.parser.epub.EpubTextParser
 import com.wxn.bookparser.parser.html.HtmlTextParser
 import com.wxn.bookparser.parser.mobi.MobiTextParser
@@ -29,7 +30,7 @@ class TextParserImpl @Inject constructor(
     private val mobiTextParser: MobiTextParser
 ) : TextParser {
 
-    override suspend fun parse(cachedFile: CachedFile): List<ReaderText> {
+    override suspend fun parse(bookId: Long, cachedFile: CachedFile): List<ReaderText> {
         if (!cachedFile.canAccess()) {
             Log.e(TEXT_PARSER, "File does not exist or no read access is granted.")
             return emptyList()
@@ -40,35 +41,142 @@ class TextParserImpl @Inject constructor(
         return withContext(Dispatchers.IO) {
             when (fileFormat) {
                 "pdf" -> {
-                    pdfTextParser.parse(cachedFile)
+                    pdfTextParser.parse(bookId, cachedFile)
                 }
 
                 "epub" -> {
-                    epubTextParser.parse(cachedFile)
+                    epubTextParser.parse(bookId, cachedFile)
                 }
 
                 in listOf("mobi", "azw3") -> {
-                    mobiTextParser.parse(cachedFile)
+                    mobiTextParser.parse(bookId, cachedFile)
                 }
 
                 "txt" -> {
-                    txtTextParser.parse(cachedFile)
+                    txtTextParser.parse(bookId, cachedFile)
                 }
 
                 "fb2" -> {
-                    xmlTextParser.parse(cachedFile)
+                    xmlTextParser.parse(bookId, cachedFile)
                 }
 
                 "html" -> {
-                    htmlTextParser.parse(cachedFile)
+                    htmlTextParser.parse(bookId, cachedFile)
                 }
 
                 "htm" -> {
-                    htmlTextParser.parse(cachedFile)
+                    htmlTextParser.parse(bookId, cachedFile)
                 }
 
                 "md" -> {
-                    htmlTextParser.parse(cachedFile)
+                    htmlTextParser.parse(bookId, cachedFile)
+                }
+
+                else -> {
+                    Log.e(TEXT_PARSER, "Wrong file format, could not find supported extension.")
+                    emptyList()
+                }
+            }
+        }
+    }
+
+
+    /***
+     * 解析得到章节列表
+     */
+    override suspend fun parseChapterInfo(cachedFile: CachedFile): List<BookChapter> {
+        if (!cachedFile.canAccess()) {
+            Log.e(TEXT_PARSER, "File does not exist or no read access is granted.")
+            return emptyList()
+        }
+
+        val fileFormat = cachedFile.extension
+        Logger.d("TextParserImpl:parse:fileFormat=$fileFormat")
+        return withContext(Dispatchers.IO) {
+            when (fileFormat) {
+                "pdf" -> {
+                    pdfTextParser.parseChapterInfo(cachedFile)
+                }
+
+                "epub" -> {
+                    epubTextParser.parseChapterInfo(cachedFile)
+                }
+
+                in listOf("mobi", "azw3") -> {
+                    mobiTextParser.parseChapterInfo(cachedFile)
+                }
+
+                "txt" -> {
+                    txtTextParser.parseChapterInfo(cachedFile)
+                }
+
+                "fb2" -> {
+                    xmlTextParser.parseChapterInfo(cachedFile)
+                }
+
+                "html" -> {
+                    htmlTextParser.parseChapterInfo(cachedFile)
+                }
+
+                "htm" -> {
+                    htmlTextParser.parseChapterInfo(cachedFile)
+                }
+
+                "md" -> {
+                    htmlTextParser.parseChapterInfo(cachedFile)
+                }
+
+                else -> {
+                    Log.e(TEXT_PARSER, "Wrong file format, could not find supported extension.")
+                    emptyList()
+                }
+            }
+        }
+    }
+
+    /***
+     * 解析得到给定章节数据
+     */
+    override suspend fun parsedChapterData(bookId: Long, cachedFile: CachedFile, chapterIndex: Int): List<ReaderText> {
+        if (!cachedFile.canAccess()) {
+            Log.e(TEXT_PARSER, "File does not exist or no read access is granted.")
+            return emptyList()
+        }
+
+        val fileFormat = cachedFile.extension
+        Logger.d("TextParserImpl:parse:fileFormat=$fileFormat")
+        return withContext(Dispatchers.IO) {
+            when (fileFormat) {
+                "pdf" -> {
+                    pdfTextParser.parsedChapterData(bookId, cachedFile, chapterIndex)
+                }
+
+                "epub" -> {
+                    epubTextParser.parsedChapterData(bookId, cachedFile, chapterIndex)
+                }
+
+                in listOf("mobi", "azw3") -> {
+                    mobiTextParser.parsedChapterData(bookId, cachedFile, chapterIndex)
+                }
+
+                "txt" -> {
+                    txtTextParser.parsedChapterData(bookId, cachedFile, chapterIndex)
+                }
+
+                "fb2" -> {
+                    xmlTextParser.parsedChapterData(bookId, cachedFile, chapterIndex)
+                }
+
+                "html" -> {
+                    htmlTextParser.parsedChapterData(bookId, cachedFile, chapterIndex)
+                }
+
+                "htm" -> {
+                    htmlTextParser.parsedChapterData(bookId, cachedFile, chapterIndex)
+                }
+
+                "md" -> {
+                    htmlTextParser.parsedChapterData(bookId, cachedFile, chapterIndex)
                 }
 
                 else -> {

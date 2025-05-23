@@ -57,7 +57,7 @@ object ParserModule {
 
     @Provides
     @Singleton
-    fun provideXmlTextParser(documentParser: DocumentParser): XmlTextParser = XmlTextParser(documentParser)
+    fun provideXmlTextParser(context: Context, documentParser: DocumentParser, markdownParser: MarkdownParser): XmlTextParser = XmlTextParser(context, documentParser, markdownParser)
 
     @Provides
     @Singleton
@@ -73,7 +73,7 @@ object ParserModule {
 
     @Provides
     @Singleton
-    fun provideHtmlTextParser(documentParser: DocumentParser): HtmlTextParser = HtmlTextParser(documentParser)
+    fun provideHtmlTextParser(context: Context, documentParser: DocumentParser): HtmlTextParser = HtmlTextParser(context, documentParser)
 
     @Provides
     @Singleton
@@ -87,7 +87,7 @@ object ParserModule {
 
     @Provides
     @Singleton
-    fun provideEpubTextParser(documentParser: DocumentParser): EpubTextParser = EpubTextParser(documentParser)
+    fun provideEpubTextParser(context: Context, documentParser: DocumentParser): EpubTextParser = EpubTextParser(context, documentParser)
 
     @Provides
     @Singleton

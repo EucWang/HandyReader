@@ -1,10 +1,12 @@
 package com.wxn.bookparser.parser.epub
 
+import android.content.Context
 import android.util.Log
 import androidx.core.net.toUri
+import com.wxn.base.bean.BookChapter
 import com.wxn.bookparser.TextParser
 import com.wxn.bookparser.domain.file.CachedFile
-import com.wxn.bookparser.domain.reader.ReaderText
+import com.wxn.base.bean.ReaderText
 import com.wxn.bookparser.exts.addAll
 import com.wxn.bookparser.exts.containsVisibleText
 import com.wxn.bookparser.parser.base.DocumentParser
@@ -30,10 +32,11 @@ private typealias Source = String
 private val dispatcher = Dispatchers.IO.limitedParallelism(3)
 
 class EpubTextParser @Inject constructor(
+    private val context : Context,
     private val documentParser: DocumentParser
 ) : TextParser {
 
-    override suspend fun parse(cachedFile: CachedFile): List<ReaderText> {
+    override suspend fun parse(bookId: Long, cachedFile: CachedFile): List<ReaderText> {
         Log.i(EPUB_TAG, "Started EPUB parsing: ${cachedFile.name}.")
 
         return try {
@@ -66,6 +69,8 @@ class EpubTextParser @Inject constructor(
                     Log.i(EPUB_TAG, "Title entries, size: ${chapterTitleEntries?.size}")
 
                     readerText = zip.parseEpub(
+                        context = context,
+                        bookId = bookId,
                         chapterEntries = chapterEntries,
                         imageEntries = imageEntries,
                         chapterTitleEntries = chapterTitleEntries
@@ -101,6 +106,8 @@ class EpubTextParser @Inject constructor(
      * @return Null if could not parse.
      */
     private suspend fun ZipFile.parseEpub(
+        context: Context,
+        bookId: Long,
         chapterEntries: List<ZipEntry>,
         imageEntries: List<ZipEntry>,
         chapterTitleEntries: Map<Source, ReaderText.Chapter>?
@@ -116,6 +123,8 @@ class EpubTextParser @Inject constructor(
                     yield()
 
                     unformattedText.parseZipEntry(
+                        context = context,
+                        bookId = bookId,
                         zip = this@parseEpub,
                         index = index,
                         entry = entry,
@@ -150,6 +159,8 @@ class EpubTextParser @Inject constructor(
      * @param chapterTitleMap Titles from [getChapterTitleMapFromToc].
      */
     private suspend fun ConcurrentLinkedQueue<Pair<Int, List<ReaderText>>>.parseZipEntry(
+        context: Context,
+        bookId : Long,
         zip: ZipFile,
         index: Int,
         entry: ZipEntry,
@@ -161,6 +172,8 @@ class EpubTextParser @Inject constructor(
             zip.getInputStream(entry)
         }.bufferedReader().use { it.readText() }
         var readerText = documentParser.parseDocument(
+            context = context,
+            bookId = bookId,
             document = Jsoup.parse(content),
             zipFile = zip,
             imageEntries = imageEntries,
@@ -174,17 +187,17 @@ class EpubTextParser @Inject constructor(
         ).apply {
             val chapter = this ?: run {
                 val firstVisibleText = readerText.firstOrNull { line ->
-                    line is ReaderText.Text && line.line.text.containsVisibleText()
+                    line is ReaderText.Text && line.line.containsVisibleText()
                 } as? ReaderText.Text ?: return
 
                 return@run ReaderText.Chapter(
-                    title = firstVisibleText.line.text,
+                    title = firstVisibleText.line,
                     nested = false
                 )
             }
 
             readerText = readerText.dropWhile { line ->
-                (line is ReaderText.Text && line.line.text.lowercase() == chapter.title.lowercase())
+                (line is ReaderText.Text && line.line.lowercase() == chapter.title.lowercase())
             }.toMutableList()
 
             readerText.add(
@@ -324,5 +337,22 @@ class EpubTextParser @Inject constructor(
         }.sortedBy {
             it.name.filter { char -> char.isDigit() }.toBigIntegerOrNull()
         }
+    }
+
+
+    /***
+     * 解析得到章节列表
+     */
+    override suspend fun parseChapterInfo(cachedFile: CachedFile): List<BookChapter> {
+
+        return emptyList()
+    }
+
+    /***
+     * 解析得到给定章节数据
+     */
+    override suspend fun parsedChapterData(bookId: Long, cachedFile: CachedFile, chapterIndex: Int) : List<ReaderText> {
+
+        return emptyList()
     }
 }

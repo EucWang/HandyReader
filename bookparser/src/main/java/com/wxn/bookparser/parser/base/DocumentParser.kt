@@ -1,21 +1,21 @@
 package com.wxn.bookparser.parser.base
 
+import android.content.Context
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
-import android.os.Build
-import android.util.Log
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.asImageBitmap
 import com.wxn.base.util.Logger
-import com.wxn.bookparser.domain.reader.ReaderText
+import com.wxn.base.bean.ReaderText
+import com.wxn.base.util.PathUtil
 import com.wxn.bookparser.exts.clearAllMarkdown
 import com.wxn.bookparser.exts.clearMarkdown
 import com.wxn.bookparser.exts.containsVisibleText
+import com.wxn.bookparser.util.FileUtil
 import kotlinx.coroutines.yield
 import org.jsoup.nodes.Document
 import java.io.ByteArrayInputStream
 import java.io.File
-import java.util.Base64
 import java.util.zip.ZipEntry
 import java.util.zip.ZipFile
 import javax.inject.Inject
@@ -31,6 +31,8 @@ class DocumentParser @Inject constructor(
      * @return Parsed text line by line with Markdown(all lines are not blank).
      */
     suspend fun parseDocument(
+        context: Context,
+        bookId: Long,
         document: Document,
         zipFile: ZipFile? = null,
         imageEntries: List<ZipEntry>? = null,
@@ -145,20 +147,20 @@ class DocumentParser @Inject constructor(
                             val alt = "_${trimmedLine.substringAfter("|")}_"
 
                             Logger.d("DocumentParser::image[$src,$alt]")
-
-                            val image : ImageBitmap = if (imageEntries != null) {
+                            val srcName = src.substring(1)
+                            val image : Bitmap = if (imageEntries != null) {
                                try {
                                     val imageEntry = imageEntries.find { image ->
                                         src == image.name.substringAfterLast(File.separator).lowercase()
                                     } ?: return@forEach
-                                    zipFile?.getImage(imageEntry)?.asImageBitmap()
+                                    zipFile?.getImage(imageEntry)//?.asImageBitmap()
                                 } catch (e: Exception) {
                                     e.printStackTrace()
                                     null
                                 } ?: return@forEach
                             } else {
                                 try {
-                                    val binary = document.selectFirst("binary[id=${src.substring(1)}]")
+                                    val binary = document.selectFirst("binary[id=${srcName}]")
                                     //清理所有空白字符（包括换行、缩进、空格）
                                     binary?.text()?.trim()?.replace("\\s+", "")?.let { data ->
                                         val inputStream =
@@ -167,20 +169,26 @@ class DocumentParser @Inject constructor(
 //                                        } else {
                                             ByteArrayInputStream(android.util.Base64.decode(data, android.util.Base64.DEFAULT))
 //                                        }
-                                        BitmapFactory.decodeStream(inputStream)?.asImageBitmap()
+                                        BitmapFactory.decodeStream(inputStream)//?.asImageBitmap()
                                     }
                                 } catch (ex: Exception) {
                                     ex.printStackTrace()
                                     null
                                 } ?: return@forEach
                             }
+                            val width = image.width.coerceAtLeast(0)
+                            val height = image.height.coerceAtLeast(0)
+                            val targetFile = PathUtil.getChapterResourcePath(context, bookId, "${srcName}.jpg")
+                            if(FileUtil.saveBitmapToFile(context, image, targetFile.absolutePath)) {
+                                readerText.add(ReaderText.Image(path = targetFile.absolutePath, width = width, height = height))// Adding image
+                            }
 
-                            image.prepareToDraw()
-                            readerText.add( // Adding image
-                                ReaderText.Image(
-                                    imageBitmap = image
-                                )
-                            )
+//                            image.prepareToDraw()
+//                            readerText.add( // Adding image
+//                                ReaderText.Image(
+//                                    imageBitmap = image
+//                                )
+//                            )
 //                            readerText.add( // Adding alternative text (caption) for image
 //                                ReaderText.Text(
 //                                    markdownParser.parse(alt)
@@ -208,7 +216,7 @@ class DocumentParser @Inject constructor(
                             ) {
                                 readerText.add(
                                     ReaderText.Text(
-                                        line = markdownParser.parse(formattedLine)
+                                        line = markdownParser.parse(formattedLine).toString()
                                     )
                                 )
                             }

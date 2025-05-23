@@ -5,9 +5,10 @@ import android.util.Log
 import com.tom_roush.pdfbox.android.PDFBoxResourceLoader
 import com.tom_roush.pdfbox.pdmodel.PDDocument
 import com.tom_roush.pdfbox.text.PDFTextStripper
+import com.wxn.base.bean.BookChapter
 import com.wxn.bookparser.TextParser
 import com.wxn.bookparser.domain.file.CachedFile
-import com.wxn.bookparser.domain.reader.ReaderText
+import com.wxn.base.bean.ReaderText
 import com.wxn.bookparser.exts.clearAllMarkdown
 import com.wxn.bookparser.parser.base.MarkdownParser
 import kotlinx.coroutines.yield
@@ -21,7 +22,23 @@ class PdfTextParser @Inject constructor(
     private val application: Application
 ) : TextParser {
 
-    override suspend fun parse(cachedFile: CachedFile): List<ReaderText> {
+    /***
+     * 解析得到章节列表
+     */
+    override suspend fun parseChapterInfo(cachedFile: CachedFile): List<BookChapter> {
+
+        return emptyList()
+    }
+
+    /***
+     * 解析得到给定章节数据
+     */
+    override suspend fun parsedChapterData(bookId:Long, cachedFile: CachedFile, chapterIndex: Int) : List<ReaderText> {
+
+        return emptyList()
+    }
+
+    override suspend fun parse(bookId:Long, cachedFile: CachedFile): List<ReaderText> {
         Log.i(PDF_TAG, "Started PDF parsing: ${cachedFile.name}.")
 
         return try {
@@ -130,7 +147,7 @@ class PdfTextParser @Inject constructor(
                                 chapterAdded = true
                             } else readerText.add(
                                 ReaderText.Text(
-                                    line = markdownParser.parse(line)
+                                    line = markdownParser.parse(line).toString()
                                 )
                             )
                         }

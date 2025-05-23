@@ -1,16 +1,12 @@
 package com.wxn.bookparser.parser.epub
 
 import android.content.Context
-import android.net.Uri
 import android.util.Log
-import androidx.compose.ui.res.stringResource
 import androidx.documentfile.provider.DocumentFile
 import com.anggrayudi.storage.file.baseName
-import com.anggrayudi.storage.file.getAbsolutePath
 import com.anggrayudi.storage.file.toRawFile
-import com.wxn.bookparser.FileParser
-import com.wxn.bookparser.R
 import com.wxn.base.bean.Book
+import com.wxn.bookparser.FileParser
 import com.wxn.bookparser.domain.book.BookWithCover
 import com.wxn.bookparser.domain.file.CachedFile
 import com.wxn.bookparser.util.FileUtil
@@ -19,11 +15,8 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import org.jsoup.Jsoup
 import java.io.File
-import java.util.UUID
-import java.util.logging.Logger
 import java.util.zip.ZipFile
 import javax.inject.Inject
-import kotlin.text.replace
 
 /**
  * EPUB 文件结构，本质是一个zip压缩文件

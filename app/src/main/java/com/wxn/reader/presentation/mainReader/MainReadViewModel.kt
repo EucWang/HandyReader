@@ -1,19 +1,12 @@
 package com.wxn.reader.presentation.mainReader
 
 import android.app.Application
-import android.content.Context
-import androidx.compose.ui.graphics.asAndroidBitmap
-import androidx.core.net.toUri
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.viewModelScope
 import com.wxn.base.bean.Book
-import com.wxn.base.bean.BookChapter
 import com.wxn.base.util.Logger
 import com.wxn.bookparser.TextParser
-import com.wxn.bookparser.domain.file.CachedFileCompat
-import com.wxn.bookparser.domain.reader.ReaderText
-import com.wxn.bookparser.util.FileUtil
 import com.wxn.bookread.data.model.preference.ReaderPreferences
 import com.wxn.bookread.data.source.local.ReaderPreferencesUtil
 import com.wxn.bookread.provider.ChapterProvider
@@ -57,11 +50,7 @@ import org.readium.r2.shared.ExperimentalReadiumApi
 import org.readium.r2.shared.publication.Locator
 import org.readium.r2.shared.util.asset.AssetRetriever
 import org.readium.r2.streamer.PublicationOpener
-import java.io.BufferedWriter
-import java.io.File
-import java.io.FileWriter
 import java.util.Calendar
-import java.util.UUID
 import javax.inject.Inject
 
 @OptIn(ExperimentalReadiumApi::class)
@@ -175,7 +164,7 @@ class MainReadViewModel @Inject constructor(
                 Logger.i("MainReadViewModel::init::bookId=$bookId")
                 var allChapters = getChaptersByBookIdUserCase.invoke(bookId).firstOrNull()
                 if (allChapters.isNullOrEmpty()) {
-                    allChapters = BookHelper.cacheBookChapter(context, bookId, bookUri, textParser)
+                    allChapters = BookHelper.getChapters(context, bookId, bookUri, textParser)
                     if (allChapters.isNotEmpty()) {
                         launch(Dispatchers.IO) {
                             insertChaptersUserCase(allChapters)

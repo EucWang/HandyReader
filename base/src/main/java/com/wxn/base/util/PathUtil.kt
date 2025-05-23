@@ -16,6 +16,28 @@ import java.io.IOException
 
 object PathUtil {
 
+    /***
+     * 获取章节对应的缓存文件
+     */
+    fun getChapterFile(context: Context, bookId: Long, chapterPathName: String): File {
+        val path =
+            context.filesDir.absolutePath + File.separator + "chapters" + File.separator + bookId.toString() + File.separator + chapterPathName
+        val destFile = File(path)
+        destFile.parentFile?.takeIf { !it.exists() }?.mkdirs()
+        return destFile
+    }
+
+    /**
+     * 获取章节中对应的缓存资源文件
+     */
+    fun getChapterResourcePath(context: Context, bookId: Long, resourceName: String): File {
+        val path =
+            context.filesDir.absolutePath + File.separator + "chapters" + File.separator + bookId.toString() + File.separator + "res" + File.separator + resourceName
+        val destFile = File(path)
+        destFile.parentFile?.takeIf { !it.exists() }?.mkdirs()
+        return destFile
+    }
+
 
     /**
      * Method for return file path of Gallery image

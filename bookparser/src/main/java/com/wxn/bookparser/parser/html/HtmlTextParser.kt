@@ -1,28 +1,30 @@
 package com.wxn.bookparser.parser.html
 
+import android.content.Context
 import android.util.Log
+import com.wxn.base.bean.BookChapter
 import com.wxn.bookparser.TextParser
 import com.wxn.bookparser.domain.file.CachedFile
-import com.wxn.bookparser.domain.reader.ReaderText
+import com.wxn.base.bean.ReaderText
 import com.wxn.bookparser.parser.base.DocumentParser
 import kotlinx.coroutines.yield
 import org.jsoup.Jsoup
 import org.jsoup.parser.Parser
 import javax.inject.Inject
 
-
 private const val HTML_TAG = "HTML Parser"
 
 class HtmlTextParser @Inject constructor(
+    private val context : Context,
     private val documentParser: DocumentParser
 ) : TextParser {
 
-    override suspend fun parse(cachedFile: CachedFile): List<ReaderText> {
+    override suspend fun parse(bookId: Long, cachedFile: CachedFile): List<ReaderText> {
         Log.i(HTML_TAG, "Started HTML parsing: ${cachedFile.name}.")
 
         return try {
             val readerText = cachedFile.openInputStream()?.use { stream ->
-                documentParser.parseDocument(Jsoup.parse(stream, null, "", Parser.htmlParser()))
+                documentParser.parseDocument(context, bookId, Jsoup.parse(stream, null, "", Parser.htmlParser()))
             }
 
             yield()
@@ -40,6 +42,26 @@ class HtmlTextParser @Inject constructor(
             readerText
         } catch (e: Exception) {
             e.printStackTrace()
+            emptyList()
+        }
+    }
+
+
+
+    /***
+     * 解析得到章节列表
+     */
+    override suspend fun parseChapterInfo(cachedFile: CachedFile): List<BookChapter> {
+        return emptyList()
+    }
+
+    /***
+     * 解析得到给定章节数据
+     */
+    override suspend fun parsedChapterData(bookId: Long, cachedFile: CachedFile, chapterIndex: Int) : List<ReaderText> {
+        return if (chapterIndex == 0) {
+            parse(bookId, cachedFile)
+        } else {
             emptyList()
         }
     }

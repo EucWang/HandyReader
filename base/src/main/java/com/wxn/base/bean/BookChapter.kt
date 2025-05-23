@@ -48,7 +48,7 @@ data class BookChapter(
     var cachedName: String? = "",
 
     /***
-     * 章节包含的字符数，不包括图片对应的链接字符串，不包括分隔符
+     * 总章节数
      */
     var chaptersSize: Int = 0
 ) {

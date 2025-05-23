@@ -1,9 +1,10 @@
 package com.wxn.bookparser.parser.txt
 
 import android.util.Log
+import com.wxn.base.bean.BookChapter
 import com.wxn.bookparser.TextParser
 import com.wxn.bookparser.domain.file.CachedFile
-import com.wxn.bookparser.domain.reader.ReaderText
+import com.wxn.base.bean.ReaderText
 import com.wxn.bookparser.exts.clearAllMarkdown
 import com.wxn.bookparser.parser.base.MarkdownParser
 import kotlinx.coroutines.Dispatchers
@@ -18,7 +19,25 @@ class TxtTextParser @Inject constructor(
     private val markdownParser: MarkdownParser
 ) : TextParser {
 
-    override suspend fun parse(cachedFile: CachedFile): List<ReaderText> {
+    /***
+     * 解析得到章节列表
+     */
+    override suspend fun parseChapterInfo(cachedFile: CachedFile): List<BookChapter> {
+        return emptyList()
+    }
+
+    /***
+     * 解析得到给定章节数据
+     */
+    override suspend fun parsedChapterData(bookId:Long, cachedFile: CachedFile, chapterIndex: Int) : List<ReaderText> {
+        if (chapterIndex == 0) {
+            return parse(bookId, cachedFile)
+        } else {
+            return emptyList()
+        }
+    }
+
+    override suspend fun parse(bookId:Long, cachedFile: CachedFile): List<ReaderText> {
         Log.i(TXT_TAG, "Started TXT parsing: ${cachedFile.name}.")
 
         return try {
@@ -45,7 +64,7 @@ class TxtTextParser @Inject constructor(
                                         chapterAdded = true
                                     } else readerText.add(
                                         ReaderText.Text(
-                                            line = markdownParser.parse(line)
+                                            line = markdownParser.parse(line).toString()
                                         )
                                     )
                                 }

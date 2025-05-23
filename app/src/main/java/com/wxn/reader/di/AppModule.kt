@@ -3,6 +3,7 @@ package com.wxn.reader.di
 import android.app.Application
 import android.content.Context
 import androidx.room.Room
+import com.wxn.bookparser.TextParser
 import com.wxn.reader.data.mapper.annotation.BookAnnotationMapper
 import com.wxn.reader.data.mapper.annotation.BookAnnotationMapperImpl
 import com.wxn.reader.data.mapper.book.BookMapper
@@ -200,9 +201,10 @@ object AppModule {
         getChapterByIdUserCase: GetChapterByIdUserCase,
         getChapterCountByBookIdUserCase : GetChapterCountByBookIdUserCase,
         updateBookUseCase: UpdateBookUseCase,
-        appPreferencesUtil: AppPreferencesUtil
+        appPreferencesUtil: AppPreferencesUtil,
+        textParser: TextParser
     ): PageViewController {
-        return PageViewController(context, getChapterByIdUserCase, getChapterCountByBookIdUserCase, updateBookUseCase, appPreferencesUtil)
+        return PageViewController(context, getChapterByIdUserCase, getChapterCountByBookIdUserCase, updateBookUseCase, appPreferencesUtil, textParser)
     }
 
     @Provides

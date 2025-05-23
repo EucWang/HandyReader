@@ -1,7 +1,8 @@
 package com.wxn.bookparser
 
+import com.wxn.base.bean.BookChapter
 import com.wxn.bookparser.domain.file.CachedFile
-import com.wxn.bookparser.domain.reader.ReaderText
+import com.wxn.base.bean.ReaderText
 
 
 /****
@@ -13,5 +14,15 @@ interface TextParser {
      * 解析文件，得到对应文件的内容的列表
      * ReaderText 是一个展示数据的一个封装
      */
-    suspend fun parse(cachedFile: CachedFile): List<ReaderText>
+    suspend fun parse(bookId: Long, cachedFile: CachedFile): List<ReaderText>
+
+    /***
+     * 解析得到章节列表
+     */
+    suspend fun parseChapterInfo(cachedFile: CachedFile): List<BookChapter>
+
+    /***
+     * 解析得到给定章节数据
+     */
+    suspend fun parsedChapterData(bookId: Long, cachedFile: CachedFile, chapterIndex: Int) : List<ReaderText>
 }

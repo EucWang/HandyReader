@@ -11,6 +11,7 @@ import android.text.StaticLayout
 import android.text.TextPaint
 import com.wxn.base.bean.Book
 import com.wxn.base.bean.BookChapter
+import com.wxn.base.bean.ReaderText
 import com.wxn.base.ext.isContentPath
 import com.wxn.base.ext.statusBarHeight
 import com.wxn.base.ext.toStringArray
@@ -274,7 +275,7 @@ object ChapterProvider {
         context: Context,
         book: Book,
         chapter: BookChapter,
-        contents: List<String>,
+        contents: List<ReaderText>,
         imageStyles: String = "",
         chapterSize: Int,
     ): TextChapter? {
@@ -286,30 +287,52 @@ object ChapterProvider {
 
         textPages.add(TextPage())   //增加一空白页，然后给这个页面增加显示内容
         contents.forEachIndexed { index, paragraph -> //遍历需要显示的内容的每一个自然段， 一个段落一个段落（图片）的遍历
-            val matcher = imgPattern.matcher(paragraph)
-            if (matcher.find()) {
-                val imgSrc = matcher.group(1) ?: ""
-                val imgWidth = matcher.group(2)?.toIntOrNull() ?: 0
-                val imgHeight = matcher.group(3)?.toIntOrNull() ?: 0
-                Logger.d("ChapterProvider:getTextChapter:src: $imgSrc, width: $imgWidth, height: $imgHeight")
-
-                if (imgSrc.isNotEmpty()) {
+            when(paragraph) {
+                is ReaderText.Image -> {
+                    val image = paragraph
                     offsetY = setTypeImage(
-                        context,
-                        book,
-                        chapter,
-                        imgSrc,
-                        imgWidth,
-                        imgHeight,
+                        image.path,
+                        image.width,
+                        image.height,
                         offsetY,
                         textPages,
                         imageStyles
                     )
                 }
-            } else {
-                val isTitle = (index == 0)  //如果没有图片， index = 0 就是标题
-                offsetY = setTypeText(context, book, chapter, paragraph, offsetY, textPages, pageLines, pageLengths, stringBuilder, isTitle)
+                is ReaderText.Text -> {
+                    offsetY = setTypeText(paragraph, offsetY, textPages, pageLines, pageLengths, stringBuilder, false)
+                }
+                is ReaderText.Chapter -> {
+                    offsetY = setTypeText(paragraph, offsetY, textPages, pageLines, pageLengths, stringBuilder, true)
+                }
+                else -> {
+
+                }
             }
+//            val matcher = imgPattern.matcher(paragraph)
+//            if (matcher.find()) {
+//                val imgSrc = matcher.group(1) ?: ""
+//                val imgWidth = matcher.group(2)?.toIntOrNull() ?: 0
+//                val imgHeight = matcher.group(3)?.toIntOrNull() ?: 0
+//                Logger.d("ChapterProvider:getTextChapter:src: $imgSrc, width: $imgWidth, height: $imgHeight")
+//
+//                if (imgSrc.isNotEmpty()) {
+//                    offsetY = setTypeImage(
+//                        context,
+//                        book,
+//                        chapter,
+//                        imgSrc,
+//                        imgWidth,
+//                        imgHeight,
+//                        offsetY,
+//                        textPages,
+//                        imageStyles
+//                    )
+//                }
+//            } else {
+//                val isTitle = (index == 0)  //如果没有图片， index = 0 就是标题
+//                offsetY = setTypeText(context, book, chapter, paragraph, offsetY, textPages, pageLines, pageLengths, stringBuilder, isTitle)
+//            }
         }
         //一个章节的全部自然段落/图片/标题都遍历完，
         val lastPage = textPages.last()
@@ -346,10 +369,7 @@ object ChapterProvider {
      * 根据图片设置TextLine/TextChar属性，将结果保存到textPages中，并返回offsetY，用于计算下一行内容
      */
     private fun setTypeImage(
-        context: Context,
-        book: Book,
-        chapter: BookChapter,
-        imgSrc: String,
+        imgSrc: String, //这里就是绝对路径
         imgWidth: Int,
         imgHeight: Int,
         offsetY: Float,
@@ -357,11 +377,9 @@ object ChapterProvider {
         imageStyles: String
     ): Float {
         var durY: Float = offsetY
-        val imgPath = getChapterResourcePath(context, book.id, imgSrc).absolutePath
-        Logger.d("ChapterProvider::setTypeImage::bookId=${book.id},chapter.=${chapter.chapterIndex}," +
-                "imgSrc=${imgSrc}, imgPath=$imgPath, offsetY=$offsetY,imgWidth=$imgWidth, imgHeight=$imgHeight")
-        if (imgPath.isNullOrEmpty()) {
-            Logger.d("ChapterProvider::setTypeImage::bookId=${book.id},chapter.=${chapter.chapterIndex},imgSrc=${imgSrc}, did not find the imgSrc, pass")
+        Logger.d("ChapterProvider::setTypeImage::imgSrc=${imgSrc}, offsetY=$offsetY,imgWidth=$imgWidth, imgHeight=$imgHeight")
+        if (imgSrc.isEmpty()) {
+            Logger.d("ChapterProvider::setTypeImage::imgSrc=${imgSrc}, did not find the imgSrc, pass")
             return offsetY
         }
 
@@ -373,7 +391,7 @@ object ChapterProvider {
             val options: BitmapFactory.Options = BitmapFactory.Options()
             options.inJustDecodeBounds = true; // 不加载图片像素，只获取宽高
             options.inSampleSize = 2
-            BitmapFactory.decodeFile(imgPath, options)
+            BitmapFactory.decodeFile(imgSrc, options)
             originWidth = options.outWidth
             originHeight = options.outHeight
         }
@@ -431,7 +449,7 @@ object ChapterProvider {
 
         textLine.textChars.add(
             TextChar(
-                charData = imgPath, //图片的本地完整路径
+                charData = imgSrc, //图片的本地完整路径
                 start = start,      //图片的左位置
                 end = end,          //图片的右位置
                 isImage = true
@@ -443,10 +461,7 @@ object ChapterProvider {
     }
 
     private suspend fun setTypeText(
-        context: Context,
-        book: Book,
-        chapter: BookChapter,
-        paragraph: String,
+        paragraph: ReaderText,
         offsetY: Float,
         textPages: ArrayList<TextPage>,
         pageLines: ArrayList<Int>,
@@ -454,12 +469,19 @@ object ChapterProvider {
         stringBuilder: StringBuilder,
         isTitle: Boolean
     ): Float {
+        val text : String = when(paragraph) {
+            is ReaderText.Chapter -> paragraph.title
+            is ReaderText.Text -> paragraph.line
+            else -> ""
+        }.toString()
+
         var durY = if (isTitle) offsetY + titleTopSpacing else offsetY
         val textPaint = if (isTitle) titlePaint else contentPaint
-        val layout = StaticLayout(paragraph, textPaint, visibleWidth, Layout.Alignment.ALIGN_NORMAL, 0f, 0f, true)
+
+        val layout = StaticLayout(text, textPaint, visibleWidth, Layout.Alignment.ALIGN_NORMAL, 0f, 0f, true)
         for (lineIndex in 0 until layout.lineCount) {  //排版，按行遍历
             val textLine = TextLine(isTitle = isTitle)
-            val words = paragraph.substring(layout.getLineStart(lineIndex), layout.getLineEnd(lineIndex))
+            val words = text.substring(layout.getLineStart(lineIndex), layout.getLineEnd(lineIndex))
             val desiredWidth = layout.getLineWidth(lineIndex)   //排版要求的宽度
             var isLastLine = false
 
@@ -619,25 +641,4 @@ object ChapterProvider {
     }
 
 
-    /***
-     * 获取章节对应的缓存文件
-     */
-    fun getChapterFile(context: Context, bookId: Long, chapterPathName: String): File {
-        val path =
-            context.filesDir.absolutePath + File.separator + "chapters" + File.separator + bookId.toString() + File.separator + chapterPathName
-        val destFile = File(path)
-        destFile.parentFile?.takeIf { !it.exists() }?.mkdirs()
-        return destFile
-    }
-
-    /**
-     * 获取章节中对应的缓存资源文件
-     */
-    fun getChapterResourcePath(context: Context, bookId: Long, resourceName: String): File {
-        val path =
-            context.filesDir.absolutePath + File.separator + "chapters" + File.separator + bookId.toString() + File.separator + "src" + File.separator + resourceName
-        val destFile = File(path)
-        destFile.parentFile?.takeIf { !it.exists() }?.mkdirs()
-        return destFile
-    }
 }

@@ -6,6 +6,7 @@ import com.wxn.base.bean.Book
 import com.wxn.base.util.Coroutines
 import com.wxn.base.util.Logger
 import com.wxn.base.util.launchIO
+import com.wxn.bookparser.TextParser
 import com.wxn.bookread.data.model.TextChapter
 import com.wxn.bookread.provider.ChapterProvider
 import com.wxn.bookread.ui.PageCallback
@@ -21,12 +22,14 @@ import com.wxn.reader.domain.use_case.chapters.GetChapterCountByBookIdUserCase
 import kotlinx.coroutines.CoroutineScope
 import javax.inject.Inject
 
-open class PageViewController @Inject constructor(val context: Context,
+open class PageViewController @Inject constructor(
+    val context: Context,
     val getChapterByIdUserCase: GetChapterByIdUserCase,
-    val getChapterCountByBookIdUserCase : GetChapterCountByBookIdUserCase,
-      val updateBookUseCase: UpdateBookUseCase,
+    val getChapterCountByBookIdUserCase: GetChapterCountByBookIdUserCase,
+    val updateBookUseCase: UpdateBookUseCase,
     val appPreferencesUtil: AppPreferencesUtil,
-): PageViewDataProvider, PageViewCallback, SelectTextCallback  {
+    val textParser: TextParser
+) : PageViewDataProvider, PageViewCallback, SelectTextCallback {
 
     var scope: CoroutineScope? = null
     var titleDate = MutableLiveData<String>()
@@ -35,7 +38,8 @@ open class PageViewController @Inject constructor(val context: Context,
 
     var inBookshelf = false
     var durPageIndex = 0
-//    var isLocalBook = true
+
+    //    var isLocalBook = true
     var callBack: PageCallback? = null
     var prevTextChapter: TextChapter? = null
     var curTextChapter: TextChapter? = null
@@ -51,25 +55,25 @@ open class PageViewController @Inject constructor(val context: Context,
     /***
      * 章节数
      */
-    override var chapterSize: Int= 0
+    override var chapterSize: Int = 0
 
-    override var isInitFinish: Boolean= false
+    override var isInitFinish: Boolean = false
 
-    override var isAutoPage: Boolean= false
+    override var isAutoPage: Boolean = false
 
-    override var autoPageProgress: Int= 0
+    override var autoPageProgress: Int = 0
 
     override var pageFactory: TextPageFactory? = null
 
-    override var isScroll: Boolean= false
+    override var isScroll: Boolean = false
 
-    private var screenTimeOut : Long = 0
+    private var screenTimeOut: Long = 0
 
     init {
         ChapterProvider.tryCreatePreference(context)
     }
 
-    suspend fun resetBook(book:Book){
+    suspend fun resetBook(book: Book) {
         Logger.i("PageViewController::resetBook:book=$book")
         this.prevTextChapter = null
         this.curTextChapter = null
@@ -79,7 +83,7 @@ open class PageViewController @Inject constructor(val context: Context,
         isScroll = false
 
         this.book = book
-        getChapterCountByBookIdUserCase.invoke(book.id).collect { count->
+        getChapterCountByBookIdUserCase.invoke(book.id).collect { count ->
             this.chapterSize = count
             durChapterIndex = book.scrollIndex
             Logger.d("PageViewController::resetBook:chapterSize=$chapterSize, durChapterIndex=$durChapterIndex")
@@ -140,12 +144,12 @@ open class PageViewController @Inject constructor(val context: Context,
         Logger.i("PageViewController::loadContent:index=$index,bookId=$bookId")
 //        if (!addLoading(index)) return
         getChapterByIdUserCase(bookId, index).collect { chapter ->
-            Logger.i("PageViewController::loadContent:index=$index, chapter=$chapter")
-            BookHelper.loadChpaterContent(context, bookId, chapter)?.let { content ->
-                val contents = BookHelper.disposeContent(appPreferencesUtil, chapter, content)
+            Logger.i("PageViewController::loadContent:index=$index, chapter=$chapter, book=${curBook}")
+            BookHelper.loadChapterContent(context, curBook, chapter, textParser).let { contents ->
+                val contents = BookHelper.disposeContent(appPreferencesUtil, chapter, contents)
                 Logger.i("PageViewController::loadContent:index=$index, contents.size=${contents.size}")
                 val textChapter = ChapterProvider.getTextChapter(context, curBook, chapter, contents, imageStyles = "", chapterSize)
-                when(chapter.chapterIndex) {
+                when (chapter.chapterIndex) {
                     durChapterIndex -> {    //加载的是当前章节
                         curTextChapter = textChapter
                         if (upContent) {
@@ -154,12 +158,14 @@ open class PageViewController @Inject constructor(val context: Context,
                         }
                         callBack?.upView()
                     }
-                    durChapterIndex -1 -> { //加载的是上一章节
+
+                    durChapterIndex - 1 -> { //加载的是上一章节
                         prevTextChapter = textChapter
                         if (upContent) {
                             callBack?.upContent(-1, resetPageOffset)
                         }
                     }
+
                     durChapterIndex + 1 -> {    //加载的是下一章节
                         nextTextChapter = textChapter
                         if (upContent) {
@@ -194,7 +200,7 @@ open class PageViewController @Inject constructor(val context: Context,
         saveRead()
     }
 
-    override fun moveToNextChapter(upContent: Boolean) :Boolean {
+    override fun moveToNextChapter(upContent: Boolean): Boolean {
         if (durChapterIndex >= chapterSize - 1) {
             return false
         }
@@ -221,7 +227,7 @@ open class PageViewController @Inject constructor(val context: Context,
         return true
     }
 
-    override fun moveToPrevChapter(upContent: Boolean, toLast: Boolean) : Boolean {
+    override fun moveToPrevChapter(upContent: Boolean, toLast: Boolean): Boolean {
         if (durChapterIndex <= 0) {
             return false
         }
