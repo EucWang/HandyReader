@@ -37,7 +37,7 @@ class MobiTextParser @Inject constructor(
      * 解析得到章节列表
      */
     override suspend fun parseChapterInfo(bookId: Long, cachedFile: CachedFile): List<BookChapter> {
-        val path  = cachedFile.rawFile?.absoluteFile?.absolutePath
+        val path  = cachedFile.rawFile?.absolutePath
         if (path.isNullOrEmpty()) {
             Log.e("MobiTextParser", ":parseChapterInfo failed, path is empty")
             return emptyList()

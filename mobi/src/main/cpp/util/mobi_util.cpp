@@ -211,7 +211,7 @@ void mobi_util::free_data() {
     mobi_data = NULL;
 }
 
-void parseNavPoints(tinyxml2::XMLElement* firstNavPoint, std::vector<NavPoint> vectors) {
+void parseNavPoints(tinyxml2::XMLElement* firstNavPoint, std::vector<NavPoint> &vectors, const char* parentId) {
     for (tinyxml2::XMLElement *navPoint = firstNavPoint; navPoint; navPoint = navPoint->NextSiblingElement("navPoint")) {
         const char* id = navPoint->Attribute("id");
         const char* playOrder = navPoint->Attribute("playOrder");
@@ -222,18 +222,18 @@ void parseNavPoints(tinyxml2::XMLElement* firstNavPoint, std::vector<NavPoint> v
         nav.playOrder = toInt(playOrder);
         nav.text = label;
         nav.src = src;
+        nav.parentId = parentId;
         vectors.push_back(nav);
 
         if (navPoint->ChildElementCount("navPoint") > 0) {
-            parseNavPoints(navPoint->FirstChildElement("navPoint"), vectors);
+            parseNavPoints(navPoint->FirstChildElement("navPoint"), vectors, id);
         }
     }
 }
 
-std::vector<NavPoint> mobi_util::getChapters(long book_id, const char *path) {
-    std::vector<NavPoint> vectors;
+int mobi_util::getChapters(long book_id, const char *path, std::vector<NavPoint>& points) {
     if (init(book_id, path) != MOBI_SUCCESS) {
-        return vectors;
+        return 0;
     }
 
     if (mobi_rawml->resources != NULL) {
@@ -258,31 +258,31 @@ std::vector<NavPoint> mobi_util::getChapters(long book_id, const char *path) {
 
         if (opf_data == NULL || ncx_data == NULL) {
             LOGE("%s failed, cant find opf or ncx, pass", __func__);
-            return vectors;
+            return 0;
         }
 
         tinyxml2::XMLDocument doc;
         if (doc.Parse(reinterpret_cast<const char *>(ncx_data), ncx_data_size) != tinyxml2::XML_SUCCESS) {
             LOGE("%s failed to parse ncx", __func__);
-            return vectors;
+            return 0;
         }
 
         tinyxml2::XMLElement *root = doc.RootElement();
         if (!root) {
             LOGE("%s failed parse ncx, no root element", __func__);
-            return vectors;
+            return 0;
         }
 
         tinyxml2::XMLElement *navMapElem = root->FirstChildElement("navMap");
         if (!navMapElem) {
             LOGE("%s failed parse ncx, no navMap element", __func__);
-            return vectors;
+            return 0;
         }
         tinyxml2::XMLElement *firstNavPoint = navMapElem->FirstChildElement("navPoint");
-        parseNavPoints(firstNavPoint, vectors);
+        parseNavPoints(firstNavPoint, points, "");
     }
 
-    return vectors;
+    return 1;
 }
 
 

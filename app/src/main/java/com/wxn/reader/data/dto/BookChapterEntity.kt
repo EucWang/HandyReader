@@ -21,5 +21,6 @@ data class BookChapterEntity(
     val chaptersSize: Int,
 
     val chapterId : String = "",
+    val parentChapterId: String = "",
 ) {
 }

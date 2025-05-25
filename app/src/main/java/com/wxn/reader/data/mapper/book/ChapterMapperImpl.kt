@@ -17,7 +17,8 @@ class ChapterMapperImpl @Inject constructor()  : ChapterMapper{
             updateTimeValue = chapter.updateTimeValue,
             chapterUrl = chapter.chapterUrl,
             srcName = chapter.srcName,
-            chaptersSize = chapter.chaptersSize
+            chaptersSize = chapter.chaptersSize,
+            parentChapterId = chapter.parentChapterId
         )
     }
 
@@ -34,7 +35,8 @@ class ChapterMapperImpl @Inject constructor()  : ChapterMapper{
             updateTimeValue = entity.updateTimeValue,
             chapterUrl = entity.chapterUrl,
             srcName = entity.srcName,
-            chaptersSize = entity.chaptersSize
+            chaptersSize = entity.chaptersSize,
+            parentChapterId = entity.parentChapterId
         )
     }
 }

@@ -15,6 +15,11 @@ data class BookChapter(
     var chapterId : String = "",
 
     /***
+     * 父章节id
+     */
+    var parentChapterId : String = "",
+
+    /***
      * 书籍id，对应数据库中的ID
      */
     var bookId: Long,

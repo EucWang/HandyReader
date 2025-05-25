@@ -22,6 +22,7 @@ namespace fs = std::filesystem;
 
 typedef struct NavPoint_{
     std::string id;
+    std::string parentId;
     int playOrder;
     std::string text;
     std::string src;
@@ -66,7 +67,7 @@ public:
 //            std::string appCacheeDir,
 //            std::string& epubPath);
 
-    static std::vector<NavPoint> getChapters(long book_id, const char* path);
+    static int getChapters(long book_id, const char* path,  /*out*/std::vector<NavPoint>& points);
 
     static void getChapter(long book_id, const char *path, const char *app_file_dir, int chapter_index);
 

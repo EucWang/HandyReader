@@ -219,7 +219,11 @@ JNIEXPORT jobjectArray JNICALL
 Java_com_wxn_mobi_inative_NativeLib_getChapters(JNIEnv *env, jobject thiz, jobject context, jlong book_id, jstring path) {
     const char *nativeStr = env->GetStringUTFChars(path, NULL);
 
-    std::vector<NavPoint> vectors = mobi_util::getChapters(book_id, nativeStr);
+    std::vector<NavPoint> vectors;
+    int ret = mobi_util::getChapters(book_id, nativeStr, vectors);
+    if (ret != 1) {
+        return nullptr;
+    }
     jclass objClass = env->FindClass("com/wxn/base/bean/BookChapter");
     if (objClass == nullptr || env->ExceptionCheck()) {
         return nullptr;
@@ -236,7 +240,7 @@ Java_com_wxn_mobi_inative_NativeLib_getChapters(JNIEnv *env, jobject thiz, jobje
         return nullptr;
     }
 
-    jmethodID constructor = env->GetMethodID(objClass, "<init>", "(JLjava/lang/String;JILjava/lang/String;JLjava/lang/String;JLjava/lang/String;Ljava/lang/String;I)V");
+    jmethodID constructor = env->GetMethodID(objClass, "<init>", "(JLjava/lang/String;Ljava/lang/String;JILjava/lang/String;JLjava/lang/String;JLjava/lang/String;Ljava/lang/String;I)V");
     if (constructor == nullptr) {
         LOGE("%s failed, BookChapter's constructor is null", __func__);
         return nullptr;
@@ -250,10 +254,12 @@ Java_com_wxn_mobi_inative_NativeLib_getChapters(JNIEnv *env, jobject thiz, jobje
         int playOrder = (*point).playOrder;
         std::string content = (*point).text;
         std::string src = (*point).src;
+        std::string parentId = (*point).parentId;
 
         jobject item = env->NewObject(objClass, constructor,
                        0L,
                        env->NewStringUTF(id.c_str()),
+                       env->NewStringUTF(parentId.c_str()),
                        book_id,
                        playOrder - 1,
                         env->NewStringUTF(content.c_str()),
