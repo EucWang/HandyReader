@@ -437,27 +437,6 @@ int mobi_util::loadMobi(std::string fullpath,
     return SUCCESS;
 }
 
-// 递归收集元素的文本内容
-//std::string processParagraph(const tinyxml2::XMLElement* elem) {
-//    std::stringstream ss;
-//
-//    // 收集当前元素的文本
-//    if (elem->GetText()) {
-//        ss << elem->GetText();
-//    }
-//
-//    // 递归处理子节点
-//    for (const tinyxml2::XMLNode* child = elem->FirstChild(); child != nullptr; child = child->NextSibling()) {
-//        if (child->ToText()) {  // 直接文本节点
-//            ss << child->Value();
-//        } else if (child->ToElement()) {  // 子元素
-//            ss << collectText(child->ToElement());
-//        }
-//    }
-//
-//    return ss.str();
-//}
-
 size_t parseElement(const tinyxml2::XMLElement* elem, std::string& fullText, std::string& parent_uuid, size_t initialOffset, std::vector<TagInfo>& subTags) {
     size_t currentOffset = initialOffset;
 
@@ -493,8 +472,10 @@ std::string processParagraph(const tinyxml2::XMLElement* pElem, std::vector<TagI
     for (const tinyxml2::XMLNode* child = pElem->FirstChild(); child != nullptr; child = child->NextSibling()) {
         if (child->ToText()) {
             const char* text = child->Value();
-            fullText += text;
-            offset += utf8Count(text);
+            if (text != NULL && utf8Count(text) > 0) {
+                fullText += text;
+                offset += utf8Count(text);
+            }
         } else if (child->ToElement()) {
             size_t childStart = offset;
 
@@ -508,7 +489,7 @@ std::string processParagraph(const tinyxml2::XMLElement* pElem, std::vector<TagI
             offset = parseElement(child->ToElement(), fullText, newTag.uuid, childStart, subTags);
 
             if (offset > childStart) {
-                subTags.back().endPos = offset;
+                newTag.endPos = offset;
             }
             subTags.push_back(newTag);
         }
@@ -516,17 +497,31 @@ std::string processParagraph(const tinyxml2::XMLElement* pElem, std::vector<TagI
     return fullText;
 }
 
-
 int parseHtmlDoc(tinyxml2::XMLElement *element, std::vector<DocText>& docTexts) {
     tinyxml2::XMLElement* elem = element;
     while(elem != nullptr) {
         std::string name = elem->Name();
         if (name == "div") {
-            int count = elem->ChildElementCount();
-            tinyxml2::XMLElement * child = elem->FirstChildElement();
-            if (count > 0 && child != nullptr) {
-                parseHtmlDoc(child, docTexts);
+            const char* divText = elem->GetText();
+            if (divText != NULL && utf8Count(divText) > 0) {
+                std::vector<TagInfo> tagInfos;
+                DocText docText{"", tagInfos};
+                std::string text = processParagraph(elem, tagInfos);
+                docText.text = text;
+                if (!tagInfos.empty()) {
+                    for(auto& tag : tagInfos) {
+                        docText.tagInfos.push_back(tag);
+                    }
+                }
+                docTexts.push_back(docText);
+            } else {
+                int count = elem->ChildElementCount();
+                tinyxml2::XMLElement * child = elem->FirstChildElement();
+                if (count > 0 && child != nullptr) {
+                    parseHtmlDoc(child, docTexts);
+                }
             }
+
         } else if (name == "p") {
             std::vector<TagInfo> tagInfos;
             DocText docText{"", tagInfos};
@@ -538,24 +533,26 @@ int parseHtmlDoc(tinyxml2::XMLElement *element, std::vector<DocText>& docTexts) 
                 }
             }
             docTexts.push_back(docText);
-        } else if (name == "h1") {
-            std::vector<TagInfo> tagInfos;
-            DocText docText{"", tagInfos};
-            std::string text = elem->GetText();
-            docText.text = text;
-            docText.tagInfos.push_back(TagInfo{generate_uuid(), "", "h1", 0, utf8Count(text), "", ""});
-            docTexts.push_back(docText);
-        } else if (name == "a") {
-            std::vector<TagInfo> tagInfos;
-            DocText docText{"", tagInfos};
-            std::string text = elem->GetText();
-            docText.text =text;
-            const char* id = elem->Attribute("id");
-            if (id == nullptr) {
-                id = "";
+        } else if (name == "h1" || name == "h2" || name == "h3" || name == "h4" || name == "h5" || name == "h6" || name == "h7") {
+            const char* elemText = elem->GetText();
+            if (elemText != NULL && utf8Count(elemText) > 0) {
+                std::vector<TagInfo> tagInfos;
+                DocText docText{elemText, tagInfos};
+                docText.tagInfos.push_back(TagInfo{generate_uuid(), "", name, 0, utf8Count(docText.text), "", ""});
+                docTexts.push_back(docText);
             }
-            docText.tagInfos.push_back(TagInfo{generate_uuid(), id, "a", 0, utf8Count(docText.text), "", ""});
-            docTexts.push_back(docText);
+        } else if (name == "a") {
+            const char* elemText = elem->GetText();
+            if (elemText != NULL && utf8Count(elemText) > 0) {
+                std::vector<TagInfo> tagInfos;
+                DocText docText{elemText, tagInfos};
+                const char* id = elem->Attribute("id");
+                if (id == nullptr) {
+                    id = "";
+                }
+                docText.tagInfos.push_back(TagInfo{generate_uuid(), id, name, 0, utf8Count(docText.text), "", ""});
+                docTexts.push_back(docText);
+            }
         }
         elem = elem->NextSiblingElement();
     }
@@ -700,7 +697,8 @@ int mobi_util::getChapter(long book_id, const char *path, const char *app_file_d
 
     if (normalizedHtml == NULL || normalizedHtmlSize <= 0) {
         LOGE("%s:failed, tidy html failed", __func__);
-        return 0;
+        normalizedHtmlSize = rawHtmlSize;
+        normalizedHtml = rawHtml;
     }
     LOGD("%s:normalizedHtmlSize=%zu", __func__, normalizedHtmlSize);
 
