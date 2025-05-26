@@ -137,7 +137,7 @@ class TextParserImpl @Inject constructor(
     /***
      * 解析得到给定章节数据
      */
-    override suspend fun parsedChapterData(bookId: Long, cachedFile: CachedFile, chapterIndex: Int): List<ReaderText> {
+    override suspend fun parsedChapterData(bookId: Long, cachedFile: CachedFile, chapter: BookChapter): List<ReaderText> {
         if (!cachedFile.canAccess()) {
             Log.e(TEXT_PARSER, "File does not exist or no read access is granted.")
             return emptyList()
@@ -148,35 +148,35 @@ class TextParserImpl @Inject constructor(
         return withContext(Dispatchers.IO) {
             when (fileFormat) {
                 "pdf" -> {
-                    pdfTextParser.parsedChapterData(bookId, cachedFile, chapterIndex)
+                    pdfTextParser.parsedChapterData(bookId, cachedFile, chapter)
                 }
 
                 "epub" -> {
-                    epubTextParser.parsedChapterData(bookId, cachedFile, chapterIndex)
+                    epubTextParser.parsedChapterData(bookId, cachedFile, chapter)
                 }
 
                 in listOf("mobi", "azw3") -> {
-                    mobiTextParser.parsedChapterData(bookId, cachedFile, chapterIndex)
+                    mobiTextParser.parsedChapterData(bookId, cachedFile, chapter)
                 }
 
                 "txt" -> {
-                    txtTextParser.parsedChapterData(bookId, cachedFile, chapterIndex)
+                    txtTextParser.parsedChapterData(bookId, cachedFile, chapter)
                 }
 
                 "fb2" -> {
-                    xmlTextParser.parsedChapterData(bookId, cachedFile, chapterIndex)
+                    xmlTextParser.parsedChapterData(bookId, cachedFile, chapter)
                 }
 
                 "html" -> {
-                    htmlTextParser.parsedChapterData(bookId, cachedFile, chapterIndex)
+                    htmlTextParser.parsedChapterData(bookId, cachedFile, chapter)
                 }
 
                 "htm" -> {
-                    htmlTextParser.parsedChapterData(bookId, cachedFile, chapterIndex)
+                    htmlTextParser.parsedChapterData(bookId, cachedFile, chapter)
                 }
 
                 "md" -> {
-                    htmlTextParser.parsedChapterData(bookId, cachedFile, chapterIndex)
+                    htmlTextParser.parsedChapterData(bookId, cachedFile, chapter)
                 }
 
                 else -> {

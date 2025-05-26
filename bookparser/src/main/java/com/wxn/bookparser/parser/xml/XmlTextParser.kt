@@ -107,12 +107,12 @@ class XmlTextParser @Inject constructor(
     /***
      * 解析得到给定章节数据
      */
-    override suspend fun parsedChapterData(bookId: Long, cachedFile: CachedFile, chapterIndex: Int): List<ReaderText> {
+    override suspend fun parsedChapterData(bookId: Long, cachedFile: CachedFile, chapter: BookChapter): List<ReaderText> {
         return try {
             val texts = arrayListOf<ReaderText>()
             cachedFile.openInputStream()?.use { stream ->
                 val doc = Jsoup.parse(stream, null, "", Parser.xmlParser())
-                val section = doc.select("body > section").get(chapterIndex)
+                val section = doc.select("body > section").get(chapter.chapterIndex)
 
                 section.apply {
                     // Remove manual line breaks from all <p>, <a>

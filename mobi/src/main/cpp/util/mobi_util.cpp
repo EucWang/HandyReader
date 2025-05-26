@@ -4,83 +4,11 @@
 
 #include "mobi_util.h"
 
-#include <iostream>
-#include <iomanip>
-#include <sstream>
-#include <random>
 
 long mobi_util::last_book_id = 0L;
 std::string mobi_util::last_path = "";
 MOBIRawml *mobi_util::mobi_rawml = nullptr;
 MOBIData *mobi_util::mobi_data = nullptr;
-
-/****
- * 创建随机的UUID
- * @return
- */
-std::string generate_uuid() {
-    std::random_device rd;
-    std::mt19937 gen(rd());
-    std::uniform_int_distribution<> dis(0, 15);
-    std::uniform_int_distribution<> dis2(8, 11);
-
-    std::stringstream ss;
-    int i;
-    ss << std::hex;
-    for (i = 0; i < 8; i++) {
-        ss << dis(gen);
-    }
-    ss << "-";
-    for (i = 0; i < 4; i++) {
-        ss << dis(gen);
-    }
-    ss << "-";
-    ss << dis2(gen);
-    for (i = 0; i < 3; i++) {
-        ss << dis(gen);
-    }
-    ss << "-";
-    ss << dis(gen) % 4 + 8;
-    for (i = 0; i < 3; i++) {
-        ss << dis(gen);
-    }
-    ss << "-";
-    for (i = 0; i < 12; i++) {
-        ss << dis(gen);
-    };
-    return ss.str();
-}
-
-int toInt(std::string value) {
-    try {
-        return std::stoi(value);
-    } catch(const std::invalid_argument& e) {
-        LOGE("%s failed, %s, invalide argument: %s", __func__, e.what(), value.c_str());
-    } catch(const std::out_of_range& e) {
-        LOGE("%s failed, %s, Out of range: %s", __func__, e.what(), value.c_str());
-    }
-    return 0;
-}
-
-/****
- * 替换文件的后缀名
- * @param filePath
- * @param newExt
- * @return
- */
-std::string replaceExtension(const std::string &filePath, const std::string &newExt) {
-    fs::path path(filePath);
-
-    // 替换后缀名
-    if (path.has_extension()) {
-        path.replace_extension(newExt);
-    } else {
-        // 如果没有后缀名，直接追加新后缀
-        path += newExt;
-    }
-
-    return path.string();
-}
 
 //int mobi_util::convertToEpub(
 //        std::string fullpath,
@@ -284,8 +212,6 @@ int mobi_util::getChapters(long book_id, const char *path, std::vector<NavPoint>
 
     return 1;
 }
-
-
 
 int mobi_util::loadMobi(std::string fullpath,
                         std::string appFileDir,
@@ -511,7 +437,297 @@ int mobi_util::loadMobi(std::string fullpath,
     return SUCCESS;
 }
 
-void mobi_util::getChapter(long book_id, const char *path, const char *app_file_dir, int chapter_index) {
+// 递归收集元素的文本内容
+//std::string processParagraph(const tinyxml2::XMLElement* elem) {
+//    std::stringstream ss;
+//
+//    // 收集当前元素的文本
+//    if (elem->GetText()) {
+//        ss << elem->GetText();
+//    }
+//
+//    // 递归处理子节点
+//    for (const tinyxml2::XMLNode* child = elem->FirstChild(); child != nullptr; child = child->NextSibling()) {
+//        if (child->ToText()) {  // 直接文本节点
+//            ss << child->Value();
+//        } else if (child->ToElement()) {  // 子元素
+//            ss << collectText(child->ToElement());
+//        }
+//    }
+//
+//    return ss.str();
+//}
 
+size_t parseElement(const tinyxml2::XMLElement* elem, std::string& fullText, std::string& parent_uuid, size_t initialOffset, std::vector<TagInfo>& subTags) {
+    size_t currentOffset = initialOffset;
+
+    for(const tinyxml2::XMLNode* child = elem->FirstChild(); child != nullptr; child = child->NextSibling()) {
+        if (child->ToText()) {
+            const char* text = child->Value();
+            fullText += text;
+            currentOffset += utf8Count(text);
+        } else if(child->ToElement()) {
+            size_t childStart = currentOffset;
+            const char* id = elem->Attribute("id");
+            std::string tagId = "";
+            if (id != nullptr) {
+                tagId = id;
+            }
+            auto newTag = TagInfo{ generate_uuid(), tagId,elem->Name(),currentOffset,currentOffset, parent_uuid, ""};
+
+            currentOffset = parseElement(child->ToElement(), fullText, newTag.uuid, childStart, subTags);
+
+            if (currentOffset > childStart) {
+                newTag.endPos = currentOffset;
+            }
+            subTags.push_back(newTag);
+        }
+    }
+    return currentOffset;
+}
+
+std::string processParagraph(const tinyxml2::XMLElement* pElem, std::vector<TagInfo>& subTags) {
+    size_t offset = 0;
+    std::string fullText;
+
+    for (const tinyxml2::XMLNode* child = pElem->FirstChild(); child != nullptr; child = child->NextSibling()) {
+        if (child->ToText()) {
+            const char* text = child->Value();
+            fullText += text;
+            offset += utf8Count(text);
+        } else if (child->ToElement()) {
+            size_t childStart = offset;
+
+            auto elem = child->ToElement();
+            const char* id = elem->Attribute("id");
+            std::string tagId = "";
+            if (id != nullptr) {
+                tagId = id;
+            }
+            auto newTag = TagInfo{ generate_uuid(), tagId,elem->Name(),childStart,childStart, "", ""};
+            offset = parseElement(child->ToElement(), fullText, newTag.uuid, childStart, subTags);
+
+            if (offset > childStart) {
+                subTags.back().endPos = offset;
+            }
+            subTags.push_back(newTag);
+        }
+    }
+    return fullText;
+}
+
+
+int parseHtmlDoc(tinyxml2::XMLElement *element, std::vector<DocText>& docTexts) {
+    tinyxml2::XMLElement* elem = element;
+    while(elem != nullptr) {
+        std::string name = elem->Name();
+        if (name == "div") {
+            int count = elem->ChildElementCount();
+            tinyxml2::XMLElement * child = elem->FirstChildElement();
+            if (count > 0 && child != nullptr) {
+                parseHtmlDoc(child, docTexts);
+            }
+        } else if (name == "p") {
+            std::vector<TagInfo> tagInfos;
+            DocText docText{"", tagInfos};
+            std::string text = processParagraph(elem, tagInfos);
+            docText.text = text;
+            if (!tagInfos.empty()) {
+                for(auto& tag : tagInfos) {
+                    docText.tagInfos.push_back(tag);
+                }
+            }
+            docTexts.push_back(docText);
+        } else if (name == "h1") {
+            std::vector<TagInfo> tagInfos;
+            DocText docText{"", tagInfos};
+            std::string text = elem->GetText();
+            docText.text = text;
+            docText.tagInfos.push_back(TagInfo{generate_uuid(), "", "h1", 0, utf8Count(text), "", ""});
+            docTexts.push_back(docText);
+        } else if (name == "a") {
+            std::vector<TagInfo> tagInfos;
+            DocText docText{"", tagInfos};
+            std::string text = elem->GetText();
+            docText.text =text;
+            const char* id = elem->Attribute("id");
+            if (id == nullptr) {
+                id = "";
+            }
+            docText.tagInfos.push_back(TagInfo{generate_uuid(), id, "a", 0, utf8Count(docText.text), "", ""});
+            docTexts.push_back(docText);
+        }
+        elem = elem->NextSiblingElement();
+    }
+    return 1;
+}
+
+int mobi_util::getChapter(long book_id, const char *path, const char *app_file_dir, NavPoint& chapter, std::vector<DocText> &docTexts) {
+    if (init(book_id, path) != MOBI_SUCCESS) {
+        return 0;
+    }
+
+    std::string src = chapter.src;
+    size_t pos = src.find_first_of('#');
+    std::string srcName;
+    std::string aId;
+    if (pos != std::string::npos) { //有#号，则分割
+        srcName = src.substr(0, pos);
+        if (pos +1 <= src.size()) {
+            aId = src.substr(pos+1);
+        } else {
+            aId = "";
+        }
+    } else {
+        srcName = src;
+    }
+    LOGD("%s:srcName=%s,aId=%s", __func__, srcName.c_str(), aId.c_str());
+
+    std::string srcTypeName;
+    std::string srcTypeSuffix;
+
+    pos = srcName.find_first_of('.');
+    if (pos != std::string::npos) {
+        srcTypeName = srcName.substr(0, pos);
+        if (pos + 1 <= srcName.size()) {
+            srcTypeSuffix = srcName.substr(pos + 1);
+        } else {
+            srcTypeSuffix = "";
+        }
+    } else {
+        srcTypeName = srcName;
+    }
+    LOGD("%s:srcTypeName=%s,srcTypeSuffix=%s", __func__, srcTypeName.c_str(), srcTypeSuffix.c_str());
+    if (srcTypeSuffix.empty() || srcTypeSuffix != "html") {
+        LOGE("%s:src[%s] is not html,get srcTypeName[%s]", __func__, src.c_str(), srcTypeName.c_str());
+        return 0;
+    }
+
+    const std::string flow = "flow";
+    const std::string part = "part";
+    const std::string resource = "resource";
+    int type = 0;
+    std::string uid;
+
+    if (startWith(srcTypeName, flow)) {
+        type = 1;
+        if (flow.size() + 1 < srcTypeName.size()) {
+            uid = srcTypeName.substr(flow.size() + 1);
+        }
+    } else if (startWith(srcTypeName, part)) {
+        type = 2;
+        if (part.size() + 1 < srcTypeName.size()) {
+            uid = srcTypeName.substr(part.size() + 1);
+        }
+    } else if (startWith(srcTypeName, resource)) {
+        type = 3;
+        if (resource.size() + 1 < srcTypeName.size()) {
+            uid = srcTypeName.substr(resource.size() + 1);
+        }
+    } else {
+        LOGE("%s:srcTypeName[%s] is not right type", __func__, srcTypeName.c_str());
+        return 0;
+    }
+    if (uid.empty()) {
+        LOGE("%s:failed:srcTypeName[%s] can't have uid", __func__, srcTypeName.c_str());
+        return 0;
+    }
+
+    int srcUid = -1;
+    try {
+        srcUid = std::stoi(uid);
+    } catch(const std::invalid_argument& e) {
+        LOGE("%s:failed, uid[%s] is not invalid", __func__, uid.c_str());
+        return 0;
+    } catch(const std::out_of_range& e) {
+        LOGE("%s:failed, uid[%s] is out of range", __func__, uid.c_str());
+        return 0;
+    }
+    if (srcUid < 0) {
+        LOGE("%s:failed,srcUid is below zero", __func__, srcUid);
+        return 0;
+    }
+    MOBIPart *curr = NULL;
+    if (type == 1 && mobi_rawml->flow != NULL) {
+        curr = mobi_rawml->flow;
+    } else if (type == 2 && mobi_rawml->markup != NULL) {
+        curr = mobi_rawml->markup;
+    } else if (type == 3 && mobi_rawml->resources != NULL) {
+        curr = mobi_rawml->resources;
+    } else {
+        LOGE("%s: unknown type[%d] or rawml data is null, pass", __func__, srcUid);
+        return 0;
+    }
+
+    unsigned char* rawHtml = NULL;
+    size_t rawHtmlSize = 0;
+    while (curr != NULL) {
+        MOBIFileMeta file_meta = mobi_get_filemeta_by_type(curr->type);
+        if (curr->size > 0 && file_meta.type == T_HTML && curr->uid == srcUid) {
+            rawHtml = curr->data;
+            rawHtmlSize = curr->size;
+            break;
+        }
+        curr = curr->next;
+    }
+
+    if (rawHtmlSize <= 0 || rawHtml == NULL) {
+        LOGE("%s: failed, unfound chapter page data.", __func__);
+        return 0;
+    }
+
+    unsigned char* normalizedHtml = NULL;
+    size_t normalizedHtmlSize = 0;
+    TidyDoc tdoc = tidyCreate();
+    TidyBuffer output = {0};
+    TidyBuffer errbuf = {0};
+
+    //tidy options
+    tidyOptSetBool(tdoc, TidyXmlOut, yes); //output xhtml
+    tidyOptSetBool(tdoc, TidyQuiet, yes);   //抑制警告
+    tidyOptSetInt(tdoc, TidyWrapLen, 0);                //禁用换行
+    tidyOptSetValue(tdoc, TidyCharEncoding, "utf8");    //编码集
+
+    tidyParseString(tdoc, reinterpret_cast<ctmbstr>(rawHtml));
+    if (tidyCleanAndRepair(tdoc) >= 0 && tidySaveBuffer(tdoc, &output) >= 0) {
+        normalizedHtml = output.bp;
+        normalizedHtmlSize = output.size;
+    } else {
+        unsigned char* errInfo = errbuf.bp;
+        LOGE("%s:failed %s", __func__, errInfo);
+        return 0;
+    }
+
+    if (normalizedHtml == NULL || normalizedHtmlSize <= 0) {
+        LOGE("%s:failed, tidy html failed", __func__);
+        return 0;
+    }
+    LOGD("%s:normalizedHtmlSize=%zu", __func__, normalizedHtmlSize);
+
+    tinyxml2::XMLDocument doc;
+    if (doc.Parse(reinterpret_cast<const char *>(normalizedHtml), normalizedHtmlSize) != tinyxml2::XML_SUCCESS) {
+        LOGE("%s failed to parse ncx", __func__);
+        return 0;
+    }
+
+    tinyxml2::XMLElement *root = doc.RootElement();
+    if (!root) {
+        LOGE("%s failed parse ncx, no root element", __func__);
+        return 0;
+    }
+
+    auto body = root->FirstChildElement("body");
+    if (!body) {
+        LOGE("%s failed parse html, no body element", __func__);
+        return 0;
+    }
+
+    auto firstElem = body->FirstChildElement();
+
+    if (firstElem != nullptr) {
+        parseHtmlDoc(firstElem, docTexts);
+    }
+
+    return 1;
 }
 

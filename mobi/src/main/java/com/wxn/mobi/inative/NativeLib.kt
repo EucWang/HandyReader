@@ -2,6 +2,7 @@ package com.wxn.mobi.inative
 
 import android.content.Context
 import com.wxn.base.bean.BookChapter
+import com.wxn.base.bean.ReaderText
 import com.wxn.mobi.data.model.FileCrc
 import com.wxn.mobi.data.model.MobiInfo
 
@@ -22,5 +23,5 @@ object NativeLib {
 
     external fun getChapters(context: Context, book_id: Long, path: String) : Array<BookChapter>?
 
-    external fun getChapter(context: Context, book_id:Long, path: String, chapterIndex: Int): String
+    external fun getChapter(context: Context, path: String, chapter: BookChapter): Array<ReaderText>
 }

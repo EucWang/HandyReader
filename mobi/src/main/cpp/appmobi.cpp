@@ -284,8 +284,8 @@ Java_com_wxn_mobi_inative_NativeLib_getChapters(JNIEnv *env, jobject thiz, jobje
 }
 
 extern "C"
-JNIEXPORT jstring JNICALL
-Java_com_wxn_mobi_inative_NativeLib_getChapter(JNIEnv *env, jobject thiz, jobject context, jlong book_id, jstring path, jint chapter_index) {
+JNIEXPORT jobjectArray JNICALL
+Java_com_wxn_mobi_inative_NativeLib_getChapter(JNIEnv *env, jobject thiz, jobject context, jstring path, jobject chapter) {
     const char *nativeStr = env->GetStringUTFChars(path, NULL);
 
     jclass contextClass = env->GetObjectClass(context);
@@ -298,10 +298,113 @@ Java_com_wxn_mobi_inative_NativeLib_getChapter(JNIEnv *env, jobject thiz, jobjec
     jstring pathStr = (jstring) env->CallObjectMethod(filesDirObj, getAbsolutePathMethod);
     const char *appFileDir = env->GetStringUTFChars(pathStr, NULL);
 
-    mobi_util::getChapter(book_id, nativeStr, appFileDir, chapter_index);
+    jclass chapterClass = env->GetObjectClass(chapter);
+    jfieldID fieldChapterId = env->GetFieldID(chapterClass, "chapterId", "Ljava/lang/String;");
+    jfieldID fieldParentChapterId =env->GetFieldID(chapterClass, "parentChapterId", "Ljava/lang/String;");
+    jfieldID fieldBookId =env->GetFieldID(chapterClass, "bookId", "J");
+    jfieldID fieldChapterIndex =env->GetFieldID(chapterClass, "chapterIndex", "I");
+    jfieldID fieldChapterName =env->GetFieldID(chapterClass, "chapterName", "Ljava/lang/String;");
+    jfieldID fieldSrc =env->GetFieldID(chapterClass, "srcName", "Ljava/lang/String;");
+    jfieldID fieldChapterSize =env->GetFieldID(chapterClass, "chaptersSize", "I");
+
+    jstring chapterId = (jstring)env->GetObjectField(chapter, fieldChapterId);
+    jstring parentChapterId = (jstring)env->GetObjectField(chapter, fieldParentChapterId);
+    jlong bookId = env->GetLongField(chapter, fieldBookId);
+    jint chapterIndex = env->GetIntField(chapter, fieldChapterIndex);
+    jstring chapterName = (jstring)env->GetObjectField(chapter, fieldChapterName);
+    jstring src = (jstring)env->GetObjectField(chapter, fieldSrc);
+    jint chapterSize = env->GetIntField(chapter, fieldChapterSize);
+
+    const char* chapterIdStr = env->GetStringUTFChars(chapterId, nullptr);
+    const char* parentChapterIdStr = env->GetStringUTFChars(parentChapterId, nullptr);
+    const char* chapterNameStr = env->GetStringUTFChars(chapterName, nullptr);
+    const char* srcStr = env->GetStringUTFChars(src, nullptr);
+
+    NavPoint point;
+    point.id = chapterIdStr;
+    point.text = chapterNameStr;
+    point.playOrder = chapterIndex + 1;
+    point.src = srcStr;
+    point.parentId = parentChapterIdStr;
+    long book_id = bookId;
+    int chapter_size = chapterSize;
+    LOGD("%s:chapterId=%s,text=%s,playOrder=%d,src=%s,book_id=%ld,chapter_size=%d", __func__, chapterIdStr, chapterNameStr, point.playOrder, srcStr, bookId, chapter_size);
+
+    std::vector<DocText> docTexts;
+    if (1 != mobi_util::getChapter(book_id, nativeStr, appFileDir, point, docTexts)) {
+        return nullptr;
+    }
+
+    if (docTexts.empty()) {
+        return nullptr;
+    }
+
+    jclass objClass = env->FindClass("com/wxn/base/bean/ReaderText$Text");
+    if (objClass == nullptr || env->ExceptionCheck()) {
+        return nullptr;
+    }
+    int length = docTexts.size();
+    jobjectArray result = env->NewObjectArray(length, objClass, nullptr);
+    if (result == nullptr) {
+        return nullptr;
+    }
+    jmethodID constructor = env->GetMethodID(objClass, "<init>", "(Ljava/lang/String;Ljava/util/List;)V");
+    if (constructor == nullptr) {
+        return nullptr;
+    }
+
+    jclass listClass = env->FindClass("java/util/ArrayList");
+    if (listClass == nullptr || env->ExceptionCheck()) {
+        return nullptr;
+    }
+    jmethodID listConstructor = env->GetMethodID(listClass, "<init>", "()V");
+    if (listConstructor == nullptr) {
+        return nullptr;
+    }
+    jmethodID listAdd = env->GetMethodID(listClass, "add", "(Ljava/lang/Object;)Z");
+    if (listAdd == nullptr) {
+        return nullptr;
+    }
+
+    jclass textTagClass = env->FindClass("com/wxn/base/bean/TextTag");
+    if (textTagClass == nullptr || env->ExceptionCheck()) {
+        return nullptr;
+    }
+    jmethodID textTagConstructor = env->GetMethodID(textTagClass, "<init>", "(Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;IILjava/lang/String;Ljava/lang/String;)V");
+    if (textTagConstructor == nullptr) {
+        return nullptr;
+    }
+
+    for(int i=0; i< length; i++) {
+        auto item = docTexts[i];
+        jobject list = env->NewObject(listClass, listConstructor);
+        if(!item.tagInfos.empty()) {
+            for(auto& tag : item.tagInfos) {
+                jobject textTag = env->NewObject(textTagClass, textTagConstructor,
+                                                 env->NewStringUTF(tag.uuid.c_str()),
+                                                 env->NewStringUTF(tag.anchor_id.c_str()),
+                                                 env->NewStringUTF(tag.name.c_str()),
+                                                 tag.startPos,
+                                                 tag.endPos,
+                                                 env->NewStringUTF(tag.parent_uuid.c_str()),
+                                                 env->NewStringUTF(tag.params.c_str())
+                                                 );
+                env->CallBooleanMethod(list, listAdd, textTag);
+            }
+        }
+        jobject readerText = env->NewObject(objClass, constructor,
+                       env->NewStringUTF(item.text.c_str()),
+                       list);
+        env->SetObjectArrayElement(result, i, readerText);
+    }
 
     env->ReleaseStringUTFChars(path, nativeStr);
     env->ReleaseStringUTFChars(pathStr, appFileDir);
 
-    return env->NewStringUTF("");   //TODO
+    env->ReleaseStringUTFChars(chapterId, chapterIdStr);
+    env->ReleaseStringUTFChars(parentChapterId, parentChapterIdStr);
+    env->ReleaseStringUTFChars(chapterName, chapterNameStr);
+    env->ReleaseStringUTFChars(src, srcStr);
+
+    return result;
 }

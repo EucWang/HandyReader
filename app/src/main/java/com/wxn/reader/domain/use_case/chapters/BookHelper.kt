@@ -34,8 +34,10 @@ object BookHelper {
         val encodedUri =  book.filePath.toUri()
         val cachedFile = CachedFileCompat.fromUri(context, encodedUri)
         val bookId = book.id
-        val chapterIndex = chapter.chapterIndex
-        return textparser.parsedChapterData(bookId, cachedFile, chapterIndex)
+        if (chapter.bookId != bookId){
+            chapter.bookId = bookId
+        }
+        return textparser.parsedChapterData(bookId, cachedFile, chapter)
     }
 
     suspend fun disposeContent(

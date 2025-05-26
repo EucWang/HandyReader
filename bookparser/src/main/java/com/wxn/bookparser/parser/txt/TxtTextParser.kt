@@ -35,8 +35,8 @@ class TxtTextParser @Inject constructor(
     /***
      * 解析得到给定章节数据
      */
-    override suspend fun parsedChapterData(bookId:Long, cachedFile: CachedFile, chapterIndex: Int) : List<ReaderText> {
-        if (chapterIndex == 0) {
+    override suspend fun parsedChapterData(bookId:Long, cachedFile: CachedFile, chapter: BookChapter) : List<ReaderText> {
+        if (chapter.chapterIndex == 0) {
             return parse(bookId, cachedFile)
         } else {
             return emptyList()

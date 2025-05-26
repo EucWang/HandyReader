@@ -8,6 +8,99 @@
 #include <cctype>
 #include<algorithm>
 
+namespace fs = std::filesystem;
+
+bool startWith(const std::string& str, const std::string& prefix) {
+    if (prefix.empty()) return true;
+    if (str.size() < prefix.size()) return false;
+    return str.substr(0, prefix.size()) == prefix;
+}
+
+/***
+ * 统计utf8的字符数， 常规的std::string的size，lenght字符有问题
+ * @param utf8_str
+ * @return
+ */
+size_t utf8Count(const std::string& utf8_str) {
+    try {
+        return utf8::distance(utf8_str.begin(), utf8_str.end());
+    } catch(utf8::invalid_utf8& e) {
+        LOGE("%s:failed invalid utf8[%s], %s", __func__, utf8_str.c_str(), e.what());
+        return 0;
+    } catch(utf8::not_enough_room& e) {
+        LOGE("%s:failed not enought room utf8[%s], %s", __func__, utf8_str.c_str(), e.what());
+        return 0;
+    }
+}
+
+/****
+ * 创建随机的UUID
+ * @return
+ */
+std::string generate_uuid() {
+    std::random_device rd;
+    std::mt19937 gen(rd());
+    std::uniform_int_distribution<> dis(0, 15);
+    std::uniform_int_distribution<> dis2(8, 11);
+
+    std::stringstream ss;
+    int i;
+    ss << std::hex;
+    for (i = 0; i < 8; i++) {
+        ss << dis(gen);
+    }
+    ss << "-";
+    for (i = 0; i < 4; i++) {
+        ss << dis(gen);
+    }
+    ss << "-";
+    ss << dis2(gen);
+    for (i = 0; i < 3; i++) {
+        ss << dis(gen);
+    }
+    ss << "-";
+    ss << dis(gen) % 4 + 8;
+    for (i = 0; i < 3; i++) {
+        ss << dis(gen);
+    }
+    ss << "-";
+    for (i = 0; i < 12; i++) {
+        ss << dis(gen);
+    };
+    return ss.str();
+}
+
+int toInt(std::string value) {
+    try {
+        return std::stoi(value);
+    } catch(const std::invalid_argument& e) {
+        LOGE("%s failed, %s, invalide argument: %s", __func__, e.what(), value.c_str());
+    } catch(const std::out_of_range& e) {
+        LOGE("%s failed, %s, Out of range: %s", __func__, e.what(), value.c_str());
+    }
+    return 0;
+}
+
+/****
+ * 替换文件的后缀名
+ * @param filePath
+ * @param newExt
+ * @return
+ */
+std::string replaceExtension(const std::string &filePath, const std::string &newExt) {
+    fs::path path(filePath);
+
+    // 替换后缀名
+    if (path.has_extension()) {
+        path.replace_extension(newExt);
+    } else {
+        // 如果没有后缀名，直接追加新后缀
+        path += newExt;
+    }
+
+    return path.string();
+}
+
 std::vector<std::string> split(const std::string &s, char delimiter) {
     std::vector<std::string> tokens;
     std::string token;

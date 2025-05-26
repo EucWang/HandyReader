@@ -32,7 +32,7 @@ class PdfTextParser @Inject constructor(
     /***
      * 解析得到给定章节数据
      */
-    override suspend fun parsedChapterData(bookId:Long, cachedFile: CachedFile, chapterIndex: Int) : List<ReaderText> {
+    override suspend fun parsedChapterData(bookId:Long, cachedFile: CachedFile, chapter: BookChapter) : List<ReaderText> {
 
         return emptyList()
     }

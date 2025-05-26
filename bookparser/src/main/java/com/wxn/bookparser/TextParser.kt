@@ -24,5 +24,5 @@ interface TextParser {
     /***
      * 解析得到给定章节数据
      */
-    suspend fun parsedChapterData(bookId: Long, cachedFile: CachedFile, chapterIndex: Int) : List<ReaderText>
+    suspend fun parsedChapterData(bookId: Long, cachedFile: CachedFile, chapter: BookChapter) : List<ReaderText>
 }

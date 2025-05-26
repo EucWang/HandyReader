@@ -58,8 +58,8 @@ class HtmlTextParser @Inject constructor(
     /***
      * 解析得到给定章节数据
      */
-    override suspend fun parsedChapterData(bookId: Long, cachedFile: CachedFile, chapterIndex: Int) : List<ReaderText> {
-        return if (chapterIndex == 0) {
+    override suspend fun parsedChapterData(bookId: Long, cachedFile: CachedFile, chapter: BookChapter) : List<ReaderText> {
+        return if (chapter.chapterIndex == 0) {
             parse(bookId, cachedFile)
         } else {
             emptyList()

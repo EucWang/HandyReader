@@ -11,12 +11,22 @@
 extern "C" {
 #include "mobi/common.h"
 #include "mobi/mobitool.h"
+
+#include "tidy.h"
+#include "tidybuffio.h"
 }
 
+#include "string_ext.h"
+#include <iomanip>
+#include <sstream>
+#include <random>
+#include <vector>
 #include "tinyxml2.h"
 #include "mobi/save_epub.h"
 #include <iostream>
 #include <filesystem> // C++17 标准库
+
+#include "utf8.h"
 
 namespace fs = std::filesystem;
 
@@ -32,11 +42,27 @@ typedef struct NavPoint_{
     }
 } NavPoint;
 
+/***
+ * 对DocText的修饰，一些常见的css样式的简化
+ */
+typedef struct TagInfo_ {
+    std::string uuid;       //唯一标识
+    std::string anchor_id;         //作为锚点使用的id
+    std::string name;       //名称，用于区分不同的修饰符类型
+    size_t startPos;              //开始位置
+    size_t endPos;                //结束位置
+
+    std::string parent_uuid;    //父级uuid
+    std::string params;           //字符串拼接的键值对，
+} TagInfo;
+
+typedef struct DocText_ {
+    std::string text;
+    std::vector<TagInfo> tagInfos;
+} DocText;
+
 class mobi_util {
-
 public:
-
-
 
     static int loadMobi(std::string fullpath,
                         std::string appFileDir,
@@ -69,7 +95,7 @@ public:
 
     static int getChapters(long book_id, const char* path,  /*out*/std::vector<NavPoint>& points);
 
-    static void getChapter(long book_id, const char *path, const char *app_file_dir, int chapter_index);
+    static int getChapter(long book_id, const char *path, const char *app_file_dir, NavPoint& chapter, std::vector<DocText> &docTexts);
 
     static void free_data();
 private:

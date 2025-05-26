@@ -49,9 +49,17 @@ class MobiTextParser @Inject constructor(
     /***
      * 解析得到给定章节数据
      */
-    override suspend fun parsedChapterData(bookId: Long, cachedFile: CachedFile, chapterIndex: Int) : List<ReaderText> {
-
-        return emptyList()
+    override suspend fun parsedChapterData(bookId: Long, cachedFile: CachedFile, chapter: BookChapter) : List<ReaderText> {
+        val path = cachedFile.rawFile?.absolutePath
+        if (path.isNullOrEmpty()) {
+            Log.e("MobiTextparser", "parsedChapterData failed, path is empty")
+            return emptyList()
+        }
+        val result : Array<ReaderText>? = MobiParser.getMobiChapterData(context, path, chapter)
+        if (result == null) {
+            return emptyList()
+        }
+        return result.toList()
     }
 
     companion object {

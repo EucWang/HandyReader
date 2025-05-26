@@ -16,6 +16,8 @@ project("appmobi")
 add_subdirectory(unzip101e)
 add_subdirectory(libmobi)
 add_subdirectory(threadlibs)
+add_subdirectory(tidy-html5)
+add_subdirectory(utfcpp)
 
 # Creates and names a library, sets it as either STATIC
 # or SHARED, and provides the relative paths to its source code.
@@ -59,11 +61,16 @@ add_library(${CMAKE_PROJECT_NAME} SHARED
         util/crc_util.cpp
 )
 
+target_include_directories(${CMAKE_PROJECT_NAME} PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/tidy-html5/include)
+target_include_directories(${CMAKE_PROJECT_NAME} PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/utfcpp/source)
+
 # Specifies libraries CMake should link to your target library. You
 # can link libraries from various origins, such as libraries defined in this
 # build script, prebuilt third-party libraries, or Android system libraries.
 target_link_libraries(${CMAKE_PROJECT_NAME}
         # List libraries link to the target library
+        PRIVATE utf8cpp
+        PRIVATE tidy-static  # 正确的链接静态库
         unzip101e
         threadlibs
         mobi
