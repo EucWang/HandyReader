@@ -60,32 +60,32 @@ OPF： Open Package Format(OPF)，即包文件格式，其主要功能是用于�
 
 <?xml version="1.0" encoding="UTF-8"?>
 <package xmlns="http://www.idpf.org/2007/opf" unique-identifier="bookId" version="2.0">
-<metadata xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns:opf="http://www.idpf.org/2007/opf">
-<dc:identifier id="bookId">urn:uuid:9bfb698f-dfa3-45ca-bea4-d0fbc2ead4f3</dc:identifier>
-<dc:language>en</dc:language>
-<dc:title>第一卷 虚伪的王国</dc:title>
-<meta content="cover-image" name="cover"/>
-</metadata>
-<manifest>
-<item href="toc.ncx" id="ncx" media-type="application/x-dtbncx+xml"/>
-<item href="chapter0001.xhtml" id="chapter0001.xhtml" media-type="application/xhtml+xml"/>
-<item href="chapter0002.xhtml" id="chapter0002.xhtml" media-type="application/xhtml+xml"/>
-<item href="chapter0003.xhtml" id="chapter0003.xhtml" media-type="application/xhtml+xml"/>
-<item href="chapter0004.xhtml" id="chapter0004.xhtml" media-type="application/xhtml+xml"/>
-<item href="chapter0005.xhtml" id="chapter0005.xhtml" media-type="application/xhtml+xml"/>
-<item href="chapter0006.xhtml" id="chapter0006.xhtml" media-type="application/xhtml+xml"/>
-...
-<item href="images/39655.jpg" id="cover-image" media-type="image/jpeg"/>
-</manifest>
-<spine toc="ncx">
-<itemref idref="chapter0001.xhtml"/>
-<itemref idref="chapter0002.xhtml"/>
-<itemref idref="chapter0003.xhtml"/>
-<itemref idref="chapter0004.xhtml"/>
-<itemref idref="chapter0005.xhtml"/>
-<itemref idref="chapter0006.xhtml"/>
-...
-</spine>
+    <metadata xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns:opf="http://www.idpf.org/2007/opf">
+        <dc:identifier id="bookId">urn:uuid:9bfb698f-dfa3-45ca-bea4-d0fbc2ead4f3</dc:identifier>
+        <dc:language>en</dc:language>
+        <dc:title>第一卷 虚伪的王国</dc:title>
+        <meta content="cover-image" name="cover"/>
+    </metadata>
+    <manifest>
+        <item href="toc.ncx" id="ncx" media-type="application/x-dtbncx+xml"/>
+        <item href="chapter0001.xhtml" id="chapter0001.xhtml" media-type="application/xhtml+xml"/>
+        <item href="chapter0002.xhtml" id="chapter0002.xhtml" media-type="application/xhtml+xml"/>
+        <item href="chapter0003.xhtml" id="chapter0003.xhtml" media-type="application/xhtml+xml"/>
+        <item href="chapter0004.xhtml" id="chapter0004.xhtml" media-type="application/xhtml+xml"/>
+        <item href="chapter0005.xhtml" id="chapter0005.xhtml" media-type="application/xhtml+xml"/>
+        <item href="chapter0006.xhtml" id="chapter0006.xhtml" media-type="application/xhtml+xml"/>
+        ...
+        <item href="images/39655.jpg" id="cover-image" media-type="image/jpeg"/>
+    </manifest>
+    <spine toc="ncx">
+    <itemref idref="chapter0001.xhtml"/>
+    <itemref idref="chapter0002.xhtml"/>
+    <itemref idref="chapter0003.xhtml"/>
+    <itemref idref="chapter0004.xhtml"/>
+    <itemref idref="chapter0005.xhtml"/>
+    <itemref idref="chapter0006.xhtml"/>
+    ...
+    </spine>
 </package>
 --------------------------------------
 metadata EPUB文件元数据：

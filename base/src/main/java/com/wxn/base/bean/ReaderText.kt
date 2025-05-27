@@ -1,6 +1,7 @@
 package com.wxn.base.bean
 
 import androidx.compose.runtime.Immutable
+import com.wxn.base.util.Logger
 
 data class TextTag(
     val uuid:String,                //标签的唯一uuid值
@@ -28,8 +29,15 @@ sealed class ReaderText {
     @Immutable
     data class Text(var line: String, var annotations: List<TextTag> = emptyList<TextTag>()): ReaderText() {
 
+        fun tryParseToChapter(chapterIndex: Int): Chapter? {
+            if (annotations.firstOrNull()?.name == "h1") {
+                return Chapter(chapterIndex.toString(), title = line, nested = false)
+            }
+            return null
+        }
+
         fun tryParseToImage() : Image? {
-            if (line.isEmpty() && annotations.firstOrNull()?.name == "img" && !annotations.firstOrNull()?.params.isNullOrEmpty()) {
+            if (annotations.firstOrNull()?.name == "img" && !annotations.firstOrNull()?.params.isNullOrEmpty()) {
                 val params : String = annotations.first().params
                 val paramItems = params.split("&").mapNotNull {
                     val item = it.split("=")
@@ -55,6 +63,7 @@ sealed class ReaderText {
                         }
                     }
                 }
+                Logger.d("tryParseToImage:img=$src,width=$width, height=$height")
                 if (src.isNotEmpty() && width > 0 && height > 0) {
                     return Image(src, width, height)
                 }

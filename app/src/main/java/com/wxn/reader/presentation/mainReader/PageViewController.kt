@@ -153,7 +153,6 @@ open class PageViewController @Inject constructor(
                     durChapterIndex -> {    //加载的是当前章节
                         curTextChapter = textChapter
                         if (upContent) {
-
                             callBack?.upContent(resetPageOffset = resetPageOffset)
                         }
                         callBack?.upView()

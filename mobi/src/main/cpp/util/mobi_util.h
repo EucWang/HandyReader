@@ -134,7 +134,7 @@ private:
 
     static int getImageOption(const char* path, int* width, int* height);
 
-    static int cacheImage(std::string& imgSRc, int prefixType, int srcUid, std::vector<DocText>& docTexts);
+    static int cacheImage(std::string& imgSRc, int prefixType, int srcUid, int* width, int* height);
 };
 
 #endif //SIMPLEREADER2_MOBI_UTIL_H

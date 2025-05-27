@@ -82,7 +82,9 @@ object BookHelper {
         content1.forEach { content ->
             if (content is ReaderText.Text) {
                 val line = content.line.replace("^[\\n\\s\\r]+".toRegex(), "")
-                content.line = "${ChapterProvider.paragraphIndent}$line"
+                if (!content.line.isEmpty()) {
+                    content.line = "${ChapterProvider.paragraphIndent}$line"
+                }
             }
         }
         return content1

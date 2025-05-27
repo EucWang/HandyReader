@@ -165,6 +165,102 @@ void parseNavPoints(tinyxml2::XMLElement* firstNavPoint, std::vector<NavPoint> &
     }
 }
 
+int parseOpfData(const char* opf_data ,size_t opf_data_size , std::vector<NavPoint>& points) {
+    tinyxml2::XMLDocument doc;
+    if (doc.Parse(reinterpret_cast<const char *>(opf_data), opf_data_size) != tinyxml2::XML_SUCCESS) {
+        LOGE("%s failed to parse opf", __func__);
+        return 0;
+    }
+
+    tinyxml2::XMLElement *root = doc.RootElement();
+    if (!root) {
+        LOGE("%s failed parse opf, no root element", __func__);
+        return 0;
+    }
+
+    auto spine = root->FirstChildElement("spine");
+    if (spine == NULL) {
+        LOGE("%s failed parse npf, no root element", __func__);
+        return 0;
+    }
+    std::vector<std::string> itemrefs;
+    for(auto item = spine->FirstChildElement("itemref"); item; item = item->NextSiblingElement("itemref")) {
+        const char* idref = item->Attribute("idref");
+        if (idref != NULL && strlen(idref) > 0) {
+            itemrefs.push_back(idref);
+        }
+    }
+    if (itemrefs.empty()) {
+        LOGE("%s failed parse itemref", __func__);
+        return 0;
+    }
+
+    auto manifest = root->FirstChildElement("manifest");
+    if (manifest == NULL) {
+        LOGE("%s failed parse opf, no manifest element", __func__);
+        return 0;
+    }
+    int index = 0;
+    std::vector<std::string> orderedItemSrc;
+    for(auto item = manifest->FirstChildElement("item"); item; item = item->NextSiblingElement("item")) {
+        const char* id = item->Attribute("id");
+        const char* href = item->Attribute("href");
+        const char* media_type = item->Attribute("media-type");
+
+        if (id != NULL && strlen(id) > 0 && itemrefs[index] == id && href != NULL && strlen(href) > 0) {
+            orderedItemSrc.push_back(href);
+            index++;
+        }
+    }
+    if (orderedItemSrc.empty()) {
+        LOGE("%s failed parse opf, no ordered items", __func__);
+        return 0;
+    }
+
+    index = 0;
+    for(auto& itemSrc : orderedItemSrc) {
+        if (index >= points.size()) {
+            break;
+        }
+        NavPoint& point = points[index];
+        std::string& pointSrc = point.src;
+        if (pointSrc.find(itemSrc)  != std::string::npos) {
+            index++;
+        }else {
+            int last_index = index - 1;
+            if (last_index >= 0) {
+                NavPoint& last_point = points[last_index];
+                last_point.src = last_point.src.append(",").append(itemSrc);
+            }
+        }
+    }
+
+    return 1;
+}
+
+int parseNcxData(const char* ncx_data, size_t ncx_data_size, std::vector<NavPoint>& points) {
+    tinyxml2::XMLDocument doc;
+    if (doc.Parse(reinterpret_cast<const char *>(ncx_data), ncx_data_size) != tinyxml2::XML_SUCCESS) {
+        LOGE("%s failed to parse ncx", __func__);
+        return 0;
+    }
+
+    tinyxml2::XMLElement *root = doc.RootElement();
+    if (!root) {
+        LOGE("%s failed parse ncx, no root element", __func__);
+        return 0;
+    }
+
+    tinyxml2::XMLElement *navMapElem = root->FirstChildElement("navMap");
+    if (!navMapElem) {
+        LOGE("%s failed parse ncx, no navMap element", __func__);
+        return 0;
+    }
+    tinyxml2::XMLElement *firstNavPoint = navMapElem->FirstChildElement("navPoint");
+    parseNavPoints(firstNavPoint, points, "");
+    return 1;
+}
+
 int mobi_util::getChapters(JNIEnv *env, long book_id, const char *path, std::vector<NavPoint>& points) {
     if (init(env, book_id, path) != MOBI_SUCCESS) {
         return 0;
@@ -195,27 +291,17 @@ int mobi_util::getChapters(JNIEnv *env, long book_id, const char *path, std::vec
             return 0;
         }
 
-        tinyxml2::XMLDocument doc;
-        if (doc.Parse(reinterpret_cast<const char *>(ncx_data), ncx_data_size) != tinyxml2::XML_SUCCESS) {
-            LOGE("%s failed to parse ncx", __func__);
+        int ret = parseNcxData(reinterpret_cast<const char *>(ncx_data), ncx_data_size, points);
+        if (ret == 0) {
+            LOGE("%s failed, cant pass ncx", __func__);
             return 0;
         }
-
-        tinyxml2::XMLElement *root = doc.RootElement();
-        if (!root) {
-            LOGE("%s failed parse ncx, no root element", __func__);
+        ret = parseOpfData(reinterpret_cast<const char *>(opf_data), opf_data_size, points);
+        if (ret == 0) {
+            LOGE("%s failed, cant pass opf", __func__);
             return 0;
         }
-
-        tinyxml2::XMLElement *navMapElem = root->FirstChildElement("navMap");
-        if (!navMapElem) {
-            LOGE("%s failed parse ncx, no navMap element", __func__);
-            return 0;
-        }
-        tinyxml2::XMLElement *firstNavPoint = navMapElem->FirstChildElement("navPoint");
-        parseNavPoints(firstNavPoint, points, "");
     }
-
     return 1;
 }
 
@@ -699,24 +785,14 @@ int mobi_util::getImageOption(const char* path, int* width, int* height) {
     return 1;
 }
 
-
-int mobi_util::cacheImage(std::string& imgSrc, int prefixType, int srcUid, std::vector<DocText>& docTexts){
+int mobi_util::cacheImage(std::string& imgSrc, int prefixType, int srcUid, int* width, int* height) {
     //文件路径
     std::string parentPath = appFileDir + separator + "resources" + separator + std::to_string(last_book_id);
     std::string fullpath = parentPath + separator + imgSrc;
     int ret = checkAndCreateDir(parentPath, imgSrc);
     if (ret == 1) { //缓存文件已经存在
-        int width = 0, height = 0;
-        getImageOption(fullpath.c_str(), &width, &height);
-        if (width > 0 && height > 0) {
-            std::vector<TagInfo> tags;
-            DocText docText{"", tags};
-            std::string params = "src=" + fullpath + "&width=" + std::to_string(width) + "&height=" + std::to_string(height);
-            docText.tagInfos.emplace_back(TagInfo{generate_uuid(), "", "img", 0, 0, "", params});
-            docTexts.push_back(docText);
-        } else {
-            LOGE("%s:failed,image[%s] width[%d]height[%d] err", __func__, fullpath.c_str(), width, height);
-        }
+        getImageOption(fullpath.c_str(), width, height);
+        return 1;
     } else if (ret == 0) {  //缓存文件不存在，缓存路径存在或者创建缓存路径成功
         MOBIPart *curr = NULL;
         if (prefixType == 3 && mobi_rawml->resources != NULL) {
@@ -749,46 +825,15 @@ int mobi_util::cacheImage(std::string& imgSrc, int prefixType, int srcUid, std::
                         return 0;
                     } else {
                         LOGE("%s:write image to path[%s] success", __func__, fullpath.c_str());
-//                        AImageDecoder* decoder;
-//                        ret = AImageDecoder_createFromBuffer(rawPic, rawPicSize, &decoder);
-//                        if (ret == ANDROID_IMAGE_DECODER_SUCCESS) {
-//                            const AImageDecoderHeaderInfo* info = AImageDecoder_getHeaderInfo(decoder);
-//                            size_t width = AImageDecoderHeaderInfo_getWidth(info);
-//                            size_t height = AImageDecoderHeaderInfo_getHeight(info);
-//
-//                            AImageDecoder_delete(decoder);
-//                            if (width > 0 && height > 0) {
-//                                std::vector<TagInfo> tags;
-//                                DocText docText{"", tags};
-//                                std::string params = "src=" + path + "&width=" + std::to_string(width) + "&height=" + std::to_string(height);
-//                                docText.tagInfos.emplace_back(TagInfo{generate_uuid(), "", "img", 0, 0, "", params});
-//                                docTexts.push_back(docText);
-//                            } else {
-//                                LOGE("%s:failed,image[%s] width[%d]height[%d] err", __func__, path.c_str(), width, height);
-//                            }
-//                        } else {
-//                            LOGE("%s:failed,decode image[%s] error", __func__, path.c_str());
-//                        }
                     }
                     close(fd);
                     if (ret != -1) {
-                        int width = 0;
-                        int height = 0;
-                        getImageOption(fullpath.c_str(), &width, &height);
-                        if (width > 0 && height > 0) {
-                            std::vector<TagInfo> tags;
-                            DocText docText{"", tags};
-                            std::string params = "src=" + fullpath + "&width=" + std::to_string(width) + "&height=" + std::to_string(height);
-                            docText.tagInfos.emplace_back(TagInfo{generate_uuid(), "", "img", 0, 0, "", params});
-                            docTexts.push_back(docText);
-                        } else {
-                            LOGE("%s:failed,image[%s] width[%d]height[%d] err", __func__, fullpath.c_str(), width, height);
-                            return 0;
-                        }
+                        getImageOption(fullpath.c_str(), width, height);
+                        return 1;
                     }
                 }
             } else {
-                LOGE("%s:failed,rawPicSize[%d] is null or rawPic is null", __func__, rawPicSize);
+                LOGE("%s:failed,rawPicSize[%zu] is null or rawPic is null", __func__, rawPicSize);
                 return 0;
             }
         } else {
@@ -831,13 +876,15 @@ int mobi_util::parseHtmlDoc(tinyxml2::XMLElement *element, std::vector<DocText>&
             std::vector<TagInfo> tagInfos;
             DocText docText{"", tagInfos};
             std::string text = processParagraph(elem, tagInfos);
-            docText.text = text;
-            if (!tagInfos.empty()) {
-                for(auto& tag : tagInfos) {
-                    docText.tagInfos.push_back(tag);
+            if (!text.empty() || !tagInfos.empty()) {
+                docText.text = text;
+                if (!tagInfos.empty()) {
+                    for(auto& tag : tagInfos) {
+                        docText.tagInfos.push_back(tag);
+                    }
                 }
+                docTexts.push_back(docText);
             }
-            docTexts.push_back(docText);
         } else if (name == "h1" || name == "h2" || name == "h3" || name == "h4" || name == "h5" || name == "h6" || name == "h7") {
             const char* elemText = elem->GetText();
             if (elemText != NULL && utf8Count(elemText) > 0) {
@@ -870,7 +917,18 @@ int mobi_util::parseHtmlDoc(tinyxml2::XMLElement *element, std::vector<DocText>&
                 if (1 == parseSrcName(imgSrcStr, prefix, &prefixType, &srcUid, anchorId, suffix)){
                     LOGD("%s:getChapter:src[%s] Info[prefix=%s,srcId=%d,anchorId=%s,suffix=%s,prefixType=%d]",
                          __func__, imgSrc, prefix.c_str(), srcUid, anchorId.c_str(), suffix.c_str(), prefixType);
-                    cacheImage(imgSrcStr, prefixType, srcUid, docTexts);
+                    int width = 0, height = 0;
+                    cacheImage(imgSrcStr, prefixType, srcUid, &width, &height);
+                    std::string fullpath = appFileDir + separator + "resources" + separator + std::to_string(last_book_id) + separator + imgSrc;
+                    if (width > 0 && height > 0) {
+                        std::vector<TagInfo> tags;
+                        DocText docText{"", tags};
+                        std::string params = "src=" + fullpath + "&width=" + std::to_string(width) + "&height=" + std::to_string(height);
+                        docText.tagInfos.emplace_back(TagInfo{generate_uuid(), "", "img", 0, 0, "", params});
+                        docTexts.push_back(docText);
+                    } else {
+                        LOGE("%s:failed,image[%s] width[%d]height[%d] err", __func__, fullpath.c_str(), width, height);
+                    }
                 }
             }
         }
@@ -888,98 +946,102 @@ int mobi_util::getChapter(JNIEnv *env, long book_id, const char *path, const cha
     } else {
         return 0;
     }
-    std::string src = chapter.src;
-    std::string prefix;
-    std::string suffix;
-    std::string anchorId;
-    int prefixType;
-    int srcUid;
-    if (1 != parseSrcName(src, prefix, &prefixType, &srcUid, anchorId, suffix)){
-        return 0;
-    }
-    LOGD("%s:getChapter:src[%s] Info[prefix=%s,srcId=%d,anchorId=%s,suffix=%s,prefixType=%d]",
-         __func__, src.c_str(), prefix.c_str(), srcUid, anchorId.c_str(), suffix.c_str(), prefixType);
-
-    MOBIPart *curr = NULL;
-    if (prefixType == 1 && mobi_rawml->flow != NULL) {
-        curr = mobi_rawml->flow;
-    } else if (prefixType == 2 && mobi_rawml->markup != NULL) {
-        curr = mobi_rawml->markup;
-    } else if (prefixType == 3 && mobi_rawml->resources != NULL) {
-        curr = mobi_rawml->resources;
-    } else {
-        LOGE("%s: unknown type[%d] or rawml data is null, pass", __func__, srcUid);
-        return 0;
-    }
-
-    unsigned char* rawHtml = NULL;
-    size_t rawHtmlSize = 0;
-    while (curr != NULL) {
-        MOBIFileMeta file_meta = mobi_get_filemeta_by_type(curr->type);
-        if (curr->size > 0 && file_meta.type == T_HTML && curr->uid == srcUid) {
-            rawHtml = curr->data;
-            rawHtmlSize = curr->size;
-            break;
+    std::string chapterSrc = chapter.src;
+    LOGD("%s:chapterSrc=%s", __func__, chapterSrc.c_str());
+    std::vector<std::string> srcs = split(chapterSrc, ',');
+    for(auto src : srcs) {
+        std::string prefix;
+        std::string suffix;
+        std::string anchorId;
+        int prefixType;
+        int srcUid;
+        if (1 != parseSrcName(src, prefix, &prefixType, &srcUid, anchorId, suffix)){
+            return 0;
         }
-        curr = curr->next;
-    }
+        LOGD("%s:getChapter:src[%s] Info[prefix=%s,srcId=%d,anchorId=%s,suffix=%s,prefixType=%d]",
+             __func__, src.c_str(), prefix.c_str(), srcUid, anchorId.c_str(), suffix.c_str(), prefixType);
 
-    if (rawHtmlSize <= 0 || rawHtml == NULL) {
-        LOGE("%s: failed, unfound chapter page data.", __func__);
-        return 0;
-    }
+        MOBIPart *curr = NULL;
+        if (prefixType == 1 && mobi_rawml->flow != NULL) {
+            curr = mobi_rawml->flow;
+        } else if (prefixType == 2 && mobi_rawml->markup != NULL) {
+            curr = mobi_rawml->markup;
+        } else if (prefixType == 3 && mobi_rawml->resources != NULL) {
+            curr = mobi_rawml->resources;
+        } else {
+            LOGE("%s: unknown type[%d] or rawml data is null, pass", __func__, srcUid);
+            return 0;
+        }
 
-    unsigned char* normalizedHtml = NULL;
-    size_t normalizedHtmlSize = 0;
-    TidyDoc tdoc = tidyCreate();
-    TidyBuffer output = {0};
-    TidyBuffer errbuf = {0};
+        unsigned char* rawHtml = NULL;
+        size_t rawHtmlSize = 0;
+        while (curr != NULL) {
+            MOBIFileMeta file_meta = mobi_get_filemeta_by_type(curr->type);
+            if (curr->size > 0 && file_meta.type == T_HTML && curr->uid == srcUid) {
+                rawHtml = curr->data;
+                rawHtmlSize = curr->size;
+                break;
+            }
+            curr = curr->next;
+        }
 
-    //tidy options
-    tidyOptSetBool(tdoc, TidyXmlOut, yes); //output xhtml
-    tidyOptSetBool(tdoc, TidyQuiet, yes);   //抑制警告
-    tidyOptSetInt(tdoc, TidyWrapLen, 0);                //禁用换行
-    tidyOptSetValue(tdoc, TidyCharEncoding, "utf8");    //编码集
+        if (rawHtmlSize <= 0 || rawHtml == NULL) {
+            LOGE("%s: failed, unfound chapter page data.", __func__);
+            return 0;
+        }
 
-    tidyParseString(tdoc, reinterpret_cast<ctmbstr>(rawHtml));
-    if (tidyCleanAndRepair(tdoc) >= 0 && tidySaveBuffer(tdoc, &output) >= 0) {
-        normalizedHtml = output.bp;
-        normalizedHtmlSize = output.size;
-    } else {
-        unsigned char* errInfo = errbuf.bp;
-        LOGE("%s:failed %s", __func__, errInfo);
-        return 0;
-    }
+        unsigned char* normalizedHtml = NULL;
+        size_t normalizedHtmlSize = 0;
+        TidyDoc tdoc = tidyCreate();
+        TidyBuffer output = {0};
+        TidyBuffer errbuf = {0};
 
-    if (normalizedHtml == NULL || normalizedHtmlSize <= 0) {
-        LOGE("%s:failed, tidy html failed", __func__);
-        normalizedHtmlSize = rawHtmlSize;
-        normalizedHtml = rawHtml;
-    }
-    LOGD("%s:normalizedHtmlSize=%zu", __func__, normalizedHtmlSize);
+        //tidy options
+        tidyOptSetBool(tdoc, TidyXmlOut, yes); //output xhtml
+        tidyOptSetBool(tdoc, TidyQuiet, yes);   //抑制警告
+        tidyOptSetInt(tdoc, TidyWrapLen, 0);                //禁用换行
+        tidyOptSetValue(tdoc, TidyCharEncoding, "utf8");    //编码集
 
-    tinyxml2::XMLDocument doc;
-    if (doc.Parse(reinterpret_cast<const char *>(normalizedHtml), normalizedHtmlSize) != tinyxml2::XML_SUCCESS) {
-        LOGE("%s failed to parse ncx", __func__);
-        return 0;
-    }
+        tidyParseString(tdoc, reinterpret_cast<ctmbstr>(rawHtml));
+        if (tidyCleanAndRepair(tdoc) >= 0 && tidySaveBuffer(tdoc, &output) >= 0) {
+            normalizedHtml = output.bp;
+            normalizedHtmlSize = output.size;
+        } else {
+            unsigned char* errInfo = errbuf.bp;
+            LOGE("%s:failed %s", __func__, errInfo);
+            return 0;
+        }
 
-    tinyxml2::XMLElement *root = doc.RootElement();
-    if (!root) {
-        LOGE("%s failed parse ncx, no root element", __func__);
-        return 0;
-    }
+        if (normalizedHtml == NULL || normalizedHtmlSize <= 0) {
+            LOGE("%s:failed, tidy html failed", __func__);
+            normalizedHtmlSize = rawHtmlSize;
+            normalizedHtml = rawHtml;
+        }
+        LOGD("%s:normalizedHtmlSize=%zu", __func__, normalizedHtmlSize);
 
-    auto body = root->FirstChildElement("body");
-    if (!body) {
-        LOGE("%s failed parse html, no body element", __func__);
-        return 0;
-    }
+        tinyxml2::XMLDocument doc;
+        if (doc.Parse(reinterpret_cast<const char *>(normalizedHtml), normalizedHtmlSize) != tinyxml2::XML_SUCCESS) {
+            LOGE("%s failed to parse ncx", __func__);
+            return 0;
+        }
 
-    auto firstElem = body->FirstChildElement();
+        tinyxml2::XMLElement *root = doc.RootElement();
+        if (!root) {
+            LOGE("%s failed parse ncx, no root element", __func__);
+            return 0;
+        }
 
-    if (firstElem != nullptr) {
-        parseHtmlDoc(firstElem, docTexts);
+        auto body = root->FirstChildElement("body");
+        if (!body) {
+            LOGE("%s failed parse html, no body element", __func__);
+            return 0;
+        }
+
+        auto firstElem = body->FirstChildElement();
+
+        if (firstElem != nullptr) {
+            parseHtmlDoc(firstElem, docTexts);
+        }
     }
 
     return 1;

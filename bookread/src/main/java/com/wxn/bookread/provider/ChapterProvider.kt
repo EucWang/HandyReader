@@ -314,7 +314,12 @@ object ChapterProvider {
                             imageStyles
                         )
                     } else {
-                        setTypeText(paragraph, offsetY, textPages, pageLines, pageLengths, stringBuilder, false)
+                        val title = paragraph.tryParseToChapter(chapter.chapterIndex)
+                        if (title != null) {
+                            setTypeText(title, offsetY, textPages, pageLines, pageLengths, stringBuilder, true)
+                        } else {
+                            setTypeText(paragraph, offsetY, textPages, pageLines, pageLengths, stringBuilder, false)
+                        }
                     }
                 }
                 is ReaderText.Chapter -> {
@@ -484,11 +489,15 @@ object ChapterProvider {
         stringBuilder: StringBuilder,
         isTitle: Boolean
     ): Float {
-        val text : String = when(paragraph) {
+        var text : String = when(paragraph) {
             is ReaderText.Chapter -> paragraph.title
             is ReaderText.Text -> paragraph.line
             else -> ""
         }.toString()
+
+        if (text.isEmpty() || text.isBlank()) { //对于无显示内容的空行，显示一个空白符
+            text = "\u3000"
+        }
 
         var durY = if (isTitle) offsetY + titleTopSpacing else offsetY
         val textPaint = if (isTitle) titlePaint else contentPaint
@@ -646,7 +655,7 @@ object ChapterProvider {
         }
         Logger.d("ChapterProvider::setViewSize,viewWidth=$viewWidth, viewHeight=$viewHeight")
     }
-//
+
 //    init {
 //        upStyle()
 //    }
@@ -654,6 +663,4 @@ object ChapterProvider {
     fun init(context : Context) {
         upStyle(context)
     }
-
-
 }
