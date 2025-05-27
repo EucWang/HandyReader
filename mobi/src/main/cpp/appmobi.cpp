@@ -408,3 +408,10 @@ Java_com_wxn_mobi_inative_NativeLib_getChapter(JNIEnv *env, jobject thiz, jobjec
 
     return result;
 }
+
+
+extern "C"
+JNIEXPORT void JNICALL
+Java_com_wxn_mobi_inative_NativeLib_release(JNIEnv *env, jobject thiz) {
+    mobi_util::free_data();
+}

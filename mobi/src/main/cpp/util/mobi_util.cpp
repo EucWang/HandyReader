@@ -14,6 +14,7 @@ MOBIRawml *mobi_util::mobi_rawml = nullptr;
 MOBIData *mobi_util::mobi_data = nullptr;
 JNIEnv *mobi_util::jniEnv = nullptr;
 std::string mobi_util::appFileDir = "";
+std::mutex mobi_util::m_Mutex;
 
 //int mobi_util::convertToEpub(
 //        std::string fullpath,
@@ -83,10 +84,13 @@ std::string mobi_util::appFileDir = "";
 //    return SUCCESS;
 //}
 
+
 int mobi_util::init(JNIEnv *env, long book_id, const char *path) {
     LOGI("%s book_id=%ld, fullPath=%s", __func__, book_id, path);
-    if (book_id != last_book_id || last_path.empty() || !last_path.compare(path) || mobi_data == NULL || mobi_rawml == NULL) {
+    std::lock_guard<std::mutex> lock(m_Mutex);
+    if (book_id != last_book_id || last_path.empty() || last_path != path || mobi_data == NULL || mobi_rawml == NULL) {
         free_data();
+        sleep(1);
 
         const char *version = mobi_version();
         LOGI("%s mobi version = %s", __func__, version);
@@ -97,15 +101,7 @@ int mobi_util::init(JNIEnv *env, long book_id, const char *path) {
             return MOBI_ERROR;
         }
 
-        FILE *file = fopen(path, "rb");
-        if (file == NULL) {
-            LOGE("%s fopen failed", __func__);
-            free_data();
-            return MOBI_ERROR;
-        }
-
-        MOBI_RET mobi_ret = mobi_load_file(mobi_data, file);
-        fclose(file);
+        MOBI_RET mobi_ret = mobi_load_filename(mobi_data, path);
         if (mobi_ret != MOBI_SUCCESS) {
             const char *msg = libmobi_msg(mobi_ret);
             LOGE("%s mobi_load_file failed, msg[%s]", __func__, msg);
@@ -131,10 +127,12 @@ int mobi_util::init(JNIEnv *env, long book_id, const char *path) {
     jniEnv = env;
     last_book_id = book_id;
     last_path = path;
+    LOGI("%s success, last_book_id=%ld,last_path=%s", __func__, last_book_id, last_path.c_str());
     return MOBI_SUCCESS;
 }
 
 void mobi_util::free_data() {
+    LOGD("%s invoke", __func__);
     if (mobi_rawml != NULL) {
         mobi_free_rawml(mobi_rawml);
     }
@@ -143,6 +141,8 @@ void mobi_util::free_data() {
         mobi_free(mobi_data);
     }
     mobi_data = NULL;
+    last_book_id = -1;
+    last_path = "";
 }
 
 void parseNavPoints(tinyxml2::XMLElement* firstNavPoint, std::vector<NavPoint> &vectors, const char* parentId) {
@@ -301,6 +301,8 @@ int mobi_util::getChapters(JNIEnv *env, long book_id, const char *path, std::vec
             LOGE("%s failed, cant pass opf", __func__);
             return 0;
         }
+    } else {
+        return 0;
     }
     return 1;
 }
@@ -863,6 +865,9 @@ int mobi_util::parseHtmlDoc(tinyxml2::XMLElement *element, std::vector<DocText>&
                         docText.tagInfos.push_back(tag);
                     }
                 }
+                if (docText.text.size() > 0 && docText.tagInfos.empty() && docTexts.empty()) {
+                    docText.tagInfos.push_back(TagInfo{generate_uuid(), "", "h1", 0, utf8Count(docText.text), "", ""});
+                }
                 docTexts.push_back(docText);
             } else {
                 int count = elem->ChildElementCount();
@@ -871,7 +876,6 @@ int mobi_util::parseHtmlDoc(tinyxml2::XMLElement *element, std::vector<DocText>&
                     parseHtmlDoc(child, docTexts);
                 }
             }
-
         } else if (name == "p") {
             std::vector<TagInfo> tagInfos;
             DocText docText{"", tagInfos};
@@ -899,10 +903,21 @@ int mobi_util::parseHtmlDoc(tinyxml2::XMLElement *element, std::vector<DocText>&
                 std::vector<TagInfo> tagInfos;
                 DocText docText{elemText, tagInfos};
                 const char* id = elem->Attribute("id");
-                if (id == nullptr) {
+                std::string params;
+                if (id != nullptr && strlen(id) > 0) {
+                    params = params.append("id=").append(id);
+                } else {
                     id = "";
                 }
-                docText.tagInfos.push_back(TagInfo{generate_uuid(), id, name, 0, utf8Count(docText.text), "", ""});
+                const char* href = elem->Attribute("href");
+                if (href != nullptr && strlen(href) > 0) {
+                    if (!params.empty()) {
+                        params = params.append("&");
+                    }
+                    params = params.append("href=").append(href);
+                }
+
+                docText.tagInfos.push_back(TagInfo{generate_uuid(), id, name, 0, utf8Count(docText.text), "", params});
                 docTexts.push_back(docText);
             }
         } else if (name == "img") {

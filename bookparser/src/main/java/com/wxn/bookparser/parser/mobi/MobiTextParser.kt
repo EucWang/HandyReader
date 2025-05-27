@@ -64,5 +64,10 @@ class MobiTextParser @Inject constructor(
 
     companion object {
         val MOBI_TAG = "MobiTextParser"
+
+        fun release() {
+            MobiParser.clear()
+        }
+
     }
 }

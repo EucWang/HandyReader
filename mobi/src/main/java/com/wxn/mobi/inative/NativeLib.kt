@@ -24,4 +24,6 @@ object NativeLib {
     external fun getChapters(context: Context, book_id: Long, path: String) : Array<BookChapter>?
 
     external fun getChapter(context: Context, path: String, chapter: BookChapter): Array<ReaderText>
+
+    external fun release()
 }

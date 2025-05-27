@@ -26,6 +26,11 @@ extern "C" {
 #include <iostream>
 #include <filesystem> // C++17 标准库
 
+
+#include <thread>
+#include <stdexcept>
+#include <mutex>
+
 #include "utf8.h"
 #include <android/bitmap.h>
 #include <android/imagedecoder.h>
@@ -110,6 +115,8 @@ private:
     static  MOBIData *mobi_data;
     static std::string appFileDir;
     static JNIEnv *jniEnv;
+
+    static  std::mutex m_Mutex;
 
     static int init(JNIEnv *env, long book_id, const char* path);
 

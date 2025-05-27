@@ -134,6 +134,12 @@ object ChapterProvider {
      */
     lateinit var contentPaint: TextPaint
 
+    lateinit var h1Paint: TextPaint
+    lateinit var h2Paint: TextPaint
+    lateinit var h3Paint: TextPaint
+    lateinit var h4Paint: TextPaint
+    lateinit var aPaint: TextPaint
+
     fun tryCreatePreference(context : Context) {
         if (readerPreferencesUtil == null) {
             readerPreferencesUtil = ReaderPreferencesUtil(context)
@@ -249,6 +255,51 @@ object ChapterProvider {
             titlePaint.textSize = (readerPreferences?.titleSize?.toFloat() ?: 1.0f) * BASE_TITLE_FONT_SIZE
             Logger.d("ChapterProvider::upStyle::titlePaint.textSize=${titlePaint.textSize}")
             titlePaint.isAntiAlias = true                                                       //设置抗锯齿
+
+            //h1的Paint
+            h1Paint = TextPaint()
+            h1Paint.color = readerPreferences?.textColor ?: Color.BLACK                       //设置标题文字颜色
+            Logger.d("ChapterProvider::upStyle::titlePaint.color=0x${h1Paint.color.toString(16)}")
+            h1Paint.letterSpacing = readerPreferences?.letterSpacing?.toFloat() ?: 0f        //设置标题字母间距
+            Logger.d("ChapterProvider::upStyle::titlePaint.letterSpacing=${h1Paint.letterSpacing}")
+            h1Paint.typeface = titleFont                                                     //设置标题字体
+            h1Paint.textSize = (readerPreferences?.titleSize?.toFloat() ?: 1.0f) * BASE_TITLE_FONT_SIZE * 0.95f
+            Logger.d("ChapterProvider::upStyle::titlePaint.textSize=${h1Paint.textSize}")
+            h1Paint.isAntiAlias = true                                                       //设置抗锯齿
+
+            //h2的Paint
+            h2Paint = TextPaint()
+            h2Paint.color = readerPreferences?.textColor ?: Color.BLACK                       //设置标题文字颜色
+            Logger.d("ChapterProvider::upStyle::titlePaint.color=0x${h2Paint.color.toString(16)}")
+            h2Paint.letterSpacing = readerPreferences?.letterSpacing?.toFloat() ?: 0f        //设置标题字母间距
+            Logger.d("ChapterProvider::upStyle::titlePaint.letterSpacing=${h2Paint.letterSpacing}")
+            h2Paint.typeface = titleFont                                                     //设置标题字体
+            h2Paint.textSize = (readerPreferences?.titleSize?.toFloat() ?: 1.0f) * BASE_TITLE_FONT_SIZE * 0.9f
+            Logger.d("ChapterProvider::upStyle::titlePaint.textSize=${h2Paint.textSize}")
+            h2Paint.isAntiAlias = true                                                       //设置抗锯齿
+
+            //h3的Paint
+            h3Paint = TextPaint()
+            h3Paint.color = readerPreferences?.textColor ?: Color.BLACK                       //设置标题文字颜色
+            Logger.d("ChapterProvider::upStyle::titlePaint.color=0x${h3Paint.color.toString(16)}")
+            h3Paint.letterSpacing = readerPreferences?.letterSpacing?.toFloat() ?: 0f        //设置标题字母间距
+            Logger.d("ChapterProvider::upStyle::titlePaint.letterSpacing=${h3Paint.letterSpacing}")
+            h3Paint.typeface = titleFont                                                     //设置标题字体
+            h3Paint.textSize = (readerPreferences?.titleSize?.toFloat() ?: 1.0f) * BASE_TITLE_FONT_SIZE * 0.8f
+            Logger.d("ChapterProvider::upStyle::titlePaint.textSize=${h3Paint.textSize}")
+            h3Paint.isAntiAlias = true                                                       //设置抗锯齿
+
+            //h4的Paint
+            h4Paint = TextPaint()
+            h4Paint.color = readerPreferences?.textColor ?: Color.BLACK                       //设置标题文字颜色
+            Logger.d("ChapterProvider::upStyle::titlePaint.color=0x${h4Paint.color.toString(16)}")
+            h4Paint.letterSpacing = readerPreferences?.letterSpacing?.toFloat() ?: 0f        //设置标题字母间距
+            Logger.d("ChapterProvider::upStyle::titlePaint.letterSpacing=${h4Paint.letterSpacing}")
+            h4Paint.typeface = titleFont                                                     //设置标题字体
+            h4Paint.textSize = (readerPreferences?.titleSize?.toFloat() ?: 1.0f) * BASE_TITLE_FONT_SIZE * 0.7f
+            Logger.d("ChapterProvider::upStyle::titlePaint.textSize=${h4Paint.textSize}")
+            h4Paint.isAntiAlias = true                                                       //设置抗锯齿
+
             //正文的Paint
             contentPaint = TextPaint()
             contentPaint.color = readerPreferences?.textColor ?: Color.BLACK                    //设置正文文字颜色
@@ -258,6 +309,20 @@ object ChapterProvider {
             contentPaint.textSize = (readerPreferences?.fontSize?.toFloat() ?: 1.0f) * BASE_FONT_SIZE                   //设置字体大小
             Logger.d("ChapterProvider::upStyle::contentPaint.textSize=${contentPaint.textSize}")
             contentPaint.isAntiAlias = true                                                     //设置抗锯齿
+
+            //<a>标签的Paint
+            aPaint = TextPaint()
+            aPaint.color = Color.BLUE                    //设置正文文字颜色
+//            aPaint.underlineColor = Color.BLUE
+            aPaint.isUnderlineText = true
+            aPaint.letterSpacing = readerPreferences?.letterSpacing?.toFloat() ?: 0.0f               //设置正文文字间距
+            Logger.d("ChapterProvider::upStyle::contentPaint.letterSpacing=${aPaint.letterSpacing}")
+            aPaint.typeface = textFont                                                    //设置正文字体
+            aPaint.textSize = (readerPreferences?.fontSize?.toFloat() ?: 1.0f) * BASE_FONT_SIZE                   //设置字体大小
+            Logger.d("ChapterProvider::upStyle::contentPaint.textSize=${aPaint.textSize}")
+            aPaint.isAntiAlias = true                                                     //设置抗锯齿
+
+
             //间距
             lineSpacingExtra = readerPreferences?.lineHeight?.toFloat() ?: 1.0f                //行间距系数，除上10 再和lineHeight相乘
             Logger.d("ChapterProvider::upStyle::lineSpacingExtra=${lineSpacingExtra}")
@@ -267,6 +332,7 @@ object ChapterProvider {
             Logger.d("ChapterProvider::upStyle::titleTopSpacing=${titleTopSpacing}")
             titleBottomSpacing = readerPreferences?.titleBottomSpacing?.dp?.toInt() ?: 0                           //标题底部间距
             Logger.d("ChapterProvider::upStyle::titleBottomSpacing=${titleBottomSpacing}")
+
             //更新屏幕参数
             upVisibleSize(context)
             Logger.d("ChapterProvider::upStyle done")
@@ -500,7 +566,21 @@ object ChapterProvider {
         }
 
         var durY = if (isTitle) offsetY + titleTopSpacing else offsetY
-        val textPaint = if (isTitle) titlePaint else contentPaint
+
+        val textPaint =   if (paragraph is ReaderText.Text) {
+            when(paragraph.annotations.firstOrNull()?.name) {
+                "h1" -> h1Paint
+                "h2" -> h2Paint
+                "h3" -> h3Paint
+                "h4" -> h4Paint
+                "a" -> aPaint
+                else -> contentPaint
+            }
+        } else if (paragraph is ReaderText.Chapter) {
+            titlePaint
+        } else {
+            contentPaint
+        }
 
         val layout = StaticLayout(text, textPaint, visibleWidth, Layout.Alignment.ALIGN_NORMAL, 0f, 0f, true)
         for (lineIndex in 0 until layout.lineCount) {  //排版，按行遍历

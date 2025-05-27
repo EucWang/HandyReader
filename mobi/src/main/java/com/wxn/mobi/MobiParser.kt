@@ -33,8 +33,12 @@ object MobiParser {
     fun getMobiChapterData(context: Context, path:String, chapter: BookChapter) : Array<ReaderText>? {
         Log.d("MobiParser", "getMobiChapterData:path=$path,chapter=$chapter")
         val texts : Array<ReaderText>? = NativeLib.getChapter(context, path, chapter)
-        Log.d("MobiParser", "getMobiChapterData: size = $${texts?.size}")
+        Log.d("MobiParser", "getMobiChapterData: chapter=${chapter.chapterIndex}: texts.size = ${texts?.size}")
         return texts
+    }
+
+    fun clear() {
+        NativeLib.release()
     }
 
 //    fun toEpub(context: Context, path: String): String? {

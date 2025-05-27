@@ -7,6 +7,8 @@ import androidx.lifecycle.viewModelScope
 import com.wxn.base.bean.Book
 import com.wxn.base.util.Logger
 import com.wxn.bookparser.TextParser
+import com.wxn.bookparser.parser.mobi.MobiFileParser
+import com.wxn.bookparser.parser.mobi.MobiTextParser
 import com.wxn.bookread.data.model.preference.ReaderPreferences
 import com.wxn.bookread.data.source.local.ReaderPreferencesUtil
 import com.wxn.bookread.provider.ChapterProvider
@@ -222,6 +224,7 @@ class MainReadViewModel @Inject constructor(
     }
 
     override fun onCleared() {
+        MobiTextParser.release()
         currentDayStartTime = 0
         _initialLocator.value = null
         _currentBookId.value = null

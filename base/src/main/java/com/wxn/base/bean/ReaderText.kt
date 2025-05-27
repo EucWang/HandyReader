@@ -31,7 +31,7 @@ sealed class ReaderText {
 
         fun tryParseToChapter(chapterIndex: Int): Chapter? {
             if (annotations.firstOrNull()?.name == "h1") {
-                return Chapter(chapterIndex.toString(), title = line, nested = false)
+                return Chapter(chapterIndex.toString(), title = line.trim(), nested = false)
             }
             return null
         }
@@ -65,7 +65,7 @@ sealed class ReaderText {
                 }
                 Logger.d("tryParseToImage:img=$src,width=$width, height=$height")
                 if (src.isNotEmpty() && width > 0 && height > 0) {
-                    return Image(src, width, height)
+                    return Image(src.trim(), width, height)
                 }
             }
             return null
