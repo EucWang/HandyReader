@@ -12,6 +12,7 @@ import android.text.TextPaint
 import com.wxn.base.bean.Book
 import com.wxn.base.bean.BookChapter
 import com.wxn.base.bean.ReaderText
+import com.wxn.base.bean.ReaderText.Text
 import com.wxn.base.ext.isContentPath
 import com.wxn.base.ext.statusBarHeight
 import com.wxn.base.ext.toStringArray
@@ -33,6 +34,7 @@ import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.launch
 import java.io.File
 import java.util.regex.Pattern
+import kotlin.collections.firstOrNull
 
 
 object ChapterProvider {
@@ -271,6 +273,7 @@ object ChapterProvider {
         }
     }
 
+
     suspend fun getTextChapter(
         context: Context,
         book: Book,
@@ -300,7 +303,19 @@ object ChapterProvider {
                     )
                 }
                 is ReaderText.Text -> {
-                    offsetY = setTypeText(paragraph, offsetY, textPages, pageLines, pageLengths, stringBuilder, false)
+                    val image = paragraph.tryParseToImage()
+                    offsetY = if (image != null) {
+                        setTypeImage(
+                            image.path,
+                            image.width,
+                            image.height,
+                            offsetY,
+                            textPages,
+                            imageStyles
+                        )
+                    } else {
+                        setTypeText(paragraph, offsetY, textPages, pageLines, pageLengths, stringBuilder, false)
+                    }
                 }
                 is ReaderText.Chapter -> {
                     offsetY = setTypeText(paragraph, offsetY, textPages, pageLines, pageLengths, stringBuilder, true)

@@ -3,12 +3,17 @@
 //
 
 #include "mobi_util.h"
+#include <fcntl.h>   // 包含 open() 等文件操作函数
+#include <unistd.h>  // 包含 close() 等文件操作函数
+#include <iostream>
 
 
 long mobi_util::last_book_id = 0L;
 std::string mobi_util::last_path = "";
 MOBIRawml *mobi_util::mobi_rawml = nullptr;
 MOBIData *mobi_util::mobi_data = nullptr;
+JNIEnv *mobi_util::jniEnv = nullptr;
+std::string mobi_util::appFileDir = "";
 
 //int mobi_util::convertToEpub(
 //        std::string fullpath,
@@ -78,7 +83,7 @@ MOBIData *mobi_util::mobi_data = nullptr;
 //    return SUCCESS;
 //}
 
-int mobi_util::init(long book_id, const char *path) {
+int mobi_util::init(JNIEnv *env, long book_id, const char *path) {
     LOGI("%s book_id=%ld, fullPath=%s", __func__, book_id, path);
     if (book_id != last_book_id || last_path.empty() || !last_path.compare(path) || mobi_data == NULL || mobi_rawml == NULL) {
         free_data();
@@ -123,6 +128,7 @@ int mobi_util::init(long book_id, const char *path) {
             return MOBI_ERROR;
         }
     }
+    jniEnv = env;
     last_book_id = book_id;
     last_path = path;
     return MOBI_SUCCESS;
@@ -159,8 +165,8 @@ void parseNavPoints(tinyxml2::XMLElement* firstNavPoint, std::vector<NavPoint> &
     }
 }
 
-int mobi_util::getChapters(long book_id, const char *path, std::vector<NavPoint>& points) {
-    if (init(book_id, path) != MOBI_SUCCESS) {
+int mobi_util::getChapters(JNIEnv *env, long book_id, const char *path, std::vector<NavPoint>& points) {
+    if (init(env, book_id, path) != MOBI_SUCCESS) {
         return 0;
     }
 
@@ -497,7 +503,306 @@ std::string processParagraph(const tinyxml2::XMLElement* pElem, std::vector<TagI
     return fullText;
 }
 
-int parseHtmlDoc(tinyxml2::XMLElement *element, std::vector<DocText>& docTexts) {
+/****
+ * 从资源索引路径中解析出 prefix， srcId, anchorId, suffix
+ * @param src [in]
+ * @param prefix [out] 资源前缀， 取值 flow, part, resource
+ * @param prefixType [out] 资源前缀类型， 取值对应 flow 为1, part 为2, resource 为3
+ * @param srcId  [out] 资源id， 对应 各个部分的uid
+ * @param anchorId  [out]  资源锚点id， 如果没有则为空
+ * @param suffix  [out] 对应文件类型，取值如果是文档则是 html/htm, 如果是图片则是 png,jpg,gif,jpeg
+ * @return 0 失败， 1成功
+ */
+int mobi_util::parseSrcName(std::string& src,
+                 std::string& prefix,
+                 int* prefixType,
+                 int* srcId,
+                 std::string& anchorId,
+                 std::string& suffix) {
+
+    size_t pos = src.find_first_of('#');
+    std::string srcName;
+    std::string srcTypeName;
+    const std::string flow = "flow";
+    const std::string part = "part";
+    const std::string resource = "resource";
+    int type = 0;
+    std::string uid;
+    int srcUid = -1;
+
+    if (pos != std::string::npos) { //有#号，则分割
+        srcName = src.substr(0, pos);
+        if (pos +1 <= src.size()) {
+            anchorId = src.substr(pos+1);
+        } else {
+            anchorId = "";
+        }
+    } else {
+        srcName = src;
+    }
+    LOGD("%s:srcName=%s,aId=%s", __func__, srcName.c_str(), anchorId.c_str());
+
+    pos = srcName.find_first_of('.');
+    if (pos != std::string::npos) {
+        srcTypeName = srcName.substr(0, pos);
+        if (pos + 1 <= srcName.size()) {
+            suffix = srcName.substr(pos + 1);
+        } else {
+            suffix = "";
+        }
+    } else {
+        srcTypeName = srcName;
+    }
+    LOGD("%s:srcTypeName=%s,srcTypeSuffix=%s", __func__, srcTypeName.c_str(), suffix.c_str());
+    if (srcTypeName.empty()) {
+        LOGE("%s:src[%s] is not html,get srcTypeName[%s]", __func__, src.c_str(), srcTypeName.c_str());
+        return 0;
+    }
+
+    if (startWith(srcTypeName, flow)) {
+        type = 1;
+        if (flow.size() + 1 < srcTypeName.size()) {
+            uid = srcTypeName.substr(flow.size() + 1);
+        }
+        prefix = flow;
+    } else if (startWith(srcTypeName, part)) {
+        type = 2;
+        if (part.size() + 1 < srcTypeName.size()) {
+            uid = srcTypeName.substr(part.size() + 1);
+        }
+        prefix = part;
+    } else if (startWith(srcTypeName, resource)) {
+        type = 3;
+        if (resource.size() + 1 < srcTypeName.size()) {
+            uid = srcTypeName.substr(resource.size() + 1);
+        }
+        prefix = resource;
+    } else {
+        LOGE("%s:srcTypeName[%s] is not right type", __func__, srcTypeName.c_str());
+        return 0;
+    }
+    if (uid.empty()) {
+        LOGE("%s:failed:srcTypeName[%s] can't have uid", __func__, srcTypeName.c_str());
+        return 0;
+    }
+
+    try {
+        srcUid = std::stoi(uid);
+    } catch(const std::invalid_argument& e) {
+        LOGE("%s:failed, uid[%s] is not invalid", __func__, uid.c_str());
+        return 0;
+    } catch(const std::out_of_range& e) {
+        LOGE("%s:failed, uid[%s] is out of range", __func__, uid.c_str());
+        return 0;
+    }
+    if (srcUid < 0) {
+        LOGE("%s:failed,srcUid[%d] is below zero", __func__, srcUid);
+        return 0;
+    }
+
+    *prefixType = type;
+    *srcId = srcUid;
+    return 1;
+}
+
+/***
+ * 判断文件是否存在，如果存在返回1；
+ * 如果不存在父级路径就创建目录, 如果创建目录失败则返回-1， 否则返回0
+ * @param path 文件路径
+ * @return
+ */
+int checkAndCreateDir(const std::string& parentPath, const std::string& fileName) {
+    std::string fullPath = parentPath + separator + fileName;
+    if (fs::exists(fullPath) && fs::file_size(fullPath) > 0) {
+        return true;
+    }
+
+    if (!fs::exists(parentPath)) {
+        if (fs::create_directories(parentPath)) {
+            return 0;
+        } else {
+            return -1;
+        }
+    }
+    return 0;
+}
+
+/***
+ * @return 获取系统API版本
+ */
+int getVersion() {
+    char sdk[128] = "0";
+
+    __system_property_get("ro.build.version", sdk);
+    int sdk_version = atoi(sdk);
+    return sdk_version;
+}
+
+int mobi_util::getImageOption(const char* path, int* width, int* height) {
+    int outWidth = 0;
+    int outHeight = 0;
+//    if (getVersion() >= 30) {
+//        int fd = open(path, O_RDONLY);
+//        if (fd == -1) {
+//            close(fd);
+//            LOGE("%s:failed,open path[%s] failed", __func__, path);
+//            return 0;
+//        }
+//        AImageDecoder* decoder;
+//        int ret = AImageDecoder_createFromFd(fd, &decoder);
+//        if (ret != ANDROID_IMAGE_DECODER_SUCCESS) {
+//            LOGE("%s:failed,decode image[%s] error", __func__, path);
+//            close(fd);
+//            return 0;
+//        }
+//        const AImageDecoderHeaderInfo* info = AImageDecoder_getHeaderInfo(decoder);
+//        if (info != nullptr) {
+//            outWidth = AImageDecoderHeaderInfo_getWidth(info);
+//            outHeight = AImageDecoderHeaderInfo_getHeight(info);
+//            AImageDecoder_delete(decoder);
+//        }
+//        close(fd);
+//    } else {
+        if (jniEnv == nullptr) {
+            return 0;
+        }
+        jclass optionClass = jniEnv->FindClass("android/graphics/BitmapFactory$Options");
+        if (optionClass == nullptr) {
+            return 0;
+        }
+        jmethodID constructor = jniEnv->GetMethodID(optionClass, "<init>", "()V");
+        if (constructor == nullptr) {
+            return 0;
+        }
+        jobject objOption = jniEnv->NewObject(optionClass, constructor);
+        if (objOption == nullptr) {
+            return 0;
+        }
+        jfieldID fieldInJustDecodeBounds = jniEnv->GetFieldID(optionClass, "inJustDecodeBounds", "Z");
+        jfieldID fieldInSampleSize = jniEnv->GetFieldID(optionClass, "inSampleSize", "I");
+        jniEnv->SetBooleanField(objOption, fieldInJustDecodeBounds, true);
+        jniEnv->SetIntField(objOption, fieldInSampleSize, 2);
+
+        jclass factoryClass = jniEnv->FindClass("android/graphics/BitmapFactory");
+        jmethodID decodeFileMethod = jniEnv->GetStaticMethodID(factoryClass, "decodeFile", "(Ljava/lang/String;Landroid/graphics/BitmapFactory$Options;)Landroid/graphics/Bitmap;");
+        jobject objBitmap = jniEnv->CallStaticObjectMethod(factoryClass, decodeFileMethod,
+                                       jniEnv->NewStringUTF(path),
+                                       objOption);
+        jfieldID fieldWidth = jniEnv->GetFieldID(optionClass, "outWidth", "I");
+        jfieldID fieldHeight = jniEnv->GetFieldID(optionClass, "outHeight", "I");
+        outWidth = jniEnv->GetIntField(objOption,fieldWidth);
+        outHeight = jniEnv->GetIntField(objOption, fieldHeight);
+//    }
+    LOGD("%s:get image[%s] width=%d,height=%d", __func__, path, outWidth, outHeight);
+    *width = outWidth;
+    *height = outHeight;
+    return 1;
+}
+
+
+int mobi_util::cacheImage(std::string& imgSrc, int prefixType, int srcUid, std::vector<DocText>& docTexts){
+    //文件路径
+    std::string parentPath = appFileDir + separator + "resources" + separator + std::to_string(last_book_id);
+    std::string fullpath = parentPath + separator + imgSrc;
+    int ret = checkAndCreateDir(parentPath, imgSrc);
+    if (ret == 1) { //缓存文件已经存在
+        int width = 0, height = 0;
+        getImageOption(fullpath.c_str(), &width, &height);
+        if (width > 0 && height > 0) {
+            std::vector<TagInfo> tags;
+            DocText docText{"", tags};
+            std::string params = "src=" + fullpath + "&width=" + std::to_string(width) + "&height=" + std::to_string(height);
+            docText.tagInfos.emplace_back(TagInfo{generate_uuid(), "", "img", 0, 0, "", params});
+            docTexts.push_back(docText);
+        } else {
+            LOGE("%s:failed,image[%s] width[%d]height[%d] err", __func__, fullpath.c_str(), width, height);
+        }
+    } else if (ret == 0) {  //缓存文件不存在，缓存路径存在或者创建缓存路径成功
+        MOBIPart *curr = NULL;
+        if (prefixType == 3 && mobi_rawml->resources != NULL) {
+            curr = mobi_rawml->resources;
+
+            unsigned char* rawPic = NULL;
+            size_t rawPicSize = 0;
+            while (curr != NULL) {
+                MOBIFileMeta file_meta = mobi_get_filemeta_by_type(curr->type);
+                //T_JPG, /**< jpg */  T_GIF, /**< gif */ T_PNG, /**< png */ T_BMP, /**< bmp */
+                if (curr->size > 0 &&
+                    (file_meta.type == T_JPG || file_meta.type == T_GIF || file_meta.type == T_PNG || file_meta.type == T_BMP) &&
+                    curr->uid == srcUid) {
+                    rawPic = curr->data;
+                    rawPicSize = curr->size;
+                    break;
+                }
+                curr = curr->next;
+            }
+
+            if (rawPicSize > 0 || rawPic != NULL) {
+                size_t fd = open(fullpath.c_str(), O_CREAT|O_TRUNC|O_RDWR, 0666);
+                if (fd == -1) {
+                    LOGE("%s:failed,can't create or open img path[%s]", __func__, fullpath.c_str());
+                    return 0;
+                } else {
+                    ret = write(fd, rawPic, rawPicSize);
+                    if (ret == -1) {
+                        LOGE("%s:failed,can't write to img path[%s]", __func__, fullpath.c_str());
+                        return 0;
+                    } else {
+                        LOGE("%s:write image to path[%s] success", __func__, fullpath.c_str());
+//                        AImageDecoder* decoder;
+//                        ret = AImageDecoder_createFromBuffer(rawPic, rawPicSize, &decoder);
+//                        if (ret == ANDROID_IMAGE_DECODER_SUCCESS) {
+//                            const AImageDecoderHeaderInfo* info = AImageDecoder_getHeaderInfo(decoder);
+//                            size_t width = AImageDecoderHeaderInfo_getWidth(info);
+//                            size_t height = AImageDecoderHeaderInfo_getHeight(info);
+//
+//                            AImageDecoder_delete(decoder);
+//                            if (width > 0 && height > 0) {
+//                                std::vector<TagInfo> tags;
+//                                DocText docText{"", tags};
+//                                std::string params = "src=" + path + "&width=" + std::to_string(width) + "&height=" + std::to_string(height);
+//                                docText.tagInfos.emplace_back(TagInfo{generate_uuid(), "", "img", 0, 0, "", params});
+//                                docTexts.push_back(docText);
+//                            } else {
+//                                LOGE("%s:failed,image[%s] width[%d]height[%d] err", __func__, path.c_str(), width, height);
+//                            }
+//                        } else {
+//                            LOGE("%s:failed,decode image[%s] error", __func__, path.c_str());
+//                        }
+                    }
+                    close(fd);
+                    if (ret != -1) {
+                        int width = 0;
+                        int height = 0;
+                        getImageOption(fullpath.c_str(), &width, &height);
+                        if (width > 0 && height > 0) {
+                            std::vector<TagInfo> tags;
+                            DocText docText{"", tags};
+                            std::string params = "src=" + fullpath + "&width=" + std::to_string(width) + "&height=" + std::to_string(height);
+                            docText.tagInfos.emplace_back(TagInfo{generate_uuid(), "", "img", 0, 0, "", params});
+                            docTexts.push_back(docText);
+                        } else {
+                            LOGE("%s:failed,image[%s] width[%d]height[%d] err", __func__, fullpath.c_str(), width, height);
+                            return 0;
+                        }
+                    }
+                }
+            } else {
+                LOGE("%s:failed,rawPicSize[%d] is null or rawPic is null", __func__, rawPicSize);
+                return 0;
+            }
+        } else {
+            LOGE("%s:failed,prefixType[%d] or resources is null", __func__, prefixType);
+            return 0;
+        }
+    } else {
+        LOGE("%s:failed, creat dir err", __func__);
+        return 0;
+    }
+    return 1;
+}
+
+int mobi_util::parseHtmlDoc(tinyxml2::XMLElement *element, std::vector<DocText>& docTexts) {
     tinyxml2::XMLElement* elem = element;
     while(elem != nullptr) {
         std::string name = elem->Name();
@@ -553,103 +858,54 @@ int parseHtmlDoc(tinyxml2::XMLElement *element, std::vector<DocText>& docTexts) 
                 docText.tagInfos.push_back(TagInfo{generate_uuid(), id, name, 0, utf8Count(docText.text), "", ""});
                 docTexts.push_back(docText);
             }
+        } else if (name == "img") {
+            const char* imgSrc = elem->Attribute("src");
+            if (imgSrc != NULL && utf8Count(imgSrc) > 0) {
+                std::string imgSrcStr = imgSrc;
+                std::string prefix;
+                std::string suffix;
+                std::string anchorId;
+                int prefixType;
+                int srcUid;
+                if (1 == parseSrcName(imgSrcStr, prefix, &prefixType, &srcUid, anchorId, suffix)){
+                    LOGD("%s:getChapter:src[%s] Info[prefix=%s,srcId=%d,anchorId=%s,suffix=%s,prefixType=%d]",
+                         __func__, imgSrc, prefix.c_str(), srcUid, anchorId.c_str(), suffix.c_str(), prefixType);
+                    cacheImage(imgSrcStr, prefixType, srcUid, docTexts);
+                }
+            }
         }
         elem = elem->NextSiblingElement();
     }
     return 1;
 }
 
-int mobi_util::getChapter(long book_id, const char *path, const char *app_file_dir, NavPoint& chapter, std::vector<DocText> &docTexts) {
-    if (init(book_id, path) != MOBI_SUCCESS) {
+int mobi_util::getChapter(JNIEnv *env, long book_id, const char *path, const char *app_file_dir, NavPoint& chapter, std::vector<DocText> &docTexts) {
+    if (init(env, book_id, path) != MOBI_SUCCESS) {
         return 0;
     }
-
+    if (app_file_dir != NULL) {
+        appFileDir = app_file_dir;
+    } else {
+        return 0;
+    }
     std::string src = chapter.src;
-    size_t pos = src.find_first_of('#');
-    std::string srcName;
-    std::string aId;
-    if (pos != std::string::npos) { //有#号，则分割
-        srcName = src.substr(0, pos);
-        if (pos +1 <= src.size()) {
-            aId = src.substr(pos+1);
-        } else {
-            aId = "";
-        }
-    } else {
-        srcName = src;
+    std::string prefix;
+    std::string suffix;
+    std::string anchorId;
+    int prefixType;
+    int srcUid;
+    if (1 != parseSrcName(src, prefix, &prefixType, &srcUid, anchorId, suffix)){
+        return 0;
     }
-    LOGD("%s:srcName=%s,aId=%s", __func__, srcName.c_str(), aId.c_str());
+    LOGD("%s:getChapter:src[%s] Info[prefix=%s,srcId=%d,anchorId=%s,suffix=%s,prefixType=%d]",
+         __func__, src.c_str(), prefix.c_str(), srcUid, anchorId.c_str(), suffix.c_str(), prefixType);
 
-    std::string srcTypeName;
-    std::string srcTypeSuffix;
-
-    pos = srcName.find_first_of('.');
-    if (pos != std::string::npos) {
-        srcTypeName = srcName.substr(0, pos);
-        if (pos + 1 <= srcName.size()) {
-            srcTypeSuffix = srcName.substr(pos + 1);
-        } else {
-            srcTypeSuffix = "";
-        }
-    } else {
-        srcTypeName = srcName;
-    }
-    LOGD("%s:srcTypeName=%s,srcTypeSuffix=%s", __func__, srcTypeName.c_str(), srcTypeSuffix.c_str());
-    if (srcTypeSuffix.empty() || srcTypeSuffix != "html") {
-        LOGE("%s:src[%s] is not html,get srcTypeName[%s]", __func__, src.c_str(), srcTypeName.c_str());
-        return 0;
-    }
-
-    const std::string flow = "flow";
-    const std::string part = "part";
-    const std::string resource = "resource";
-    int type = 0;
-    std::string uid;
-
-    if (startWith(srcTypeName, flow)) {
-        type = 1;
-        if (flow.size() + 1 < srcTypeName.size()) {
-            uid = srcTypeName.substr(flow.size() + 1);
-        }
-    } else if (startWith(srcTypeName, part)) {
-        type = 2;
-        if (part.size() + 1 < srcTypeName.size()) {
-            uid = srcTypeName.substr(part.size() + 1);
-        }
-    } else if (startWith(srcTypeName, resource)) {
-        type = 3;
-        if (resource.size() + 1 < srcTypeName.size()) {
-            uid = srcTypeName.substr(resource.size() + 1);
-        }
-    } else {
-        LOGE("%s:srcTypeName[%s] is not right type", __func__, srcTypeName.c_str());
-        return 0;
-    }
-    if (uid.empty()) {
-        LOGE("%s:failed:srcTypeName[%s] can't have uid", __func__, srcTypeName.c_str());
-        return 0;
-    }
-
-    int srcUid = -1;
-    try {
-        srcUid = std::stoi(uid);
-    } catch(const std::invalid_argument& e) {
-        LOGE("%s:failed, uid[%s] is not invalid", __func__, uid.c_str());
-        return 0;
-    } catch(const std::out_of_range& e) {
-        LOGE("%s:failed, uid[%s] is out of range", __func__, uid.c_str());
-        return 0;
-    }
-    if (srcUid < 0) {
-        LOGE("%s:failed,srcUid is below zero", __func__, srcUid);
-        return 0;
-    }
     MOBIPart *curr = NULL;
-    if (type == 1 && mobi_rawml->flow != NULL) {
+    if (prefixType == 1 && mobi_rawml->flow != NULL) {
         curr = mobi_rawml->flow;
-    } else if (type == 2 && mobi_rawml->markup != NULL) {
+    } else if (prefixType == 2 && mobi_rawml->markup != NULL) {
         curr = mobi_rawml->markup;
-    } else if (type == 3 && mobi_rawml->resources != NULL) {
+    } else if (prefixType == 3 && mobi_rawml->resources != NULL) {
         curr = mobi_rawml->resources;
     } else {
         LOGE("%s: unknown type[%d] or rawml data is null, pass", __func__, srcUid);

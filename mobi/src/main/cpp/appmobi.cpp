@@ -220,7 +220,7 @@ Java_com_wxn_mobi_inative_NativeLib_getChapters(JNIEnv *env, jobject thiz, jobje
     const char *nativeStr = env->GetStringUTFChars(path, NULL);
 
     std::vector<NavPoint> vectors;
-    int ret = mobi_util::getChapters(book_id, nativeStr, vectors);
+    int ret = mobi_util::getChapters(env, book_id, nativeStr, vectors);
     if (ret != 1) {
         return nullptr;
     }
@@ -331,7 +331,7 @@ Java_com_wxn_mobi_inative_NativeLib_getChapter(JNIEnv *env, jobject thiz, jobjec
     LOGD("%s:chapterId=%s,text=%s,playOrder=%d,src=%s,book_id=%ld,chapter_size=%d", __func__, chapterIdStr, chapterNameStr, point.playOrder, srcStr, bookId, chapter_size);
 
     std::vector<DocText> docTexts;
-    if (1 != mobi_util::getChapter(book_id, nativeStr, appFileDir, point, docTexts)) {
+    if (1 != mobi_util::getChapter(env, book_id, nativeStr, appFileDir, point, docTexts)) {
         return nullptr;
     }
 

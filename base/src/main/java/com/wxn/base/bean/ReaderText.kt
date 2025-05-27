@@ -26,7 +26,42 @@ sealed class ReaderText {
      * annotations 对应的文本的样式
      */
     @Immutable
-    data class Text(var line: String, var annotations: List<TextTag> = emptyList<TextTag>()): ReaderText()
+    data class Text(var line: String, var annotations: List<TextTag> = emptyList<TextTag>()): ReaderText() {
+
+        fun tryParseToImage() : Image? {
+            if (line.isEmpty() && annotations.firstOrNull()?.name == "img" && !annotations.firstOrNull()?.params.isNullOrEmpty()) {
+                val params : String = annotations.first().params
+                val paramItems = params.split("&").mapNotNull {
+                    val item = it.split("=")
+                    if(item.getOrNull(0) != null && item.getOrNull(1) != null) {
+                        Pair(item.get(0), item.get(1))
+                    } else {
+                        null
+                    }
+                }
+                var src = ""
+                var width = 0
+                var height = 0
+                for(item in paramItems)  {
+                    when(item.first) {
+                        "src" -> {
+                            src = item.second
+                        }
+                        "width" -> {
+                            width = item.second.toIntOrNull() ?: 0
+                        }
+                        "height" -> {
+                            height = item.second.toIntOrNull() ?: 0
+                        }
+                    }
+                }
+                if (src.isNotEmpty() && width > 0 && height > 0) {
+                    return Image(src, width, height)
+                }
+            }
+            return null
+        }
+    }
 
     /****
      * 分隔符
@@ -39,4 +74,6 @@ sealed class ReaderText {
         val width: Int,     //图片宽
         val height: Int     //图片高
         ) : ReaderText()
+
+
 }

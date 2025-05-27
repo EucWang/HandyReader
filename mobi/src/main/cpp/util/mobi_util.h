@@ -27,6 +27,10 @@ extern "C" {
 #include <filesystem> // C++17 标准库
 
 #include "utf8.h"
+#include <android/bitmap.h>
+#include <android/imagedecoder.h>
+#include <sys/system_properties.h>
+
 
 namespace fs = std::filesystem;
 
@@ -93,9 +97,9 @@ public:
 //            std::string appCacheeDir,
 //            std::string& epubPath);
 
-    static int getChapters(long book_id, const char* path,  /*out*/std::vector<NavPoint>& points);
+    static int getChapters(JNIEnv *env, long book_id, const char* path,  /*out*/std::vector<NavPoint>& points);
 
-    static int getChapter(long book_id, const char *path, const char *app_file_dir, NavPoint& chapter, std::vector<DocText> &docTexts);
+    static int getChapter(JNIEnv *env, long book_id, const char *path, const char *app_file_dir, NavPoint& chapter, std::vector<DocText> &docTexts);
 
     static void free_data();
 private:
@@ -104,8 +108,33 @@ private:
     static std::string last_path;
     static MOBIRawml *mobi_rawml;
     static  MOBIData *mobi_data;
+    static std::string appFileDir;
+    static JNIEnv *jniEnv;
 
-    static int init(long book_id, const char* path);
+    static int init(JNIEnv *env, long book_id, const char* path);
+
+    /****
+ * 从资源索引路径中解析出 prefix， srcId, anchorId, suffix
+ * @param src [in]
+ * @param prefix [out] 资源前缀， 取值 flow, part, resource
+ * @param prefixType [out] 资源前缀类型， 取值对应 flow 为1, part 为2, resource 为3
+ * @param srcId  [out] 资源id， 对应 各个部分的uid
+ * @param anchorId  [out]  资源锚点id， 如果没有则为空
+ * @param suffix  [out] 对应文件类型，取值如果是文档则是 html/htm, 如果是图片则是 png,jpg,gif,jpeg
+ * @return 0 失败， 1成功
+ */
+    static int parseSrcName(std::string& src,
+                     std::string& prefix,
+                     int* prefixType,
+                     int* srcId,
+                     std::string& anchorId,
+                     std::string& suffix);
+
+    static int parseHtmlDoc(tinyxml2::XMLElement *element, std::vector<DocText>& docTexts);
+
+    static int getImageOption(const char* path, int* width, int* height);
+
+    static int cacheImage(std::string& imgSRc, int prefixType, int srcUid, std::vector<DocText>& docTexts);
 };
 
 #endif //SIMPLEREADER2_MOBI_UTIL_H
