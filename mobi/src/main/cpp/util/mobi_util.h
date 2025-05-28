@@ -106,19 +106,18 @@ public:
 
     static int getChapter(JNIEnv *env, long book_id, const char *path, const char *app_file_dir, NavPoint& chapter, std::vector<DocText> &docTexts);
 
-    static void free_data();
+//    static void free_data(MOBIRawml *mobi_rawml, MOBIData *mobi_data;);
 private:
     //缓存上次创建的书籍信息
-    static long last_book_id;
-    static std::string last_path;
-    static MOBIRawml *mobi_rawml;
-    static  MOBIData *mobi_data;
+//    static long last_book_id;
+//    static std::string last_path;
+//    static MOBIRawml *mobi_rawml;
+//    static  MOBIData *mobi_data;
     static std::string appFileDir;
-    static JNIEnv *jniEnv;
 
     static  std::mutex m_Mutex;
 
-    static int init(JNIEnv *env, long book_id, const char* path);
+    static int init(const char* path, MOBIRawml **mobi_rawml, MOBIData **mobi_data);
 
     /****
  * 从资源索引路径中解析出 prefix， srcId, anchorId, suffix
@@ -137,11 +136,36 @@ private:
                      std::string& anchorId,
                      std::string& suffix);
 
-    static int parseHtmlDoc(tinyxml2::XMLElement *element, std::vector<DocText>& docTexts);
+    /****
+     * 解析html文档得到中间数据DocText的集合
+     * @param env
+     * @param element
+     * @param docTexts
+     * @return
+     */
+    static int parseHtmlDoc(JNIEnv *env, long book_id, MOBIRawml* mobi_rawml, tinyxml2::XMLElement *element, std::vector<DocText>& docTexts);
 
-    static int getImageOption(const char* path, int* width, int* height);
+    /****
+     * 获得图片的宽高信息
+     * @param env [in] JNIEnv *
+     * @param path [in] 图片绝对路径
+     * @param width [out] 输出图片宽度
+     * @param height [out] 输出图片高度
+     * @return return 0 if error， 1 success
+     */
+    static int getImageOption(JNIEnv *env, long book_id,  const char* path, int* width, int* height);
 
-    static int cacheImage(std::string& imgSRc, int prefixType, int srcUid, int* width, int* height);
+    /****
+     * 图片资源如果没有写入到缓存文件中，则创建图片缓存文件， 并返回图片的宽高，
+     * @param env  [in] JNIEnv *
+     * @param imgSRc [in] 资源名
+     * @param prefixType [in] 资源的前缀类型，
+     * @param srcUid [in]   资源uid
+     * @param width [out]
+     * @param height [out]
+     * @return 成功返回1， 失败返回0
+     */
+    static int cacheImage(JNIEnv *env, long book_id, MOBIRawml* mobi_rawml, std::string& imgSRc, int prefixType, int srcUid, int* width, int* height);
 };
 
 #endif //SIMPLEREADER2_MOBI_UTIL_H

@@ -25,5 +25,4 @@ object NativeLib {
 
     external fun getChapter(context: Context, path: String, chapter: BookChapter): Array<ReaderText>
 
-    external fun release()
 }

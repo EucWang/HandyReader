@@ -1,6 +1,7 @@
 package com.wxn.reader.presentation.mainReader
 
 import android.app.Application
+import androidx.compose.runtime.Stable
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.viewModelScope
@@ -57,6 +58,7 @@ import javax.inject.Inject
 
 @OptIn(ExperimentalReadiumApi::class)
 @HiltViewModel
+@Stable
 class MainReadViewModel @Inject constructor(
     context: Application,
     private val appPreferencesUtil: AppPreferencesUtil,
@@ -111,6 +113,9 @@ class MainReadViewModel @Inject constructor(
 
     private val _book = MutableStateFlow<Book?>(null)
     val book: StateFlow<Book?> = _book.asStateFlow()
+
+    private val _bookCover = MutableStateFlow<String?>(null)
+    val bookCover : StateFlow<String?> = _bookCover.asStateFlow()
 
     private val _currentBookId = MutableStateFlow<Long?>(null)
     val currentBookId: StateFlow<Long?> = _currentBookId.asStateFlow()
@@ -224,7 +229,6 @@ class MainReadViewModel @Inject constructor(
     }
 
     override fun onCleared() {
-        MobiTextParser.release()
         currentDayStartTime = 0
         _initialLocator.value = null
         _currentBookId.value = null
