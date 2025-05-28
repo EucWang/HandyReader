@@ -604,4 +604,11 @@ class ContentTextView(context: Context, attrs: AttributeSet?) : View(context, at
             else -> pageFactory?.nextPagePlus
         }
     }
+
+    override fun onDetachedFromWindow() {
+        Logger.i("ContentTextView::onDetachedFromWindow")
+        upView = null
+        callback = null
+        super.onDetachedFromWindow()
+    }
 }

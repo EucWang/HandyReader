@@ -1,39 +1,21 @@
 package com.wxn.bookread.ui
 
-import android.annotation.SuppressLint
 import android.content.Context
 import android.graphics.Color
 import android.graphics.drawable.Drawable
 import android.view.LayoutInflater
-import android.view.View
 import android.widget.FrameLayout
-import androidx.core.view.isGone
-import androidx.core.view.isInvisible
-import com.wxn.base.ext.activity
 import com.wxn.base.ext.getCompatColor
 import com.wxn.base.ext.statusBarHeight
-import com.wxn.base.ui.BaseActivity
 import com.wxn.base.util.Coroutines
 import com.wxn.base.util.Logger
 import com.wxn.base.util.launchMain
 import com.wxn.bookread.R
 import com.wxn.bookread.data.model.TextPage
-import com.wxn.bookread.data.source.local.ReadTipPreferencesUtil.Companion.ReadTip_battery
-import com.wxn.bookread.data.source.local.ReadTipPreferencesUtil.Companion.ReadTip_bookName
-import com.wxn.bookread.data.source.local.ReadTipPreferencesUtil.Companion.ReadTip_chapterTitle
-import com.wxn.bookread.data.source.local.ReadTipPreferencesUtil.Companion.ReadTip_none
-import com.wxn.bookread.data.source.local.ReadTipPreferencesUtil.Companion.ReadTip_page
-import com.wxn.bookread.data.source.local.ReadTipPreferencesUtil.Companion.ReadTip_pageAndTotal
-import com.wxn.bookread.data.source.local.ReadTipPreferencesUtil.Companion.ReadTip_time
-import com.wxn.bookread.data.source.local.ReadTipPreferencesUtil.Companion.ReadTip_totalProgress
 import com.wxn.bookread.databinding.ViewBookPageBinding
-import com.wxn.bookread.ext.dp
 import com.wxn.bookread.provider.ChapterProvider
-import com.wxn.bookread.ui.widget.BatteryView
 import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.launch
-import java.text.SimpleDateFormat
-import java.util.Date
 
 class ContentView(context: Context) : FrameLayout(context) {
 
@@ -118,9 +100,15 @@ class ContentView(context: Context) : FrameLayout(context) {
                 var showHeaderLine: Boolean = !tipPreference.hideHeader
                 var showFooterLine: Boolean = !tipPreference.hideFooter
 
-                Logger.d("ContentView::upStyle::headerPaddingLeft=$headerPaddingLeft,headerPaddingRight=$headerPaddingRight,headerPaddingTop=$headerPaddingTop,headerPaddingBottom=$headerPaddingBottom," +
-                        "footerPaddingBottom=$footerPaddingBottom,footerPaddingLeft=$footerPaddingLeft,footerPaddingRight=$footerPaddingRight,footerPaddingTop=$footerPaddingTop," +
-                        "showHeaderLine=$showHeaderLine,showFooterLine=$showFooterLine, textColor=0x$${textColor.toString(16)}")
+                Logger.d(
+                    "ContentView::upStyle::headerPaddingLeft=$headerPaddingLeft,headerPaddingRight=$headerPaddingRight,headerPaddingTop=$headerPaddingTop,headerPaddingBottom=$headerPaddingBottom," +
+                            "footerPaddingBottom=$footerPaddingBottom,footerPaddingLeft=$footerPaddingLeft,footerPaddingRight=$footerPaddingRight,footerPaddingTop=$footerPaddingTop," +
+                            "showHeaderLine=$showHeaderLine,showFooterLine=$showFooterLine, textColor=0x$${
+                                textColor.toString(
+                                    16
+                                )
+                            }"
+                )
 
 //                bvHeaderLeft.typeface = ChapterProvider.typeface
 //                tvHeaderLeft.typeface = ChapterProvider.typeface
@@ -169,7 +157,9 @@ class ContentView(context: Context) : FrameLayout(context) {
 
             Coroutines.mainScope().launch {
                 ChapterProvider.tryCreatePreference(context)
-                val tipPreference = ChapterProvider.readTipPreferencesUtil?.readTIpPreferencesFlow?.firstOrNull() ?: return@launch
+                val tipPreference =
+                    ChapterProvider.readTipPreferencesUtil?.readTIpPreferencesFlow?.firstOrNull()
+                        ?: return@launch
 
 //                isGone = tipPreference.hideStatusBar || (activity as? BaseActivity)?.isInMultiWindow == true
             }
@@ -195,9 +185,11 @@ class ContentView(context: Context) : FrameLayout(context) {
                 val tipFooterMiddle = tipPreference.tipFooterMiddle
                 val hideHeader = tipPreference.hideHeader
                 val hideFooter = tipPreference.hideFooter
-                Logger.d("ContentView::upTipStyle::tipHeaderLeft=$tipHeaderLeft,tipHeaderRight=$tipHeaderRight,tipHeaderMiddle=$tipHeaderMiddle," +
-                        "tipFooterLeft=$tipFooterLeft,tipFooterRight=$tipFooterRight,tipFooterMiddle=$tipFooterMiddle," +
-                        "hideHeader=$hideHeader,hideFooter=$hideFooter")
+                Logger.d(
+                    "ContentView::upTipStyle::tipHeaderLeft=$tipHeaderLeft,tipHeaderRight=$tipHeaderRight,tipHeaderMiddle=$tipHeaderMiddle," +
+                            "tipFooterLeft=$tipFooterLeft,tipFooterRight=$tipFooterRight,tipFooterMiddle=$tipFooterMiddle," +
+                            "hideHeader=$hideHeader,hideFooter=$hideFooter"
+                )
                 //tipHeaderLeft=2,tipHeaderRight=3,tipHeaderMiddle=0,tipFooterLeft=1,tipFooterRight=6,tipFooterMiddle=0,hideHeader=true,hideFooter=false
 //                tvHeaderLeft.isInvisible = tipHeaderLeft != ReadTip_chapterTitle
 //                bvHeaderLeft.isInvisible = tipHeaderLeft == ReadTip_none || !tvHeaderLeft.isInvisible
@@ -436,4 +428,10 @@ class ContentView(context: Context) : FrameLayout(context) {
      * 获取选中的文本内容
      */
     val selectedText: String get() = binding.contentTextView.selectText
+
+    override fun onDetachedFromWindow() {
+        Logger.i("ContentView::onDetachedFromWindow")
+        callback = null
+        super.onDetachedFromWindow()
+    }
 }

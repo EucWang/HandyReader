@@ -214,6 +214,7 @@ class PageView: FrameLayout, IDataSource, PageCallback {
 
     override fun onSizeChanged(w: Int, h: Int, oldw: Int, oldh: Int) {
         super.onSizeChanged(w, h, oldw, oldh)
+        Logger.d("PageView::onSizeChanged:w=$w,h=$h,oldw=$oldw,oldh=$oldh")
         centerRectF.set(width * 0.33f, height * 0.33f, width * 0.66f, height * 0.66f)
         prevPage.x = -w.toFloat()
         pageDelegate?.setViewSize(w, h)
@@ -308,6 +309,27 @@ class PageView: FrameLayout, IDataSource, PageCallback {
             }
         }
         return true
+    }
+
+    override fun detachAllViewsFromParent() {
+        super.detachAllViewsFromParent()
+        Logger.d("PageView::detachAllViewsFromParent")
+    }
+
+    override fun onAttachedToWindow() {
+        super.onAttachedToWindow()
+        Logger.d("PageView::onAttachedToWindow")
+    }
+
+    override fun onDetachedFromWindow() {
+        Logger.d("PageView::onDetachedFromWindow")
+        removeView(prevPage)
+        removeView(curPage)
+        removeView(nextPage)
+        dataProvider = null
+        pageDelegate = null
+        isScroll = false
+        super.onDetachedFromWindow()
     }
 
     /****

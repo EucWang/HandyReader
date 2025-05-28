@@ -2,6 +2,8 @@ package com.wxn.reader.presentation.mainReader
 
 import android.content.Context
 import androidx.lifecycle.MutableLiveData
+import androidx.lifecycle.asLiveData
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.wxn.base.bean.Book
 import com.wxn.base.util.Coroutines
 import com.wxn.base.util.Logger
@@ -20,6 +22,11 @@ import com.wxn.reader.domain.use_case.chapters.BookHelper
 import com.wxn.reader.domain.use_case.chapters.GetChapterByIdUserCase
 import com.wxn.reader.domain.use_case.chapters.GetChapterCountByBookIdUserCase
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.firstOrNull
+import kotlinx.coroutines.flow.lastOrNull
+import kotlinx.coroutines.flow.singleOrNull
+import kotlinx.coroutines.flow.stateIn
 import javax.inject.Inject
 
 open class PageViewController @Inject constructor(
@@ -32,7 +39,7 @@ open class PageViewController @Inject constructor(
 ) : PageViewDataProvider, PageViewCallback, SelectTextCallback {
 
     var scope: CoroutineScope? = null
-    var titleDate = MutableLiveData<String>()
+//    var titleDate = MutableLiveData<String>()
 
     override var book: Book? = null
 
@@ -57,6 +64,7 @@ open class PageViewController @Inject constructor(
      */
     override var chapterSize: Int = 0
 
+    @Volatile
     override var isInitFinish: Boolean = false
 
     override var isAutoPage: Boolean = false
@@ -83,13 +91,17 @@ open class PageViewController @Inject constructor(
         isScroll = false
 
         this.book = book
-        getChapterCountByBookIdUserCase.invoke(book.id).collect { count ->
-            this.chapterSize = count
-            durChapterIndex = book.scrollIndex
-            Logger.d("PageViewController::resetBook:chapterSize=$chapterSize, durChapterIndex=$durChapterIndex")
-            isInitFinish = true
-            Logger.d("PageViewController::resetBook:isInitFinish=$isInitFinish")
+        val count = try {
+            getChapterCountByBookIdUserCase(book.id).first()
+        } catch (ex: NoSuchElementException) {
+            Logger.e("PageViewController::resetBook:${ex.message}, failed")
+            return
         }
+        this.chapterSize = count
+        durChapterIndex = book.scrollIndex
+        Logger.d("PageViewController::resetBook:chapterSize=$chapterSize, durChapterIndex=$durChapterIndex")
+        isInitFinish = true
+        Logger.d("PageViewController::resetBook:isInitFinish=$isInitFinish")
     }
 
     /**
@@ -105,11 +117,13 @@ open class PageViewController @Inject constructor(
     }
 
     override fun loadContent(resetPageOffset: Boolean) {
-        Logger.i("PageViewController::loadContent:resetPageOffset=$resetPageOffset,durChapterIndex=$durChapterIndex")
-        scope?.launchIO {
-            loadContent(durChapterIndex, resetPageOffset = resetPageOffset)
-            loadContent(durChapterIndex + 1, resetPageOffset = resetPageOffset)
-            loadContent(durChapterIndex - 1, resetPageOffset = resetPageOffset)
+        Logger.i("PageViewController::loadContent:resetPageOffset=$resetPageOffset,durChapterIndex=$durChapterIndex, isInitFinish=$isInitFinish")
+        if (isInitFinish) {
+            scope?.launchIO {
+                loadContent(durChapterIndex, resetPageOffset = resetPageOffset)
+                loadContent(durChapterIndex + 1, resetPageOffset = resetPageOffset)
+                loadContent(durChapterIndex - 1, resetPageOffset = resetPageOffset)
+            }
         }
     }
 
@@ -137,43 +151,45 @@ open class PageViewController @Inject constructor(
     }
 
     private suspend fun loadContent(index: Int, upContent: Boolean = true, resetPageOffset: Boolean) {
-        Logger.i("PageViewController::loadContent:index=$index,upContent=$upContent,resetPageOffset=$resetPageOffset")
+//        Logger.i("PageViewController::loadContent:index=$index,upContent=$upContent,resetPageOffset=$resetPageOffset,bookid=${book?.id},bookname=${book?.title}")
         if (index < 0) return
         val curBook = book ?: return
         val bookId = curBook.id
         Logger.i("PageViewController::loadContent:index=$index,bookId=$bookId")
-//        if (!addLoading(index)) return
-        getChapterByIdUserCase(bookId, index).collect { chapter ->
-            Logger.i("PageViewController::loadContent:index=$index, chapter=$chapter, book=${curBook}")
-            BookHelper.loadChapterContent(context, curBook, chapter, textParser).let { contents ->
-                val contents = BookHelper.disposeContent(appPreferencesUtil, chapter, contents)
-                Logger.i("PageViewController::loadContent:index=$index, contents.size=${contents.size}")
-                val textChapter = ChapterProvider.getTextChapter(context, curBook, chapter, contents, imageStyles = "", chapterSize)
-                when (chapter.chapterIndex) {
-                    durChapterIndex -> {    //加载的是当前章节
-                        curTextChapter = textChapter
-                        if (upContent) {
-                            callBack?.upContent(resetPageOffset = resetPageOffset)
-                        }
-                        callBack?.upView()
-                    }
 
-                    durChapterIndex - 1 -> { //加载的是上一章节
-                        prevTextChapter = textChapter
-                        if (upContent) {
-                            callBack?.upContent(-1, resetPageOffset)
-                        }
+        val chapter = try {
+            getChapterByIdUserCase(bookId, index).first()
+        } catch (ex: NoSuchElementException) {
+            Logger.e("PageViewController::${ex.message}, failed")
+            return
+        }
+        BookHelper.loadChapterContent(context, curBook, chapter, textParser).let { contents ->
+            val contents = BookHelper.disposeContent(appPreferencesUtil, chapter, contents)
+            Logger.i("PageViewController::loadContent:index=$index, contents.size=${contents.size}")
+            val textChapter = ChapterProvider.getTextChapter(context, curBook, chapter, contents, imageStyles = "", chapterSize)
+            when (chapter.chapterIndex) {
+                durChapterIndex -> {    //加载的是当前章节
+                    curTextChapter = textChapter
+                    if (upContent) {
+                        callBack?.upContent(resetPageOffset = resetPageOffset)
                     }
+                    callBack?.upView()
+                }
 
-                    durChapterIndex + 1 -> {    //加载的是下一章节
-                        nextTextChapter = textChapter
-                        if (upContent) {
-                            callBack?.upContent(1, resetPageOffset)
-                        }
+                durChapterIndex - 1 -> { //加载的是上一章节
+                    prevTextChapter = textChapter
+                    if (upContent) {
+                        callBack?.upContent(-1, resetPageOffset)
+                    }
+                }
+
+                durChapterIndex + 1 -> {    //加载的是下一章节
+                    nextTextChapter = textChapter
+                    if (upContent) {
+                        callBack?.upContent(1, resetPageOffset)
                     }
                 }
             }
-//            removeLoading(index)
         }
     }
 
@@ -212,12 +228,14 @@ open class PageViewController @Inject constructor(
         nextTextChapter = null
         if (curTextChapter == null) {
             Coroutines.mainScope().launchIO {
+                Logger.d("PageViewController::moveToNextChapter:when curTextChapter is null, durChapterIndex=$durChapterIndex")
                 loadContent(durChapterIndex, upContent, false)
             }
         } else {
             callBack?.upContent()
         }
         Coroutines.mainScope().launchIO {
+            Logger.d("PageViewController::moveToNextChapter:, durChapterIndex=${durChapterIndex + 1}")
             loadContent(durChapterIndex.plus(1), upContent, false)
         }
         saveRead()
@@ -245,6 +263,7 @@ open class PageViewController @Inject constructor(
 
         if (curTextChapter == null) {
             Coroutines.mainScope().launchIO {
+                Logger.d("PageViewController::moveToPrevChapter when curTextChapter is null, durChapterIndex=${durChapterIndex}")
                 loadContent(durChapterIndex, upContent, false)
             }
         } else if (upContent) {
@@ -252,6 +271,7 @@ open class PageViewController @Inject constructor(
         }
 
         Coroutines.mainScope().launchIO {
+            Logger.d("PageViewController::moveToPrevChapter, durChapterIndex=${durChapterIndex-1}")
             loadContent(durChapterIndex.minus(1), upContent, false)
         }
         saveRead()

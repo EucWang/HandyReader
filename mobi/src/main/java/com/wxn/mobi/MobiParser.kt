@@ -26,7 +26,7 @@ object MobiParser {
     fun getMobiChapter(context: Context, bookId: Long, path: String): Array<BookChapter>? {
         Log.d("MobiParser", "getMobiChapter:path=$path")
         val chapters : Array<BookChapter>? = NativeLib.getChapters(context, bookId, path)
-        Log.d("MobiParser", "getMobiChapter: = $chapters")
+        Log.d("MobiParser", "getMobiChapter: = ${chapters?.size}")
         return chapters
     }
 
