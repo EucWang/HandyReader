@@ -26,3 +26,20 @@ int file_ext::checkAndCreateDir(const std::string &parentPath, const std::string
     }
     return 0;
 }
+
+int file_ext::writeDataToFile(const std::string &filepath, unsigned char* data, size_t data_size) {
+    int fd = open(filepath.c_str(), O_CREAT | O_TRUNC | O_RDWR, 0666);
+    if (fd == -1) {
+        LOGE("%s:failed,can't create or open img path[%s]", __func__, filepath.c_str());
+        return 0;
+    }
+    int ret = write(fd, data, data_size);
+    if (ret == -1) {
+        LOGE("%s:failed,can't write data to path[%s]", __func__, filepath.c_str());
+        return 0;
+    } else {
+        LOGE("%s:write data to path[%s] success", __func__, filepath.c_str());
+    }
+    close(fd);
+    return 1;
+}

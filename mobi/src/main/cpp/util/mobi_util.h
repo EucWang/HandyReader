@@ -88,6 +88,7 @@ public:
         } else {
             initStatus = true;
         }
+        allChapters.clear();
     }
 
     /***
@@ -96,6 +97,7 @@ public:
     virtual ~mobi_util() {
         book_id = 0;
         mobi_data_free();
+        allChapters.clear();
     }
 
     static int loadMobi(std::string fullpath,
@@ -140,6 +142,7 @@ private:
     mutable std::mutex m_Mutex;
     MOBIRawml *mobi_rawml;
     MOBIData *mobi_data;
+    std::vector<NavPoint> allChapters;
 
     int init();
 

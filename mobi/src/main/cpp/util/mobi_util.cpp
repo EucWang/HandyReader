@@ -3,9 +3,6 @@
 //
 
 #include "mobi_util.h"
-#include <fcntl.h>   // 包含 open() 等文件操作函数
-#include <unistd.h>  // 包含 close() 等文件操作函数
-#include <iostream>
 
 void mobi_util::mobi_data_free() {
     if (mobi_rawml != nullptr) {
@@ -176,16 +173,18 @@ int mobi_util::getChapters(JNIEnv *env, long book_id, const char *path, std::vec
         LOGE("%s:init status failed, so pass", __func__ );
         return 0;
     }
-    if (mobi_rawml == nullptr || mobi_data == nullptr) {
-        return 0;
+
+    if (!allChapters.empty()) {
+        points.insert(points.end(), allChapters.begin(), allChapters.end());
+        return 1;
     }
 
+    const unsigned char *opf_data = NULL;
+    const unsigned char *ncx_data = NULL;
+    size_t opf_data_size = 0;
+    size_t ncx_data_size = 0;
     if (mobi_rawml->resources != NULL) {
         MOBIPart *curr = mobi_rawml->resources;
-        const unsigned char *opf_data = NULL;
-        const unsigned char *ncx_data = NULL;
-        size_t opf_data_size = 0;
-        size_t ncx_data_size = 0;
         while (curr != NULL) {
             MOBIFileMeta file_meta = mobi_get_filemeta_by_type(curr->type);
             if (curr->size > 0) {
@@ -218,12 +217,13 @@ int mobi_util::getChapters(JNIEnv *env, long book_id, const char *path, std::vec
     } else {
         return 0;
     }
+    allChapters.clear();
+    allChapters.insert(allChapters.end(), points.begin(), points.end());
     return 1;
 }
 
 int mobi_util::loadMobi(std::string fullpath,
                         std::string &coverPath,
-//                        std::string& epubPath,
 
                         std::string &title,
                         std::string &author,
@@ -372,29 +372,6 @@ int mobi_util::loadMobi(std::string fullpath,
     auto now2 = std::chrono::system_clock::now();
     auto timestamp2 = std::chrono::duration_cast<std::chrono::milliseconds>(now2.time_since_epoch()).count();
     LOGD("%s: dump_cover path is [%s], use time : [%lld]ms ", __func__, coverPath.c_str(), timestamp2 - timestamp);
-
-//    ret = create_epub(rawml, fullpath.c_str());
-//------------- convert mobi to epub
-//    char zipfile[FILENAME_MAX];
-//    memset(zipfile, 0, FILENAME_MAX);
-//    if (create_path(zipfile, sizeof(zipfile), fullpath.c_str(), ".epub") == ERROR) {
-//        return ERROR;
-//    }
-//    ret = epub_rawml_parts(rawml, zipfile);
-//    LOGD("Saving EPUB to %s\n", zipfile);
-//
-//    if (ret == ERROR) {
-//        LOGE("%s create epub failed, mobi path is [%s]", __func__, fullpath.c_str());
-//        mobi_free_rawml(rawml);
-//        mobi_free(mobi_data);
-//        return ERROR;
-//    } else {
-//        epubPath = replaceExtension(fullpath, ".epub");
-//    }
-//    auto now3 = std::chrono::system_clock::now();
-//    auto timestamp3 = std::chrono::duration_cast<std::chrono::milliseconds>(now3.time_since_epoch()).count();
-//    LOGD("%s: create_epub spend time :: [%lld]ms", __func__, timestamp3 - timestamp2);
-//-------------
 
     if (meta_title) {
         free(meta_title);
@@ -616,8 +593,8 @@ int mobi_util::cacheImage(JNIEnv *env, long book_id,MOBIRawml* mobi_rawml, std::
         bitmap_ext::getImageOption(env, fullpath.c_str(), width, height);
         return 1;
     } else if (ret == 0) {  //缓存文件不存在，缓存路径存在或者创建缓存路径成功
-        MOBIPart *curr = NULL;
         if (prefixType == 3 && mobi_rawml->resources != NULL) {
+            MOBIPart *curr = NULL;
             curr = mobi_rawml->resources;
 
             unsigned char *rawPic = NULL;
@@ -636,23 +613,11 @@ int mobi_util::cacheImage(JNIEnv *env, long book_id,MOBIRawml* mobi_rawml, std::
             }
 
             if (rawPicSize > 0 || rawPic != NULL) {
-                size_t fd = open(fullpath.c_str(), O_CREAT | O_TRUNC | O_RDWR, 0666);
-                if (fd == -1) {
-                    LOGE("%s:failed,can't create or open img path[%s]", __func__, fullpath.c_str());
-                    return 0;
+                if(file_ext::writeDataToFile(fullpath, rawPic, rawPicSize) == 1) {
+                    bitmap_ext::getImageOption(env, fullpath.c_str(), width, height);
+                    return 1;
                 } else {
-                    ret = write(fd, rawPic, rawPicSize);
-                    if (ret == -1) {
-                        LOGE("%s:failed,can't write to img path[%s]", __func__, fullpath.c_str());
-                        return 0;
-                    } else {
-                        LOGE("%s:write image to path[%s] success", __func__, fullpath.c_str());
-                    }
-                    close(fd);
-                    if (ret != -1) {
-                        bitmap_ext::getImageOption(env, fullpath.c_str(), width, height);
-                        return 1;
-                    }
+                    return 0;
                 }
             } else {
                 LOGE("%s:failed,rawPicSize[%zu] is null or rawPic is null", __func__, rawPicSize);
@@ -774,14 +739,10 @@ int mobi_util::parseHtmlDoc(JNIEnv *env, long book_id,  MOBIRawml* mobi_rawml, t
 
 int mobi_util::getChapter(JNIEnv *env, long book_id, const char *path, NavPoint &chapter, std::vector<DocText> &docTexts) {
     std::lock_guard<std::mutex> lock(m_Mutex);
-
     if (!initStatus) {
         LOGE("%s:init status failed, so pass", __func__ );
         return 0;
     }
-//    if (init(path, &mobi_rawml, &mobi_data) != MOBI_SUCCESS) {
-//        return 0;
-//    }
     if (app_ext::appFileDir.empty()) {
         return 0;
     }
