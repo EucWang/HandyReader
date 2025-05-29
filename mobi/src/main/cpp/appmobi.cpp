@@ -8,13 +8,10 @@
 #include "util/crc_util.h"
 #include "util/log.h"
 #include "util/mobi_util.h"
+#include "util/app_ext.h"
+#include <memory>
 
-//extern "C" JNIEXPORT jstring JNICALL Java_com_wxn_mobi_NativeLib_stringFromJNI(
-//        JNIEnv *env,
-//        jobject /* this */) {
-//    std::string hello = "Hello from C++";
-//    return env->NewStringUTF(hello.c_str());
-//}
+std::shared_ptr<mobi_util> mobiutil = nullptr;
 
 extern "C" JNIEXPORT jobjectArray JNICALL
 Java_com_wxn_mobi_inative_NativeLib_nativeFilesCrc(
@@ -79,6 +76,18 @@ Java_com_wxn_mobi_inative_NativeLib_nativeFilesCrc(
     return result;
 }
 
+void create_mobi_util(long book_id, const char* path) {
+    if (mobiutil == nullptr) {
+        long bookid = book_id;
+        std::string bookpath = path;
+        mobiutil = std::shared_ptr<mobi_util>(new mobi_util(bookid, bookpath));
+    } else {
+        if (mobiutil->bookid() != book_id || mobiutil->bookpath() != path) {
+            mobiutil.reset(new mobi_util(book_id, path));
+        }
+    }
+}
+
 extern "C" JNIEXPORT jobject JNICALL
 Java_com_wxn_mobi_inative_NativeLib_loadMobi(
         JNIEnv *env,
@@ -87,16 +96,20 @@ Java_com_wxn_mobi_inative_NativeLib_loadMobi(
         jstring path) {
     const char *nativeStr = env->GetStringUTFChars(path, NULL);
 
-    jclass contextClass = env->GetObjectClass(context);
-    jmethodID getFilesDirMethod = env->GetMethodID(contextClass, "getFilesDir", "()Ljava/io/File;");
-    //call getFilesDir(), return File object
-    jobject filesDirObj = env->CallObjectMethod(context, getFilesDirMethod);
+    if (app_ext::appFileDir.empty()) {
+        jclass contextClass = env->GetObjectClass(context);
+        jmethodID getFilesDirMethod = env->GetMethodID(contextClass, "getFilesDir", "()Ljava/io/File;");
+        //call getFilesDir(), return File object
+        jobject filesDirObj = env->CallObjectMethod(context, getFilesDirMethod);
 
-    //call getAbsolutePath(), get full dir path
-    jclass fileClass = env->FindClass("java/io/File");
-    jmethodID getAbsolutePathMethod = env->GetMethodID(fileClass, "getAbsolutePath", "()Ljava/lang/String;");
-    jstring pathStr = (jstring) env->CallObjectMethod(filesDirObj, getAbsolutePathMethod);
-    const char *appFileDir = env->GetStringUTFChars(pathStr, NULL);
+        //call getAbsolutePath(), get full dir path
+        jclass fileClass = env->FindClass("java/io/File");
+        jmethodID getAbsolutePathMethod = env->GetMethodID(fileClass, "getAbsolutePath", "()Ljava/lang/String;");
+        jstring pathStr = (jstring) env->CallObjectMethod(filesDirObj, getAbsolutePathMethod);
+        const char *appFileDir = env->GetStringUTFChars(pathStr, NULL);
+        app_ext::appFileDir = appFileDir;
+        env->ReleaseStringUTFChars(pathStr, appFileDir);
+    }
 
     std::string coverPath;
 //    std::string epubPath;
@@ -120,9 +133,7 @@ Java_com_wxn_mobi_inative_NativeLib_loadMobi(
     std::string identifier;
     bool isEncrypted = false;
 
-
     int ret = mobi_util::loadMobi(nativeStr,
-                                  appFileDir,
                                   coverPath,
 //                                  epubPath,
                                   title,
@@ -142,7 +153,6 @@ Java_com_wxn_mobi_inative_NativeLib_loadMobi(
                                   isEncrypted);
 //    LOGD("%s:load mobi cover[%s], epub[%s].", __func__, coverPath.c_str(), epubPath.c_str());
     env->ReleaseStringUTFChars(path, nativeStr);
-    env->ReleaseStringUTFChars(pathStr, appFileDir);
 
     if (ret != SUCCESS) {
         return nullptr;
@@ -219,8 +229,10 @@ JNIEXPORT jobjectArray JNICALL
 Java_com_wxn_mobi_inative_NativeLib_getChapters(JNIEnv *env, jobject thiz, jobject context, jlong book_id, jstring path) {
     const char *nativeStr = env->GetStringUTFChars(path, NULL);
 
+    create_mobi_util(book_id, nativeStr);
+
     std::vector<NavPoint> vectors;
-    int ret = mobi_util::getChapters(env, book_id, nativeStr, vectors);
+    int ret = mobiutil->getChapters(env, book_id, nativeStr, vectors);
     if (ret != 1) {
         return nullptr;
     }
@@ -288,15 +300,19 @@ JNIEXPORT jobjectArray JNICALL
 Java_com_wxn_mobi_inative_NativeLib_getChapter(JNIEnv *env, jobject thiz, jobject context, jstring path, jobject chapter) {
     const char *nativeStr = env->GetStringUTFChars(path, NULL);
 
-    jclass contextClass = env->GetObjectClass(context);
-    jmethodID getFilesDirMethod = env->GetMethodID(contextClass, "getFilesDir", "()Ljava/io/File;");
-    //call getFilesDir(), return File object
-    jobject filesDirObj = env->CallObjectMethod(context, getFilesDirMethod);
-    //call getAbsolutePath(), get full dir path
-    jclass fileClass = env->FindClass("java/io/File");
-    jmethodID getAbsolutePathMethod = env->GetMethodID(fileClass, "getAbsolutePath", "()Ljava/lang/String;");
-    jstring pathStr = (jstring) env->CallObjectMethod(filesDirObj, getAbsolutePathMethod);
-    const char *appFileDir = env->GetStringUTFChars(pathStr, NULL);
+    if (app_ext::appFileDir.empty()) {
+        jclass contextClass = env->GetObjectClass(context);
+        jmethodID getFilesDirMethod = env->GetMethodID(contextClass, "getFilesDir", "()Ljava/io/File;");
+        //call getFilesDir(), return File object
+        jobject filesDirObj = env->CallObjectMethod(context, getFilesDirMethod);
+        //call getAbsolutePath(), get full dir path
+        jclass fileClass = env->FindClass("java/io/File");
+        jmethodID getAbsolutePathMethod = env->GetMethodID(fileClass, "getAbsolutePath", "()Ljava/lang/String;");
+        jstring pathStr = (jstring) env->CallObjectMethod(filesDirObj, getAbsolutePathMethod);
+        const char *appFileDir = env->GetStringUTFChars(pathStr, NULL);
+        app_ext::appFileDir = appFileDir;
+        env->ReleaseStringUTFChars(pathStr, appFileDir);
+    }
 
     jclass chapterClass = env->GetObjectClass(chapter);
     jfieldID fieldChapterId = env->GetFieldID(chapterClass, "chapterId", "Ljava/lang/String;");
@@ -330,8 +346,10 @@ Java_com_wxn_mobi_inative_NativeLib_getChapter(JNIEnv *env, jobject thiz, jobjec
     int chapter_size = chapterSize;
     LOGD("%s:chapterId=%s,text=%s,playOrder=%d,src=%s,book_id=%ld,chapter_size=%d", __func__, chapterIdStr, chapterNameStr, point.playOrder, srcStr, bookId, chapter_size);
 
+    create_mobi_util(book_id, nativeStr);
+
     std::vector<DocText> docTexts;
-    if (1 != mobi_util::getChapter(env, book_id, nativeStr, appFileDir, point, docTexts)) {
+    if (1 != mobiutil->getChapter(env, book_id, nativeStr, point, docTexts)) {
         return nullptr;
     }
 
@@ -399,7 +417,6 @@ Java_com_wxn_mobi_inative_NativeLib_getChapter(JNIEnv *env, jobject thiz, jobjec
     }
 
     env->ReleaseStringUTFChars(path, nativeStr);
-    env->ReleaseStringUTFChars(pathStr, appFileDir);
 
     env->ReleaseStringUTFChars(chapterId, chapterIdStr);
     env->ReleaseStringUTFChars(parentChapterId, parentChapterIdStr);

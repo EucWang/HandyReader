@@ -16,7 +16,10 @@ extern "C" {
 #include "tidybuffio.h"
 }
 
+#include "bitmap_ext.h"
+#include "app_ext.h"
 #include "string_ext.h"
+#include "file_ext.h"
 #include <iomanip>
 #include <sstream>
 #include <random>
@@ -26,7 +29,6 @@ extern "C" {
 #include <iostream>
 #include <filesystem> // C++17 标准库
 
-
 #include <thread>
 #include <stdexcept>
 #include <mutex>
@@ -34,10 +36,7 @@ extern "C" {
 #include "utf8.h"
 #include <android/bitmap.h>
 #include <android/imagedecoder.h>
-#include <sys/system_properties.h>
 
-
-namespace fs = std::filesystem;
 
 typedef struct NavPoint_{
     std::string id;
@@ -73,8 +72,33 @@ typedef struct DocText_ {
 class mobi_util {
 public:
 
+    /***
+     * 构造函数
+     * @param bookid
+     * @param bookpath
+     */
+    mobi_util(long bookid, std::string bookpath){
+        book_id = bookid;
+        book_path = bookpath;
+        mobi_rawml = nullptr;
+        mobi_data = nullptr;
+        initStatus = false;
+        if (init() != MOBI_SUCCESS) {
+            initStatus = false;
+        } else {
+            initStatus = true;
+        }
+    }
+
+    /***
+     * 析构函数
+     */
+    virtual ~mobi_util() {
+        book_id = 0;
+        mobi_data_free();
+    }
+
     static int loadMobi(std::string fullpath,
-                        std::string appFileDir,
                         std::string& coverPath,
 
                         std::string& title,
@@ -97,27 +121,29 @@ public:
                         std::string& identifier,
                         bool& isEncrypted);
 
-//    static int convertToEpub(
-//            std::string fullpath,
-//            std::string appCacheeDir,
-//            std::string& epubPath);
+    int getChapters(JNIEnv *env, long book_id, const char* path,  /*out*/std::vector<NavPoint>& points);
 
-    static int getChapters(JNIEnv *env, long book_id, const char* path,  /*out*/std::vector<NavPoint>& points);
+    int getChapter(JNIEnv *env, long book_id, const char *path, NavPoint& chapter, std::vector<DocText> &docTexts);
 
-    static int getChapter(JNIEnv *env, long book_id, const char *path, const char *app_file_dir, NavPoint& chapter, std::vector<DocText> &docTexts);
+    long bookid(){
+        return book_id;
+    }
+    std::string& bookpath(){
+        return book_path;
+    }
 
-//    static void free_data(MOBIRawml *mobi_rawml, MOBIData *mobi_data;);
 private:
-    //缓存上次创建的书籍信息
-//    static long last_book_id;
-//    static std::string last_path;
-//    static MOBIRawml *mobi_rawml;
-//    static  MOBIData *mobi_data;
-    static std::string appFileDir;
 
-    static  std::mutex m_Mutex;
+    bool initStatus;
+    long book_id;
+    std::string book_path;
+    mutable std::mutex m_Mutex;
+    MOBIRawml *mobi_rawml;
+    MOBIData *mobi_data;
 
-    static int init(const char* path, MOBIRawml **mobi_rawml, MOBIData **mobi_data);
+    int init();
+
+    void mobi_data_free();
 
     /****
  * 从资源索引路径中解析出 prefix， srcId, anchorId, suffix
@@ -144,16 +170,6 @@ private:
      * @return
      */
     static int parseHtmlDoc(JNIEnv *env, long book_id, MOBIRawml* mobi_rawml, tinyxml2::XMLElement *element, std::vector<DocText>& docTexts);
-
-    /****
-     * 获得图片的宽高信息
-     * @param env [in] JNIEnv *
-     * @param path [in] 图片绝对路径
-     * @param width [out] 输出图片宽度
-     * @param height [out] 输出图片高度
-     * @return return 0 if error， 1 success
-     */
-    static int getImageOption(JNIEnv *env, long book_id,  const char* path, int* width, int* height);
 
     /****
      * 图片资源如果没有写入到缓存文件中，则创建图片缓存文件， 并返回图片的宽高，

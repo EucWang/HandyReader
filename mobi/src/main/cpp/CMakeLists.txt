@@ -48,6 +48,12 @@ add_library(${CMAKE_PROJECT_NAME} SHARED
         util/mobi/save_epub.h
         util/mobi/save_epub.cpp
 
+        util/bitmap_ext.cpp
+        util/bitmap_ext.h
+        util/app_ext.h
+        util/app_ext.cpp
+        util/file_ext.h
+        util/file_ext.cpp
         util/mobi_util.h
         util/mobi_util.cpp
 
