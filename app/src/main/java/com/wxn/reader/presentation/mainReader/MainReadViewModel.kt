@@ -4,9 +4,11 @@ import android.app.Application
 import androidx.compose.runtime.Stable
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.SavedStateHandle
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewModelScope
 import com.wxn.base.bean.Book
 import com.wxn.base.util.Logger
+import com.wxn.base.util.launchIO
 import com.wxn.bookparser.TextParser
 import com.wxn.bookparser.parser.mobi.MobiFileParser
 import com.wxn.bookparser.parser.mobi.MobiTextParser
@@ -40,6 +42,7 @@ import com.wxn.reader.domain.use_case.reading_activity.GetReadingActivityByDateU
 import com.wxn.reader.domain.use_case.reading_progress.GetReadingProgressUseCase
 import com.wxn.reader.domain.use_case.reading_progress.SetReadingProgressUseCase
 import com.wxn.reader.presentation.bookReader.BookReaderUiState
+import com.wxn.reader.presentation.bookReader.BookReaderUiState.LOAD_CHAPTER_SUCCESS
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -47,6 +50,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.firstOrNull
+import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import org.readium.r2.navigator.epub.EpubPreferences
 import org.readium.r2.shared.ExperimentalReadiumApi
@@ -128,19 +132,20 @@ class MainReadViewModel @Inject constructor(
     private var isReadingSessionActive = false
     private var lastLocatorChangeTime = 0L
 
-    private suspend fun fetchBook(bookId: Long, loadCallback: (Book)->Unit) {
+    private suspend fun fetchBook(bookId: Long): Boolean {
         try {
             val theBook = getBookByIdUseCase(bookId)
             if (theBook != null) {
                 _book.value = theBook
-                loadCallback.invoke(theBook)
-                _uiState.value = BookReaderUiState.LOAD_SUCCESS(theBook)
+                _uiState.value = BookReaderUiState.LOAD_BOOK_SUCCESS(theBook)
                 Logger.d("MainReadViewModel:fetchBook::_uiState.value=${_uiState.value}")
             }
+            return true
         } catch (e: Exception) {
             _uiState.value = BookReaderUiState.Error(e.message ?: "An error occurred")
             Logger.d("MainReadViewModel:fetchBook::_uiState.value=${_uiState.value}")
         }
+        return false
     }
 
     private fun resetCurrentDayStartTime() {
@@ -161,43 +166,36 @@ class MainReadViewModel @Inject constructor(
         pageController.scope = viewModelScope
 
         viewModelScope.launch {
-            appPreferencesUtil.appPreferencesFlow.first().let { initialPreferences ->
+            appPreferencesUtil.appPreferencesFlow.stateIn(viewModelScope).collect { initialPreferences ->
                 _appPreferences.value = initialPreferences
             }
 
-            openedBookId?.let { bookId ->
-                _currentBookId.value = bookId
+            readerPreferencesUtil.readerPreferencesFlow.stateIn(viewModelScope).collect { preferences ->
+                _readerPreferences.value = preferences
+                _epubPreferences.value = preferences.toRediumEpubPreferences()
+            }
+        }
 
-                Logger.i("MainReadViewModel::init::bookId=$bookId")
-                var allChapters = getChaptersByBookIdUserCase.invoke(bookId).firstOrNull()
-                if (allChapters.isNullOrEmpty()) {
-                    allChapters = BookHelper.getChapters(context, bookId, bookUri, textParser)
-                    if (allChapters.isNotEmpty()) {
-                        launch(Dispatchers.IO) {
-                            insertChaptersUserCase(allChapters)
-                            fetchBook(bookId) { newBook ->
-                                launch(Dispatchers.IO) {
-                                    pageController.resetBook(newBook)  //重新加载章节数
-                                }
-                            }
-                        }
-                    }
-                } else {
-                    fetchBook(bookId) { newBook ->
-                        launch(Dispatchers.IO) {
-                            pageController.resetBook(newBook)  //重新加载章节数
-                        }
-                    }
+        viewModelScope.launchIO {
+            val bookId = openedBookId ?: return@launchIO
+            _currentBookId.value = bookId
+
+            Logger.i("MainReadViewModel::init::bookId=$bookId")
+            var allChapters = getChaptersByBookIdUserCase.invoke(bookId).firstOrNull()
+            if (allChapters.isNullOrEmpty()) {
+                Logger.d("MainReaderViewModel:load all chapters from db failed:${System.currentTimeMillis()}")
+                allChapters = BookHelper.getChapters(context, bookId, bookUri, textParser)
+                if (allChapters.isNotEmpty()) {
+                    Logger.d("MainReaderViewModel:load all chapters from book file:${System.currentTimeMillis()}")
+                    insertChaptersUserCase(allChapters)
                 }
-
-                readerPreferencesUtil.readerPreferencesFlow.collect { preferences ->
-                    _readerPreferences.value = preferences
-                    _epubPreferences.value = preferences.toRediumEpubPreferences()
-                }
-
-                // Continue collecting preferences updates
-                appPreferencesUtil.appPreferencesFlow.collect { preferences ->
-                    _appPreferences.value = preferences
+            }
+            if (fetchBook(bookId)){
+                val newBook = _book.value ?: return@launchIO
+                Logger.d("MainReaderViewModel:load reset book to pageController:${System.currentTimeMillis()}")
+                pageController.resetBook(newBook){//重新加载章节数
+                    _uiState.value = LOAD_CHAPTER_SUCCESS(0)
+                    Logger.d("MainReaderViewModel:load current chapter success:${System.currentTimeMillis()}")
                 }
             }
         }

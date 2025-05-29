@@ -1,36 +1,28 @@
 package com.wxn.reader.presentation.mainReader
 
-import androidx.compose.animation.core.animate
-import androidx.compose.animation.core.tween
+import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import coil.compose.AsyncImage
-import coil.request.ImageRequest
-import coil.size.Scale
+import com.wxn.base.util.Logger
 import com.wxn.reader.presentation.bookReader.BookReaderUiState
+import com.wxn.reader.util.ImagePanel
 import com.wxn.reader.util.KeepScreenOn
-import com.wxn.reader.util.LogCompositions
-import com.wxn.reader.util.OnFirstLaunch
 import com.wxn.reader.util.SetFullScreen
 import org.readium.r2.shared.ExperimentalReadiumApi
 
@@ -39,25 +31,29 @@ import org.readium.r2.shared.ExperimentalReadiumApi
 fun MainReadScreen(
     viewModel: MainReadViewModel = hiltViewModel()
 ) {
-    LogCompositions("Composition:MainReadScreen")
     val context = LocalContext.current
-
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val readerPreferences by viewModel.readerPreferences.collectAsStateWithLifecycle()
-
+    val book by viewModel.book.collectAsStateWithLifecycle()
     var areToolbarsVisible by remember { mutableStateOf(false) }
-
-    var readerAlpha by remember { mutableFloatStateOf(0f) }
+    var showState by remember { mutableStateOf(0) }
 
     KeepScreenOn(readerPreferences.keepScreenOn)
+    var loadTimemillis by remember { mutableStateOf(0L) }
 
     LaunchedEffect(uiState) {
-//        viewModel.fetchInitialLocator()
-        if (uiState is BookReaderUiState.LOAD_SUCCESS) {
-            // Animate the transition
-            animate(0f, 1f, animationSpec = tween(durationMillis = 500)) { value, _ ->
-                readerAlpha = value
-            }
+        viewModel.fetchInitialLocator()
+        if (uiState is BookReaderUiState.Loading) {
+            loadTimemillis = System.currentTimeMillis()
+        } else if (uiState is BookReaderUiState.LOAD_BOOK_SUCCESS) {
+            showState = 1
+            val curMillis = System.currentTimeMillis()
+            Logger.d("MainReadScreen::show cover, load book spend:${curMillis - loadTimemillis}")
+            loadTimemillis = curMillis
+        } else if (uiState is BookReaderUiState.LOAD_CHAPTER_SUCCESS) {
+            showState = 2
+            val curMillis = System.currentTimeMillis()
+            Logger.d("MainReadScreen::show reader, load book chapter spend:${curMillis - loadTimemillis}")
         }
     }
 
@@ -73,57 +69,16 @@ fun MainReadScreen(
         modifier = Modifier.fillMaxSize().background(color = Color(readerPreferences.backgroundColor)), //.background(MaterialTheme.colorScheme.background),
         contentAlignment = Alignment.Center
     ) {
-        when (uiState) {
-            is BookReaderUiState.Loading-> {
-                // Book cover
-                BookCoverPanel(viewModel)
+        // reader
+        AnimatedVisibility(visible = (showState == 1 || showState == 2)) {
+            Box(modifier = Modifier.fillMaxSize()) {
+                ReaderView(readerPreferences = readerPreferences, viewModel = viewModel)
             }
-
-            is BookReaderUiState.LOAD_SUCCESS -> {
-                // reader
-                Box(modifier = Modifier.fillMaxSize().alpha(readerAlpha)) {
-                    ReaderView(
-                        readerPreferences = readerPreferences,
-                        viewModel = viewModel
-                    )
-                }
-            }
-
-            is BookReaderUiState.Error -> Text((uiState as BookReaderUiState.Error).message)
-
-            is BookReaderUiState.Success -> {} //nothing
         }
-    }
-}
 
-@Composable fun BookCoverPanel(viewModel: MainReadViewModel) {
-    LogCompositions("BookCoverPanel")
-    val bookCover by viewModel.bookCover.collectAsStateWithLifecycle()
-    var coverAlpha by remember { mutableFloatStateOf(1f) }
-    Box(
-        modifier = Modifier
-            .fillMaxSize()
-            .alpha(coverAlpha),
-        contentAlignment = Alignment.Center
-    ) {
-        val request = ImageRequest.Builder(LocalContext.current)
-            .data(bookCover)
-            .size(300)
-            .scale(Scale.FIT)
-            .build()
-        AsyncImage(
-            model = request,
-            contentDescription = "Book cover",
-            modifier = Modifier
-                .fillMaxSize(0.7f)
-                .padding(16.dp),
-            contentScale = ContentScale.Fit
-        )
-    }
-
-    OnFirstLaunch {
-        animate(1f, 0f, animationSpec = tween(durationMillis = 1000)) { value, _ ->
-            coverAlpha = value
+        // Book cover
+        AnimatedVisibility(visible = (showState == 1), modifier = Modifier.fillMaxSize()) {
+            ImagePanel(modifier = Modifier.fillMaxSize(0.7f).padding(16.dp), data = book?.coverImage)
         }
     }
 }

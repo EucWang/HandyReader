@@ -81,7 +81,12 @@ open class PageViewController @Inject constructor(
         ChapterProvider.tryCreatePreference(context)
     }
 
-    suspend fun resetBook(book: Book) {
+    /***
+     * 初始章节加载成功/失败回调
+     */
+    private var onInitChapterLoadListener: ((Boolean)->Unit)? = null
+
+    suspend fun resetBook(book: Book, initChapterLoadListener: ((Boolean)->Unit)) {
         Logger.i("PageViewController::resetBook:book=$book")
         this.prevTextChapter = null
         this.curTextChapter = null
@@ -101,6 +106,7 @@ open class PageViewController @Inject constructor(
         durChapterIndex = book.scrollIndex
         Logger.d("PageViewController::resetBook:chapterSize=$chapterSize, durChapterIndex=$durChapterIndex")
         isInitFinish = true
+        onInitChapterLoadListener = initChapterLoadListener
         Logger.d("PageViewController::resetBook:isInitFinish=$isInitFinish")
     }
 
@@ -161,6 +167,10 @@ open class PageViewController @Inject constructor(
             getChapterByIdUserCase(bookId, index).first()
         } catch (ex: NoSuchElementException) {
             Logger.e("PageViewController::${ex.message}, failed")
+            if (isInitFinish) {
+                onInitChapterLoadListener?.invoke(false)
+                onInitChapterLoadListener = null
+            }
             return
         }
         BookHelper.loadChapterContent(context, curBook, chapter, textParser).let { contents ->
@@ -174,6 +184,11 @@ open class PageViewController @Inject constructor(
                         callBack?.upContent(resetPageOffset = resetPageOffset)
                     }
                     callBack?.upView()
+                    if (isInitFinish && onInitChapterLoadListener != null) {
+                        Logger.e("PageViewController::loadChapterContent first success")
+                        onInitChapterLoadListener?.invoke(true)
+                        onInitChapterLoadListener = null
+                    }
                 }
 
                 durChapterIndex - 1 -> { //加载的是上一章节

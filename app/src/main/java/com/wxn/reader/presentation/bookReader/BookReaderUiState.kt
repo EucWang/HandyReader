@@ -7,5 +7,6 @@ sealed class BookReaderUiState {
     data object Loading : BookReaderUiState()
     data class Error(val message: String) : BookReaderUiState()
     data class Success(val publication: Publication) : BookReaderUiState()
-    data class LOAD_SUCCESS(val book: Book) : BookReaderUiState()
+    data class LOAD_BOOK_SUCCESS(val book: Book) : BookReaderUiState()
+    data class LOAD_CHAPTER_SUCCESS(val chapterIndex: Int): BookReaderUiState()
 }

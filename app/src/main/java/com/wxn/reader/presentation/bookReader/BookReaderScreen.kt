@@ -240,7 +240,8 @@ fun BookReaderScreen(
             }
 
             is BookReaderUiState.Error -> Text((uiState as BookReaderUiState.Error).message)
-            is BookReaderUiState.LOAD_SUCCESS -> {}
+            is BookReaderUiState.LOAD_BOOK_SUCCESS -> {}
+            is BookReaderUiState.LOAD_CHAPTER_SUCCESS -> {}
         }
     }
 }
