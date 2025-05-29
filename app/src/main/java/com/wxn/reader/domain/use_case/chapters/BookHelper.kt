@@ -82,6 +82,18 @@ object BookHelper {
         content1.forEach { content ->
             if (content is ReaderText.Text) {
                 val line = content.line.replace("^[\\n\\s\\r]+".toRegex(), "")
+                    .replace("&nbsp;", " ") //不换行空格
+                    .replace("&ensp;", " ")          //半角空格
+                    .replace("&emsp;", " ")          //全角空格
+                    .replace("&thinsp;", " ")        //窄空格
+                    .replace("&zwnj;", "")          //零宽不连字，不打印字符，放在电子文本的两个字符之间，抑制本来会发生的连字
+                    .replace("&zwj", "-")           //零宽连字，zero width joiner, 不打印字符，放在某些需要复杂排版语言（阿拉伯语，印地语）的两个字符之间，使得两个本不会发生连字的字符产生连字效果，零宽字符的Unicode码位是U+200D(HTML: &#8205; &zwj;)
+                    .replace("&#x0020;", " ")        //空格
+                    .replace("&#x0009;", " ")        //制表位
+                    .replace("&#x000A;", "")        //换行
+                    .replace("&#x000D;", "")        //回车
+                    .replace("&#12288;", "")        //
+
                 if (!content.line.isEmpty()) {
                     content.line = "${ChapterProvider.paragraphIndent}$line"
                 }

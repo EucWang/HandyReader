@@ -45,7 +45,11 @@ data class TextLine(
     /***
      * 是否正在播放tts语音
      */
-    var isReadAloud: Boolean = false
+    var isReadAloud: Boolean = false,
+
+    var paragraphIndex: Int = 0,    //当前行所在的段落的序号
+    var charStartOffset: Int = 0,   //当前行在所在段落中的起始位置 the start index (inclusive).
+    var charEndOffset: Int = 0        //当前行在所在段落中的结束位置  the end index (exclusive)
 ) {
 
     fun upTopBottom(durY: Float, textPaint: TextPaint) {

@@ -13,6 +13,7 @@ import com.wxn.base.bean.Book
 import com.wxn.base.bean.BookChapter
 import com.wxn.base.bean.ReaderText
 import com.wxn.base.bean.ReaderText.Text
+import com.wxn.base.bean.TextTag
 import com.wxn.base.ext.isContentPath
 import com.wxn.base.ext.statusBarHeight
 import com.wxn.base.ext.toStringArray
@@ -382,43 +383,19 @@ object ChapterProvider {
                     } else {
                         val title = paragraph.tryParseToChapter(chapter.chapterIndex)
                         if (title != null) {
-                            setTypeText(title, offsetY, textPages, pageLines, pageLengths, stringBuilder, true)
+                            setTypeText(title, index, offsetY, textPages, pageLines, pageLengths, stringBuilder, true)
                         } else {
-                            setTypeText(paragraph, offsetY, textPages, pageLines, pageLengths, stringBuilder, false)
+                            setTypeText(paragraph, index, offsetY, textPages, pageLines, pageLengths, stringBuilder, false)
                         }
                     }
                 }
                 is ReaderText.Chapter -> {
-                    offsetY = setTypeText(paragraph, offsetY, textPages, pageLines, pageLengths, stringBuilder, true)
+                    offsetY = setTypeText(paragraph, index, offsetY, textPages, pageLines, pageLengths, stringBuilder, true)
                 }
                 else -> {
 
                 }
             }
-//            val matcher = imgPattern.matcher(paragraph)
-//            if (matcher.find()) {
-//                val imgSrc = matcher.group(1) ?: ""
-//                val imgWidth = matcher.group(2)?.toIntOrNull() ?: 0
-//                val imgHeight = matcher.group(3)?.toIntOrNull() ?: 0
-//                Logger.d("ChapterProvider:getTextChapter:src: $imgSrc, width: $imgWidth, height: $imgHeight")
-//
-//                if (imgSrc.isNotEmpty()) {
-//                    offsetY = setTypeImage(
-//                        context,
-//                        book,
-//                        chapter,
-//                        imgSrc,
-//                        imgWidth,
-//                        imgHeight,
-//                        offsetY,
-//                        textPages,
-//                        imageStyles
-//                    )
-//                }
-//            } else {
-//                val isTitle = (index == 0)  //如果没有图片， index = 0 就是标题
-//                offsetY = setTypeText(context, book, chapter, paragraph, offsetY, textPages, pageLines, pageLengths, stringBuilder, isTitle)
-//            }
         }
         //一个章节的全部自然段落/图片/标题都遍历完，
         val lastPage = textPages.last()
@@ -440,6 +417,15 @@ object ChapterProvider {
             page.upLinesPosition()                      //对一页的高度进行纠偏
         }
 
+        val tags = hashMapOf<Int, List<TextTag>>()
+        contents.forEachIndexed { index, content ->
+            if (content is ReaderText.Text) {
+                if (content.annotations.isNotEmpty()) {
+                    tags[index] = content.annotations
+                }
+            }
+        }
+
         return TextChapter(
             position = chapter.chapterIndex,
             title = chapter.chapterName,
@@ -448,6 +434,7 @@ object ChapterProvider {
             pageLines = pageLines,
             pageLengths = pageLengths,
             chaptersSize = chapterSize,
+            annotations = tags
         )
     }
 
@@ -548,6 +535,7 @@ object ChapterProvider {
 
     private suspend fun setTypeText(
         paragraph: ReaderText,
+        paragraphIndex: Int,    //段落在章节中的索引位置
         offsetY: Float,
         textPages: ArrayList<TextPage>,
         pageLines: ArrayList<Int>,
@@ -584,8 +572,10 @@ object ChapterProvider {
 
         val layout = StaticLayout(text, textPaint, visibleWidth, Layout.Alignment.ALIGN_NORMAL, 0f, 0f, true)
         for (lineIndex in 0 until layout.lineCount) {  //排版，按行遍历
-            val textLine = TextLine(isTitle = isTitle)
-            val words = text.substring(layout.getLineStart(lineIndex), layout.getLineEnd(lineIndex))
+            val offsetStart = layout.getLineStart(lineIndex)
+            val offsetEnd = layout.getLineEnd(lineIndex)
+            val textLine = TextLine(isTitle = isTitle, paragraphIndex = paragraphIndex, charStartOffset = offsetStart, charEndOffset = offsetEnd)
+            val words = text.substring(offsetStart, offsetEnd)
             val desiredWidth = layout.getLineWidth(lineIndex)   //排版要求的宽度
             var isLastLine = false
 

@@ -2,6 +2,7 @@ package com.wxn.bookread.data.model
 
 import android.text.Layout
 import android.text.StaticLayout
+import com.wxn.base.util.Logger
 import com.wxn.bookread.provider.ChapterProvider
 import java.text.DecimalFormat
 
@@ -99,6 +100,7 @@ data class TextPage(
                 textLines.add(textLine)
             }
             height = ChapterProvider.visibleHeight.toFloat()
+            Logger.e("TextPage::format::textLines is empty and visibleWidth[${ChapterProvider.visibleWidth}] > 0 and text.size=${text.length}")
         }
         return this
     }
