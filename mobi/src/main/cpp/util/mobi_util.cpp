@@ -651,7 +651,7 @@ int mobi_util::parseHtmlDoc(JNIEnv *env, long book_id,  MOBIRawml* mobi_rawml, t
     tinyxml2::XMLElement *elem = element;
     while (elem != nullptr) {
         std::string name = elem->Name();
-        if (name == "div" || name == "ul" || name == "ol") {
+        if (name == "div" || name == "ul" || name == "ol" || name == "p" || name == "li") {
             const char *divText = elem->GetText();
             if (divText != NULL && utf8Count(divText) > 0) {
                 std::vector<TagInfo> tagInfos;
@@ -674,19 +674,19 @@ int mobi_util::parseHtmlDoc(JNIEnv *env, long book_id,  MOBIRawml* mobi_rawml, t
                     parseHtmlDoc(env, book_id, mobi_rawml, child, docTexts);
                 }
             }
-        } else if (name == "p" || name == "li") {
-            std::vector<TagInfo> tagInfos;
-            DocText docText{"", tagInfos};
-            std::string text = processParagraph(elem, tagInfos);
-            if (!text.empty() || !tagInfos.empty()) {
-                docText.text = text;
-                if (!tagInfos.empty()) {
-                    for (auto &tag: tagInfos) {
-                        docText.tagInfos.push_back(tag);
-                    }
-                }
-                docTexts.push_back(docText);
-            }
+//        } else if (name == "p" || name == "li") {
+//            std::vector<TagInfo> tagInfos;
+//            DocText docText{"", tagInfos};
+//            std::string text = processParagraph(elem, tagInfos);
+//            if (!text.empty() || !tagInfos.empty()) {
+//                docText.text = text;
+//                if (!tagInfos.empty()) {
+//                    for (auto &tag: tagInfos) {
+//                        docText.tagInfos.push_back(tag);
+//                    }
+//                }
+//                docTexts.push_back(docText);
+//            }
         } else if (name == "h1" || name == "h2" || name == "h3" || name == "h4" || name == "h5" || name == "h6" || name == "h7") {
             const char *elemText = elem->GetText();
             if (elemText != NULL && utf8Count(elemText) > 0) {
