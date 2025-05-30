@@ -466,11 +466,24 @@ std::string processParagraph(const tinyxml2::XMLElement *pElem, std::vector<TagI
 
             auto elem = child->ToElement();
             const char *id = elem->Attribute("id");
+
+            std::string params;
+            for(auto attri = elem->FirstAttribute(); attri != nullptr; attri = attri->Next()) {
+                const char* attriName = attri->Name();
+                const char* attriValue = attri->Value();
+                if (attriName != nullptr && attriValue != nullptr && strlen(attriName) > 0 && strlen(attriValue) > 0) {
+                    if (!params.empty()) {
+                        params.append("&");
+                    }
+                    params.append(attriName).append("=").append(attriValue);
+                }
+            }
+
             std::string tagId = "";
             if (id != nullptr) {
                 tagId = id;
             }
-            auto newTag = TagInfo{generate_uuid(), tagId, elem->Name(), childStart, childStart, "", ""};
+            auto newTag = TagInfo{generate_uuid(), tagId, elem->Name(), childStart, childStart, "", params};
             offset = parseElement(child->ToElement(), fullText, newTag.uuid, childStart, subTags);
 
             if (offset > childStart) {
