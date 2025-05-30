@@ -123,15 +123,20 @@ int parseOpfData(const char *opf_data, size_t opf_data_size, std::vector<NavPoin
         return 0;
     }
 
+
     index = 0;
-    for (auto &itemSrc: orderedItemSrc) {
+    for(int i=0; i< orderedItemSrc.size(); i++) {
+        auto& itemSrc = orderedItemSrc[i];
         if (index >= points.size()) {
             break;
         }
-        NavPoint &point = points[index];
-        std::string &pointSrc = point.src;
+        std::string &pointSrc = points[index].src;
         if (pointSrc.find(itemSrc) != std::string::npos) {
-            index++;
+            if (i == 0) { //需要将前面的加入到集合中, //TODO 如果前面有多个的情况，如何排序
+                points[index].src = itemSrc + "," + pointSrc;
+            } else {
+                index++;
+            }
         } else {
             int last_index = index - 1;
             if (last_index >= 0) {
