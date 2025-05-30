@@ -5,9 +5,9 @@ import android.graphics.Canvas
 import android.graphics.Color
 import android.graphics.Paint
 import android.graphics.RectF
+import android.text.TextPaint
 import android.util.AttributeSet
 import android.view.View
-import androidx.compose.ui.util.fastFilter
 import androidx.core.graphics.toColorInt
 import com.wxn.base.bean.TextTag
 import com.wxn.base.ext.getCompatColor
@@ -21,7 +21,6 @@ import com.wxn.bookread.provider.ChapterProvider.contentPaint
 import com.wxn.bookread.provider.ImageProvider
 import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.launch
-import kotlin.collections.orEmpty
 import kotlin.math.min
 
 /**
@@ -153,8 +152,13 @@ class ContentTextView(context: Context, attrs: AttributeSet?) : View(context, at
             else -> emptyMap()
         }
 
+        var textTagList = textTagMaps.get(paragraphIndex)
+        if (textTagList.isNullOrEmpty()) {
+            return emptyList()
+        }
+
         val effectedTextTags = arrayListOf<TextTag>()
-        for(textTag in textTagMaps.get(paragraphIndex).orEmpty()) {
+        for(textTag in textTagList) {
             if ((lineStartOffset in textTag.start until textTag.end) || (lineEndOffset in textTag.start until textTag.end)) {
                 effectedTextTags.add(textTag)
             }
@@ -249,15 +253,33 @@ class ContentTextView(context: Context, attrs: AttributeSet?) : View(context, at
         isTitle: Boolean,
         isReadAloud: Boolean
     ) {
+        var tagPaint: TextPaint? = null
+        var lineTextTag: TextTag? = null
+        var charTextTag: TextTag? = null
 
         //标题或者文本内容的textPaint
-        val defaultTextPaint = if (isTitle) {
-            ChapterProvider.titlePaint
+        var defaultTextPaint: TextPaint? = null
+        if (isTitle) {
+            defaultTextPaint = ChapterProvider.titlePaint   //标题
         } else {
-            contentPaint
+            if (textTags.isEmpty()) {
+                defaultTextPaint = contentPaint                                                         //没有修饰标签， 默认文字
+            } else if (textTags.size == 1) {
+                val tagStart = textTags[0].start                                                        //修饰标签相对于段落的开始偏移位置
+                val tagEnd = textTags[0].end                                                            //修饰标签相对于段落的开始偏移位置
+                val lineStartIndex = textLine.charStartOffset - ChapterProvider.paragraphIndent.length  //基于段落的行开始偏移位置
+                val lineEndIndex = textLine.charEndOffset - ChapterProvider.paragraphIndent.length      //基于段落的行结束偏移位置
+
+                if (tagEnd <= lineStartIndex || tagStart >= lineEndIndex) { //修饰标签位置和行文字没有对上， 默认文字
+                    defaultTextPaint = contentPaint
+                } else if (lineStartIndex == tagStart && textLine.textChars.size == tagEnd - tagStart) {  //修饰标签位置和行文字完全吻合， 修饰标签
+                    lineTextTag = textTags[0]
+                    defaultTextPaint = ChapterProvider.getPaintByTagName(lineTextTag.name)
+                }
+            }
         }
         //文字颜色
-        defaultTextPaint.color = if (isReadAloud) {
+        defaultTextPaint?.color = if (isReadAloud) {
             //  "accentColor": "#AD1457",
             //  "accentColor": "#E0E0E0",
             // "accentColor": "#FFFFFF",
@@ -266,32 +288,31 @@ class ContentTextView(context: Context, attrs: AttributeSet?) : View(context, at
             textPaintColor
         }
 
-        val paragraphIndex = textLine.paragraphIndex
-        val lineStart = textLine.charStartOffset
-
         textLine.textChars.forEachIndexed { index, ch ->
-            val charIndex = lineStart + index - ChapterProvider.paragraphIndent.length  //去掉首航缩进的长度
+            val charIndex = textLine.charStartOffset + index - ChapterProvider.paragraphIndent.length  //去掉首航缩进的长度
 
-            val tagName = textTags.fastFilter { tag ->
-                (charIndex in tag.start until tag.end)
-            }.firstOrNull()?.name.orEmpty()
-
-            val paint = if (isTitle) defaultTextPaint else ChapterProvider.getPaintByTagName(tagName, defaultTextPaint)
-            if (!isTitle && tagName != "a") {
-                paint.color = if (isReadAloud) {
-                    "#FFAD1457".toColorInt()
+            val paint = if (defaultTextPaint != null) defaultTextPaint else {
+                val texttag = if (textTags.size == 1) {
+                    if (textTags[0].start <= charIndex && charIndex > textTags[0].end) textTags[0] else null
                 } else {
-                    textPaintColor
+                    filterTags(charIndex, textTags)
                 }
-            }
-            if (tagName.isNotEmpty()) {
-                Logger.d("ContentTextView::paragraphIndex=$paragraphIndex,charIndex=$charIndex,char=`${ch.charData}`,tag=`$tagName`")
+                ChapterProvider.getPaintByTagName(texttag?.name)
             }
             canvas.drawText(ch.charData, ch.start, lineBase, paint) //绘制每一个字
             if (ch.selected) {
                 canvas.drawRect(ch.start, lineTop, ch.end, lineBottom, selectedPaint) //绘制选择文字时的背景框
             }
         }
+    }
+
+    fun filterTags(charIndex: Int, textTags: List<TextTag>): TextTag? {
+        for (tag in textTags) {
+            if (charIndex >= tag.start && charIndex < tag.end) {
+                return tag
+            }
+        }
+        return null
     }
 
     /***
