@@ -141,6 +141,20 @@ object ChapterProvider {
     lateinit var h4Paint: TextPaint
     lateinit var aPaint: TextPaint
 
+    /****
+     * 根据TextTag的name属性，得到对应的TextPaint
+     */
+    fun getPaintByTagName(tagName:String?, default: TextPaint? = null) : TextPaint {
+        return when(tagName) {
+            "h1" -> h1Paint
+            "h2" -> h2Paint
+            "h3" -> h3Paint
+            "h4" -> h4Paint
+            "a" -> aPaint
+            else -> default ?: contentPaint
+        }
+    }
+
     fun tryCreatePreference(context : Context) {
         if (readerPreferencesUtil == null) {
             readerPreferencesUtil = ReaderPreferencesUtil(context)
@@ -313,8 +327,10 @@ object ChapterProvider {
 
             //<a>标签的Paint
             aPaint = TextPaint()
-            aPaint.color = Color.BLUE                    //设置正文文字颜色
-//            aPaint.underlineColor = Color.BLUE
+            aPaint.color = Color.BLUE
+            if (Build.VERSION.SDK_INT > Build.VERSION_CODES.Q) {
+                aPaint.underlineColor = Color.BLUE
+            }
             aPaint.isUnderlineText = true
             aPaint.letterSpacing = readerPreferences?.letterSpacing?.toFloat() ?: 0.0f               //设置正文文字间距
             Logger.d("ChapterProvider::upStyle::contentPaint.letterSpacing=${aPaint.letterSpacing}")
@@ -555,15 +571,8 @@ object ChapterProvider {
 
         var durY = if (isTitle) offsetY + titleTopSpacing else offsetY
 
-        val textPaint =   if (paragraph is ReaderText.Text) {
-            when(paragraph.annotations.firstOrNull()?.name) {
-                "h1" -> h1Paint
-                "h2" -> h2Paint
-                "h3" -> h3Paint
-                "h4" -> h4Paint
-                "a" -> aPaint
-                else -> contentPaint
-            }
+        val textPaint = if (paragraph is ReaderText.Text) {
+            getPaintByTagName(paragraph.annotations.firstOrNull()?.name)
         } else if (paragraph is ReaderText.Chapter) {
             titlePaint
         } else {
@@ -725,10 +734,6 @@ object ChapterProvider {
         }
         Logger.d("ChapterProvider::setViewSize,viewWidth=$viewWidth, viewHeight=$viewHeight")
     }
-
-//    init {
-//        upStyle()
-//    }
 
     fun init(context : Context) {
         upStyle(context)

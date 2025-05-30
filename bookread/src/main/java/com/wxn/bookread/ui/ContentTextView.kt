@@ -7,18 +7,21 @@ import android.graphics.Paint
 import android.graphics.RectF
 import android.util.AttributeSet
 import android.view.View
+import androidx.compose.ui.util.fastFilter
 import androidx.core.graphics.toColorInt
+import com.wxn.base.bean.TextTag
 import com.wxn.base.ext.getCompatColor
 import com.wxn.base.util.Coroutines
 import com.wxn.base.util.Logger
 import com.wxn.bookread.R
-import com.wxn.bookread.data.model.TextChar
 import com.wxn.bookread.data.model.TextLine
 import com.wxn.bookread.data.model.TextPage
 import com.wxn.bookread.provider.ChapterProvider
+import com.wxn.bookread.provider.ChapterProvider.contentPaint
 import com.wxn.bookread.provider.ImageProvider
 import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.launch
+import kotlin.collections.orEmpty
 import kotlin.math.min
 
 /**
@@ -120,6 +123,45 @@ class ContentTextView(context: Context, attrs: AttributeSet?) : View(context, at
         drawPage(canvas)
     }
 
+
+    /***
+     * 根据chapterIndex, paragraphIndex, lineStartOffset, lineEndOffset
+     * 得到当前行可能会使用到的TextTag
+     * @param chapterIndex      章节索引
+     * @param paragraphIndex    段落索引
+     * @param lineStartOffset   行开始字符偏移索引
+     * @param lineEndOffset     行结束字符偏移索引
+     */
+    private fun getPagesAnnotation(chapterIndex: Int,
+                                   paragraphIndex: Int,
+                                   lineStartOffset:Int,
+                                   lineEndOffset:Int) : List<TextTag> {
+        val curTextChapter = pageFactory?.provider?.textChapter(0) //?.annotations.orEmpty()
+        val preTextChapter = pageFactory?.provider?.textChapter(-1)
+        val nextTextChapter = pageFactory?.provider?.textChapter(1)
+
+        val textTagMaps : Map<Int, List<TextTag>> = when(chapterIndex) {
+            curTextChapter?.position -> {
+                curTextChapter.annotations
+            }
+            preTextChapter?.position -> {
+                preTextChapter.annotations
+            }
+            nextTextChapter?.position -> {
+                nextTextChapter.annotations
+            }
+            else -> emptyMap()
+        }
+
+        val effectedTextTags = arrayListOf<TextTag>()
+        for(textTag in textTagMaps.get(paragraphIndex).orEmpty()) {
+            if ((lineStartOffset in textTag.start until textTag.end) || (lineEndOffset in textTag.start until textTag.end)) {
+                effectedTextTags.add(textTag)
+            }
+        }
+        return effectedTextTags
+    }
+
     /***
      * 绘制页，或者滚动中的下一页或者下下一页
      */
@@ -127,8 +169,15 @@ class ContentTextView(context: Context, attrs: AttributeSet?) : View(context, at
         var relativeOffset = relativeOffset(0)
         Logger.i("ContentTextView::drawPage:relativeOffset=$relativeOffset, paddingOffset =$pageOffset, textPage.height=${textPage.height}")
 
+        val chapterIndex = textPage.chapterIndex        //章节索引
+
         textPage.textLines.forEach { textLine ->
-            drawLine(canvas, textLine, relativeOffset)
+            val paragraphIndex = textLine.paragraphIndex    //段落索引
+            val startOffset = textLine.charStartOffset      //当前行所在段落起始索引
+            val endOffset = textLine.charEndOffset          //当前行所在段落结束索引（不包含）
+            val tags = getPagesAnnotation(chapterIndex, paragraphIndex, startOffset, endOffset)
+
+            drawLine(canvas, textLine, tags, relativeOffset)
         }
 
         if (true != callback?.isScroll) return          //非滚动翻页，跳过
@@ -136,8 +185,17 @@ class ContentTextView(context: Context, attrs: AttributeSet?) : View(context, at
 
         relativePage(1)?.let { nextPage ->
             relativeOffset = relativeOffset(1)
+
+            val chapterIdx = nextPage.chapterIndex        //章节索引
+
             nextPage.textLines.forEach { textLine ->        //绘制下一页
-                drawLine(canvas, textLine, relativeOffset)
+
+                val paragraphIndex = textLine.paragraphIndex    //段落索引
+                val startOffset = textLine.charStartOffset      //当前行所在段落起始索引
+                val endOffset = textLine.charEndOffset          //当前行所在段落结束索引（不包含）
+                val tags = getPagesAnnotation(chapterIdx, paragraphIndex, startOffset, endOffset)
+
+                drawLine(canvas, textLine, tags, relativeOffset)
             }
         }
 
@@ -145,8 +203,17 @@ class ContentTextView(context: Context, attrs: AttributeSet?) : View(context, at
         relativeOffset = relativeOffset(2)
         if (relativeOffset < ChapterProvider.visibleHeight) {   //绘制下下一页
             relativePage(2)?.let { nextNextPage ->
+
+                val chapterIdx = nextNextPage.chapterIndex        //章节索引
+
                 nextNextPage.textLines.forEach { textLine ->
-                    drawLine(canvas, textLine, relativeOffset)
+
+                    val paragraphIndex = textLine.paragraphIndex    //段落索引
+                    val startOffset = textLine.charStartOffset      //当前行所在段落起始索引
+                    val endOffset = textLine.charEndOffset          //当前行所在段落结束索引（不包含）
+                    val tags = getPagesAnnotation(chapterIdx, paragraphIndex, startOffset, endOffset)
+
+                    drawLine(canvas, textLine, tags, relativeOffset)
                 }
             }
         }
@@ -155,7 +222,7 @@ class ContentTextView(context: Context, attrs: AttributeSet?) : View(context, at
     /***
      * 绘制行
      */
-    private fun drawLine(canvas: Canvas, textLine: TextLine, relativeOffset: Float) {
+    private fun drawLine(canvas: Canvas, textLine: TextLine, tags: List<TextTag>, relativeOffset: Float) {
         val lineTop = textLine.lineTop + relativeOffset
         val lineBase = textLine.lineBase + relativeOffset
         val lineBottom = textLine.lineBottom + relativeOffset
@@ -164,7 +231,7 @@ class ContentTextView(context: Context, attrs: AttributeSet?) : View(context, at
             drawImage(canvas, textLine, lineTop, lineBottom) //绘制图片
         } else {
             drawChars(
-                canvas, textLine.textChars, lineTop, lineBase, lineBottom,
+                canvas, textLine, tags, lineTop, lineBase, lineBottom,
                 isTitle = textLine.isTitle,
                 isReadAloud = textLine.isReadAloud
             )
@@ -174,21 +241,23 @@ class ContentTextView(context: Context, attrs: AttributeSet?) : View(context, at
 
     private fun drawChars(
         canvas: Canvas,
-        textChars: List<TextChar>,
+        textLine: TextLine,
+        textTags: List<TextTag>,
         lineTop: Float,
         lineBase: Float,
         lineBottom: Float,
         isTitle: Boolean,
         isReadAloud: Boolean
     ) {
+
         //标题或者文本内容的textPaint
-        val textPaint = if (isTitle) {
+        val defaultTextPaint = if (isTitle) {
             ChapterProvider.titlePaint
         } else {
-            ChapterProvider.contentPaint
+            contentPaint
         }
         //文字颜色
-        textPaint.color = if (isReadAloud) {
+        defaultTextPaint.color = if (isReadAloud) {
             //  "accentColor": "#AD1457",
             //  "accentColor": "#E0E0E0",
             // "accentColor": "#FFFFFF",
@@ -196,8 +265,29 @@ class ContentTextView(context: Context, attrs: AttributeSet?) : View(context, at
         } else {
             textPaintColor
         }
-        textChars.forEach { ch ->
-            canvas.drawText(ch.charData, ch.start, lineBase, textPaint) //绘制每一个字
+
+        val paragraphIndex = textLine.paragraphIndex
+        val lineStart = textLine.charStartOffset
+
+        textLine.textChars.forEachIndexed { index, ch ->
+            val charIndex = lineStart + index - ChapterProvider.paragraphIndent.length  //去掉首航缩进的长度
+
+            val tagName = textTags.fastFilter { tag ->
+                (charIndex in tag.start until tag.end)
+            }.firstOrNull()?.name.orEmpty()
+
+            val paint = if (isTitle) defaultTextPaint else ChapterProvider.getPaintByTagName(tagName, defaultTextPaint)
+            if (!isTitle && tagName != "a") {
+                paint.color = if (isReadAloud) {
+                    "#FFAD1457".toColorInt()
+                } else {
+                    textPaintColor
+                }
+            }
+            if (tagName.isNotEmpty()) {
+                Logger.d("ContentTextView::paragraphIndex=$paragraphIndex,charIndex=$charIndex,char=`${ch.charData}`,tag=`$tagName`")
+            }
+            canvas.drawText(ch.charData, ch.start, lineBase, paint) //绘制每一个字
             if (ch.selected) {
                 canvas.drawRect(ch.start, lineTop, ch.end, lineBottom, selectedPaint) //绘制选择文字时的背景框
             }

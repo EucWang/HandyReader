@@ -18,6 +18,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.rememberNavController
 import com.wxn.base.ui.BaseActivity
+import com.wxn.bookread.provider.ChapterProvider
 //import com.google.android.gms.ads.MobileAds
 import com.wxn.reader.data.model.AppLanguage
 import com.wxn.reader.data.source.local.AppPreferencesUtil
@@ -70,7 +71,7 @@ class MainActivity : BaseActivity() {
 //                MobileAds.initialize(this@MainActivity)
 //            }
 //        }
-
+        ChapterProvider.init(this)
 
         setContent {
             val screen by viewModel.startDestination.collectAsStateWithLifecycle()
