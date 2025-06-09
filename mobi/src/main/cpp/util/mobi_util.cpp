@@ -656,7 +656,7 @@ int mobi_util::parseHtmlDoc(JNIEnv *env, long book_id,  MOBIRawml* mobi_rawml, t
     tinyxml2::XMLElement *elem = element;
     while (elem != nullptr) {
         std::string name = elem->Name();
-        if (name == "div" || name == "ul" || name == "ol" || name == "p" || name == "li") {
+        if (name == "div" || name == "ul" || name == "ol" || name == "p" || name == "li" || name == "span") {
             const char *divText = elem->GetText();
             if (divText != NULL && utf8Count(divText) > 0) {
                 std::vector<TagInfo> tagInfos;
