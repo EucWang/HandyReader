@@ -561,10 +561,14 @@ mobi_util::processParagraph(const tinyxml2::XMLElement *pElem, std::vector<TagIn
             size_t childStart = offset;
 
             auto elem = child->ToElement();
-            const char* tagId = elem->Attribute("id");
-            if (!startAnchorId.empty() && startAnchorId == tagId) {
+            const char* id = elem->Attribute("id");
+            std::string aid;
+            if (id != nullptr && strlen(id) > 0) {
+                aid = id;
+            }
+            if (!startAnchorId.empty() && startAnchorId == aid) {
                 flagAdd = true;
-            } else if (!endAnchorId.empty() && endAnchorId == tagId) {
+            } else if (!endAnchorId.empty() && endAnchorId == aid) {
                 flagAdd = false;
             }
 
@@ -580,12 +584,7 @@ mobi_util::processParagraph(const tinyxml2::XMLElement *pElem, std::vector<TagIn
                 }
             }
 
-            std::string anchorId;
-            if (tagId != nullptr && strlen(tagId) > 0) {
-                anchorId = tagId;
-            }
-
-            auto newTag = TagInfo{generate_uuid(), anchorId, elem->Name(), childStart, childStart, "", params};
+            auto newTag = TagInfo{generate_uuid(), aid, elem->Name(), childStart, childStart, "", params};
             offset = parseElement(child->ToElement(), fullText, newTag.uuid, childStart, subTags);
 
             if (offset > childStart) {
