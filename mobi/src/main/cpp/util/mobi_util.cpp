@@ -123,27 +123,16 @@ int parseOpfData(const char *opf_data, size_t opf_data_size, std::vector<NavPoin
         return 0;
     }
 
-
-    index = 0;
-    for(int i=0; i< orderedItemSrc.size(); i++) {
-        auto& itemSrc = orderedItemSrc[i];
-        if (index >= points.size()) {
-            break;
-        }
-        std::string &pointSrc = points[index].src;
-        if (pointSrc.find(itemSrc) != std::string::npos) {
-            if (i == 0) { //需要将前面的加入到集合中, //TODO 如果前面有多个的情况，如何排序
-                points[index].src = itemSrc + "," + pointSrc;
-            } else {
-                index++;
-            }
-        } else {
-            int last_index = index - 1;
-            if (last_index >= 0) {
-                NavPoint &last_point = points[last_index];
-                last_point.src = last_point.src.append(",").append(itemSrc);
-            }
-        }
+    index = 1;
+    for(auto & itemSrc : orderedItemSrc) {
+        NavPoint point;
+        NavPoint nav;
+        nav.id = "";
+        nav.playOrder = index++;
+        nav.text = "";
+        nav.src = itemSrc;
+        nav.parentId = "";
+        points.push_back(nav);
     }
 
     return 1;
@@ -209,16 +198,70 @@ int mobi_util::getChapters(JNIEnv *env, long book_id, const char *path, std::vec
             return 0;
         }
 
-        int ret = parseNcxData(reinterpret_cast<const char *>(ncx_data), ncx_data_size, points);
-        if (ret == 0) {
-            LOGE("%s failed, cant pass ncx", __func__);
-            return 0;
-        }
-        ret = parseOpfData(reinterpret_cast<const char *>(opf_data), opf_data_size, points);
+        std::vector<NavPoint> opf;
+        int ret = parseOpfData(reinterpret_cast<const char *>(opf_data), opf_data_size, opf);
         if (ret == 0) {
             LOGE("%s failed, cant pass opf", __func__);
             return 0;
         }
+        std::vector<NavPoint> ncx;
+        ret = parseNcxData(reinterpret_cast<const char *>(ncx_data), ncx_data_size, ncx);
+        if (ret == 0) {
+            LOGE("%s failed, cant pass ncx", __func__);
+            return 0;
+        }
+
+        int opfIndex = 0;
+        for(auto& ncxPoint: ncx) {
+            std::string& ncxSrc = ncxPoint.src;
+            while(true) {
+                std::string& opfSrc = opf[opfIndex].src;
+                if (ncxSrc == opfSrc) {
+                    opf[opfIndex].text = ncxPoint.text;
+                    opf[opfIndex].id = ncxPoint.id;
+                    opf[opfIndex].parentId = ncxPoint.parentId;
+                    opfIndex++;
+                    break;
+                } else {
+                    std::string ncxPrefix;
+                    std::string ncxSuffix;
+                    std::string ncxAnchorId;
+                    int ncxPrefixType;
+                    int ncxSrcUid;
+                    if (1 != parseSrcName(ncxSrc, ncxPrefix, &ncxPrefixType, &ncxSrcUid, ncxAnchorId, ncxSuffix)) {
+                        return 0;
+                    }
+
+                    std::string opfPrefix;
+                    std::string opfSuffix;
+                    std::string opfAnchorId;
+                    int opfPrefixType;
+                    int opfSrcUid;
+                    if (1 != parseSrcName(opfSrc, opfPrefix, &opfPrefixType, &opfSrcUid, opfAnchorId, opfSuffix)) {
+                        return 0;
+                    }
+                    if (ncxSrcUid == opfSrcUid) {
+                        if (ncxAnchorId.empty()) {
+                            opf[opfIndex].text = ncxPoint.text;
+                            opf[opfIndex].id = ncxPoint.id;
+                            opf[opfIndex].parentId = ncxPoint.parentId;
+                        } else {
+                            opf[opfIndex].text.append(ncxPoint.text);
+                            if (opf[opfIndex].id.empty()) {
+                                opf[opfIndex].id = ncxPoint.id;
+                                opf[opfIndex].parentId = ncxPoint.parentId;
+                            }
+                        }
+                        opfIndex++;
+                        break;
+                    } else {
+                        opfIndex++;
+                    }
+                }
+            }
+        }
+        points.clear();
+        points.insert(points.end(), opf.begin(), opf.end());
     } else {
         return 0;
     }

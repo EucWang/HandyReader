@@ -39,11 +39,11 @@ extern "C" {
 
 
 typedef struct NavPoint_{
-    std::string id;
-    std::string parentId;
-    int playOrder;
-    std::string text;
-    std::string src;
+    std::string id;         //章节ID
+    std::string parentId;   //上一章节id
+    int playOrder;          //顺序
+    std::string text;       //章节名
+    std::string src;        //章节开始位置
 
     bool operator<(const struct NavPoint_& other) const { //排序用
         return playOrder < other.playOrder;
