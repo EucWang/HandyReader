@@ -57,8 +57,6 @@ import java.util.Locale
 @Composable
 fun BookmarksDrawer(
     navController: NavHostController,
-    viewModel: BookReaderViewModel,
-    purchaseHelper: PurchaseHelper,
     appPreferences: AppPreferences,
     isOpen: Boolean,
     onClose: () -> Unit,

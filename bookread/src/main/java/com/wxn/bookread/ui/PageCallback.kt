@@ -15,4 +15,6 @@ interface PageCallback  : PageChangeCallback{
     fun pageChanged()
     fun contentLoadFinish()
     fun upPageAnim()
+
+    fun getSelectedText() : String
 }

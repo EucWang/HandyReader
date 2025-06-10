@@ -60,8 +60,8 @@ import com.wxn.reader.util.PurchaseHelper
 @Composable
 fun NotesDrawer(
     navController: NavHostController,
-    viewModel: BookReaderViewModel,
-    purchaseHelper: PurchaseHelper,
+//    viewModel: BookReaderViewModel,
+//    purchaseHelper: PurchaseHelper,
     appPreferences: AppPreferences,
     isOpen: Boolean,
     onClose: () -> Unit,

@@ -43,13 +43,12 @@ import org.readium.r2.shared.publication.Locator
 @Composable
 fun AnnotationsDrawer(
     navController: NavHostController,
-    viewModel: BookReaderViewModel,
-    purchaseHelper: PurchaseHelper,
     appPreferences: AppPreferences,
-    navigator: EpubNavigatorFragment?,
+//    navigator: EpubNavigatorFragment?,
     annotations: List<BookAnnotation>,
     onRemoveAnnotation: (BookAnnotation) -> Unit,
     onUpdateAnnotation: (BookAnnotation) -> Unit,
+    onClickAnnotation: (BookAnnotation) -> Unit,
     isOpen: Boolean,
     onClose: () -> Unit,
 ) {
@@ -125,7 +124,8 @@ fun AnnotationsDrawer(
                                 annotation = filteredAnnotations.reversed()[index],
                                 onRemoveAnnotation = onRemoveAnnotation,
                                 onUpdateAnnotation = onUpdateAnnotation,
-                                navigatorFragment = navigator,
+//                                navigatorFragment = navigator,
+                                onClickAnnotation = onClickAnnotation,
                                 onClose = onClose,
                                 showPremiumModal = {
 //                                    showPremiumModal = true
@@ -155,7 +155,8 @@ fun AnnotationItem(
     annotation: BookAnnotation,
     onRemoveAnnotation: (BookAnnotation) -> Unit,
     onUpdateAnnotation: (BookAnnotation) -> Unit,
-    navigatorFragment: EpubNavigatorFragment?,
+    onClickAnnotation: (BookAnnotation) -> Unit,
+//    navigatorFragment: EpubNavigatorFragment?,
     onClose: () -> Unit,
     showPremiumModal: () -> Unit,
 
@@ -166,18 +167,18 @@ fun AnnotationItem(
     var selectedColor by remember { mutableStateOf(Color(annotation.color.toIntOrNull() ?: Color.Yellow.toArgb())) }
     val controller = rememberColorPickerController()
 
-    fun goToAnnotation() {
-        navigatorFragment?.let { navigator ->
-            coroutineScope.launch {
-                val locator = Locator.fromJSON(JSONObject(annotation.locator))
-                locator?.let {
-                    navigator.go(it)
-                    Toast.makeText(context, "Navigating to annotation", Toast.LENGTH_SHORT).show()
-                    onClose() // Close the annotation drawer
-                }
-            }
-        }
-    }
+//    fun goToAnnotation() {
+//        navigatorFragment?.let { navigator ->
+//            coroutineScope.launch {
+//                val locator = Locator.fromJSON(JSONObject(annotation.locator))
+//                locator?.let {
+//                    navigator.go(it)
+//                    Toast.makeText(context, "Navigating to annotation", Toast.LENGTH_SHORT).show()
+//                    onClose() // Close the annotation drawer
+//                }
+//            }
+//        }
+//    }
 
     Row(
         modifier = Modifier
@@ -188,7 +189,10 @@ fun AnnotationItem(
                 clip = true
             )
             .clip(RoundedCornerShape(8.dp))
-            .clickable(onClick = ::goToAnnotation)
+            .clickable(onClick = {
+                onClickAnnotation.invoke(annotation)
+                onClose()
+            })
             .background(MaterialTheme.colorScheme.surfaceContainerHigh)
             .padding(16.dp),
     ) {

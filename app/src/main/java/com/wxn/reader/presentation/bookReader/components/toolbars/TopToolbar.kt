@@ -49,7 +49,8 @@ fun TopToolbar(
     isBookmarked: Boolean,
     navController: NavController,
     book: Book?,
-    publication: Publication,
+//    publication: Publication,
+    bookTitle: String?,
     currentChapter: String,
     onChaptersClick: () -> Unit,
     onNotesDrawerToggle: () -> Unit,
@@ -151,7 +152,8 @@ fun TopToolbar(
                     .padding(horizontal = 8.dp),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                publication.metadata.title?.let {
+//                publication.metadata.title?.let {
+                bookTitle?.let {
                     Text(
                         maxLines = 1,
                         text = it,

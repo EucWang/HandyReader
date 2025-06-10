@@ -9,6 +9,7 @@ import android.util.Base64
 import android.util.TypedValue
 import android.view.View
 import android.widget.FrameLayout
+import android.widget.Toast
 import androidx.activity.compose.LocalActivity
 import androidx.annotation.ColorInt
 import androidx.compose.animation.AnimatedVisibility
@@ -303,7 +304,6 @@ fun EpubReaderView(
 //    var mInterstitialAd by remember { mutableStateOf<InterstitialAd?>(null) }
 
 
-
     var showTextToolbar by remember { mutableStateOf(false) }
     var showColorSelectionPanel by remember { mutableStateOf(false) }
     var textToolbarRect by remember { mutableStateOf<Rect?>(null) }
@@ -321,7 +321,7 @@ fun EpubReaderView(
         if (!BuildConfig.ENABLE_AD) {
             return
         }
-        if (!appPreferences.isPremium) {//TODO
+//        if (!appPreferences.isPremium) {
 //            InterstitialAd.load(
 //                context,
 //                fullScreenAdUnit,
@@ -336,14 +336,14 @@ fun EpubReaderView(
 //                    }
 //                }
 //            )
-        }
+//        }
     }
 
     fun showInterstitialAd(activity: FragmentActivity) {
         if (!BuildConfig.ENABLE_AD) {
             return
         }
-        if (!appPreferences.isPremium) {//TODO
+//        if (!appPreferences.isPremium) {
 //            mInterstitialAd?.let { ad ->
 //                ad.fullScreenContentCallback = object : FullScreenContentCallback() {
 //                    override fun onAdDismissedFullScreenContent() {
@@ -357,7 +357,7 @@ fun EpubReaderView(
 //                }
 //                ad.show(activity)
 //            }
-        }
+//        }
     }
 
 
@@ -835,7 +835,7 @@ fun EpubReaderView(
                 isBookmarked = isBookmarked,
                 navController = navController,
                 book = book,
-                publication,
+                publication.metadata.title,
                 currentChapter = currentChapter,
                 onChaptersClick = { isChaptersDrawerOpen = true },
                 onNotesDrawerToggle = { isNotesDrawerOpen = true },
@@ -957,8 +957,8 @@ fun EpubReaderView(
 
         NotesDrawer(
             navController = navController,
-            viewModel = viewModel,
-            purchaseHelper = purchaseHelper,
+//            viewModel = viewModel,
+//            purchaseHelper = purchaseHelper,
             appPreferences = appPreferences,
             isOpen = isNotesDrawerOpen,
             onClose = { isNotesDrawerOpen = false },
@@ -980,8 +980,6 @@ fun EpubReaderView(
 
         BookmarksDrawer(
             navController = navController,
-            viewModel = viewModel,
-            purchaseHelper = purchaseHelper,
             appPreferences = appPreferences,
             isOpen = isBookmarksDrawerOpen,
             onClose = { isBookmarksDrawerOpen = false },
@@ -998,15 +996,28 @@ fun EpubReaderView(
             }
         )
 
+        fun goToAnnotation(annotation : BookAnnotation) {
+            navigatorFragment?.let { navigator ->
+                coroutineScope.launch {
+                    val locator = Locator.fromJSON(JSONObject(annotation.locator))
+                    locator?.let {
+                        navigator.go(it)
+                        Toast.makeText(context, "Navigating to annotation", Toast.LENGTH_SHORT).show()
+                    }
+                }
+            }
+        }
+
         AnnotationsDrawer(
             navController = navController,
-            viewModel = viewModel,
-            purchaseHelper = purchaseHelper,
             appPreferences = appPreferences,
-            navigator = navigatorFragment,
+//            navigator = navigatorFragment,
             annotations = annotations,
             onRemoveAnnotation = viewModel::deleteAnnotation,
             onUpdateAnnotation = viewModel::updateAnnotation,
+            onClickAnnotation = { annotaion ->
+                goToAnnotation(annotaion)
+            },
             isOpen = isHighlightsDrawerOpen,
             onClose = { isHighlightsDrawerOpen = false }
         )
@@ -1087,7 +1098,7 @@ fun EpubReaderView(
         if (showUISettings) {
             UiSettings(
                 navController = navController,
-                purchaseHelper = purchaseHelper,
+//                purchaseHelper = purchaseHelper,
                 appPreferences = appPreferences,
                 viewModel = viewModel,
                 readerPreferences = readerPreferences,

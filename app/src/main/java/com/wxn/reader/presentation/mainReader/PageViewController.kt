@@ -53,6 +53,13 @@ open class PageViewController @Inject constructor(
     var nextTextChapter: TextChapter? = null
     override var msg: String? = null            //对应章节名？
 
+    interface OnClickCenterListener {
+        fun onCenterClick()
+    }
+    var clickCenterListener: OnClickCenterListener? = null
+
+
+
     /***
      * 当前显示的章节索引
      */
@@ -76,6 +83,23 @@ open class PageViewController @Inject constructor(
     override var isScroll: Boolean = false
 
     private var screenTimeOut: Long = 0
+
+    val progression: Double
+        get() {
+            return if (chapterSize <= 0) {
+                1.0
+            } else {
+                val chapterProgression = durChapterIndex / chapterSize
+
+                val pageSizeInChapter = curTextChapter?.pageSize ?: 0
+                val pageProgression = if (pageSizeInChapter > 0) {
+                    durChapterIndex.toDouble() / pageSizeInChapter.toDouble()
+                } else {
+                    0.0
+                }
+                chapterProgression * (1.0 + pageProgression)
+            }
+        }
 
     init {
         ChapterProvider.tryCreatePreference(context)
@@ -296,7 +320,11 @@ open class PageViewController @Inject constructor(
 
     override fun clickCenter() {
         Logger.i("PageViewController::clickCenter")
-//        TODO("Not yet implemented")
+        clickCenterListener?.onCenterClick()
+    }
+
+    fun getSelectedText():String {
+        return callBack?.getSelectedText().orEmpty()
     }
 
     /****

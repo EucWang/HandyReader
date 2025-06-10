@@ -519,6 +519,12 @@ class PageView: FrameLayout, IDataSource, PageCallback {
         }
     }
 
+    override fun getSelectedText(): String {
+        return prevPage.selectedText +
+        curPage.selectedText +
+        nextPage.selectedText
+    }
+
     /***
      * 更新界面内容
      */
