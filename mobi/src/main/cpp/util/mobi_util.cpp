@@ -71,7 +71,7 @@ void parseNavPoints(tinyxml2::XMLElement *firstNavPoint, std::vector<NavPoint> &
     }
 }
 
-int parseOpfData(const char *opf_data, size_t opf_data_size, std::vector<NavPoint> &points) {
+int mobi_util::parseOpfData(const char *opf_data, size_t opf_data_size, std::vector<NavPoint> &points) {
     tinyxml2::XMLDocument doc;
     if (doc.Parse(reinterpret_cast<const char *>(opf_data), opf_data_size) != tinyxml2::XML_SUCCESS) {
         LOGE("%s failed to parse opf", __func__);
@@ -123,18 +123,117 @@ int parseOpfData(const char *opf_data, size_t opf_data_size, std::vector<NavPoin
         return 0;
     }
 
-    index = 1;
-    for(auto & itemSrc : orderedItemSrc) {
-        NavPoint point;
-        NavPoint nav;
-        nav.id = "";
-        nav.playOrder = index++;
-        nav.text = "";
-        nav.src = itemSrc;
-        nav.parentId = "";
-        points.push_back(nav);
+    //指向相同位置的章节合并
+    std::vector<NavPoint> tmp;
+    for (int i = 0; i < points.size() - 1; ++i) {
+        auto &point = points[i];
+        auto &nextPoint = points[i + 1];
+        if (point.src == nextPoint.src) {
+            point.text.append(" ").append(nextPoint.text);
+            tmp.push_back(point);
+            i++;
+        } else {
+            tmp.push_back(point);
+            if (i == points.size() - 2) {
+                tmp.push_back(nextPoint);
+            }
+        }
+    }
+    if (tmp.size() != points.size()) {
+        points.clear();
+        points.insert(points.end(), tmp.begin(), tmp.end());
+        int order = 1;
+        for (auto &point: points) {
+            point.playOrder = order++;
+        }
     }
 
+    //防止前面有遗漏章节
+    index = 0;
+    int startOpfIndex = 0;
+    std::vector<NavPoint> newPoints;
+    while (index < points.size() && startOpfIndex < orderedItemSrc.size()) {
+        auto &point = points[index];
+        auto &opf = orderedItemSrc[startOpfIndex];
+
+        if (point.src.find(opf) != std::string::npos) { //找到了
+            startOpfIndex++;
+        } else {
+            //没有找到, 则在opf中往前找
+            int opfIndex = startOpfIndex - 1;
+            bool found = false;
+            while (opfIndex > 0) {
+                auto &prevOpf = orderedItemSrc[opfIndex];
+                if (point.src.find(prevOpf) != std::string::npos) { //在上一个找到了
+                    found = true;
+                    break;
+                } else {
+                    opfIndex--;
+                }
+            }
+
+            if (!found) {    //往前找，没有找到了, 即表示 ncx是新的，opf也是新的， 则往后找opf,
+                opfIndex = startOpfIndex + 1;
+                found = false;
+                while (opfIndex < orderedItemSrc.size()) {
+                    auto &nextOpf = orderedItemSrc[opfIndex];
+                    if (point.src.find(nextOpf) != std::string::npos) { //在下一个找到了
+                        found = true;
+                        break;
+                    } else {
+                        opfIndex++;
+                    }
+                }
+                if (found) {    //往后找，找到了，则将没有放入到ncx中的opf作为一个新的point，放入points中
+                    for (int i = startOpfIndex; i < opfIndex; i++) {
+                        NavPoint newpoint;
+                        newpoint.src = orderedItemSrc[i];
+                        newpoint.text = "";
+                        newpoint.parentId = "";
+                        newpoint.id = generate_uuid();
+                        newPoints.push_back(newpoint);
+                    }
+                    startOpfIndex = opfIndex + 1;
+                } else {    //往后找，也没有找到，则有问题
+                    LOGE("%s:cannot match ncx and opf data", __func__);
+                    return 0;
+                }
+            } else {        //往前找，找到了,则继续遍历points
+                /* do nothing */
+            }
+        }
+        newPoints.push_back(point);
+        index++;
+    }
+
+    if (index >= points.size() && startOpfIndex < orderedItemSrc.size()) { //还有没有分配完的资源
+        auto &lastPoint = points[points.size() - 1];
+        int opfIndex = startOpfIndex;
+        for (int i = opfIndex; i < orderedItemSrc.size(); i++) {
+            auto &opf = orderedItemSrc[i];
+            if (lastPoint.src.find(opf) != std::string::npos) {
+                continue;
+            } else {
+                NavPoint point;
+                point.src = opf;
+                point.text = "";
+                point.id = generate_uuid();
+                point.parentId = "";
+                newPoints.push_back(point);
+            }
+        }
+    } else if (index < points.size() && startOpfIndex >= orderedItemSrc.size()) {
+        for (int i = index; i < points.size(); i++) {
+            newPoints.push_back(points[i]);
+        }
+    }
+    int order = 1;
+    for (auto &point: newPoints) {
+        point.playOrder = order++;
+    }
+
+    points.clear();
+    points.insert(points.end(), newPoints.begin(), newPoints.end());
     return 1;
 }
 
@@ -164,7 +263,7 @@ int parseNcxData(const char *ncx_data, size_t ncx_data_size, std::vector<NavPoin
 int mobi_util::getChapters(JNIEnv *env, long book_id, const char *path, std::vector<NavPoint> &points) {
     std::lock_guard<std::mutex> lock(m_Mutex);
     if (!initStatus) {
-        LOGE("%s:init status failed, so pass", __func__ );
+        LOGE("%s:init status failed, so pass", __func__);
         return 0;
     }
 
@@ -198,70 +297,16 @@ int mobi_util::getChapters(JNIEnv *env, long book_id, const char *path, std::vec
             return 0;
         }
 
-        std::vector<NavPoint> opf;
-        int ret = parseOpfData(reinterpret_cast<const char *>(opf_data), opf_data_size, opf);
-        if (ret == 0) {
-            LOGE("%s failed, cant pass opf", __func__);
-            return 0;
-        }
-        std::vector<NavPoint> ncx;
-        ret = parseNcxData(reinterpret_cast<const char *>(ncx_data), ncx_data_size, ncx);
+        int ret = parseNcxData(reinterpret_cast<const char *>(ncx_data), ncx_data_size, points);
         if (ret == 0) {
             LOGE("%s failed, cant pass ncx", __func__);
             return 0;
         }
-
-        int opfIndex = 0;
-        for(auto& ncxPoint: ncx) {
-            std::string& ncxSrc = ncxPoint.src;
-            while(true) {
-                std::string& opfSrc = opf[opfIndex].src;
-                if (ncxSrc == opfSrc) {
-                    opf[opfIndex].text = ncxPoint.text;
-                    opf[opfIndex].id = ncxPoint.id;
-                    opf[opfIndex].parentId = ncxPoint.parentId;
-                    opfIndex++;
-                    break;
-                } else {
-                    std::string ncxPrefix;
-                    std::string ncxSuffix;
-                    std::string ncxAnchorId;
-                    int ncxPrefixType;
-                    int ncxSrcUid;
-                    if (1 != parseSrcName(ncxSrc, ncxPrefix, &ncxPrefixType, &ncxSrcUid, ncxAnchorId, ncxSuffix)) {
-                        return 0;
-                    }
-
-                    std::string opfPrefix;
-                    std::string opfSuffix;
-                    std::string opfAnchorId;
-                    int opfPrefixType;
-                    int opfSrcUid;
-                    if (1 != parseSrcName(opfSrc, opfPrefix, &opfPrefixType, &opfSrcUid, opfAnchorId, opfSuffix)) {
-                        return 0;
-                    }
-                    if (ncxSrcUid == opfSrcUid) {
-                        if (ncxAnchorId.empty()) {
-                            opf[opfIndex].text = ncxPoint.text;
-                            opf[opfIndex].id = ncxPoint.id;
-                            opf[opfIndex].parentId = ncxPoint.parentId;
-                        } else {
-                            opf[opfIndex].text.append(ncxPoint.text);
-                            if (opf[opfIndex].id.empty()) {
-                                opf[opfIndex].id = ncxPoint.id;
-                                opf[opfIndex].parentId = ncxPoint.parentId;
-                            }
-                        }
-                        opfIndex++;
-                        break;
-                    } else {
-                        opfIndex++;
-                    }
-                }
-            }
+        ret = parseOpfData(reinterpret_cast<const char *>(opf_data), opf_data_size, points);
+        if (ret == 0) {
+            LOGE("%s failed, cant pass opf", __func__);
+            return 0;
         }
-        points.clear();
-        points.insert(points.end(), opf.begin(), opf.end());
     } else {
         return 0;
     }
@@ -516,9 +561,9 @@ std::string processParagraph(const tinyxml2::XMLElement *pElem, std::vector<TagI
             const char *id = elem->Attribute("id");
 
             std::string params;
-            for(auto attri = elem->FirstAttribute(); attri != nullptr; attri = attri->Next()) {
-                const char* attriName = attri->Name();
-                const char* attriValue = attri->Value();
+            for (auto attri = elem->FirstAttribute(); attri != nullptr; attri = attri->Next()) {
+                const char *attriName = attri->Name();
+                const char *attriValue = attri->Value();
                 if (attriName != nullptr && attriValue != nullptr && strlen(attriName) > 0 && strlen(attriValue) > 0) {
                     if (!params.empty()) {
                         params.append("&");
@@ -645,7 +690,7 @@ int mobi_util::parseSrcName(std::string &src,
     return 1;
 }
 
-int mobi_util::cacheImage(JNIEnv *env, long book_id,MOBIRawml* mobi_rawml, std::string &imgSrc, int prefixType, int srcUid, int *width, int *height) {
+int mobi_util::cacheImage(JNIEnv *env, long book_id, MOBIRawml *mobi_rawml, std::string &imgSrc, int prefixType, int srcUid, int *width, int *height) {
     //文件路径
     std::string parentPath = app_ext::appFileDir + separator + "resources" + separator + std::to_string(book_id);
     std::string fullpath = parentPath + separator + imgSrc;
@@ -674,7 +719,7 @@ int mobi_util::cacheImage(JNIEnv *env, long book_id,MOBIRawml* mobi_rawml, std::
             }
 
             if (rawPicSize > 0 || rawPic != NULL) {
-                if(file_ext::writeDataToFile(fullpath, rawPic, rawPicSize) == 1) {
+                if (file_ext::writeDataToFile(fullpath, rawPic, rawPicSize) == 1) {
                     bitmap_ext::getImageOption(env, fullpath.c_str(), width, height);
                     return 1;
                 } else {
@@ -695,7 +740,7 @@ int mobi_util::cacheImage(JNIEnv *env, long book_id,MOBIRawml* mobi_rawml, std::
     return 1;
 }
 
-int mobi_util::parseHtmlDoc(JNIEnv *env, long book_id,  MOBIRawml* mobi_rawml, tinyxml2::XMLElement *element, std::vector<DocText> &docTexts) {
+int mobi_util::parseHtmlDoc(JNIEnv *env, long book_id, MOBIRawml *mobi_rawml, tinyxml2::XMLElement *element, std::vector<DocText> &docTexts) {
     tinyxml2::XMLElement *elem = element;
     while (elem != nullptr) {
         std::string name = elem->Name();
@@ -809,7 +854,7 @@ int mobi_util::parseHtmlDoc(JNIEnv *env, long book_id,  MOBIRawml* mobi_rawml, t
 int mobi_util::getChapter(JNIEnv *env, long book_id, const char *path, NavPoint &chapter, std::vector<DocText> &docTexts) {
     std::lock_guard<std::mutex> lock(m_Mutex);
     if (!initStatus) {
-        LOGE("%s:init status failed, so pass", __func__ );
+        LOGE("%s:init status failed, so pass", __func__);
         return 0;
     }
     if (app_ext::appFileDir.empty()) {
@@ -909,7 +954,7 @@ int mobi_util::getChapter(JNIEnv *env, long book_id, const char *path, NavPoint 
         auto firstElem = body->FirstChildElement();
 
         if (firstElem != nullptr) {
-            parseHtmlDoc(env, book_id,mobi_rawml, firstElem, docTexts);
+            parseHtmlDoc(env, book_id, mobi_rawml, firstElem, docTexts);
         }
     }
 

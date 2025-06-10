@@ -185,6 +185,8 @@ private:
      * @return 成功返回1， 失败返回0
      */
     static int cacheImage(JNIEnv *env, long book_id, MOBIRawml* mobi_rawml, std::string& imgSRc, int prefixType, int srcUid, int* width, int* height);
+
+    static int parseOpfData(const char *opf_data, size_t opf_data_size, std::vector<NavPoint> &points);
 };
 
 #endif //SIMPLEREADER2_MOBI_UTIL_H
