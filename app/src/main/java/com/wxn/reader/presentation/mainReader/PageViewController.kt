@@ -208,7 +208,7 @@ open class PageViewController @Inject constructor(
         BookHelper.loadChapterContent(context, curBook, chapter, textParser).let { contents ->
             val contents = BookHelper.disposeContent(appPreferencesUtil, chapter, contents)
             Logger.i("PageViewController::loadContent:index=$index, contents.size=${contents.size}")
-            val textChapter = ChapterProvider.getTextChapter(context, curBook, chapter, contents, imageStyles = "", chapterSize)
+            val textChapter = ChapterProvider.getTextChapter(context, curBook, chapter, contents, imageStyles = "FULL", chapterSize)
             when (chapter.chapterIndex) {
                 durChapterIndex -> {    //加载的是当前章节
                     curTextChapter = textChapter
