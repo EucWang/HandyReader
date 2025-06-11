@@ -37,6 +37,7 @@ extern "C" {
 #include <android/bitmap.h>
 #include <android/imagedecoder.h>
 
+#include "../../cssparser/CSSParser/CSSParser.hpp"
 
 typedef struct NavPoint_{
     std::string id;         //章节ID
