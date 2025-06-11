@@ -8,7 +8,7 @@
 
 #include "PseudoSelectorRefChiefJudge.hpp"
 #include <string>
-#include "StringUtil.h"
+#include "../Vendor/Utils/StringUtil.h"
 
 const std::string P_LINK = "link";
 const std::string P_VISITED = "visited";

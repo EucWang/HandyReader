@@ -11,8 +11,8 @@
 
 #include <map>
 #include <stdio.h>
-#include "gumbo.h"
-#include "PseudoSelector.hpp"
+#include "../Vendor/gumbo/gumbo.h"
+#include "../CSSParser/Selectors/PseudoSelector.hpp"
 
 namespace future {
     class PseudoSelector;

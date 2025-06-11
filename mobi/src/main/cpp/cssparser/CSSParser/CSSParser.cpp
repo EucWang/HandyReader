@@ -10,8 +10,8 @@
 #include "CSSLex.hpp"
 #include <string.h>
 #include <assert.h>
-#include "ContainerUtil.hpp"
-#include "StringUtil.h"
+#include "../Vendor/Utils/ContainerUtil.hpp"
+#include "../Vendor/Utils/StringUtil.h"
 
 namespace future {
 

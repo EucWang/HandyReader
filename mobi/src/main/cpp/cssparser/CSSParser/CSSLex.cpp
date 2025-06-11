@@ -8,7 +8,7 @@
 
 #include "CSSLex.hpp"
 #include <string.h>
-#include "ContainerUtil.hpp"
+#include "../Vendor/Utils/ContainerUtil.hpp"
 
 #define NextChar(buffer) m_forwardPos >= m_bufferSize ? 0 : *(buffer + m_forwardPos++)
 #define ErrorInLoop STATUS = LexError;stopLoop = true;

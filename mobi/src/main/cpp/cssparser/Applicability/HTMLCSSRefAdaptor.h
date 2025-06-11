@@ -7,8 +7,8 @@
 
 #ifndef HTMLCSSREFADAPTOR_H_
 #define HTMLCSSREFADAPTOR_H_
-#include "gumbo.h"
-#include "SelectorsHeader.h"
+#include "../Vendor/gumbo/gumbo.h"
+#include "../CSSParser/Selectors/SelectorsHeader.h"
 
 namespace future {
 

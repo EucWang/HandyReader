@@ -6,7 +6,7 @@
  */
 
 #include "HTMLCSSRefAdaptor.h"
-#include "StringUtil.h"
+#include "../Vendor/Utils/StringUtil.h"
 #include "PseudoSelectorRefChiefJudge.hpp"
 
 extern const int HTMLTAGMAXSIZE = 257;
