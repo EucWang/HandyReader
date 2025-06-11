@@ -15,6 +15,7 @@ project("appmobi")
 
 add_subdirectory(unzip101e)
 add_subdirectory(libmobi)
+add_subdirectory(cssparser)
 add_subdirectory(threadlibs)
 add_subdirectory(tidy-html5)
 add_subdirectory(utfcpp)
@@ -78,6 +79,7 @@ target_link_libraries(${CMAKE_PROJECT_NAME}
         PRIVATE utf8cpp
         PRIVATE tidy-static  # 正确的链接静态库
         unzip101e
+        cssparser
         threadlibs
         mobi
         # List libraries link to the target library
