@@ -174,7 +174,7 @@ private:
      * @param docTexts
      * @return
      */
-    static int parseHtmlDoc(JNIEnv *env, long book_id, MOBIRawml* mobi_rawml, tinyxml2::XMLElement *element, std::vector<DocText>& docTexts, std::string& startAnchorId, std::string& endAnchorId);
+    static int parseHtmlDoc(JNIEnv *env, long book_id, MOBIRawml* mobi_rawml, tinyxml2::XMLElement *element, std::vector<DocText>& docTexts, std::string& startAnchorId, std::string& endAnchorId, int* flagAdd);
 
     /****
      * 图片资源如果没有写入到缓存文件中，则创建图片缓存文件， 并返回图片的宽高，
@@ -190,7 +190,7 @@ private:
 
     static int parseOpfData(const char *opf_data, size_t opf_data_size, std::vector<NavPoint> &points);
 
-    static std::string processParagraph(const tinyxml2::XMLElement *pElem, std::vector<TagInfo> &subTags, std::string& startAnchorId, std::string& endAnchorId);
+    static std::string processParagraph(const tinyxml2::XMLElement *pElem, std::vector<TagInfo> &subTags, std::string& startAnchorId, std::string& endAnchorId, int* flagAdd);
 };
 
 #endif //SIMPLEREADER2_MOBI_UTIL_H
