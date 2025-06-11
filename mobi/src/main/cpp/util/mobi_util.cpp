@@ -822,8 +822,22 @@ int mobi_util::parseHtmlDoc(JNIEnv *env, long book_id, MOBIRawml *mobi_rawml, ti
             if (elemText != NULL && utf8Count(elemText) > 0) {
                 std::vector<TagInfo> tagInfos;
                 DocText docText{elemText, tagInfos};
-                docText.tagInfos.push_back(TagInfo{generate_uuid(), "", name, 0, utf8Count(docText.text), "", ""});
+                docText.tagInfos.push_back(TagInfo{generate_uuid(), aid, name, 0, utf8Count(docText.text), "", ""});
                 if (1 == *flagAdd) {
+                    docTexts.push_back(docText);
+                }
+            } else {
+                std::vector<TagInfo> tagInfos;
+                DocText docText{"", tagInfos};
+                std::string text = processParagraph(elem, tagInfos, startAnchorId, endAnchorId, flagAdd);
+                if (!text.empty() || !tagInfos.empty()) {
+                    docText.text = text;
+                    docText.tagInfos.push_back(TagInfo{generate_uuid(), aid, name, 0, utf8Count(docText.text), "", ""});
+                    if (!tagInfos.empty()) {
+                        for (auto &tag: tagInfos) {
+                            docText.tagInfos.push_back(tag);
+                        }
+                    }
                     docTexts.push_back(docText);
                 }
             }
