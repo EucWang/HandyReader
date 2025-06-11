@@ -37,7 +37,7 @@ int mobi_util::init() {
     }
 
     mobi_rawml = mobi_init_rawml(mobi_data);
-    if (mobi_rawml == NULL) {
+    if (mobi_rawml == nullptr) {
         mobi_data_free();
         LOGE("%s mobi_init_rawml failed, rawml is null", __func__);
         return MOBI_ERROR;
@@ -87,15 +87,15 @@ int mobi_util::parseOpfData(const char *opf_data, size_t opf_data_size, std::vec
     }
 
     auto spine = root->FirstChildElement("spine");
-    if (spine == NULL) {
+    if (spine == nullptr) {
         LOGE("%s failed parse npf, no root element", __func__);
         return 0;
     }
     std::vector<std::string> itemrefs;
     for (auto item = spine->FirstChildElement("itemref"); item; item = item->NextSiblingElement("itemref")) {
         const char *idref = item->Attribute("idref");
-        if (idref != NULL && strlen(idref) > 0) {
-            itemrefs.push_back(idref);
+        if (idref != nullptr && strlen(idref) > 0) {
+            itemrefs.emplace_back(idref);
         }
     }
     if (itemrefs.empty()) {
@@ -104,7 +104,7 @@ int mobi_util::parseOpfData(const char *opf_data, size_t opf_data_size, std::vec
     }
 
     auto manifest = root->FirstChildElement("manifest");
-    if (manifest == NULL) {
+    if (manifest == nullptr) {
         LOGE("%s failed parse opf, no manifest element", __func__);
         return 0;
     }
@@ -113,10 +113,10 @@ int mobi_util::parseOpfData(const char *opf_data, size_t opf_data_size, std::vec
     for (auto item = manifest->FirstChildElement("item"); item; item = item->NextSiblingElement("item")) {
         const char *id = item->Attribute("id");
         const char *href = item->Attribute("href");
-        const char *media_type = item->Attribute("media-type");
+//        const char *media_type = item->Attribute("media-type");
 
-        if (id != NULL && strlen(id) > 0 && itemrefs[index] == id && href != NULL && strlen(href) > 0) {
-            orderedItemSrc.push_back(href);
+        if (id != nullptr && strlen(id) > 0 && itemrefs[index] == id && href != nullptr && strlen(href) > 0) {
+            orderedItemSrc.emplace_back(href);
             index++;
         }
     }
@@ -262,7 +262,7 @@ int parseNcxData(const char *ncx_data, size_t ncx_data_size, std::vector<NavPoin
     return 1;
 }
 
-int mobi_util::getChapters(JNIEnv *env, long book_id, const char *path, std::vector<NavPoint> &points) {
+int mobi_util::getChapters(std::vector<NavPoint> &points) {
     std::lock_guard<std::mutex> lock(m_Mutex2);
     if (!initStatus) {
         LOGE("%s:init status failed, so pass", __func__);
@@ -274,13 +274,13 @@ int mobi_util::getChapters(JNIEnv *env, long book_id, const char *path, std::vec
         return 1;
     }
 
-    const unsigned char *opf_data = NULL;
-    const unsigned char *ncx_data = NULL;
+    const unsigned char *opf_data = nullptr;
+    const unsigned char *ncx_data = nullptr;
     size_t opf_data_size = 0;
     size_t ncx_data_size = 0;
-    if (mobi_rawml->resources != NULL) {
+    if (mobi_rawml->resources != nullptr) {
         MOBIPart *curr = mobi_rawml->resources;
-        while (curr != NULL) {
+        while (curr != nullptr) {
             MOBIFileMeta file_meta = mobi_get_filemeta_by_type(curr->type);
             if (curr->size > 0) {
                 if (file_meta.type == T_NCX) {
@@ -294,7 +294,7 @@ int mobi_util::getChapters(JNIEnv *env, long book_id, const char *path, std::vec
             curr = curr->next;
         }
 
-        if (opf_data == NULL || ncx_data == NULL) {
+        if (opf_data == nullptr || ncx_data == nullptr) {
             LOGE("%s failed, cant find opf or ncx, pass", __func__);
             return 0;
         }
@@ -344,13 +344,13 @@ int mobi_util::loadMobi(std::string fullpath,
     const char *version = mobi_version();
     LOGI("%s mobi version = %s", __func__, version);
     MOBIData *mobi_data = mobi_init();
-    if (mobi_data == NULL) {
+    if (mobi_data == nullptr) {
         LOGE("%s mobi_init failed", __func__);
         return ERROR;
     }
 
     FILE *file = fopen(fullpath.c_str(), "rb");
-    if (file == NULL) {
+    if (file == nullptr) {
         mobi_free(mobi_data);
         LOGE("%s fopen failed", __func__);
         return ERROR;
@@ -366,7 +366,7 @@ int mobi_util::loadMobi(std::string fullpath,
     }
 
     MOBIRawml *rawml = mobi_init_rawml(mobi_data);
-    if (rawml == NULL) {
+    if (rawml == nullptr) {
         mobi_free(mobi_data);
         LOGE("%s mobi_init_rawml failed, rawml is null", __func__);
         return ERROR;
@@ -553,7 +553,7 @@ mobi_util::processParagraph(const tinyxml2::XMLElement *pElem, std::vector<TagIn
     for (const tinyxml2::XMLNode *child = pElem->FirstChild(); child != nullptr; child = child->NextSibling()) {
         if (child->ToText()) {
             const char *text = child->Value();
-            if (text != NULL && utf8Count(text) > 0) {
+            if (text != nullptr && utf8Count(text) > 0) {
                 fullText += text;
                 offset += utf8Count(text);
             }
@@ -609,6 +609,7 @@ mobi_util::processParagraph(const tinyxml2::XMLElement *pElem, std::vector<TagIn
  */
 int mobi_util::parseSrcName(std::string &src,
                             std::string &prefix,
+                            std::string &spineSrc,
                             int *prefixType,
                             int *srcId,
                             std::string &anchorId,
@@ -634,6 +635,7 @@ int mobi_util::parseSrcName(std::string &src,
     } else {
         srcName = src;
     }
+    spineSrc = srcName;
     LOGD("%s:srcName=%s,aId=%s", __func__, srcName.c_str(), anchorId.c_str());
 
     pos = srcName.find_first_of('.');
@@ -708,13 +710,13 @@ int mobi_util::cacheImage(JNIEnv *env, long book_id, MOBIRawml *mobi_rawml, std:
         bitmap_ext::getImageOption(env, fullpath.c_str(), width, height);
         return 1;
     } else if (ret == 0) {  //缓存文件不存在，缓存路径存在或者创建缓存路径成功
-        if (prefixType == 3 && mobi_rawml->resources != NULL) {
-            MOBIPart *curr = NULL;
+        if (prefixType == 3 && mobi_rawml->resources != nullptr) {
+            MOBIPart *curr = nullptr;
             curr = mobi_rawml->resources;
 
-            unsigned char *rawPic = NULL;
+            unsigned char *rawPic = nullptr;
             size_t rawPicSize = 0;
-            while (curr != NULL) {
+            while (curr != nullptr) {
                 MOBIFileMeta file_meta = mobi_get_filemeta_by_type(curr->type);
                 //T_JPG, /**< jpg */  T_GIF, /**< gif */ T_PNG, /**< png */ T_BMP, /**< bmp */
                 if (curr->size > 0 &&
@@ -727,7 +729,7 @@ int mobi_util::cacheImage(JNIEnv *env, long book_id, MOBIRawml *mobi_rawml, std:
                 curr = curr->next;
             }
 
-            if (rawPicSize > 0 || rawPic != NULL) {
+            if (rawPicSize > 0 || rawPic != nullptr) {
                 if (file_ext::writeDataToFile(fullpath, rawPic, rawPicSize) == 1) {
                     bitmap_ext::getImageOption(env, fullpath.c_str(), width, height);
                     return 1;
@@ -750,7 +752,7 @@ int mobi_util::cacheImage(JNIEnv *env, long book_id, MOBIRawml *mobi_rawml, std:
 }
 
 int mobi_util::parseHtmlDoc(JNIEnv *env, long book_id, MOBIRawml *mobi_rawml, tinyxml2::XMLElement *element, std::vector<DocText> &docTexts,
-                            std::string &startAnchorId, std::string &endAnchorId, int* flagAdd) {
+                            std::string &startAnchorId, std::string &endAnchorId, int* flagAdd, std::string &spineSrcName) {
     tinyxml2::XMLElement *elem = element;
     while (elem != nullptr) {
         if (2 == *flagAdd) {
@@ -772,7 +774,7 @@ int mobi_util::parseHtmlDoc(JNIEnv *env, long book_id, MOBIRawml *mobi_rawml, ti
             }
 
             const char *divText = elem->GetText();
-            if (divText != NULL && utf8Count(divText) > 0) {
+            if (divText != nullptr && utf8Count(divText) > 0) {
                 std::vector<TagInfo> tagInfos;
                 DocText docText{"", tagInfos};
                 std::string text = processParagraph(elem, tagInfos, startAnchorId, endAnchorId, flagAdd);
@@ -789,7 +791,7 @@ int mobi_util::parseHtmlDoc(JNIEnv *env, long book_id, MOBIRawml *mobi_rawml, ti
                 int count = elem->ChildElementCount();
                 tinyxml2::XMLElement *child = elem->FirstChildElement();
                 if (count > 0 && child != nullptr) {
-                    parseHtmlDoc(env, book_id, mobi_rawml, child, docTexts, startAnchorId, endAnchorId, flagAdd);
+                    parseHtmlDoc(env, book_id, mobi_rawml, child, docTexts, startAnchorId, endAnchorId, flagAdd, spineSrcName);
                 }
             }
 //        } else if (name == "p" || name == "li") {
@@ -819,7 +821,7 @@ int mobi_util::parseHtmlDoc(JNIEnv *env, long book_id, MOBIRawml *mobi_rawml, ti
                 break;
             }
 
-            if (elemText != NULL && utf8Count(elemText) > 0) {
+            if (elemText != nullptr && utf8Count(elemText) > 0) {
                 std::vector<TagInfo> tagInfos;
                 DocText docText{elemText, tagInfos};
                 docText.tagInfos.push_back(TagInfo{generate_uuid(), aid, name, 0, utf8Count(docText.text), "", ""});
@@ -854,7 +856,7 @@ int mobi_util::parseHtmlDoc(JNIEnv *env, long book_id, MOBIRawml *mobi_rawml, ti
                 *flagAdd = 2;
                 break;
             }
-            if (elemText != NULL && utf8Count(elemText) > 0) {
+            if (elemText != nullptr && utf8Count(elemText) > 0) {
                 std::vector<TagInfo> tagInfos;
                 DocText docText{elemText, tagInfos};
                 docText.tagInfos.push_back(TagInfo{generate_uuid(), aid, name, 0, utf8Count(docText.text), "", ""});
@@ -893,7 +895,14 @@ int mobi_util::parseHtmlDoc(JNIEnv *env, long book_id, MOBIRawml *mobi_rawml, ti
                 if (!params.empty()) {
                     params = params.append("&");
                 }
-                params = params.append("href=").append(href);
+                params = params.append("href=");
+                if (!startWith(href, spineSrcName)) {
+                    params = params.append(spineSrcName);
+                }
+                if (!startWith(href, "#")) {
+                    params = params.append("#");
+                }
+                params = params.append(href);
             }
 
             docText.tagInfos.push_back(TagInfo{generate_uuid(), aid, name, 0, utf8Count(docText.text), "", params});
@@ -902,14 +911,15 @@ int mobi_util::parseHtmlDoc(JNIEnv *env, long book_id, MOBIRawml *mobi_rawml, ti
             }
         } else if (name == "img") {
             const char *imgSrc = elem->Attribute("src");
-            if (imgSrc != NULL && utf8Count(imgSrc) > 0) {
+            if (imgSrc != nullptr && utf8Count(imgSrc) > 0) {
                 std::string imgSrcStr = imgSrc;
                 std::string prefix;
+                std::string spineSrc;
                 std::string suffix;
                 std::string anchorId;
                 int prefixType;
                 int srcUid;
-                if (1 == parseSrcName(imgSrcStr, prefix, &prefixType, &srcUid, anchorId, suffix)) {
+                if (1 == parseSrcName(imgSrcStr, prefix, spineSrc, &prefixType, &srcUid, anchorId, suffix)) {
                     LOGD("%s:getChapter:src[%s] Info[prefix=%s,srcId=%d,anchorId=%s,suffix=%s,prefixType=%d]",
                          __func__, imgSrc, prefix.c_str(), srcUid, anchorId.c_str(), suffix.c_str(), prefixType);
                     int width = 0, height = 0;
@@ -947,11 +957,12 @@ int mobi_util::getChapter(JNIEnv *env, long book_id, const char *path, NavPoint 
     LOGD("%s:chapterSrc=%s", __func__, chapterSrc.c_str());
     std::string &src = chapterSrc;
     std::string prefix;
+    std::string spineSrc;
     std::string suffix;
     std::string anchorId;
     int prefixType;
     int srcUid;
-    if (1 != parseSrcName(src, prefix, &prefixType, &srcUid, anchorId, suffix)) {
+    if (1 != parseSrcName(src, prefix, spineSrc, &prefixType, &srcUid, anchorId, suffix)) {
         return 0;
     }
     LOGD("%s:getChapter:src[%s] Info[prefix=%s,srcId=%d,anchorId=%s,suffix=%s,prefixType=%d]",
@@ -960,7 +971,7 @@ int mobi_util::getChapter(JNIEnv *env, long book_id, const char *path, NavPoint 
     std::string endAnchorId;
 
     std::vector<NavPoint> points;
-    int ret = getChapters(env, book_id, path, points);
+    int ret = getChapters(points);
     if (ret == 1) {
         int targetIndex = -1;
         for (int i = 0; i < points.size(); i++) {
@@ -972,11 +983,12 @@ int mobi_util::getChapter(JNIEnv *env, long book_id, const char *path, NavPoint 
             NavPoint &nextChapter = points[targetIndex];
             std::string &nextSrc = nextChapter.src;
             std::string nextPrefix;
+            std::string nextSpineSrc;
             std::string nextSuffix;
             std::string nextAnchorId;
             int nextPrefixType;
             int nextSrcUid;
-            if (1 != parseSrcName(nextSrc, nextPrefix, &nextPrefixType, &nextSrcUid, nextAnchorId, nextSuffix)) {
+            if (1 != parseSrcName(nextSrc, nextPrefix, nextSpineSrc, &nextPrefixType, &nextSrcUid, nextAnchorId, nextSuffix)) {
                 return 0;
             }
             if (nextSrcUid == srcUid && !nextAnchorId.empty()) {
@@ -986,12 +998,12 @@ int mobi_util::getChapter(JNIEnv *env, long book_id, const char *path, NavPoint 
         }
     }
 
-    MOBIPart *curr = NULL;
-    if (prefixType == 1 && mobi_rawml->flow != NULL) {
+    MOBIPart *curr = nullptr;
+    if (prefixType == 1 && mobi_rawml->flow != nullptr) {
         curr = mobi_rawml->flow;
-    } else if (prefixType == 2 && mobi_rawml->markup != NULL) {
+    } else if (prefixType == 2 && mobi_rawml->markup != nullptr) {
         curr = mobi_rawml->markup;
-    } else if (prefixType == 3 && mobi_rawml->resources != NULL) {
+    } else if (prefixType == 3 && mobi_rawml->resources != nullptr) {
         curr = mobi_rawml->resources;
     } else {
         LOGE("%s: unknown type[%d] or rawml data is null, pass", __func__, srcUid);
@@ -1010,12 +1022,12 @@ int mobi_util::getChapter(JNIEnv *env, long book_id, const char *path, NavPoint 
         curr = curr->next;
     }
 
-    if (rawHtmlSize <= 0 || rawHtml == NULL) {
+    if (rawHtmlSize <= 0 || rawHtml == nullptr) {
         LOGE("%s: failed, unfound chapter page data.", __func__);
         return 0;
     }
 
-    unsigned char *normalizedHtml = NULL;
+    unsigned char *normalizedHtml = nullptr;
     size_t normalizedHtmlSize = 0;
     TidyDoc tdoc = tidyCreate();
     TidyBuffer output = {0};
@@ -1037,7 +1049,7 @@ int mobi_util::getChapter(JNIEnv *env, long book_id, const char *path, NavPoint 
         return 0;
     }
 
-    if (normalizedHtml == NULL || normalizedHtmlSize <= 0) {
+    if (normalizedHtml == nullptr || normalizedHtmlSize <= 0) {
         LOGE("%s:failed, tidy html failed", __func__);
         normalizedHtmlSize = rawHtmlSize;
         normalizedHtml = rawHtml;
@@ -1070,7 +1082,7 @@ int mobi_util::getChapter(JNIEnv *env, long book_id, const char *path, NavPoint 
     }
 
     if (firstElem != nullptr) {
-        parseHtmlDoc(env, book_id, mobi_rawml, firstElem, docTexts, anchorId, endAnchorId, &flagAdd);
+        parseHtmlDoc(env, book_id, mobi_rawml, firstElem, docTexts, anchorId, endAnchorId, &flagAdd, spineSrc);
     }
 
     return 1;

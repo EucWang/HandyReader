@@ -232,7 +232,7 @@ Java_com_wxn_mobi_inative_NativeLib_getChapters(JNIEnv *env, jobject thiz, jobje
     create_mobi_util(book_id, nativeStr);
 
     std::vector<NavPoint> vectors;
-    int ret = mobiutil->getChapters(env, book_id, nativeStr, vectors);
+    int ret = mobiutil->getChapters(vectors);
     if (ret != 1) {
         return nullptr;
     }

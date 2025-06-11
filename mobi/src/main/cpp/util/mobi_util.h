@@ -123,7 +123,7 @@ public:
                         std::string& identifier,
                         bool& isEncrypted);
 
-    int getChapters(JNIEnv *env, long book_id, const char* path,  /*out*/std::vector<NavPoint>& points);
+    int getChapters(/*out*/std::vector<NavPoint>& points);
 
     int getChapter(JNIEnv *env, long book_id, const char *path, NavPoint& chapter, std::vector<DocText> &docTexts);
 
@@ -154,6 +154,7 @@ private:
  * 从资源索引路径中解析出 prefix， srcId, anchorId, suffix
  * @param src [in]
  * @param prefix [out] 资源前缀， 取值 flow, part, resource
+ * @param spineSrc [out] 对应spine的资源名
  * @param prefixType [out] 资源前缀类型， 取值对应 flow 为1, part 为2, resource 为3
  * @param srcId  [out] 资源id， 对应 各个部分的uid
  * @param anchorId  [out]  资源锚点id， 如果没有则为空
@@ -162,6 +163,7 @@ private:
  */
     static int parseSrcName(std::string& src,
                      std::string& prefix,
+                     std::string& spineSrc,
                      int* prefixType,
                      int* srcId,
                      std::string& anchorId,
@@ -169,12 +171,26 @@ private:
 
     /****
      * 解析html文档得到中间数据DocText的集合
-     * @param env
-     * @param element
-     * @param docTexts
+     * @param env       jni环境变量
+     * @param book_id   书籍id
+     * @param mobi_rawml   mobilib解析得到的数据
+     * @param element       遍历xml的根元素
+     * @param docTexts      最终输出的结果
+     * @param startAnchorId 遍历开始的锚点id
+     * @param endAnchorId   遍历结束的锚点id
+     * @param flagAdd       遍历标识
+     * @param spineSrcName  资源名
      * @return
      */
-    static int parseHtmlDoc(JNIEnv *env, long book_id, MOBIRawml* mobi_rawml, tinyxml2::XMLElement *element, std::vector<DocText>& docTexts, std::string& startAnchorId, std::string& endAnchorId, int* flagAdd);
+    static int parseHtmlDoc(JNIEnv *env,
+                            long book_id,
+                            MOBIRawml* mobi_rawml,
+                            tinyxml2::XMLElement *element,
+                            std::vector<DocText>& docTexts,
+                            std::string& startAnchorId,
+                            std::string& endAnchorId,
+                            int* flagAdd,
+                            std::string& spineSrcName);
 
     /****
      * 图片资源如果没有写入到缓存文件中，则创建图片缓存文件， 并返回图片的宽高，
