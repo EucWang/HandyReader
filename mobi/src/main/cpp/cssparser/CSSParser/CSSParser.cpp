@@ -78,7 +78,7 @@ bool CSSParser::parse() {
 	Lex::CSSToken *token = m_lexer->GetToken();
 	m_status = START;
 	bool success = true;
-	while (token->type != END && token->type != ERROR && success) {
+	while (token->type != END && token->type != CSS_ERROR && success) {
 		switch (m_status) {
 		case START: {
 			if (token->type == WS) {
@@ -233,7 +233,7 @@ Selector* CSSParser::getSelector(Lex::CSSToken* token) {
 		std::string value;
 		char _status = _start;
 		AttributeSelector::attributeFilterRule rule = AttributeSelector::NoRule;
-		while (t->type != END || t->type != ERROR) {
+		while (t->type != END || t->type != CSS_ERROR) {
 			switch (_status) {
 			case _start: {
 				if (t->type == WS) {

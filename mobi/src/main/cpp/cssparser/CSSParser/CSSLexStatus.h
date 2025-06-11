@@ -80,7 +80,7 @@ enum CSSTokenType {
     CDC,
     WS,
     DOT,
-    ERROR,
+    CSS_ERROR,
     BLOCKSTART,
     BLOCKEND,
     COLON,

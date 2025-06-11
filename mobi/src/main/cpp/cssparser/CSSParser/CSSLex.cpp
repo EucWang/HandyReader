@@ -254,7 +254,7 @@ namespace future {
         } else if (STATUS == end) {
             token->type = END;
         } else {
-            token->type = ERROR;
+            token->type = CSS_ERROR;
         }
         m_firstPos = m_forwardPos;
         return token;
@@ -617,7 +617,7 @@ namespace future {
                     break;
                 }
                 case LexError: {
-                    token->type = ERROR;
+                    token->type = CSS_ERROR;
                     stopLoop = true;
                     break;
                 }
