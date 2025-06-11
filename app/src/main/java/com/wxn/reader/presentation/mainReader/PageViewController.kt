@@ -5,6 +5,7 @@ import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.asLiveData
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.wxn.base.bean.Book
+import com.wxn.base.bean.TextTag
 import com.wxn.base.util.Coroutines
 import com.wxn.base.util.Logger
 import com.wxn.base.util.launchIO
@@ -53,10 +54,11 @@ open class PageViewController @Inject constructor(
     var nextTextChapter: TextChapter? = null
     override var msg: String? = null            //对应章节名？
 
-    interface OnClickCenterListener {
+    interface OnClickListener {
         fun onCenterClick()
+        fun onLinkClick(href: String?)
     }
-    var clickCenterListener: OnClickCenterListener? = null
+    var clickListener: OnClickListener? = null
 
 
 
@@ -144,6 +146,12 @@ open class PageViewController @Inject constructor(
             -1 -> prevTextChapter
             else -> null
         }
+    }
+
+    override fun changeChapter(newChapterIndex: Int) {
+        durChapterIndex = newChapterIndex
+        durPageIndex = 0
+        loadContent(true)
     }
 
     override fun loadContent(resetPageOffset: Boolean) {
@@ -320,7 +328,7 @@ open class PageViewController @Inject constructor(
 
     override fun clickCenter() {
         Logger.i("PageViewController::clickCenter")
-        clickCenterListener?.onCenterClick()
+        clickListener?.onCenterClick()
     }
 
     fun getSelectedText():String {
@@ -352,6 +360,17 @@ open class PageViewController @Inject constructor(
     override fun onCancelSelect() {
         Logger.i("PageViewController::onCancelSelect")
 //        TODO("Not yet implemented")
+    }
+
+    override fun clickLink(tag: TextTag) {
+        val params = tag.paramsPairs()
+        val href = params.find { pair ->
+            pair.first == "href"
+        }?.second.orEmpty()
+        Logger.d("PageViewController::clickLink::${tag}, href=${href}")
+        if (href.isNotEmpty()) {
+            clickListener?.onLinkClick(href)
+        }
     }
 
     fun clear() {

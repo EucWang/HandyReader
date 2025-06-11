@@ -17,6 +17,8 @@ interface PageViewDataProvider : PageViewCallback{
 
     fun upMsg(msg:String?)
 
+    fun changeChapter(newChapterIndex: Int)
+
     /**
      * 加载章节内容
      */

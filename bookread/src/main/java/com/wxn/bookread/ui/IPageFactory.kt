@@ -1,5 +1,7 @@
 package com.wxn.bookread.ui
 
+import com.wxn.base.bean.TextTag
+
 abstract class IPageFactory<DATA>(protected val dataSource: IDataSource) {
 
     abstract fun moveToFirst()
@@ -33,4 +35,10 @@ abstract class IPageFactory<DATA>(protected val dataSource: IDataSource) {
 
     abstract fun hasNextPlus(): Boolean
 
+    abstract fun getPagesAnnotation(
+        chapterIndex: Int,
+        paragraphIndex: Int,
+        lineStartOffset: Int,
+        lineEndOffset: Int
+    ): List<TextTag>
 }

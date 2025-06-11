@@ -124,54 +124,6 @@ class ContentTextView(context: Context, attrs: AttributeSet?) : View(context, at
 
 
     /***
-     * 根据chapterIndex, paragraphIndex, lineStartOffset, lineEndOffset
-     * 得到当前行可能会使用到的TextTag
-     * @param chapterIndex      章节索引
-     * @param paragraphIndex    段落索引
-     * @param lineStartOffset   行开始字符偏移索引
-     * @param lineEndOffset     行结束字符偏移索引
-     */
-    private fun getPagesAnnotation(
-        chapterIndex: Int,
-        paragraphIndex: Int,
-        lineStartOffset: Int,
-        lineEndOffset: Int
-    ): List<TextTag> {
-        val curTextChapter = pageFactory?.provider?.textChapter(0) //?.annotations.orEmpty()
-        val preTextChapter = pageFactory?.provider?.textChapter(-1)
-        val nextTextChapter = pageFactory?.provider?.textChapter(1)
-
-        val textTagMaps: Map<Int, List<TextTag>> = when (chapterIndex) {
-            curTextChapter?.position -> {
-                curTextChapter.annotations
-            }
-
-            preTextChapter?.position -> {
-                preTextChapter.annotations
-            }
-
-            nextTextChapter?.position -> {
-                nextTextChapter.annotations
-            }
-
-            else -> emptyMap()
-        }
-
-        var textTagList = textTagMaps.get(paragraphIndex)
-        if (textTagList.isNullOrEmpty()) {
-            return emptyList()
-        }
-
-        val effectedTextTags = arrayListOf<TextTag>()
-        for (textTag in textTagList) {
-            if ((lineStartOffset in textTag.start until textTag.end) || (lineEndOffset in textTag.start..textTag.end)) {
-                effectedTextTags.add(textTag)
-            }
-        }
-        return effectedTextTags
-    }
-
-    /***
      * 绘制页，或者滚动中的下一页或者下下一页
      */
     private fun drawPage(canvas: Canvas) {
@@ -184,7 +136,7 @@ class ContentTextView(context: Context, attrs: AttributeSet?) : View(context, at
             val paragraphIndex = textLine.paragraphIndex    //段落索引
             val startOffset = textLine.charStartOffset      //当前行所在段落起始索引
             val endOffset = textLine.charEndOffset          //当前行所在段落结束索引（不包含）
-            val tags = getPagesAnnotation(chapterIndex, paragraphIndex, startOffset, endOffset)
+            val tags = pageFactory?.getPagesAnnotation(chapterIndex, paragraphIndex, startOffset, endOffset).orEmpty()
 
             drawLine(canvas, textLine, tags, relativeOffset)
         }
@@ -202,7 +154,7 @@ class ContentTextView(context: Context, attrs: AttributeSet?) : View(context, at
                 val paragraphIndex = textLine.paragraphIndex    //段落索引
                 val startOffset = textLine.charStartOffset      //当前行所在段落起始索引
                 val endOffset = textLine.charEndOffset          //当前行所在段落结束索引（不包含）
-                val tags = getPagesAnnotation(chapterIdx, paragraphIndex, startOffset, endOffset)
+                val tags = pageFactory?.getPagesAnnotation(chapterIdx, paragraphIndex, startOffset, endOffset).orEmpty()
 
                 drawLine(canvas, textLine, tags, relativeOffset)
             }
@@ -220,7 +172,7 @@ class ContentTextView(context: Context, attrs: AttributeSet?) : View(context, at
                     val paragraphIndex = textLine.paragraphIndex    //段落索引
                     val startOffset = textLine.charStartOffset      //当前行所在段落起始索引
                     val endOffset = textLine.charEndOffset          //当前行所在段落结束索引（不包含）
-                    val tags = getPagesAnnotation(chapterIdx, paragraphIndex, startOffset, endOffset)
+                    val tags = pageFactory?.getPagesAnnotation(chapterIdx, paragraphIndex, startOffset, endOffset).orEmpty()
 
                     drawLine(canvas, textLine, tags, relativeOffset)
                 }

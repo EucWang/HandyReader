@@ -1,5 +1,6 @@
 package com.wxn.bookread.ui
 
+import com.wxn.base.bean.TextTag
 import com.wxn.bookread.data.model.TextPage
 
 class TextPageFactory(dataSource: IDataSource, val provider: PageViewDataProvider) :
@@ -143,4 +144,54 @@ class TextPageFactory(dataSource: IDataSource, val provider: PageViewDataProvide
             }
             return TextPage().format()
         }
+
+
+    /***
+     * 根据chapterIndex, paragraphIndex, lineStartOffset, lineEndOffset
+     * 得到当前行可能会使用到的TextTag
+     * @param chapterIndex      章节索引
+     * @param paragraphIndex    段落索引
+     * @param lineStartOffset   行开始字符偏移索引
+     * @param lineEndOffset     行结束字符偏移索引
+     */
+    override fun getPagesAnnotation(
+        chapterIndex: Int,
+        paragraphIndex: Int,
+        lineStartOffset: Int,
+        lineEndOffset: Int
+    ): List<TextTag> {
+        val curTextChapter = provider.textChapter(0) //?.annotations.orEmpty()
+        val preTextChapter = provider.textChapter(-1)
+        val nextTextChapter = provider.textChapter(1)
+
+        val textTagMaps: Map<Int, List<TextTag>> = when (chapterIndex) {
+            curTextChapter?.position -> {
+                curTextChapter.annotations
+            }
+
+            preTextChapter?.position -> {
+                preTextChapter.annotations
+            }
+
+            nextTextChapter?.position -> {
+                nextTextChapter.annotations
+            }
+
+            else -> emptyMap()
+        }
+
+        var textTagList = textTagMaps.get(paragraphIndex)
+        if (textTagList.isNullOrEmpty()) {
+            return emptyList()
+        }
+
+        val effectedTextTags = arrayListOf<TextTag>()
+        for (textTag in textTagList) {
+            if ((lineStartOffset in textTag.start until textTag.end) || (lineEndOffset in textTag.start..textTag.end)) {
+                effectedTextTags.add(textTag)
+            }
+        }
+        return effectedTextTags
+    }
+
 }

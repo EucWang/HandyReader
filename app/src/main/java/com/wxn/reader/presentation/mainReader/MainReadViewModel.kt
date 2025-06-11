@@ -110,7 +110,7 @@ class MainReadViewModel @Inject constructor(
 
     savedStateHandle: SavedStateHandle,
 
-) : AndroidViewModel(context), PageViewController.OnClickCenterListener {
+) : AndroidViewModel(context), PageViewController.OnClickListener {
     private val _appPreferences = MutableStateFlow(AppPreferencesUtil.defaultPreferences)
     val appPreferences: StateFlow<AppPreferences> = _appPreferences.asStateFlow()
 
@@ -327,6 +327,18 @@ class MainReadViewModel @Inject constructor(
 
     override fun onCenterClick() {
         _showMenu.value = !_showMenu.value
+    }
+
+    /***
+     * 点击link链接跳转到对应章节
+     */
+    override fun onLinkClick(href: String?) {
+        Logger.d("MainReaderViewModel::onLinkClick:href=$href")
+        allChapters.find { chapter->
+            chapter.srcName == href
+        }?.let { targetChapter ->
+            pageController.changeChapter(targetChapter.chapterIndex)
+        }
     }
 
     fun chaptersDrawerOpen(open:Boolean = true) {

@@ -11,7 +11,20 @@ data class TextTag(
     var end: Int =0,                //标签影响的结束位置
     val parentUuid: String = "",    //父级标签uuid
     val params: String = ""         //字符串拼接的键值对， 需要解析
-)
+) {
+
+    fun paramsPairs():List<Pair<String, String>> {
+        return params.split("&").mapNotNull {
+            val item = it.split("=")
+            if(item.getOrNull(0) != null && item.getOrNull(1) != null) {
+                Pair(item[0], item[1])
+            } else {
+                null
+            }
+        }
+    }
+}
+
 
 @Immutable
 sealed class ReaderText {
@@ -47,15 +60,7 @@ sealed class ReaderText {
 
         fun tryParseToImage() : Image? {
             if (annotations.firstOrNull()?.name == "img" && !annotations.firstOrNull()?.params.isNullOrEmpty()) {
-                val params : String = annotations.first().params
-                val paramItems = params.split("&").mapNotNull {
-                    val item = it.split("=")
-                    if(item.getOrNull(0) != null && item.getOrNull(1) != null) {
-                        Pair(item.get(0), item.get(1))
-                    } else {
-                        null
-                    }
-                }
+                val paramItems = annotations.firstOrNull()?.paramsPairs().orEmpty()
                 var src = ""
                 var width = 0
                 var height = 0

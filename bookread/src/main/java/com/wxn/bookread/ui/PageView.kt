@@ -17,6 +17,8 @@ import com.wxn.base.bean.Book
 import com.wxn.base.ext.screenshot
 import com.wxn.base.util.Coroutines
 import com.wxn.base.util.Logger
+import com.wxn.bookread.data.model.TextChar
+import com.wxn.bookread.data.model.TextLine
 import com.wxn.bookread.provider.ChapterProvider
 import com.wxn.bookread.ui.delegate.CoverPageDelegate
 import com.wxn.bookread.ui.delegate.NoAnimPageDelegate
@@ -31,13 +33,13 @@ import kotlin.math.abs
  * 包含三个ContentView， 对应前页，当前页，下一页 三个页面
  * 控制界面切换， 长按，点击等事件处理
  */
-class PageView: FrameLayout, IDataSource, PageCallback {
+class PageView : FrameLayout, IDataSource, PageCallback {
 
     constructor(context: Context) : super(context) {
         Logger.i("PageView::constructor1")
     }
 
-    constructor(context: Context, attributeSet: AttributeSet):super(context, attributeSet) {
+    constructor(context: Context, attributeSet: AttributeSet) : super(context, attributeSet) {
         Logger.i("PageView::constructor2")
     }
 
@@ -79,13 +81,13 @@ class PageView: FrameLayout, IDataSource, PageCallback {
         }
 
     override fun hasNextChapter(): Boolean {
-        val retVal = (dataProvider?.durChapterIndex ?: 0) <  (dataProvider?.chapterSize?:0) - 1
+        val retVal = (dataProvider?.durChapterIndex ?: 0) < (dataProvider?.chapterSize ?: 0) - 1
         Logger.d("PageView::HasNextChapter::retVal=$retVal")
         return retVal
     }
 
     override fun hasPrevChapter(): Boolean {
-        val retVal = (dataProvider?.durChapterIndex?:0) > 0
+        val retVal = (dataProvider?.durChapterIndex ?: 0) > 0
         Logger.d("PageView::hasPrevChapter::retVal=$retVal")
         return retVal
     }
@@ -393,6 +395,44 @@ class PageView: FrameLayout, IDataSource, PageCallback {
             isTextSelected = false
             return true
         }
+
+        //判断是否点击在了链接上
+        val curPage = dataProvider?.pageFactory?.currentPage
+        val textLines = curPage?.textLines.orEmpty()
+        var clickLine: TextLine? = null
+        for (line in textLines) {
+            val clickY = startY - ChapterProvider.paddingTop.toFloat()
+            val lineStartX = line.textChars.getOrNull(0)?.start ?: -1f
+            val lineEndX = line.textChars.lastOrNull()?.end ?: -1f
+            if (line.lineTop <= clickY && clickY <= line.lineBottom && lineStartX <= startX && startX <= lineEndX ) {
+                clickLine = line
+                break
+            }
+        }
+        if (curPage != null && clickLine != null) {
+            val chapterIndex = curPage.chapterIndex
+            val paragraphIndex = clickLine.paragraphIndex
+            val tag = dataProvider?.pageFactory?.getPagesAnnotation(chapterIndex, paragraphIndex, clickLine.charStartOffset, clickLine.charEndOffset)?.firstOrNull()
+            if (tag?.name == "a" && tag.params.isNotEmpty()) {
+                val tagStart = tag.start
+                val tagEnd = tag.end
+                var clickChar: TextChar? = null
+                for((index, textChar) in clickLine.textChars.withIndex()) {
+                    val charIndex = clickLine.charStartOffset + index
+                    if (tagStart <= charIndex && charIndex < tagEnd &&
+                        textChar.start <= startX && startX <= textChar.end) { //is a link character
+                        clickChar = textChar
+                        break
+                    }
+                }
+                if (clickChar != null) {
+                    Logger.d("PageView::onSingleTapUp::clickChar=${clickChar},event=(${startX}, ${startY})")
+                    dataProvider?.clickLink(tag)
+                    return true
+                }
+            }
+        }
+
         if (centerRectF.contains(startX, startY)) {
             if (!isAbortAnim) {
                 dataProvider?.clickCenter()
@@ -418,22 +458,27 @@ class PageView: FrameLayout, IDataSource, PageCallback {
                     curPage.selectStartMoveIndex(firstRelativePage, firstLineIndex, firstCharIndex)
                     curPage.selectEndMoveIndex(relativePage, lineIndex, charIndex)
                 }
+
                 relativePage < firstRelativePage -> {
                     curPage.selectEndMoveIndex(firstRelativePage, firstLineIndex, firstCharIndex)
                     curPage.selectStartMoveIndex(relativePage, lineIndex, charIndex)
                 }
+
                 lineIndex > firstLineIndex -> {
                     curPage.selectStartMoveIndex(firstRelativePage, firstLineIndex, firstCharIndex)
                     curPage.selectEndMoveIndex(relativePage, lineIndex, charIndex)
                 }
+
                 lineIndex < firstLineIndex -> {
                     curPage.selectEndMoveIndex(firstRelativePage, firstLineIndex, firstCharIndex)
                     curPage.selectStartMoveIndex(relativePage, lineIndex, charIndex)
                 }
+
                 charIndex > firstCharIndex -> {
                     curPage.selectStartMoveIndex(firstRelativePage, firstLineIndex, firstCharIndex)
                     curPage.selectEndMoveIndex(relativePage, lineIndex, charIndex)
                 }
+
                 else -> {
                     curPage.selectEndMoveIndex(firstRelativePage, firstLineIndex, firstCharIndex)
                     curPage.selectStartMoveIndex(relativePage, lineIndex, charIndex)
@@ -452,9 +497,11 @@ class PageView: FrameLayout, IDataSource, PageCallback {
             PageDelegate.Direction.PREV -> {
                 pageFactory.moveToPrev(true)
             }
+
             PageDelegate.Direction.NEXT -> {
                 pageFactory.moveToNext(true)
             }
+
             else -> Unit
         }
     }
@@ -494,22 +541,26 @@ class PageView: FrameLayout, IDataSource, PageCallback {
     override fun upPageAnim() {
         Coroutines.mainScope().launch {
             ChapterProvider.tryCreatePreference(context)
-            ChapterProvider.readTipPreferencesUtil?.readTIpPreferencesFlow?.firstOrNull()?.let{ preference ->
+            ChapterProvider.readTipPreferencesUtil?.readTIpPreferencesFlow?.firstOrNull()?.let { preference ->
                 val pageAnim = preference.pageAnim
                 isScroll = pageAnim == 3
                 when (pageAnim) {
                     0 -> if (pageDelegate !is CoverPageDelegate) {
                         pageDelegate = CoverPageDelegate(this@PageView)
                     }
+
                     1 -> if (pageDelegate !is SlidePageDelegate) {
                         pageDelegate = SlidePageDelegate(this@PageView)
                     }
+
                     2 -> if (pageDelegate !is SimulationPageDelegate) {
                         pageDelegate = SimulationPageDelegate(this@PageView)
                     }
+
                     3 -> if (pageDelegate !is ScrollPageDelegate) {
                         pageDelegate = ScrollPageDelegate(this@PageView)
                     }
+
                     else -> if (pageDelegate !is NoAnimPageDelegate) {
                         pageDelegate = NoAnimPageDelegate(this@PageView)
                     }
@@ -521,8 +572,8 @@ class PageView: FrameLayout, IDataSource, PageCallback {
 
     override fun getSelectedText(): String {
         return prevPage.selectedText +
-        curPage.selectedText +
-        nextPage.selectedText
+                curPage.selectedText +
+                nextPage.selectedText
     }
 
     /***
@@ -573,7 +624,7 @@ class PageView: FrameLayout, IDataSource, PageCallback {
     fun upBg() {
         Coroutines.mainScope().launch {
             ChapterProvider.tryCreatePreference(context)
-            ChapterProvider.readerPreferencesUtil?.readerPreferencesFlow?.firstOrNull()?.let{ preference ->
+            ChapterProvider.readerPreferencesUtil?.readerPreferencesFlow?.firstOrNull()?.let { preference ->
                 val bgColor = preference.backgroundColor
                 curPage.setBg(bgColor)
                 prevPage.setBg(bgColor)

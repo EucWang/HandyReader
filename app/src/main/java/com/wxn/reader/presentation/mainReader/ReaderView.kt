@@ -100,7 +100,7 @@ fun ReaderView(
                     viewModel.pageController.pageFactory = TextPageFactory(this, viewModel.pageController)
                     this.dataProvider = viewModel.pageController
                     viewModel.pageController.callBack = this
-                    viewModel.pageController.clickCenterListener = viewModel
+                    viewModel.pageController.clickListener = viewModel
                     setSelectTextCallback(viewModel.pageController)
                 }
             },
@@ -221,12 +221,13 @@ fun ReaderView(
             currentChapter =    viewModel.pageController.curTextChapter?.title.orEmpty(),
             tableOfContents = viewModel.showOutChapters,
             onChapterSelect = { selectedChapter ->
+                viewModel.onLinkClick(selectedChapter.srcName)
+                viewModel.chaptersDrawerOpen(false)
 //                val locator = publication.locatorFromLink(selectedChapter)
 //                locator?.let {
 //                    onChapterChange(it)
 //                    isChaptersDrawerOpen = false
 //                }
-                //TODO
             },
             onClose = { viewModel.chaptersDrawerOpen(false) }
         )
