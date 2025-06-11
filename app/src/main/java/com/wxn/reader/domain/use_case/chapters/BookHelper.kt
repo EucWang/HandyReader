@@ -93,9 +93,15 @@ object BookHelper {
                     .replace("&#x000A;", "")        //换行
                     .replace("&#x000D;", "")        //回车
                     .replace("&#12288;", "")        //
+                content.line = line
 
-                if (!content.line.isEmpty()) {
+                if (!content.line.isEmpty() && content.isText) {
                     content.line = "${ChapterProvider.paragraphIndent}$line"
+                    val offset = ChapterProvider.paragraphIndent.length
+                    content.annotations.forEach { anno ->
+                        anno.start += offset
+                        anno.end += offset
+                    }
                 }
             }
         }

@@ -7,8 +7,8 @@ data class TextTag(
     val uuid:String,                //标签的唯一uuid值
     val anchorId : String = "",     //如果是锚点，则有值
     val name: String,               //标签名
-    val start: Int = 0,             //标签影响的开始位置
-    val end: Int =0,                //标签影响的结束位置
+    var start: Int = 0,             //标签影响的开始位置
+    var end: Int =0,                //标签影响的结束位置
     val parentUuid: String = "",    //父级标签uuid
     val params: String = ""         //字符串拼接的键值对， 需要解析
 )
@@ -28,6 +28,15 @@ sealed class ReaderText {
      */
     @Immutable
     data class Text(var line: String, var annotations: List<TextTag> = emptyList<TextTag>()): ReaderText() {
+
+        val isText: Boolean
+            get(){
+                val tagName = annotations.firstOrNull()?.name.orEmpty()
+                if (tagName == "h1" || tagName == "h2" || tagName == "h3" || tagName == "h4" || tagName == "h5" || tagName == "h6" || tagName == "h7" || tagName == "img") {
+                    return false
+                }
+                return true
+            }
 
         fun tryParseToChapter(chapterIndex: Int): Chapter? {
             if (annotations.firstOrNull()?.name == "h1") {

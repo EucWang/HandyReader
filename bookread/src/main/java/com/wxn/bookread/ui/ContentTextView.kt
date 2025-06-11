@@ -77,7 +77,7 @@ class ContentTextView(context: Context, attrs: AttributeSet?) : View(context, at
     //滚动偏移量
     private var pageOffset = 0f
 
-    private var textPaintColor: Int =  Color.BLACK
+    private var textPaintColor: Int = Color.BLACK
 
     init {
         contentDescription = textPage.text
@@ -131,24 +131,29 @@ class ContentTextView(context: Context, attrs: AttributeSet?) : View(context, at
      * @param lineStartOffset   行开始字符偏移索引
      * @param lineEndOffset     行结束字符偏移索引
      */
-    private fun getPagesAnnotation(chapterIndex: Int,
-                                   paragraphIndex: Int,
-                                   lineStartOffset:Int,
-                                   lineEndOffset:Int) : List<TextTag> {
+    private fun getPagesAnnotation(
+        chapterIndex: Int,
+        paragraphIndex: Int,
+        lineStartOffset: Int,
+        lineEndOffset: Int
+    ): List<TextTag> {
         val curTextChapter = pageFactory?.provider?.textChapter(0) //?.annotations.orEmpty()
         val preTextChapter = pageFactory?.provider?.textChapter(-1)
         val nextTextChapter = pageFactory?.provider?.textChapter(1)
 
-        val textTagMaps : Map<Int, List<TextTag>> = when(chapterIndex) {
+        val textTagMaps: Map<Int, List<TextTag>> = when (chapterIndex) {
             curTextChapter?.position -> {
                 curTextChapter.annotations
             }
+
             preTextChapter?.position -> {
                 preTextChapter.annotations
             }
+
             nextTextChapter?.position -> {
                 nextTextChapter.annotations
             }
+
             else -> emptyMap()
         }
 
@@ -158,8 +163,8 @@ class ContentTextView(context: Context, attrs: AttributeSet?) : View(context, at
         }
 
         val effectedTextTags = arrayListOf<TextTag>()
-        for(textTag in textTagList) {
-            if ((lineStartOffset in textTag.start until textTag.end) || (lineEndOffset in textTag.start until textTag.end)) {
+        for (textTag in textTagList) {
+            if ((lineStartOffset in textTag.start until textTag.end) || (lineEndOffset in textTag.start..textTag.end)) {
                 effectedTextTags.add(textTag)
             }
         }
@@ -267,33 +272,36 @@ class ContentTextView(context: Context, attrs: AttributeSet?) : View(context, at
             } else if (textTags.size == 1) {
                 val tagStart = textTags[0].start                                                        //修饰标签相对于段落的开始偏移位置
                 val tagEnd = textTags[0].end                                                            //修饰标签相对于段落的开始偏移位置
-                val lineStartIndex = textLine.charStartOffset - ChapterProvider.paragraphIndent.length  //基于段落的行开始偏移位置
-                val lineEndIndex = textLine.charEndOffset - ChapterProvider.paragraphIndent.length      //基于段落的行结束偏移位置
+                val lineStartIndex = textLine.charStartOffset //基于段落的行开始偏移位置
+                val lineEndIndex = textLine.charEndOffset      //基于段落的行结束偏移位置
 
                 if (tagEnd <= lineStartIndex || tagStart >= lineEndIndex) { //修饰标签位置和行文字没有对上， 默认文字
                     defaultTextPaint = contentPaint
-                } else if (lineStartIndex == tagStart && textLine.textChars.size == tagEnd - tagStart) {  //修饰标签位置和行文字完全吻合， 修饰标签
+                } else if (lineStartIndex >= tagStart && lineEndIndex <= tagEnd) {  //修饰标签位置和行文字完全吻合， 修饰标签
                     lineTextTag = textTags[0]
                     defaultTextPaint = ChapterProvider.getPaintByTagName(lineTextTag.name)
                 }
             }
         }
         //文字颜色
-        defaultTextPaint?.color = if (isReadAloud) {
-            //  "accentColor": "#AD1457",
-            //  "accentColor": "#E0E0E0",
-            // "accentColor": "#FFFFFF",
-            "#FFAD1457".toColorInt()
-        } else {
-            textPaintColor
+//        defaultTextPaint?.color = if (isReadAloud) {
+//            //  "accentColor": "#AD1457",
+//            //  "accentColor": "#E0E0E0",
+//            // "accentColor": "#FFFFFF",
+//            "#FFAD1457".toColorInt()
+//        } else {
+//            textPaintColor
+//        }
+        if (isReadAloud) {
+            defaultTextPaint?.color = "#FFAD1457".toColorInt()
         }
 
         textLine.textChars.forEachIndexed { index, ch ->
-            val charIndex = textLine.charStartOffset + index - ChapterProvider.paragraphIndent.length  //去掉首航缩进的长度
+            val charIndex = textLine.charStartOffset + index
 
             val paint = if (defaultTextPaint != null) defaultTextPaint else {
                 val texttag = if (textTags.size == 1) {
-                    if (textTags[0].start <= charIndex && charIndex > textTags[0].end) textTags[0] else null
+                    if (textTags[0].start <= charIndex && charIndex < textTags[0].end) textTags[0] else null
                 } else {
                     filterTags(charIndex, textTags)
                 }
@@ -308,7 +316,7 @@ class ContentTextView(context: Context, attrs: AttributeSet?) : View(context, at
 
     fun filterTags(charIndex: Int, textTags: List<TextTag>): TextTag? {
         for (tag in textTags) {
-            if (charIndex >= tag.start && charIndex < tag.end) {
+            if (tag.start <= charIndex && charIndex < tag.end) {
                 return tag
             }
         }
@@ -486,19 +494,20 @@ class ContentTextView(context: Context, attrs: AttributeSet?) : View(context, at
             relativePage(relativePos)?.let { page ->
                 var top: Float
                 var bottom: Float
-                var start : Float
-                var end : Float
-                for((lineIndex, textLine) in page.textLines.withIndex()) {
+                var start: Float
+                var end: Float
+                for ((lineIndex, textLine) in page.textLines.withIndex()) {
                     top = textLine.lineTop + relativeOffset
                     bottom = textLine.lineBottom + relativeOffset
                     if (y > top && y < bottom) {
-                        for((charIndex, textChar) in textLine.textChars.withIndex()) {
+                        for ((charIndex, textChar) in textLine.textChars.withIndex()) {
                             start = textChar.start
                             end = textChar.end
                             if (x > start && x < end) {
                                 if (selectEnd[0] != relativePos ||
                                     selectEnd[1] != lineIndex ||
-                                    selectEnd[2] != charIndex) { //当前字符不是最后一个选中的字符
+                                    selectEnd[2] != charIndex
+                                ) { //当前字符不是最后一个选中的字符
                                     //选中结束符的位置跑到选中开始符的前面去了
                                     if (selectToInt(relativePos, lineIndex, charIndex) < selectToInt(selectStart)) {
                                         return
@@ -558,8 +567,8 @@ class ContentTextView(context: Context, attrs: AttributeSet?) : View(context, at
      */
     fun cancelSelect() {
         val last = if (true == callback?.isScroll) 2 else 0
-        for(relativePos in 0..last) {
-            relativePage(relativePos)?.textLines?.forEach{ textLine ->
+        for (relativePos in 0..last) {
+            relativePage(relativePos)?.textLines?.forEach { textLine ->
                 textLine.textChars.forEach { ch ->
                     ch.selected = false
                 }
@@ -598,7 +607,7 @@ class ContentTextView(context: Context, attrs: AttributeSet?) : View(context, at
                             }
                         }
                     } else if (relativePos == selectStart[0]) {
-                        for (lineIndex in selectStart[1] until (relativePage(relativePos)?.textLines?.size?:0)) {
+                        for (lineIndex in selectStart[1] until (relativePage(relativePos)?.textLines?.size ?: 0)) {
                             if (lineIndex == selectStart[1]) {
                                 stringBuilder.append(
                                     textPage.textLines[lineIndex].text.substring(
@@ -636,7 +645,7 @@ class ContentTextView(context: Context, attrs: AttributeSet?) : View(context, at
         }
     }
 
-    private fun upSelectedEnd(x: Float, y : Float) {
+    private fun upSelectedEnd(x: Float, y: Float) {
         callback?.apply {
             upSelectedEnd(x, y + headerHeight)
         }
@@ -648,11 +657,11 @@ class ContentTextView(context: Context, attrs: AttributeSet?) : View(context, at
     private fun upSelectChars() {
         val last = if (true == callback?.isScroll) 2 else 0
 
-        for(relativePos in 0..last) {
+        for (relativePos in 0..last) {
             relativePage(relativePos)?.let { page ->
-                for((lineIndex, textLine) in page.textLines.withIndex()) {
-                    for((charIndex, textChar) in textLine.textChars.withIndex()) {
-                        textChar.selected =  if (relativePos == selectStart[0]
+                for ((lineIndex, textLine) in page.textLines.withIndex()) {
+                    for ((charIndex, textChar) in textLine.textChars.withIndex()) {
+                        textChar.selected = if (relativePos == selectStart[0]
                             && relativePos == selectEnd[0]
                             && lineIndex == selectStart[1]
                             && lineIndex == selectEnd[1]
@@ -701,7 +710,7 @@ class ContentTextView(context: Context, attrs: AttributeSet?) : View(context, at
         return when (relativePos) {
             0 -> pageOffset
             1 -> pageOffset + textPage.height
-            else -> pageOffset + textPage.height + (pageFactory?.nextPage?.height?:0f)
+            else -> pageOffset + textPage.height + (pageFactory?.nextPage?.height ?: 0f)
         }
     }
 
