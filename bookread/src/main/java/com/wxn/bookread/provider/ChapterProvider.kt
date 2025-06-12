@@ -11,6 +11,7 @@ import android.text.StaticLayout
 import android.text.TextPaint
 import com.wxn.base.bean.Book
 import com.wxn.base.bean.BookChapter
+import com.wxn.base.bean.CssInfo
 import com.wxn.base.bean.ReaderText
 import com.wxn.base.bean.ReaderText.Text
 import com.wxn.base.bean.TextTag
@@ -41,6 +42,7 @@ import kotlin.collections.firstOrNull
 object ChapterProvider {
 
     val paragraphIndent: String = "　　" //段落缩进
+    val oneParagraphIndent: String = "　" //段落缩进
     val JS_PATTERN: Pattern =
         Pattern.compile("(<js>[\\w\\W]*?</js>|@js:[\\w\\W]*$)", Pattern.CASE_INSENSITIVE)
     val EXP_PATTERN: Pattern = Pattern.compile("\\{\\{([\\w\\W]*?)\\}\\}")
@@ -358,9 +360,8 @@ object ChapterProvider {
 
 
     suspend fun getTextChapter(
-        context: Context,
-        book: Book,
         chapter: BookChapter,
+        csssheets: Map<String, CssInfo>,
         contents: List<ReaderText>,
         imageStyles: String = "",
         chapterSize: Int,
@@ -433,14 +434,6 @@ object ChapterProvider {
             page.upLinesPosition()                      //对一页的高度进行纠偏
         }
 
-        val tags = hashMapOf<Int, List<TextTag>>()
-        contents.forEachIndexed { index, content ->
-            if (content is ReaderText.Text) {
-                if (content.annotations.isNotEmpty()) {
-                    tags[index] = content.annotations
-                }
-            }
-        }
 
         return TextChapter(
             position = chapter.chapterIndex,
@@ -450,7 +443,6 @@ object ChapterProvider {
             pageLines = pageLines,
             pageLengths = pageLengths,
             chaptersSize = chapterSize,
-            annotations = tags
         )
     }
 

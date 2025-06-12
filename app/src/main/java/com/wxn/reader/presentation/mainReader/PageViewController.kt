@@ -5,6 +5,7 @@ import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.asLiveData
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.wxn.base.bean.Book
+import com.wxn.base.bean.ReaderText
 import com.wxn.base.bean.TextTag
 import com.wxn.base.util.Coroutines
 import com.wxn.base.util.Logger
@@ -206,10 +207,22 @@ open class PageViewController @Inject constructor(
             return
         }
         BookHelper.loadChapterContent(context, curBook, chapter, textParser).let { contents ->
-            val contents = BookHelper.disposeContent(appPreferencesUtil, chapter, contents)
             Logger.i("PageViewController::loadContent:index=$index, contents.size=${contents.size}")
-            val textChapter = ChapterProvider.getTextChapter(context, curBook, chapter, contents, imageStyles = "", chapterSize)
-            textChapter?.cssInfos = BookHelper.loadChpaterCsses(context, curBook, textChapter.annotations, textParser)
+
+            val tags = hashMapOf<Int, List<TextTag>>()  //章节全部标签信息
+            contents.forEachIndexed { index, content ->
+                if (content is ReaderText.Text) {
+                    if (content.annotations.isNotEmpty()) {
+                        tags[index] = content.annotations
+                    }
+                }
+            }
+            val cssInfos = BookHelper.loadChpaterCsses(context, curBook, tags, textParser)      //章节全部的css信息
+
+            val contents = BookHelper.disposeContent(appPreferencesUtil, chapter, contents, cssInfos)
+            val textChapter = ChapterProvider.getTextChapter(chapter, cssInfos, contents, imageStyles = "", chapterSize)
+            textChapter?.annotations = tags
+            textChapter?.cssInfos = cssInfos
             when (chapter.chapterIndex) {
                 durChapterIndex -> {    //加载的是当前章节
                     curTextChapter = textChapter

@@ -4,24 +4,30 @@ import androidx.compose.runtime.Immutable
 import com.wxn.base.util.Logger
 
 data class TextTag(
-    val uuid:String,                //标签的唯一uuid值
-    val anchorId : String = "",     //如果是锚点，则有值
+    val uuid: String,                //标签的唯一uuid值
+    val anchorId: String = "",     //如果是锚点，则有值
     val name: String,               //标签名
     var start: Int = 0,             //标签影响的开始位置
-    var end: Int =0,                //标签影响的结束位置
+    var end: Int = 0,                //标签影响的结束位置
     val parentUuid: String = "",    //父级标签uuid
     val params: String = ""         //字符串拼接的键值对， 需要解析
 ) {
 
-    fun paramsPairs():List<Pair<String, String>> {
+    fun paramsPairs(): List<Pair<String, String>> {
         return params.split("&").mapNotNull {
             val item = it.split("=")
-            if(item.getOrNull(0) != null && item.getOrNull(1) != null) {
+            if (item.getOrNull(0) != null && item.getOrNull(1) != null) {
                 Pair(item[0], item[1])
             } else {
                 null
             }
         }
+    }
+
+    fun cssClasses(): List<String> {
+        return paramsPairs().filter {
+            it.first == "class" && it.second.isNotEmpty()
+        }.map { it.second }
     }
 }
 
@@ -40,10 +46,10 @@ sealed class ReaderText {
      * annotations 对应的文本的样式
      */
     @Immutable
-    data class Text(var line: String, var annotations: List<TextTag> = emptyList<TextTag>()): ReaderText() {
+    data class Text(var line: String, var annotations: List<TextTag> = emptyList<TextTag>()) : ReaderText() {
 
         val isText: Boolean
-            get(){
+            get() {
                 val tagName = annotations.firstOrNull()?.name.orEmpty()
                 if (tagName == "h1" || tagName == "h2" || tagName == "h3" || tagName == "h4" || tagName == "h5" || tagName == "h6" || tagName == "h7" || tagName == "img") {
                     return false
@@ -58,20 +64,22 @@ sealed class ReaderText {
             return null
         }
 
-        fun tryParseToImage() : Image? {
+        fun tryParseToImage(): Image? {
             if (annotations.firstOrNull()?.name == "img" && !annotations.firstOrNull()?.params.isNullOrEmpty()) {
                 val paramItems = annotations.firstOrNull()?.paramsPairs().orEmpty()
                 var src = ""
                 var width = 0
                 var height = 0
-                for(item in paramItems)  {
-                    when(item.first) {
+                for (item in paramItems) {
+                    when (item.first) {
                         "src" -> {
                             src = item.second
                         }
+
                         "width" -> {
                             width = item.second.toIntOrNull() ?: 0
                         }
+
                         "height" -> {
                             height = item.second.toIntOrNull() ?: 0
                         }
@@ -92,11 +100,12 @@ sealed class ReaderText {
     @Immutable
     data object Separator : ReaderText()
 
-    @Immutable data class Image(
+    @Immutable
+    data class Image(
         val path: String,   //绝对路径
         val width: Int,     //图片宽
         val height: Int     //图片高
-        ) : ReaderText()
+    ) : ReaderText()
 
 
 }

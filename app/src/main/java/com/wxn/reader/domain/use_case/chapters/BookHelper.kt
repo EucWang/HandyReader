@@ -5,9 +5,12 @@ import androidx.core.net.toUri
 import com.spreada.utils.chinese.ZHConverter
 import com.wxn.base.bean.Book
 import com.wxn.base.bean.BookChapter
+import com.wxn.base.bean.CSS_ITEM
 import com.wxn.base.bean.CssInfo
 import com.wxn.base.bean.ReaderText
+import com.wxn.base.bean.RuleData
 import com.wxn.base.bean.TextTag
+import com.wxn.base.bean.format
 import com.wxn.base.util.Logger
 import com.wxn.bookparser.TextParser
 import com.wxn.bookparser.domain.file.CachedFileCompat
@@ -70,7 +73,8 @@ object BookHelper {
     suspend fun disposeContent(
         appPreferencesUtil: AppPreferencesUtil,
         chapter: BookChapter,
-        contents: List<ReaderText>
+        contents: List<ReaderText>,
+        csssheets: Map<String, CssInfo>
     ): List<ReaderText> {
         val chineseConverterType = appPreferencesUtil.chineseConverterType()
         //得到简繁体对应的章节名称
@@ -123,16 +127,54 @@ object BookHelper {
                     .replace("&#12288;", "")        //
                 content.line = line
 
+                val indent = getTextIntent(content.annotations, csssheets)
+
                 if (!content.line.isEmpty() && content.isText) {
-                    content.line = "${ChapterProvider.paragraphIndent}$line"
-                    val offset = ChapterProvider.paragraphIndent.length
+                    val lineStrBuilder = StringBuilder()
+                    if (indent > 0) {
+                        repeat(indent) {
+                            lineStrBuilder.append(ChapterProvider.oneParagraphIndent)
+                        }
+                    }
+                    lineStrBuilder.append(line)
+
+                    content.line = lineStrBuilder.toString()
                     content.annotations.forEach { anno ->
-                        anno.start += offset
-                        anno.end += offset
+                        anno.start += indent
+                        anno.end += indent
                     }
                 }
             }
         }
         return content1
     }
+}
+
+fun getTextIntent(annotations: List<TextTag>, csssheets: Map<String, CssInfo>): Int {
+    val cssClasses = arrayListOf<String>()
+    annotations.forEach { tag ->
+        cssClasses.addAll(tag.cssClasses())
+    }
+    var indentRuleData : RuleData? = null
+    for(css in cssClasses) {
+        val ruleData = csssheets[css]?.datas?.firstOrNull { ruleData ->
+            ruleData.format() == CSS_ITEM.CSS_TEXT_INDENT
+        }
+        if (ruleData != null) {
+            indentRuleData = ruleData
+            break
+        }
+    }
+    var indent = 2
+    if (indentRuleData != null) {
+        Logger.d("BookHelper::disposeContent:indent=${indentRuleData}")
+        if (indentRuleData.value.endsWith("em")) {
+            val indentStr = indentRuleData.value.substring(0, indentRuleData.value.length - "em".length)
+            indentStr.toIntOrNull()?.let { indentInt ->
+                indent = indentInt
+                Logger.d("BookHelper::disposeContent:change indent to $indent")
+            }
+        }
+    }
+    return indent
 }
