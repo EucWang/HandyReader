@@ -412,23 +412,26 @@ class PageView : FrameLayout, IDataSource, PageCallback {
         if (curPage != null && clickLine != null) {
             val chapterIndex = curPage.chapterIndex
             val paragraphIndex = clickLine.paragraphIndex
-            val tag = dataProvider?.pageFactory?.getPagesAnnotation(chapterIndex, paragraphIndex, clickLine.charStartOffset, clickLine.charEndOffset)?.firstOrNull()
-            if (tag?.name == "a" && tag.params.isNotEmpty()) {
-                val tagStart = tag.start
-                val tagEnd = tag.end
-                var clickChar: TextChar? = null
-                for((index, textChar) in clickLine.textChars.withIndex()) {
-                    val charIndex = clickLine.charStartOffset + index
-                    if (tagStart <= charIndex && charIndex < tagEnd &&
-                        textChar.start <= startX && startX <= textChar.end) { //is a link character
-                        clickChar = textChar
-                        break
+            dataProvider?.pageFactory?.let { factory ->
+                val (tags, textCssInfo) = factory.getPagesAnnotation(chapterIndex, paragraphIndex, clickLine.charStartOffset, clickLine.charEndOffset)
+                val tag = tags.firstOrNull()
+                if (tag?.name == "a" && tag.params.isNotEmpty()) {
+                    val tagStart = tag.start
+                    val tagEnd = tag.end
+                    var clickChar: TextChar? = null
+                    for((index, textChar) in clickLine.textChars.withIndex()) {
+                        val charIndex = clickLine.charStartOffset + index
+                        if (tagStart <= charIndex && charIndex < tagEnd &&
+                            textChar.start <= startX && startX <= textChar.end) { //is a link character
+                            clickChar = textChar
+                            break
+                        }
                     }
-                }
-                if (clickChar != null) {
-                    Logger.d("PageView::onSingleTapUp::clickChar=${clickChar},event=(${startX}, ${startY})")
-                    dataProvider?.clickLink(tag)
-                    return true
+                    if (clickChar != null) {
+                        Logger.d("PageView::onSingleTapUp::clickChar=${clickChar},event=(${startX}, ${startY})")
+                        dataProvider?.clickLink(tag)
+                        return true
+                    }
                 }
             }
         }

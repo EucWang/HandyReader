@@ -1,5 +1,6 @@
 package com.wxn.bookread.ui
 
+import com.wxn.base.bean.TextCssInfo
 import com.wxn.base.bean.TextTag
 import com.wxn.bookread.data.model.TextPage
 
@@ -148,7 +149,7 @@ class TextPageFactory(dataSource: IDataSource, val provider: PageViewDataProvide
 
     /***
      * 根据chapterIndex, paragraphIndex, lineStartOffset, lineEndOffset
-     * 得到当前行可能会使用到的TextTag
+     * 得到当前行可能会使用到的TextTag, TextCssInfo
      * @param chapterIndex      章节索引
      * @param paragraphIndex    段落索引
      * @param lineStartOffset   行开始字符偏移索引
@@ -159,31 +160,32 @@ class TextPageFactory(dataSource: IDataSource, val provider: PageViewDataProvide
         paragraphIndex: Int,
         lineStartOffset: Int,
         lineEndOffset: Int
-    ): List<TextTag> {
+    ):  Pair<List<TextTag>, TextCssInfo?> {
         val curTextChapter = provider.textChapter(0) //?.annotations.orEmpty()
         val preTextChapter = provider.textChapter(-1)
         val nextTextChapter = provider.textChapter(1)
 
-        val textTagMaps: Map<Int, List<TextTag>> = when (chapterIndex) {
+        val chapter = when (chapterIndex) {
             curTextChapter?.position -> {
-                curTextChapter.annotations
+                curTextChapter
             }
 
             preTextChapter?.position -> {
-                preTextChapter.annotations
+                preTextChapter
             }
 
             nextTextChapter?.position -> {
-                nextTextChapter.annotations
+                nextTextChapter
             }
 
-            else -> emptyMap()
+            else -> null
         }
+        val textTagMaps: Map<Int, List<TextTag>> = chapter?.annotations.orEmpty()
+        val textCssInfos = chapter?.textCssInfos.orEmpty()
 
-        var textTagList = textTagMaps.get(paragraphIndex)
-        if (textTagList.isNullOrEmpty()) {
-            return emptyList()
-        }
+
+        var textTagList = textTagMaps.get(paragraphIndex).orEmpty()
+        val textCssInfo = textCssInfos.get(paragraphIndex)
 
         val effectedTextTags = arrayListOf<TextTag>()
         for (textTag in textTagList) {
@@ -191,7 +193,7 @@ class TextPageFactory(dataSource: IDataSource, val provider: PageViewDataProvide
                 effectedTextTags.add(textTag)
             }
         }
-        return effectedTextTags
+        return Pair(effectedTextTags, textCssInfo)
     }
 
 }

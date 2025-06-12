@@ -5,10 +5,14 @@ import android.graphics.Canvas
 import android.graphics.Color
 import android.graphics.Paint
 import android.graphics.RectF
+import android.graphics.Typeface
+import android.os.Build
 import android.text.TextPaint
 import android.util.AttributeSet
 import android.view.View
 import androidx.core.graphics.toColorInt
+import com.wxn.base.bean.CssFontWeight
+import com.wxn.base.bean.TextCssInfo
 import com.wxn.base.bean.TextTag
 import com.wxn.base.ext.getCompatColor
 import com.wxn.base.util.Coroutines
@@ -18,6 +22,7 @@ import com.wxn.bookread.data.model.TextLine
 import com.wxn.bookread.data.model.TextPage
 import com.wxn.bookread.provider.ChapterProvider
 import com.wxn.bookread.provider.ChapterProvider.contentPaint
+import com.wxn.bookread.provider.ChapterProvider.typeface
 import com.wxn.bookread.provider.ImageProvider
 import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.launch
@@ -129,6 +134,7 @@ class ContentTextView(context: Context, attrs: AttributeSet?) : View(context, at
     private fun drawPage(canvas: Canvas) {
         var relativeOffset = relativeOffset(0)
         Logger.i("ContentTextView::drawPage:relativeOffset=$relativeOffset, paddingOffset =$pageOffset, textPage.height=${textPage.height}")
+        val factory = pageFactory ?: return
 
         val chapterIndex = textPage.chapterIndex        //章节索引
 
@@ -136,9 +142,9 @@ class ContentTextView(context: Context, attrs: AttributeSet?) : View(context, at
             val paragraphIndex = textLine.paragraphIndex    //段落索引
             val startOffset = textLine.charStartOffset      //当前行所在段落起始索引
             val endOffset = textLine.charEndOffset          //当前行所在段落结束索引（不包含）
-            val tags = pageFactory?.getPagesAnnotation(chapterIndex, paragraphIndex, startOffset, endOffset).orEmpty()
+            val (tags, textCssInfo) = factory.getPagesAnnotation(chapterIndex, paragraphIndex, startOffset, endOffset)
 
-            drawLine(canvas, textLine, tags, relativeOffset)
+            drawLine(canvas, textLine, tags, textCssInfo, relativeOffset)
         }
 
         if (true != callback?.isScroll) return          //非滚动翻页，跳过
@@ -154,9 +160,9 @@ class ContentTextView(context: Context, attrs: AttributeSet?) : View(context, at
                 val paragraphIndex = textLine.paragraphIndex    //段落索引
                 val startOffset = textLine.charStartOffset      //当前行所在段落起始索引
                 val endOffset = textLine.charEndOffset          //当前行所在段落结束索引（不包含）
-                val tags = pageFactory?.getPagesAnnotation(chapterIdx, paragraphIndex, startOffset, endOffset).orEmpty()
+                val (tags, textCssInfo) = factory.getPagesAnnotation(chapterIdx, paragraphIndex, startOffset, endOffset)
 
-                drawLine(canvas, textLine, tags, relativeOffset)
+                drawLine(canvas, textLine, tags, textCssInfo, relativeOffset)
             }
         }
 
@@ -172,9 +178,9 @@ class ContentTextView(context: Context, attrs: AttributeSet?) : View(context, at
                     val paragraphIndex = textLine.paragraphIndex    //段落索引
                     val startOffset = textLine.charStartOffset      //当前行所在段落起始索引
                     val endOffset = textLine.charEndOffset          //当前行所在段落结束索引（不包含）
-                    val tags = pageFactory?.getPagesAnnotation(chapterIdx, paragraphIndex, startOffset, endOffset).orEmpty()
+                    val (tags, textCssInfo) = factory.getPagesAnnotation(chapterIdx, paragraphIndex, startOffset, endOffset)
 
-                    drawLine(canvas, textLine, tags, relativeOffset)
+                    drawLine(canvas, textLine, tags, textCssInfo, relativeOffset)
                 }
             }
         }
@@ -183,7 +189,7 @@ class ContentTextView(context: Context, attrs: AttributeSet?) : View(context, at
     /***
      * 绘制行
      */
-    private fun drawLine(canvas: Canvas, textLine: TextLine, tags: List<TextTag>, relativeOffset: Float) {
+    private fun drawLine(canvas: Canvas, textLine: TextLine, tags: List<TextTag>, textCssInfo: TextCssInfo?, relativeOffset: Float) {
         val lineTop = textLine.lineTop + relativeOffset
         val lineBase = textLine.lineBase + relativeOffset
         val lineBottom = textLine.lineBottom + relativeOffset
@@ -192,7 +198,7 @@ class ContentTextView(context: Context, attrs: AttributeSet?) : View(context, at
             drawImage(canvas, textLine, lineTop, lineBottom) //绘制图片
         } else {
             drawChars(
-                canvas, textLine, tags, lineTop, lineBase, lineBottom,
+                canvas, textLine, tags, textCssInfo, lineTop, lineBase, lineBottom,
                 isTitle = textLine.isTitle,
                 isReadAloud = textLine.isReadAloud
             )
@@ -204,6 +210,7 @@ class ContentTextView(context: Context, attrs: AttributeSet?) : View(context, at
         canvas: Canvas,
         textLine: TextLine,
         textTags: List<TextTag>,
+        textCssInfo: TextCssInfo?,
         lineTop: Float,
         lineBase: Float,
         lineBottom: Float,
@@ -235,15 +242,6 @@ class ContentTextView(context: Context, attrs: AttributeSet?) : View(context, at
                 }
             }
         }
-        //文字颜色
-//        defaultTextPaint?.color = if (isReadAloud) {
-//            //  "accentColor": "#AD1457",
-//            //  "accentColor": "#E0E0E0",
-//            // "accentColor": "#FFFFFF",
-//            "#FFAD1457".toColorInt()
-//        } else {
-//            textPaintColor
-//        }
         if (isReadAloud) {
             defaultTextPaint?.color = "#FFAD1457".toColorInt()
         }
@@ -251,7 +249,7 @@ class ContentTextView(context: Context, attrs: AttributeSet?) : View(context, at
         textLine.textChars.forEachIndexed { index, ch ->
             val charIndex = textLine.charStartOffset + index
 
-            val paint = if (defaultTextPaint != null) defaultTextPaint else {
+            val parentPaint = if (defaultTextPaint != null) defaultTextPaint else {
                 val texttag = if (textTags.size == 1) {
                     if (textTags[0].start <= charIndex && charIndex < textTags[0].end) textTags[0] else null
                 } else {
@@ -259,6 +257,36 @@ class ContentTextView(context: Context, attrs: AttributeSet?) : View(context, at
                 }
                 ChapterProvider.getPaintByTagName(texttag?.name)
             }
+            val paint = TextPaint()
+            paint.set(parentPaint)
+
+            if (textCssInfo !=null) {
+                paint.textSize *= textCssInfo.fontSize.toFloat()
+                paint.typeface = when(textCssInfo.fontWeight) {
+                    CssFontWeight.FontWeightNormal -> {
+                        Typeface.create(typeface, Typeface.NORMAL)
+                    }
+                    CssFontWeight.FontWeightBold -> {
+                        Typeface.create(typeface, Typeface.BOLD)
+                    }
+                    CssFontWeight.FontWeightBolder -> {
+                        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+                            Typeface.create(typeface, 900, false)
+                        } else {
+                            Typeface.create(typeface, Typeface.BOLD)
+                        }
+                    }
+                    CssFontWeight.FontWeightLighter -> {
+                        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+                            Typeface.create(typeface, 300, false)
+                        } else {
+                            Typeface.create(typeface, Typeface.NORMAL)
+                        }
+                    }
+                }
+            }
+
+
             canvas.drawText(ch.charData, ch.start, lineBase, paint) //绘制每一个字
             if (ch.selected) {
                 canvas.drawRect(ch.start, lineTop, ch.end, lineBottom, selectedPaint) //绘制选择文字时的背景框

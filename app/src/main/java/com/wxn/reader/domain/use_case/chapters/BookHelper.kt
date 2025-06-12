@@ -5,7 +5,7 @@ import androidx.core.net.toUri
 import com.spreada.utils.chinese.ZHConverter
 import com.wxn.base.bean.Book
 import com.wxn.base.bean.BookChapter
-import com.wxn.base.bean.CSS_ITEM
+import com.wxn.base.bean.CssItem
 import com.wxn.base.bean.CssInfo
 import com.wxn.base.bean.ReaderText
 import com.wxn.base.bean.RuleData
@@ -127,12 +127,13 @@ object BookHelper {
                     .replace("&#12288;", "")        //
                 content.line = line
 
-                val indent = getTextIntent(content.annotations, csssheets)
+                content.parseTextCss(csssheets)
+                val textIndent = content.textCssInfo.textIndent
 
                 if (!content.line.isEmpty() && content.isText) {
                     val lineStrBuilder = StringBuilder()
-                    if (indent > 0) {
-                        repeat(indent) {
+                    if (textIndent > 0) {
+                        repeat(textIndent) {
                             lineStrBuilder.append(ChapterProvider.oneParagraphIndent)
                         }
                     }
@@ -140,41 +141,12 @@ object BookHelper {
 
                     content.line = lineStrBuilder.toString()
                     content.annotations.forEach { anno ->
-                        anno.start += indent
-                        anno.end += indent
+                        anno.start += textIndent
+                        anno.end += textIndent
                     }
                 }
             }
         }
         return content1
     }
-}
-
-fun getTextIntent(annotations: List<TextTag>, csssheets: Map<String, CssInfo>): Int {
-    val cssClasses = arrayListOf<String>()
-    annotations.forEach { tag ->
-        cssClasses.addAll(tag.cssClasses())
-    }
-    var indentRuleData : RuleData? = null
-    for(css in cssClasses) {
-        val ruleData = csssheets[css]?.datas?.firstOrNull { ruleData ->
-            ruleData.format() == CSS_ITEM.CSS_TEXT_INDENT
-        }
-        if (ruleData != null) {
-            indentRuleData = ruleData
-            break
-        }
-    }
-    var indent = 2
-    if (indentRuleData != null) {
-        Logger.d("BookHelper::disposeContent:indent=${indentRuleData}")
-        if (indentRuleData.value.endsWith("em")) {
-            val indentStr = indentRuleData.value.substring(0, indentRuleData.value.length - "em".length)
-            indentStr.toIntOrNull()?.let { indentInt ->
-                indent = indentInt
-                Logger.d("BookHelper::disposeContent:change indent to $indent")
-            }
-        }
-    }
-    return indent
 }

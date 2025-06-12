@@ -1,5 +1,6 @@
 package com.wxn.base.bean
 
+import android.R
 import androidx.compose.runtime.Immutable
 import com.wxn.base.util.Logger
 
@@ -29,6 +30,25 @@ data class TextTag(
             it.first == "class" && it.second.isNotEmpty()
         }.map { it.second }
     }
+}
+
+data class TextCssInfo(
+    var fontSize: Double = 1.0,
+    var fontFamily: List<String> = emptyList<String>(),
+    var fontWeight: CssFontWeight = CssFontWeight.FontWeightNormal,
+    var fontStyle: CssFontStyle = CssFontStyle.CssFontStyleNormal,
+    var textIndent: Int = 2,
+    var fontColor: String = "",
+    var textDecoration: CssTextDecoration = CssTextDecoration.CssTextDecorationNone,
+
+    var textAlign: CssTextAlign = CssTextAlign.CssTextAlignLeft,
+    var verticalAlign: CssVerticalAlign = CssVerticalAlign.CssVerticalAlignBaseLine,
+
+    var lineHeight: Double = 1.0,
+    var background: String = "",
+    var isFullScreen: Boolean = false
+) {
+
 }
 
 
@@ -92,6 +112,110 @@ sealed class ReaderText {
             }
             return null
         }
+
+        /***
+         * 根据TextTag和Css样式表，
+         */
+        fun parseTextCss(csssheets: Map<String, CssInfo>) {
+            var parsedCss = TextCssInfo()
+            val cssClasses = arrayListOf<String>()
+            annotations.forEach { tag ->
+                cssClasses.addAll(tag.cssClasses())
+            }
+            for (css in cssClasses) {
+                val ruleDatas = csssheets[css]?.datas.orEmpty()
+                for (ruleData in ruleDatas) {
+                    when (ruleData.name) {
+                        "font-size" -> {
+                            val cells = arrayListOf<String>("em", "rem")
+                            for (cell in cells) {
+                                if (ruleData.value.endsWith(cell)) {
+                                    val value = ruleData.value.substring(0, ruleData.value.length - cell.length)
+                                    parsedCss.fontSize = value.toDoubleOrNull() ?: 1.0
+                                    break
+                                }
+                            }
+                        }
+
+                        "font-family" -> {
+                            val families = arrayListOf<String>()
+                            ruleData.value.trim().split(",").forEach { family ->
+                                val item = family.trim()
+                                if (item != null) {
+                                    families.add(item)
+                                }
+                            }
+                            parsedCss.fontFamily = families
+                        }
+
+                        "font-weight" -> {
+                            parsedCss.fontWeight = CssFontWeight.format(ruleData.value)
+                        }
+
+                        "font-style" -> {
+                            parsedCss.fontStyle = CssFontStyle.format(ruleData.value)
+                        }
+
+                        "text-indent" -> {
+                            if (ruleData.value.endsWith("em")) {
+                                val value = ruleData.value.substring(0, ruleData.value.length - "em".length)
+                                parsedCss.textIndent = value.toIntOrNull() ?: 2
+                                break
+                            }
+                        }
+
+                        "color" -> {
+                            parsedCss.fontColor = ruleData.value
+                        }
+
+                        "text-decoration" -> {
+                            parsedCss.textDecoration = CssTextDecoration.format(ruleData.value)
+
+                        }
+
+                        "text-align" -> {
+                            parsedCss.textAlign = CssTextAlign.format(ruleData.value)
+                        }
+
+                        "vertical-align" -> {
+                            parsedCss.verticalAlign = CssVerticalAlign.format(ruleData.value)
+                        }
+
+                        "line-height" -> {
+                            val cells = arrayListOf<String>("em", "rem")
+                            for (cell in cells) {
+                                if (ruleData.value.endsWith(cell)) {
+                                    val value = ruleData.value.substring(0, ruleData.value.length - cell.length)
+                                    parsedCss.lineHeight = value.toDoubleOrNull() ?: 1.0
+                                    break
+                                }
+                            }
+                        }
+
+                        "background" -> {
+                            parsedCss.background = ruleData.value
+                        }
+
+                        "qrfullpage" -> {
+                            if (ruleData.value == "1") {
+                                parsedCss.isFullScreen = true
+                            }
+                        }
+
+                        "page-break-after" -> {
+                            if (ruleData.value == "always") {
+                                parsedCss.isFullScreen = true
+                            }
+                        }
+                    }
+                }
+            }
+            this.textCssInfo = parsedCss
+        }
+
+        var textCssInfo = TextCssInfo()
+
+
     }
 
     /****
@@ -106,6 +230,23 @@ sealed class ReaderText {
         val width: Int,     //图片宽
         val height: Int     //图片高
     ) : ReaderText()
+}
 
-
+fun toColorInt(fontColor: String): Int? {
+    var color = fontColor
+    if (color.isNullOrEmpty()) return null
+    if (color.startsWith("0x") || color.startsWith("0X")) {
+        color = color.substring(2)
+    } else if (color.startsWith("#")) {
+        color = color.substring(1)
+    }
+    if (color.length != 6) {
+        return null
+    }
+    val result = try {
+        color.toInt(16)
+    } catch (_: Exception) {
+        null
+    }
+    return result
 }

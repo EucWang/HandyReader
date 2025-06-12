@@ -11,6 +11,7 @@ import android.text.StaticLayout
 import android.text.TextPaint
 import com.wxn.base.bean.Book
 import com.wxn.base.bean.BookChapter
+import com.wxn.base.bean.CssFontWeight
 import com.wxn.base.bean.CssInfo
 import com.wxn.base.bean.ReaderText
 import com.wxn.base.bean.ReaderText.Text
@@ -361,7 +362,6 @@ object ChapterProvider {
 
     suspend fun getTextChapter(
         chapter: BookChapter,
-        csssheets: Map<String, CssInfo>,
         contents: List<ReaderText>,
         imageStyles: String = "",
         chapterSize: Int,
@@ -563,12 +563,40 @@ object ChapterProvider {
 
         var durY = if (isTitle) offsetY + titleTopSpacing else offsetY
 
-        val textPaint = if (paragraph is ReaderText.Text) {
+        val textPaint = TextPaint()
+        val parentPaint = if (paragraph is ReaderText.Text) {
             getPaintByTagName(paragraph.annotations.firstOrNull()?.name)
         } else if (paragraph is ReaderText.Chapter) {
             titlePaint
         } else {
             contentPaint
+        }
+        textPaint.set(parentPaint)
+
+        if (paragraph is ReaderText.Text) {
+            textPaint.textSize *= paragraph.textCssInfo.fontSize.toFloat()
+            textPaint.typeface = when(paragraph.textCssInfo.fontWeight) {
+                CssFontWeight.FontWeightNormal -> {
+                    Typeface.create(typeface, Typeface.NORMAL)
+                }
+                CssFontWeight.FontWeightBold -> {
+                    Typeface.create(typeface, Typeface.BOLD)
+                }
+                CssFontWeight.FontWeightBolder -> {
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+                        Typeface.create(typeface, 900, false)
+                    } else {
+                        Typeface.create(typeface, Typeface.BOLD)
+                    }
+                }
+                CssFontWeight.FontWeightLighter -> {
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+                        Typeface.create(typeface, 300, false)
+                    } else {
+                        Typeface.create(typeface, Typeface.NORMAL)
+                    }
+                }
+            }
         }
 
         val layout = StaticLayout(text, textPaint, visibleWidth, Layout.Alignment.ALIGN_NORMAL, 0f, 0f, true)

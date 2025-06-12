@@ -1,5 +1,6 @@
 package com.wxn.bookread.ui
 
+import com.wxn.base.bean.TextCssInfo
 import com.wxn.base.bean.TextTag
 
 abstract class IPageFactory<DATA>(protected val dataSource: IDataSource) {
@@ -40,5 +41,5 @@ abstract class IPageFactory<DATA>(protected val dataSource: IDataSource) {
         paragraphIndex: Int,
         lineStartOffset: Int,
         lineEndOffset: Int
-    ): List<TextTag>
+    ): Pair<List<TextTag>, TextCssInfo?>
 }
