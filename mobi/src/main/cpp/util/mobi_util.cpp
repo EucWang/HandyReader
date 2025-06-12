@@ -75,7 +75,7 @@ void parseNavPoints(tinyxml2::XMLElement *firstNavPoint, std::vector<NavPoint> &
 
 int mobi_util::parseOpfData(const char *opf_data, size_t opf_data_size, std::vector<NavPoint> &points) {
     tinyxml2::XMLDocument doc;
-    if (doc.Parse(reinterpret_cast<const char *>(opf_data), opf_data_size) != tinyxml2::XML_SUCCESS) {
+    if (doc.Parse(std::string(opf_data, opf_data + opf_data_size).c_str(), opf_data_size) != tinyxml2::XML_SUCCESS) {
         LOGE("%s failed to parse opf", __func__);
         return 0;
     }
@@ -241,7 +241,7 @@ int mobi_util::parseOpfData(const char *opf_data, size_t opf_data_size, std::vec
 
 int parseNcxData(const char *ncx_data, size_t ncx_data_size, std::vector<NavPoint> &points) {
     tinyxml2::XMLDocument doc;
-    if (doc.Parse(reinterpret_cast<const char *>(ncx_data), ncx_data_size) != tinyxml2::XML_SUCCESS) {
+    if (doc.Parse(std::string(ncx_data, ncx_data + ncx_data_size).c_str(), ncx_data_size) != tinyxml2::XML_SUCCESS) {
         LOGE("%s failed to parse ncx", __func__);
         return 0;
     }
@@ -300,12 +300,13 @@ int mobi_util::getChapters(std::vector<NavPoint> &points) {
             return 0;
         }
 
-        int ret = parseNcxData(reinterpret_cast<const char *>(ncx_data), ncx_data_size, points);
+        int ret = parseNcxData(std::string(ncx_data, ncx_data + ncx_data_size).c_str(), ncx_data_size, points);
         if (ret == 0) {
             LOGE("%s failed, cant pass ncx", __func__);
             return 0;
         }
-        ret = parseOpfData(reinterpret_cast<const char *>(opf_data), opf_data_size, points);
+
+        ret = parseOpfData(std::string(opf_data, opf_data + opf_data_size).c_str(), opf_data_size, points);
         if (ret == 0) {
             LOGE("%s failed, cant pass opf", __func__);
             return 0;
@@ -1054,7 +1055,8 @@ int mobi_util::parseCssSrcList() {
         }
 
         tinyxml2::XMLDocument doc;
-        if (doc.Parse(reinterpret_cast<const char *>(opf_data), opf_data_size) != tinyxml2::XML_SUCCESS) {
+
+        if (doc.Parse(std::string(opf_data, opf_data + opf_data_size).c_str(), opf_data_size) != tinyxml2::XML_SUCCESS) {
             LOGE("%s failed to parse opf", __func__);
             return 0;
         }
@@ -1286,7 +1288,7 @@ int mobi_util::getChapter(JNIEnv *env, long book_id, const char *path, NavPoint 
     tidyOptSetInt(tdoc, TidyWrapLen, 0);                //禁用换行
     tidyOptSetValue(tdoc, TidyCharEncoding, "utf8");    //编码集
 
-    tidyParseString(tdoc, reinterpret_cast<ctmbstr>(rawHtml));
+    tidyParseString(tdoc, std::string(rawHtml, rawHtml + rawHtmlSize).c_str());
     if (tidyCleanAndRepair(tdoc) >= 0 && tidySaveBuffer(tdoc, &output) >= 0) {
         normalizedHtml = output.bp;
         normalizedHtmlSize = output.size;
@@ -1304,7 +1306,8 @@ int mobi_util::getChapter(JNIEnv *env, long book_id, const char *path, NavPoint 
     LOGD("%s:normalizedHtmlSize=%zu", __func__, normalizedHtmlSize);
 
     tinyxml2::XMLDocument doc;
-    if (doc.Parse(reinterpret_cast<const char *>(normalizedHtml), normalizedHtmlSize) != tinyxml2::XML_SUCCESS) {
+
+    if (doc.Parse(std::string(normalizedHtml, normalizedHtml + normalizedHtmlSize).c_str(), normalizedHtmlSize) != tinyxml2::XML_SUCCESS) {
         LOGE("%s failed to parse ncx", __func__);
         return 0;
     }
