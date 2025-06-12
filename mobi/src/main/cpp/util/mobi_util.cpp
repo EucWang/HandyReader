@@ -784,7 +784,7 @@ int mobi_util::parseHtmlDoc(JNIEnv *env,
         }
 
         std::string name = elem->Name();
-        if (name == "div" || name == "ul" || name == "ol" || name == "p" || name == "li" || name == "span") {
+        if (name == "div" || name == "ul" || name == "ol" || name == "p" || name == "li" || name == "span" || name == "font") {
             const char *id = elem->Attribute("id");
             std::string aid;
             if (id != nullptr && strlen(id) > 0) {
@@ -905,7 +905,7 @@ int mobi_util::parseHtmlDoc(JNIEnv *env,
                     docTexts.push_back(docText);
                 }
             }
-        } else if (name == "strong" || name == "em" || name == "b") {
+        } else if (name == "strong" || name == "em" || name == "b" || name == "i") {
             const char *elemText = elem->GetText();
             const char *id = elem->Attribute("id");
             std::string aid;

@@ -69,14 +69,16 @@ sealed class ReaderText {
      * 章节
      */
     @Immutable
-    data class Chapter(val index: String = "", var title: String, val nested: Boolean) : ReaderText()
+    data class Chapter(val index: String = "", var title: String, val nested: Boolean) :
+        ReaderText()
 
     /***
      * 文本内容
      * annotations 对应的文本的样式
      */
     @Immutable
-    data class Text(var line: String, var annotations: List<TextTag> = emptyList<TextTag>()) : ReaderText() {
+    data class Text(var line: String, var annotations: List<TextTag> = emptyList<TextTag>()) :
+        ReaderText() {
 
         val isText: Boolean
             get() {
@@ -227,12 +229,49 @@ sealed class ReaderText {
             if (parsedCss.textIndent > 0 && (parsedCss.textAlign == CssTextAlign.CssTextAlignCenter || parsedCss.textAlign == CssTextAlign.CssTextAlignRight)) {
                 parsedCss.textIndent = 0
             }
+            annotations.forEach { tag ->
+                if (tag.end - tag.start >= line.length) {
+                    when (tag.name) {
+                        "i", "em" -> {
+                            parsedCss.fontStyle = CssFontStyle.CssFontStyleItalic
+                        }
+
+                        "b" -> {
+                            parsedCss.fontWeight = CssFontWeight.FontWeightBold
+                        }
+
+                        "strong" -> {
+                            parsedCss.fontWeight = CssFontWeight.FontWeightBolder
+                        }
+                        "p" -> {
+                            tag.paramsPairs().forEach { kv ->
+                                if (kv.first == "align") {
+                                    when(kv.second) {
+                                        "center" -> {
+                                            parsedCss.textAlign = CssTextAlign.CssTextAlignCenter
+                                        }
+                                        "left" -> {
+                                            parsedCss.textAlign = CssTextAlign.CssTextAlignLeft
+                                        }
+                                        "right" -> {
+                                            parsedCss.textAlign = CssTextAlign.CssTextAlignRight
+                                        }
+                                        "justify" -> {
+                                            parsedCss.textAlign = CssTextAlign.CssTextAlignJustify
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
 
             this.textCssInfo = parsedCss
         }
 
         companion object {
-            fun parseCell(value: String) : Double {
+            fun parseCell(value: String): Double {
                 val cells = arrayListOf<String>("em", "rem")
                 for (cell in cells) {
                     if (value.endsWith(cell)) {
@@ -242,7 +281,8 @@ sealed class ReaderText {
                 }
                 return 0.0
             }
-            fun parseCellInt(value: String, defaultValue: Int) : Int {
+
+            fun parseCellInt(value: String, defaultValue: Int): Int {
                 val cells = arrayListOf<String>("em", "rem")
                 for (cell in cells) {
                     if (value.endsWith(cell)) {

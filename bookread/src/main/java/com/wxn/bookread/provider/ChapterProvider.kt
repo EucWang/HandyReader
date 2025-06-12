@@ -11,6 +11,7 @@ import android.text.StaticLayout
 import android.text.TextPaint
 import com.wxn.base.bean.Book
 import com.wxn.base.bean.BookChapter
+import com.wxn.base.bean.CssFontStyle
 import com.wxn.base.bean.CssFontWeight
 import com.wxn.base.bean.CssInfo
 import com.wxn.base.bean.CssTextAlign
@@ -144,6 +145,50 @@ object ChapterProvider {
     lateinit var h3Paint: TextPaint
     lateinit var h4Paint: TextPaint
     lateinit var aPaint: TextPaint
+
+    fun getTypeface(fontWeight: CssFontWeight, cssFontStyle: CssFontStyle) =
+        when (fontWeight) {
+            CssFontWeight.FontWeightNormal -> {
+                Typeface.create(typeface, if (cssFontStyle == CssFontStyle.CssFontStyleItalic) {
+                    Typeface.ITALIC
+                } else {
+                    Typeface.NORMAL
+                })
+            }
+
+            CssFontWeight.FontWeightBold -> {
+                Typeface.create(typeface, if (cssFontStyle == CssFontStyle.CssFontStyleItalic) {
+                    Typeface.BOLD_ITALIC
+                } else {
+                    Typeface.BOLD
+                })
+            }
+
+            CssFontWeight.FontWeightBolder -> {
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+                    Typeface.create(typeface, 900, cssFontStyle == CssFontStyle.CssFontStyleItalic)
+                } else {
+                    Typeface.create(typeface, if (cssFontStyle == CssFontStyle.CssFontStyleItalic) {
+                        Typeface.BOLD_ITALIC
+                    } else {
+                        Typeface.BOLD
+                    })
+                }
+            }
+
+            CssFontWeight.FontWeightLighter -> {
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+                    Typeface.create(typeface, 300, cssFontStyle == CssFontStyle.CssFontStyleItalic)
+                } else {
+                    Typeface.create(typeface, if (cssFontStyle == CssFontStyle.CssFontStyleItalic) {
+                        Typeface.ITALIC
+                    } else {
+                        Typeface.NORMAL
+                    })
+                }
+            }
+        }
+
 
     /****
      * 根据TextTag的name属性，得到对应的TextPaint
@@ -588,32 +633,11 @@ object ChapterProvider {
             //文字大小
             textPaint.textSize *= paragraph.textCssInfo.fontSize.toFloat()
             //文字粗体
-            textPaint.typeface = when (paragraph.textCssInfo.fontWeight) {
-                CssFontWeight.FontWeightNormal -> {
-                    Typeface.create(typeface, Typeface.NORMAL)
-                }
-
-                CssFontWeight.FontWeightBold -> {
-                    Typeface.create(typeface, Typeface.BOLD)
-                }
-
-                CssFontWeight.FontWeightBolder -> {
-                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
-                        Typeface.create(typeface, 900, false)
-                    } else {
-                        Typeface.create(typeface, Typeface.BOLD)
-                    }
-                }
-
-                CssFontWeight.FontWeightLighter -> {
-                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
-                        Typeface.create(typeface, 300, false)
-                    } else {
-                        Typeface.create(typeface, Typeface.NORMAL)
-                    }
-                }
-            }
+            textPaint.typeface = getTypeface(paragraph.textCssInfo.fontWeight, paragraph.textCssInfo.fontStyle)
             textAlign = paragraph.textCssInfo.textAlign
+            if (paragraph.textCssInfo.fontStyle == CssFontStyle.CssFontStyleItalic) {   //设置斜体
+                textPaint.textSkewX = -0.25f
+            }
         }
 
         val layout = StaticLayout(text, textPaint, visibleWidth, Layout.Alignment.ALIGN_NORMAL, 0f, 0f, true)
@@ -627,19 +651,6 @@ object ChapterProvider {
             val desiredWidth = layout.getLineWidth(lineIndex)   //排版要求的宽度
             var isLastLine = (lineIndex == layout.lineCount - 1)
 
-//            if (lineIndex == 0 && layout.lineCount > 1 && !isTitle) {   //非标题，有多行的自然段落的第一行
-//                addCharsToLineFirst(textLine, words.toStringArray(), textPaint, desiredWidth)
-//            } else if (lineIndex == layout.lineCount - 1) {             //最后一行 ,
-//                isLastLine = true
-//                val x = if (isTitle) {
-//                    (visibleWidth - desiredWidth) / 2  //标题栏居中显示，左偏移
-//                } else {
-//                    0f
-//                }
-//                addCharsToLineLeft(textLine, words.toStringArray(), textPaint, x)
-//            } else {    //中间行
-//                addCharsToLineMiddle(textLine, words.toStringArray(), textPaint, desiredWidth, 0f)  //两端对齐
-//            }
             when(textAlign) {
                 CssTextAlign.CssTextAlignLeft ->  addCharsToLineLeft(textLine, words.toStringArray(), textPaint, 0f)
                 CssTextAlign.CssTextAlignRight -> addCharsToLineRight(textLine, words.toStringArray(), textPaint, desiredWidth)
@@ -648,10 +659,10 @@ object ChapterProvider {
                     if (layout.lineCount == 1) {
                         addCharsToLineLeft(textLine, words.toStringArray(), textPaint, 0f)
                     } else {
-                        if (lineIndex == layout.lineCount - 1) {    //两端对齐，除了最后一行
-                            addCharsToLineMiddle(textLine, words.toStringArray(), textPaint, desiredWidth, 0f)
-                        } else {
+                        if (isLastLine) {    //两端对齐，除了最后一行
                             addCharsToLineLeft(textLine, words.toStringArray(), textPaint, 0f)
+                        } else {
+                            addCharsToLineMiddle(textLine, words.toStringArray(), textPaint, desiredWidth, 0f)
                         }
                     }
                 }
