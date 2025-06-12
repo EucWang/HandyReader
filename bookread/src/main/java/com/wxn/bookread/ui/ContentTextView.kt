@@ -15,6 +15,7 @@ import com.wxn.base.bean.CssFontWeight
 import com.wxn.base.bean.TextCssInfo
 import com.wxn.base.bean.TextTag
 import com.wxn.base.ext.getCompatColor
+import com.wxn.base.util.ColorUtil
 import com.wxn.base.util.Coroutines
 import com.wxn.base.util.Logger
 import com.wxn.bookread.R
@@ -260,7 +261,7 @@ class ContentTextView(context: Context, attrs: AttributeSet?) : View(context, at
             val paint = TextPaint()
             paint.set(parentPaint)
 
-            if (textCssInfo !=null) {
+            if (!isTitle && textCssInfo !=null) {
                 paint.textSize *= textCssInfo.fontSize.toFloat()
                 paint.typeface = when(textCssInfo.fontWeight) {
                     CssFontWeight.FontWeightNormal -> {
@@ -284,6 +285,9 @@ class ContentTextView(context: Context, attrs: AttributeSet?) : View(context, at
                         }
                     }
                 }
+//                ColorUtil.toColorInt(textCssInfo.fontColor)?.let { color ->
+//                    paint.color = color
+//                }
             }
 
 

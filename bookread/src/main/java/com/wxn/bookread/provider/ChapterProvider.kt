@@ -13,6 +13,7 @@ import com.wxn.base.bean.Book
 import com.wxn.base.bean.BookChapter
 import com.wxn.base.bean.CssFontWeight
 import com.wxn.base.bean.CssInfo
+import com.wxn.base.bean.CssTextAlign
 import com.wxn.base.bean.ReaderText
 import com.wxn.base.bean.ReaderText.Text
 import com.wxn.base.bean.TextTag
@@ -147,8 +148,8 @@ object ChapterProvider {
     /****
      * 根据TextTag的name属性，得到对应的TextPaint
      */
-    fun getPaintByTagName(tagName:String?, default: TextPaint? = null) : TextPaint {
-        return when(tagName) {
+    fun getPaintByTagName(tagName: String?, default: TextPaint? = null): TextPaint {
+        return when (tagName) {
             "h1" -> h1Paint
             "h2" -> h2Paint
             "h3" -> h3Paint
@@ -158,11 +159,11 @@ object ChapterProvider {
         }
     }
 
-    fun tryCreatePreference(context : Context) {
+    fun tryCreatePreference(context: Context) {
         if (readerPreferencesUtil == null) {
             readerPreferencesUtil = ReaderPreferencesUtil(context)
         }
-        if (readTipPreferencesUtil == null){
+        if (readTipPreferencesUtil == null) {
             readTipPreferencesUtil = ReadTipPreferencesUtil(context)
         }
     }
@@ -183,7 +184,7 @@ object ChapterProvider {
 
         val readerPreferences = readerPreferencesUtil?.readerPreferencesFlow?.firstOrNull()
         if (viewWidth > 0 && viewHeight > 0) {
-            paddingLeft = (((readerPreferences?.pageHorizontalMargins?.toDouble() ?:0.0) * 0.1 * viewWidth.toDouble()).toInt()) /2         //页面左边距
+            paddingLeft = (((readerPreferences?.pageHorizontalMargins?.toDouble() ?: 0.0) * 0.1 * viewWidth.toDouble()).toInt()) / 2         //页面左边距
             paddingTop = ((readerPreferences?.pageVerticalMargins ?: 0.0) * 0.1 * viewHeight.toDouble()).toInt() / 2                 //页面顶部间距
             visibleWidth = (viewWidth - paddingLeft * 2).toInt()                                //可视宽度
             visibleHeight = (viewHeight - paddingTop * 2).toInt()                            //可视高度
@@ -346,7 +347,7 @@ object ChapterProvider {
             //间距
             lineSpacingExtra = readerPreferences?.lineHeight?.toFloat() ?: 1.0f                //行间距系数，除上10 再和lineHeight相乘
             Logger.d("ChapterProvider::upStyle::lineSpacingExtra=${lineSpacingExtra}")
-            paragraphSpacing = readerPreferences?.paragraphSpacing?.toInt() ?: 0                 //段落缩进
+            paragraphSpacing = readerPreferences?.paragraphSpacing?.toInt() ?: 0                 //段落间距
             Logger.d("ChapterProvider::upStyle::paragraphSpacing=${paragraphSpacing}")
             titleTopSpacing = readerPreferences?.titleTopSpacing?.dp?.toInt() ?: 0               //标题顶部间距
             Logger.d("ChapterProvider::upStyle::titleTopSpacing=${titleTopSpacing}")
@@ -374,7 +375,7 @@ object ChapterProvider {
 
         textPages.add(TextPage())   //增加一空白页，然后给这个页面增加显示内容
         contents.forEachIndexed { index, paragraph -> //遍历需要显示的内容的每一个自然段， 一个段落一个段落（图片）的遍历
-            when(paragraph) {
+            when (paragraph) {
                 is ReaderText.Image -> {
                     val image = paragraph
                     offsetY = setTypeImage(
@@ -386,6 +387,7 @@ object ChapterProvider {
                         imageStyles
                     )
                 }
+
                 is ReaderText.Text -> {
                     val image = paragraph.tryParseToImage()
                     offsetY = if (image != null) {
@@ -406,9 +408,11 @@ object ChapterProvider {
                         }
                     }
                 }
+
                 is ReaderText.Chapter -> {
                     offsetY = setTypeText(paragraph, index, offsetY, textPages, pageLines, pageLengths, stringBuilder, true)
                 }
+
                 else -> {
 
                 }
@@ -551,7 +555,7 @@ object ChapterProvider {
         stringBuilder: StringBuilder,
         isTitle: Boolean
     ): Float {
-        var text : String = when(paragraph) {
+        var text: String = when (paragraph) {
             is ReaderText.Chapter -> paragraph.title
             is ReaderText.Text -> paragraph.line
             else -> ""
@@ -573,15 +577,26 @@ object ChapterProvider {
         }
         textPaint.set(parentPaint)
 
+        //对齐方式
+        var textAlign: CssTextAlign =
+            if (isTitle) {
+                CssTextAlign.CssTextAlignCenter
+            } else {
+                CssTextAlign.CssTextAlignLeft
+            }
         if (paragraph is ReaderText.Text) {
+            //文字大小
             textPaint.textSize *= paragraph.textCssInfo.fontSize.toFloat()
-            textPaint.typeface = when(paragraph.textCssInfo.fontWeight) {
+            //文字粗体
+            textPaint.typeface = when (paragraph.textCssInfo.fontWeight) {
                 CssFontWeight.FontWeightNormal -> {
                     Typeface.create(typeface, Typeface.NORMAL)
                 }
+
                 CssFontWeight.FontWeightBold -> {
                     Typeface.create(typeface, Typeface.BOLD)
                 }
+
                 CssFontWeight.FontWeightBolder -> {
                     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
                         Typeface.create(typeface, 900, false)
@@ -589,6 +604,7 @@ object ChapterProvider {
                         Typeface.create(typeface, Typeface.BOLD)
                     }
                 }
+
                 CssFontWeight.FontWeightLighter -> {
                     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
                         Typeface.create(typeface, 300, false)
@@ -597,6 +613,7 @@ object ChapterProvider {
                     }
                 }
             }
+            textAlign = paragraph.textCssInfo.textAlign
         }
 
         val layout = StaticLayout(text, textPaint, visibleWidth, Layout.Alignment.ALIGN_NORMAL, 0f, 0f, true)
@@ -605,24 +622,39 @@ object ChapterProvider {
             val offsetEnd = layout.getLineEnd(lineIndex)
             val textLine = TextLine(isTitle = isTitle, paragraphIndex = paragraphIndex, charStartOffset = offsetStart, charEndOffset = offsetEnd)
             val words = text.substring(offsetStart, offsetEnd)
+//            textLine.text = if (lineIndex == layout.lineCount - 1) "$words\n" else words        //  //增加一次换行
+            textLine.text = words        //  //增加一次换行
             val desiredWidth = layout.getLineWidth(lineIndex)   //排版要求的宽度
-            var isLastLine = false
+            var isLastLine = (lineIndex == layout.lineCount - 1)
 
-            if (lineIndex == 0 && layout.lineCount > 1 && !isTitle) {   //非标题，有多行的自然段落的第一行
-                textLine.text = words
-                addCharsToLineFirst(textLine, words.toStringArray(), textPaint, desiredWidth)
-            } else if (lineIndex == layout.lineCount - 1) {             //最后一行 ,
-                textLine.text = "$words\n"          //增加一次换行
-                isLastLine = true
-                val x = if (isTitle) {
-                    (visibleWidth - desiredWidth) / 2  //标题栏居中显示，左偏移
-                } else {
-                    0f
+//            if (lineIndex == 0 && layout.lineCount > 1 && !isTitle) {   //非标题，有多行的自然段落的第一行
+//                addCharsToLineFirst(textLine, words.toStringArray(), textPaint, desiredWidth)
+//            } else if (lineIndex == layout.lineCount - 1) {             //最后一行 ,
+//                isLastLine = true
+//                val x = if (isTitle) {
+//                    (visibleWidth - desiredWidth) / 2  //标题栏居中显示，左偏移
+//                } else {
+//                    0f
+//                }
+//                addCharsToLineLeft(textLine, words.toStringArray(), textPaint, x)
+//            } else {    //中间行
+//                addCharsToLineMiddle(textLine, words.toStringArray(), textPaint, desiredWidth, 0f)  //两端对齐
+//            }
+            when(textAlign) {
+                CssTextAlign.CssTextAlignLeft ->  addCharsToLineLeft(textLine, words.toStringArray(), textPaint, 0f)
+                CssTextAlign.CssTextAlignRight -> addCharsToLineRight(textLine, words.toStringArray(), textPaint, desiredWidth)
+                CssTextAlign.CssTextAlignCenter -> addCharsToLineCenter(textLine, words.toStringArray(), textPaint, desiredWidth)
+                CssTextAlign.CssTextAlignJustify -> {
+                    if (layout.lineCount == 1) {
+                        addCharsToLineLeft(textLine, words.toStringArray(), textPaint, 0f)
+                    } else {
+                        if (lineIndex == layout.lineCount - 1) {    //两端对齐，除了最后一行
+                            addCharsToLineMiddle(textLine, words.toStringArray(), textPaint, desiredWidth, 0f)
+                        } else {
+                            addCharsToLineLeft(textLine, words.toStringArray(), textPaint, 0f)
+                        }
+                    }
                 }
-                addCharsToLineLast(textLine, words.toStringArray(), textPaint, x)
-            } else {    //中间行
-                textLine.text = words
-                addCharsToLineMiddle(textLine, words.toStringArray(), textPaint, desiredWidth, 0f)
             }
 
             //新增加的行，超过了一页的显示高度, 则创建新页
@@ -652,51 +684,59 @@ object ChapterProvider {
         if (isTitle) {
             durY += titleBottomSpacing                          //是标题行，则加上标题的底部间距
         }
-        durY += textPaint.textHeight * paragraphSpacing / 10f   //是段落，则加上段落间距
+//        durY += textPaint.textHeight * paragraphSpacing   //是段落，则加上段落间距 //TODO
         return durY
     }
 
-    /****
-     * 段落的第一行，非标题，有缩进，处理两端对齐
-     */
-    private suspend fun addCharsToLineFirst(textLine: TextLine, words: Array<String>, textPaint: TextPaint, desiredWidth: Float) {
-        val tipPreference = readTipPreferencesUtil?.readTIpPreferencesFlow?.firstOrNull()
-        val textFullJustify = tipPreference?.textFullJustify == true
-        val bodyIndent = paragraphIndent    //段落首行缩进的2个tab
-
-        var x = 0f
-        if (!textFullJustify) { //如果不需要两端对齐，则默认从左向右显示，计算每个字母的显示位置
-            addCharsToLineLast(textLine, words, textPaint, x)
-            return
-        }
-        val icw = StaticLayout.getDesiredWidth(bodyIndent, textPaint) / bodyIndent.length   //单个Tab的宽度
-        bodyIndent.toStringArray().forEach { tabCh ->
-            val x1 = x + icw
-            textLine.addTextChar(charData = tabCh, start = paddingLeft + x, end = paddingLeft + x1) //将两个Tab加入到TextLine中
-            x = x1
-        }
-        //在disposeContent()方法中，每个自然段都会默认加上2个tab字符，这里将多余的2个tab字符裁剪掉
-        val words1 = words.copyOfRange(bodyIndent.length, words.size)
-        addCharsToLineMiddle(textLine, words1, textPaint, desiredWidth, x)
-    }
+//    /****
+//     * 段落的第一行，非标题，有缩进，处理两端对齐
+//     */
+//    private suspend fun addCharsToLineFirst(textLine: TextLine, words: Array<String>, textPaint: TextPaint, desiredWidth: Float) {
+//        val tipPreference = readTipPreferencesUtil?.readTIpPreferencesFlow?.firstOrNull()
+//        val textFullJustify = tipPreference?.textFullJustify == true
+//        val bodyIndent = paragraphIndent    //段落首行缩进的2个tab
+//
+//        var x = 0f
+//        if (!textFullJustify) { //如果不需要两端对齐，则默认从左向右显示，计算每个字母的显示位置
+//            addCharsToLineLeft(textLine, words, textPaint, x)
+//            return
+//        }
+////        val icw = StaticLayout.getDesiredWidth(bodyIndent, textPaint) / bodyIndent.length   //单个Tab的宽度
+////        bodyIndent.toStringArray().forEach { tabCh ->
+////            val x1 = x + icw
+////            textLine.addTextChar(charData = tabCh, start = paddingLeft + x, end = paddingLeft + x1) //将两个Tab加入到TextLine中
+////            x = x1
+////        }
+//        //在disposeContent()方法中，每个自然段都会默认加上2个tab字符，这里将多余的2个tab字符裁剪掉
+////        var tmpWords = words;
+////        while(true) {
+////            if (tmpWords.firstOrNull() == oneParagraphIndent) {
+////                tmpWords = words.copyOfRange(1, tmpWords.size)
+////            } else {
+////                break
+////            }
+////        }
+////        val words1 = words.copyOfRange(bodyIndent.length, words.size)
+//        addCharsToLineMiddle(textLine, words, textPaint, desiredWidth, x)
+//    }
 
     /****
      * 段落的中间行， 两端对齐
      */
-    private suspend fun addCharsToLineMiddle(textLine: TextLine, words: Array<String>, textPaint: TextPaint, desiredWidth: Float,  offsetX: Float) {
-        val tipPreference = readTipPreferencesUtil?.readTIpPreferencesFlow?.firstOrNull()
-        val textFullJustify = tipPreference?.textFullJustify == true
-        if (!textFullJustify) { //非两端对齐, 即左对齐
-            addCharsToLineLast(textLine, words, textPaint, offsetX)
-            return
-        }
+    private suspend fun addCharsToLineMiddle(textLine: TextLine, words: Array<String>, textPaint: TextPaint, desiredWidth: Float, offsetX: Float) {
+//        val tipPreference = readTipPreferencesUtil?.readTIpPreferencesFlow?.firstOrNull()
+//        val textFullJustify = tipPreference?.textFullJustify == true
+//        if (!textFullJustify) { //非两端对齐, 即左对齐
+//            addCharsToLineLeft(textLine, words, textPaint, offsetX)
+//            return
+//        }
 
         //两端对齐显示
         val gapCount: Int = words.lastIndex                 //空白间隔的个数
         val gapWidth = (visibleWidth - desiredWidth) / gapCount    //得到每个间隔的平均宽度
         var x = offsetX
         words.forEachIndexed { index, char ->               //遍历每个显示的字符
-            val chWidth : Float = StaticLayout.getDesiredWidth(char, textPaint) //单个字符的显示宽度
+            val chWidth: Float = StaticLayout.getDesiredWidth(char, textPaint) //单个字符的显示宽度
             val x1 = if (index != words.lastIndex) {
                 x + chWidth + gapWidth
             } else {
@@ -711,7 +751,7 @@ object ChapterProvider {
     /****
      * 从左向右自然排列一行字符, 即左对齐
      */
-    private fun addCharsToLineLast(textLine: TextLine, words: Array<String>, textPaint: TextPaint, offsetX: Float) {
+    private fun addCharsToLineLeft(textLine: TextLine, words: Array<String>, textPaint: TextPaint, offsetX: Float) {
         var x = offsetX
         words.forEach { char ->
             val cw = StaticLayout.getDesiredWidth(char, textPaint)
@@ -721,6 +761,23 @@ object ChapterProvider {
         }
         exceed(textLine, words)
     }
+
+    /**
+     * 居中显示文本
+     */
+    private fun addCharsToLineCenter(textLine: TextLine, words: Array<String>, textPaint: TextPaint, desiredWidth: Float) {
+        val x = (visibleWidth - desiredWidth) / 2  //标题栏居中显示，左偏移
+        addCharsToLineLeft(textLine, words, textPaint, x)
+    }
+
+    /**
+     * 右对齐显示文本
+     */
+    private fun addCharsToLineRight(textLine: TextLine, words: Array<String>, textPaint: TextPaint, desiredWidth: Float) {
+        val x = visibleWidth - desiredWidth  //标题栏居中显示，左偏移
+        addCharsToLineLeft(textLine, words, textPaint, x)
+    }
+
 
     /****
      * 显示的一行内容，计算的偏移位置检测是否超过了边界， 对偏移进行纠偏
@@ -755,7 +812,7 @@ object ChapterProvider {
         Logger.d("ChapterProvider::setViewSize,viewWidth=$viewWidth, viewHeight=$viewHeight")
     }
 
-    fun init(context : Context) {
+    fun init(context: Context) {
         upStyle(context)
     }
 }

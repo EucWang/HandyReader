@@ -76,7 +76,7 @@ class ReaderPreferencesUtil @Inject constructor(
             pageHorizontalMargins = 0.5,
             pageVerticalMargins = 0.5,
             paragraphIndent = 0.0,
-            paragraphSpacing = 0.0,
+            paragraphSpacing = 1.0,
             wordSpacing = 0.0,
             textAlign = TextAlign.Justify,
             backgroundColor = Color.WHITE,

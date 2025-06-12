@@ -37,7 +37,7 @@ data class TextCssInfo(
     var fontFamily: List<String> = emptyList<String>(),
     var fontWeight: CssFontWeight = CssFontWeight.FontWeightNormal,
     var fontStyle: CssFontStyle = CssFontStyle.CssFontStyleNormal,
-    var textIndent: Int = 2,
+    var textIndent: Int = 0,
     var fontColor: String = "",
     var textDecoration: CssTextDecoration = CssTextDecoration.CssTextDecorationNone,
 
@@ -46,7 +46,17 @@ data class TextCssInfo(
 
     var lineHeight: Double = 1.0,
     var background: String = "",
-    var isFullScreen: Boolean = false
+    var isFullScreen: Boolean = false,
+
+    var marginLeft: Double = 0.0,
+    var marginRight: Double = 0.0,
+    var marginTop: Double = 0.0,
+    var marginBottom: Double = 0.0,
+
+    var paddingLeft: Double = 0.0,
+    var paddingRight: Double = 0.0,
+    var paddingTop: Double = 0.0,
+    var paddingBottom: Double = 0.0
 ) {
 
 }
@@ -127,14 +137,7 @@ sealed class ReaderText {
                 for (ruleData in ruleDatas) {
                     when (ruleData.name) {
                         "font-size" -> {
-                            val cells = arrayListOf<String>("em", "rem")
-                            for (cell in cells) {
-                                if (ruleData.value.endsWith(cell)) {
-                                    val value = ruleData.value.substring(0, ruleData.value.length - cell.length)
-                                    parsedCss.fontSize = value.toDoubleOrNull() ?: 1.0
-                                    break
-                                }
-                            }
+                            parsedCss.fontSize = parseCell(ruleData.value)
                         }
 
                         "font-family" -> {
@@ -157,11 +160,7 @@ sealed class ReaderText {
                         }
 
                         "text-indent" -> {
-                            if (ruleData.value.endsWith("em")) {
-                                val value = ruleData.value.substring(0, ruleData.value.length - "em".length)
-                                parsedCss.textIndent = value.toIntOrNull() ?: 2
-                                break
-                            }
+                            parsedCss.textIndent = parseCellInt(ruleData.value, 0)
                         }
 
                         "color" -> {
@@ -182,14 +181,8 @@ sealed class ReaderText {
                         }
 
                         "line-height" -> {
-                            val cells = arrayListOf<String>("em", "rem")
-                            for (cell in cells) {
-                                if (ruleData.value.endsWith(cell)) {
-                                    val value = ruleData.value.substring(0, ruleData.value.length - cell.length)
-                                    parsedCss.lineHeight = value.toDoubleOrNull() ?: 1.0
-                                    break
-                                }
-                            }
+                            parsedCss.lineHeight = parseCell(ruleData.value)
+
                         }
 
                         "background" -> {
@@ -207,10 +200,58 @@ sealed class ReaderText {
                                 parsedCss.isFullScreen = true
                             }
                         }
+
+                        "margin-left" -> {
+                            //TODO
+                        }
+
+                        "margin-right" -> {
+
+                        }
+
+                        "margin-top" -> {
+
+                        }
+
+                        "margin-bottom" -> {
+
+                        }
+
+                        "margin" -> {
+
+                        }
                     }
                 }
             }
+            //居中或者右对齐是，首行缩进为0
+            if (parsedCss.textIndent > 0 && (parsedCss.textAlign == CssTextAlign.CssTextAlignCenter || parsedCss.textAlign == CssTextAlign.CssTextAlignRight)) {
+                parsedCss.textIndent = 0
+            }
+
             this.textCssInfo = parsedCss
+        }
+
+        companion object {
+            fun parseCell(value: String) : Double {
+                val cells = arrayListOf<String>("em", "rem")
+                for (cell in cells) {
+                    if (value.endsWith(cell)) {
+                        val value = value.substring(0, value.length - cell.length)
+                        return value.toDoubleOrNull() ?: 1.0
+                    }
+                }
+                return 0.0
+            }
+            fun parseCellInt(value: String, defaultValue: Int) : Int {
+                val cells = arrayListOf<String>("em", "rem")
+                for (cell in cells) {
+                    if (value.endsWith(cell)) {
+                        val value = value.substring(0, value.length - cell.length)
+                        return value.toIntOrNull() ?: defaultValue
+                    }
+                }
+                return defaultValue
+            }
         }
 
         var textCssInfo = TextCssInfo()
@@ -230,23 +271,4 @@ sealed class ReaderText {
         val width: Int,     //图片宽
         val height: Int     //图片高
     ) : ReaderText()
-}
-
-fun toColorInt(fontColor: String): Int? {
-    var color = fontColor
-    if (color.isNullOrEmpty()) return null
-    if (color.startsWith("0x") || color.startsWith("0X")) {
-        color = color.substring(2)
-    } else if (color.startsWith("#")) {
-        color = color.substring(1)
-    }
-    if (color.length != 6) {
-        return null
-    }
-    val result = try {
-        color.toInt(16)
-    } catch (_: Exception) {
-        null
-    }
-    return result
 }
