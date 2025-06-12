@@ -4,6 +4,7 @@ import android.content.Context
 import android.util.Log
 import androidx.core.net.toUri
 import com.wxn.base.bean.BookChapter
+import com.wxn.base.bean.CssInfo
 import com.wxn.bookparser.TextParser
 import com.wxn.bookparser.domain.file.CachedFile
 import com.wxn.base.bean.ReaderText
@@ -353,6 +354,10 @@ class EpubTextParser @Inject constructor(
      */
     override suspend fun parsedChapterData(bookId: Long, cachedFile: CachedFile, chapter: BookChapter) : List<ReaderText> {
 
+        return emptyList()
+    }
+
+    override suspend fun parseCss(bookId: Long,cachedFile: CachedFile,  cssNames: List<String>): List<CssInfo> {
         return emptyList()
     }
 }

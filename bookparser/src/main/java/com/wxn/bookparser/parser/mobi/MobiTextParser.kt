@@ -4,6 +4,7 @@ import android.content.Context
 import android.util.Log
 import androidx.core.net.toUri
 import com.wxn.base.bean.BookChapter
+import com.wxn.base.bean.CssInfo
 import com.wxn.bookparser.TextParser
 import com.wxn.bookparser.domain.file.CachedFile
 import com.wxn.base.bean.ReaderText
@@ -65,4 +66,9 @@ class MobiTextParser @Inject constructor(
     companion object {
         val MOBI_TAG = "MobiTextParser"
     }
+
+    override suspend fun parseCss(bookId: Long,cachedFile: CachedFile,  cssNames: List<String>): List<CssInfo> {
+        return MobiParser.getMobiCssInfo(context, bookId, cssNames).orEmpty()
+    }
+
 }

@@ -5,10 +5,13 @@ import androidx.core.net.toUri
 import com.spreada.utils.chinese.ZHConverter
 import com.wxn.base.bean.Book
 import com.wxn.base.bean.BookChapter
+import com.wxn.base.bean.CssInfo
 import com.wxn.base.bean.ReaderText
+import com.wxn.base.bean.TextTag
 import com.wxn.base.util.Logger
 import com.wxn.bookparser.TextParser
 import com.wxn.bookparser.domain.file.CachedFileCompat
+import com.wxn.bookread.data.model.TextChapter
 import com.wxn.bookread.provider.ChapterProvider
 import com.wxn.reader.data.source.local.AppPreferencesUtil
 
@@ -37,6 +40,31 @@ object BookHelper {
             chapter.bookId = bookId
         }
         return textparser.parsedChapterData(bookId, cachedFile, chapter)
+    }
+
+    suspend fun loadChpaterCsses(context: Context, book: Book, allTags: Map<Int,List<TextTag>>?, textParser: TextParser): Map<String, CssInfo> {
+        val encodedUri =  book.filePath.toUri()
+        val cachedFile = CachedFileCompat.fromUri(context, encodedUri)
+        val bookId = book.id
+
+        val cssClassNames = hashSetOf<String>()
+        allTags?.forEach { index, tags ->
+            tags.forEach { tag ->
+                tag.paramsPairs().filter {
+                    it.first == "class" && it.second.isNotEmpty()
+                }.map {
+                    it.second
+                }.forEach { name ->
+                    cssClassNames.add(name)
+                }
+            }
+        }
+        val cssInfos = textParser.parseCss(bookId, cachedFile, cssClassNames.toList())
+        val retVal = hashMapOf<String, CssInfo>()
+        cssInfos.forEach { cssInfo ->
+            retVal[cssInfo.identifier] = cssInfo
+        }
+        return retVal
     }
 
     suspend fun disposeContent(

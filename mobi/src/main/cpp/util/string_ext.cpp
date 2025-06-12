@@ -121,27 +121,27 @@ std::vector<std::string> split(const std::string &s, char delimiter) {
 
 
 //std://trim from start(in-place)
-inline void ltrim(std::string &s) {
+void ltrim(std::string &s) {
     s.erase(s.begin(), std::find_if(s.begin(), s.end(), [](unsigned char ch) {
         return !std::isspace(ch);
     }));
 }
 
 //trim from end(in-place)
-inline void rtrim(std::string &s) {
+void rtrim(std::string &s) {
     s.erase(std::find_if(s.rbegin(), s.rend(), [](unsigned char ch) {
         return !std::isspace(ch);
     }).base(), s.end());
 }
 
 //trim from both ends(in-place)
-inline void trim(std::string &s) {
+void trim(std::string &s) {
     ltrim(s);
     rtrim(s);
 }
 
 //返回新字符串的版本(非原地修改)
-inline std::string trim_copy(std::string s) {
+std::string trim_copy(std::string s) {
     trim(s);
     return s;
 }

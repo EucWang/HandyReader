@@ -1,6 +1,7 @@
 package com.wxn.bookparser
 
 import com.wxn.base.bean.BookChapter
+import com.wxn.base.bean.CssInfo
 import com.wxn.bookparser.domain.file.CachedFile
 import com.wxn.base.bean.ReaderText
 
@@ -25,4 +26,6 @@ interface TextParser {
      * 解析得到给定章节数据
      */
     suspend fun parsedChapterData(bookId: Long, cachedFile: CachedFile, chapter: BookChapter) : List<ReaderText>
+
+    suspend fun parseCss(bookId: Long, cachedFile: CachedFile, cssNames: List<String>): List<CssInfo>
 }

@@ -2,6 +2,7 @@ package com.wxn.bookparser.parser.txt
 
 import android.util.Log
 import com.wxn.base.bean.BookChapter
+import com.wxn.base.bean.CssInfo
 import com.wxn.bookparser.TextParser
 import com.wxn.bookparser.domain.file.CachedFile
 import com.wxn.base.bean.ReaderText
@@ -97,4 +98,9 @@ class TxtTextParser @Inject constructor(
             emptyList()
         }
     }
+
+    override suspend fun parseCss(bookId: Long,cachedFile: CachedFile,  cssNames: List<String>): List<CssInfo> {
+        return emptyList()
+    }
+
 }

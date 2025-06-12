@@ -274,6 +274,7 @@ int mobi_util::getChapters(std::vector<NavPoint> &points) {
         return 1;
     }
 
+
     const unsigned char *opf_data = nullptr;
     const unsigned char *ncx_data = nullptr;
     size_t opf_data_size = 0;
@@ -776,7 +777,7 @@ int mobi_util::parseHtmlDoc(JNIEnv *env,
         }
         std::vector<TagInfo> parentTags;
         if (!fatherTags.empty()) {
-            for(auto& tag: fatherTags) {
+            for (auto &tag: fatherTags) {
                 parentTags.push_back(tag);
             }
         }
@@ -819,7 +820,7 @@ int mobi_util::parseHtmlDoc(JNIEnv *env,
                 }
 
                 if (!parentTags.empty()) {
-                    for(auto& tag : parentTags) {
+                    for (auto &tag: parentTags) {
                         if (tag.endPos == 0) {
                             tag.endPos = utf8Count(text);
                         }
@@ -869,7 +870,7 @@ int mobi_util::parseHtmlDoc(JNIEnv *env,
                 auto tag = TagInfo{generate_uuid(), aid, name, 0, utf8Count(docText.text), "", getEleParams(elem)};
                 docText.tagInfos.push_back(tag);
                 if (!parentTags.empty()) {
-                    for(auto& tag : parentTags) {
+                    for (auto &tag: parentTags) {
                         if (tag.endPos == 0) {
                             tag.endPos = utf8Count(docText.text);
                         }
@@ -893,7 +894,7 @@ int mobi_util::parseHtmlDoc(JNIEnv *env,
                         }
                     }
                     if (!parentTags.empty()) {
-                        for(auto& tag : parentTags) {
+                        for (auto &tag: parentTags) {
                             if (tag.endPos == 0) {
                                 tag.endPos = utf8Count(docText.text);
                             }
@@ -921,7 +922,7 @@ int mobi_util::parseHtmlDoc(JNIEnv *env,
                 DocText docText{elemText, tagInfos};
                 docText.tagInfos.push_back(TagInfo{generate_uuid(), aid, name, 0, utf8Count(docText.text), "", getEleParams(elem)});
                 if (!parentTags.empty()) {
-                    for(auto& tag : parentTags) {
+                    for (auto &tag: parentTags) {
                         if (tag.endPos == 0) {
                             tag.endPos = utf8Count(docText.text);
                         }
@@ -975,7 +976,7 @@ int mobi_util::parseHtmlDoc(JNIEnv *env,
 
             docText.tagInfos.push_back(TagInfo{generate_uuid(), aid, name, 0, utf8Count(docText.text), "", params});
             if (!parentTags.empty()) {
-                for(auto& tag : parentTags) {
+                for (auto &tag: parentTags) {
                     if (tag.endPos == 0) {
                         tag.endPos = utf8Count(docText.text);
                     }
@@ -1008,7 +1009,7 @@ int mobi_util::parseHtmlDoc(JNIEnv *env,
                         std::string params = "src=" + fullpath + "&width=" + std::to_string(width) + "&height=" + std::to_string(height);
                         docText.tagInfos.emplace_back(TagInfo{generate_uuid(), "", "img", 0, 0, "", params});
                         if (!parentTags.empty()) {
-                            for(auto& tag : parentTags) {
+                            for (auto &tag: parentTags) {
                                 if (tag.endPos == 0) {
                                     tag.endPos = utf8Count(docText.text);
                                 }
@@ -1025,6 +1026,167 @@ int mobi_util::parseHtmlDoc(JNIEnv *env,
             }
         }
         elem = elem->NextSiblingElement();
+    }
+    return 1;
+}
+
+int mobi_util::parseCssSrcList() {
+    if (cssSrc.empty()) {
+        const unsigned char *opf_data = nullptr;
+        size_t opf_data_size = 0;
+        if (mobi_rawml->resources == nullptr) {
+            return 0;
+        }
+        MOBIPart *curr = mobi_rawml->resources;
+        while (curr != nullptr) {
+            MOBIFileMeta file_meta = mobi_get_filemeta_by_type(curr->type);
+            if (curr->size > 0 && file_meta.type == T_OPF) {
+                opf_data = curr->data;
+                opf_data_size = curr->size;
+                break;
+            }
+            curr = curr->next;
+        }
+
+        if (opf_data == nullptr) {
+            LOGE("%s failed, cant find opf or ncx, pass", __func__);
+            return 0;
+        }
+
+        tinyxml2::XMLDocument doc;
+        if (doc.Parse(reinterpret_cast<const char *>(opf_data), opf_data_size) != tinyxml2::XML_SUCCESS) {
+            LOGE("%s failed to parse opf", __func__);
+            return 0;
+        }
+
+        tinyxml2::XMLElement *root = doc.RootElement();
+        if (!root) {
+            LOGE("%s failed parse opf, no root element", __func__);
+            return 0;
+        }
+
+        auto manifest = root->FirstChildElement("manifest");
+        if (manifest == nullptr) {
+            LOGE("%s failed parse opf, no manifest element", __func__);
+            return 0;
+        }
+
+        MOBIFileMeta cssType = mobi_get_filemeta_by_type(T_CSS);
+        for (auto item = manifest->FirstChildElement("item"); item; item = item->NextSiblingElement("item")) {
+            const char *id = item->Attribute("id");
+            const char *href = item->Attribute("href");
+            const char *media_type = item->Attribute("media-type");
+
+            if (id != nullptr && strlen(id) > 0 &&
+                href != nullptr && strlen(href) > 0 &&
+                media_type != nullptr && strlen(media_type) > 0 &&
+                strncmp(cssType.mime_type, media_type, strlen(cssType.mime_type)) == 0) {
+                cssSrc.emplace_back(href);
+            }
+        }
+    }
+    return 1;
+}
+
+int mobi_util::getCss(std::vector<std::string> &cssClasses, std::vector<CssInfo> &cssInfos) {
+    std::lock_guard<std::mutex> lock(m_Mutex3);
+    if (!initStatus) {
+        LOGE("%s:init status failed, so pass", __func__);
+        return 0;
+    }
+    if (app_ext::appFileDir.empty()) {
+        return 0;
+    }
+
+    if (parseCssSrcList() != 1) {
+        LOGE("%s failed no css items", __func__);
+        return 0;
+    }
+    if (cssSrc.empty()) {
+        LOGE("%s failed get cssSrc, no css items", __func__);
+        return 0;
+    }
+
+    future::CSSParser cssParser;
+
+    for (auto &css: cssSrc) {
+        std::string &src = css;
+        std::string prefix;
+        std::string spineSrc;
+        std::string suffix;
+        std::string anchorId;
+        int prefixType;
+        int srcUid;
+        if (1 != parseSrcName(src, prefix, spineSrc, &prefixType, &srcUid, anchorId, suffix)) {
+            return 0;
+        }
+        LOGD("%s:getChapter:src[%s] Info[prefix=%s,srcId=%d,anchorId=%s,suffix=%s,prefixType=%d]",
+             __func__, src.c_str(), prefix.c_str(), srcUid, anchorId.c_str(), suffix.c_str(), prefixType);
+
+        MOBIPart *curr = nullptr;
+        if (prefixType == 1 && mobi_rawml->flow != nullptr) {
+            curr = mobi_rawml->flow;
+        } else if (prefixType == 2 && mobi_rawml->markup != nullptr) {
+            curr = mobi_rawml->markup;
+        } else if (prefixType == 3 && mobi_rawml->resources != nullptr) {
+            curr = mobi_rawml->resources;
+        } else {
+            LOGE("%s: unknown type[%d] or rawml data is null, pass", __func__, srcUid);
+            return 0;
+        }
+
+        unsigned char *rawCss = nullptr;
+        size_t rawCssSize = 0;
+        while (curr != nullptr) {
+            MOBIFileMeta file_meta = mobi_get_filemeta_by_type(curr->type);
+            if (curr->size > 0 && file_meta.type == T_CSS && curr->uid == srcUid) {
+                rawCss = curr->data;
+                rawCssSize = curr->size;
+                break;
+            }
+            curr = curr->next;
+        }
+
+        if (rawCss == nullptr || rawCssSize <= 0) {
+            LOGE("%s failed, rawCss is null or rawCssSize is %d", __func__, rawCssSize);
+            return 0;
+        }
+        LOGD("%s:rawCssSize=%d", __func__, rawCssSize);
+
+        std::string cssData(rawCss, rawCss + rawCssSize);
+        cssParser.parseByString(cssData);
+        const std::set<future::Selector *> &set = cssParser.getSelectors();
+        for (auto it = set.begin(); it != set.end(); it++) {
+            auto type = (*it)->getType();
+            if (type == future::ClassSelector::SelectorType::ClassSelector) {
+                auto *selector = dynamic_cast<future::ClassSelector *>(*it);
+                auto cssid = selector->getClassIdentifier();
+                if (std::find(cssClasses.begin(), cssClasses.end(), cssid) != cssClasses.end()) {
+                    int weight = selector->weight();
+                    bool isBaseSelector = selector->isBaseSelector();
+                    std::string ruleData = selector->getRuleData();
+                    std::vector<std::string> datas = split(ruleData, ';');
+                    std::vector<RuleData> params;
+                    if (!datas.empty()) {
+                        for(auto& data : datas) {
+                            trim(data);
+                            std::vector<std::string> kv = split(data, ':');
+                            if (kv.size() == 2) {
+                                std::string k = trim_copy(kv[0]);
+                                std::string v = trim_copy(kv[1]);
+                                if (!k.empty() && !v.empty()) {
+                                    params.emplace_back(RuleData{k, v});
+                                }
+                            }
+                        }
+                    }
+                    cssInfos.emplace_back(CssInfo{cssid, weight,isBaseSelector, params});
+                    if (cssInfos.size() >= cssClasses.size()) {
+                        break;
+                    }
+                }
+            }
+        }
     }
     return 1;
 }
@@ -1170,6 +1332,7 @@ int mobi_util::getChapter(JNIEnv *env, long book_id, const char *path, NavPoint 
         std::vector<TagInfo> tags;
         parseHtmlDoc(env, book_id, mobi_rawml, firstElem, docTexts, anchorId, endAnchorId, &flagAdd, spineSrc, tags);
     }
+
 
     return 1;
 }

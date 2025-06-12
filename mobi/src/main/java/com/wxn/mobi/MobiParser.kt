@@ -3,6 +3,7 @@ package com.wxn.mobi
 import android.content.Context
 import android.util.Log
 import com.wxn.base.bean.BookChapter
+import com.wxn.base.bean.CssInfo
 import com.wxn.base.bean.ReaderText
 import com.wxn.mobi.data.model.FileCrc
 import com.wxn.mobi.data.model.MobiInfo
@@ -35,6 +36,13 @@ object MobiParser {
         val texts : Array<ReaderText>? = NativeLib.getChapter(context, path, chapter)
         Log.d("MobiParser", "getMobiChapterData: chapter=${chapter.chapterIndex}: texts.size = ${texts?.size}")
         return texts
+    }
+
+    fun getMobiCssInfo(context: Context, bookId: Long, cssNames: List<String>?) : List<CssInfo>? {
+        Log.d("MobiParser", "getMobiCssInfo:bookId=$bookId")
+        val names = cssNames ?: return null
+        val retVal = NativeLib.getCssInfo(context, bookId, names.toTypedArray())
+        return retVal?.toList().orEmpty()
     }
 
 //    fun toEpub(context: Context, path: String): String? {

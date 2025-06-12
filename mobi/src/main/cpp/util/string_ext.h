@@ -22,13 +22,13 @@ extern "C" {
 
 std::vector<std::string> split(const std::string &s, char delimiter);
 
-inline void ltrim(std::string &s);
+void ltrim(std::string &s);
 
-inline void rtrim(std::string &s);
+void rtrim(std::string &s);
 
-inline void trim(std::string &s);
+void trim(std::string &s);
 
-inline std::string trim_copy(std::string s);
+std::string trim_copy(std::string s);
 
 bool endsWith(const std::string &str, const std::string &suffix);
 

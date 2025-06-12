@@ -6,6 +6,7 @@ import com.tom_roush.pdfbox.android.PDFBoxResourceLoader
 import com.tom_roush.pdfbox.pdmodel.PDDocument
 import com.tom_roush.pdfbox.text.PDFTextStripper
 import com.wxn.base.bean.BookChapter
+import com.wxn.base.bean.CssInfo
 import com.wxn.bookparser.TextParser
 import com.wxn.bookparser.domain.file.CachedFile
 import com.wxn.base.bean.ReaderText
@@ -171,4 +172,9 @@ class PdfTextParser @Inject constructor(
             emptyList()
         }
     }
+
+    override suspend fun parseCss(bookId: Long,cachedFile: CachedFile,  cssNames: List<String>): List<CssInfo> {
+        return emptyList()
+    }
+
 }

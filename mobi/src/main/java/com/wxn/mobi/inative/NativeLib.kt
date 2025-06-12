@@ -2,6 +2,7 @@ package com.wxn.mobi.inative
 
 import android.content.Context
 import com.wxn.base.bean.BookChapter
+import com.wxn.base.bean.CssInfo
 import com.wxn.base.bean.ReaderText
 import com.wxn.mobi.data.model.FileCrc
 import com.wxn.mobi.data.model.MobiInfo
@@ -25,4 +26,5 @@ object NativeLib {
 
     external fun getChapter(context: Context, path: String, chapter: BookChapter): Array<ReaderText>
 
+    external fun getCssInfo(context: Context, book_id: Long, cssNames: Array<String>): Array<CssInfo>?
 }

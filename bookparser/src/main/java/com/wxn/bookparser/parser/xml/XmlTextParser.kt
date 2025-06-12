@@ -6,6 +6,7 @@ import android.graphics.BitmapFactory
 import android.util.Log
 import androidx.compose.ui.util.fastFilter
 import com.wxn.base.bean.BookChapter
+import com.wxn.base.bean.CssInfo
 import com.wxn.base.bean.ReaderText
 import com.wxn.base.util.Logger
 import com.wxn.base.util.PathUtil
@@ -257,4 +258,9 @@ class XmlTextParser @Inject constructor(
             emptyList<ReaderText>()
         }
     }
+
+    override suspend fun parseCss(bookId: Long,cachedFile: CachedFile,  cssNames: List<String>): List<CssInfo> {
+        return emptyList()
+    }
+
 }

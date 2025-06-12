@@ -76,7 +76,7 @@ Java_com_wxn_mobi_inative_NativeLib_nativeFilesCrc(
     return result;
 }
 
-void create_mobi_util(long book_id, const char* path) {
+void create_mobi_util(long book_id, const char *path) {
     if (mobiutil == nullptr) {
         long bookid = book_id;
         std::string bookpath = path;
@@ -252,7 +252,8 @@ Java_com_wxn_mobi_inative_NativeLib_getChapters(JNIEnv *env, jobject thiz, jobje
         return nullptr;
     }
 
-    jmethodID constructor = env->GetMethodID(objClass, "<init>", "(JLjava/lang/String;Ljava/lang/String;JILjava/lang/String;JLjava/lang/String;JLjava/lang/String;Ljava/lang/String;I)V");
+    jmethodID constructor = env->GetMethodID(objClass, "<init>",
+                                             "(JLjava/lang/String;Ljava/lang/String;JILjava/lang/String;JLjava/lang/String;JLjava/lang/String;Ljava/lang/String;I)V");
     if (constructor == nullptr) {
         LOGE("%s failed, BookChapter's constructor is null", __func__);
         return nullptr;
@@ -261,7 +262,7 @@ Java_com_wxn_mobi_inative_NativeLib_getChapters(JNIEnv *env, jobject thiz, jobje
     std::sort(vectors.begin(), vectors.end()); //根据序号自动排序
 
     int index = 0;
-    for(auto point = vectors.begin(); point != vectors.end(); point++) {
+    for (auto point = vectors.begin(); point != vectors.end(); point++) {
         std::string id = (*point).id;
         int playOrder = (*point).playOrder;
         std::string content = (*point).text;
@@ -269,19 +270,19 @@ Java_com_wxn_mobi_inative_NativeLib_getChapters(JNIEnv *env, jobject thiz, jobje
         std::string parentId = (*point).parentId;
 
         jobject item = env->NewObject(objClass, constructor,
-                       0L,
-                       env->NewStringUTF(id.c_str()),
-                       env->NewStringUTF(parentId.c_str()),
-                       book_id,
-                       playOrder - 1,
-                        env->NewStringUTF(content.c_str()),
-                        0L,
-                        env->NewStringUTF(""),
-                        0L,
-                        env->NewStringUTF(""),
-                        env->NewStringUTF(src.c_str()),
-                        length
-                       );
+                                      0L,
+                                      env->NewStringUTF(id.c_str()),
+                                      env->NewStringUTF(parentId.c_str()),
+                                      book_id,
+                                      playOrder - 1,
+                                      env->NewStringUTF(content.c_str()),
+                                      0L,
+                                      env->NewStringUTF(""),
+                                      0L,
+                                      env->NewStringUTF(""),
+                                      env->NewStringUTF(src.c_str()),
+                                      length
+        );
         if (item == nullptr) {
             LOGE("%s create BookChapter failed", __func__);
             return nullptr;
@@ -316,25 +317,25 @@ Java_com_wxn_mobi_inative_NativeLib_getChapter(JNIEnv *env, jobject thiz, jobjec
 
     jclass chapterClass = env->GetObjectClass(chapter);
     jfieldID fieldChapterId = env->GetFieldID(chapterClass, "chapterId", "Ljava/lang/String;");
-    jfieldID fieldParentChapterId =env->GetFieldID(chapterClass, "parentChapterId", "Ljava/lang/String;");
-    jfieldID fieldBookId =env->GetFieldID(chapterClass, "bookId", "J");
-    jfieldID fieldChapterIndex =env->GetFieldID(chapterClass, "chapterIndex", "I");
-    jfieldID fieldChapterName =env->GetFieldID(chapterClass, "chapterName", "Ljava/lang/String;");
-    jfieldID fieldSrc =env->GetFieldID(chapterClass, "srcName", "Ljava/lang/String;");
-    jfieldID fieldChapterSize =env->GetFieldID(chapterClass, "chaptersSize", "I");
+    jfieldID fieldParentChapterId = env->GetFieldID(chapterClass, "parentChapterId", "Ljava/lang/String;");
+    jfieldID fieldBookId = env->GetFieldID(chapterClass, "bookId", "J");
+    jfieldID fieldChapterIndex = env->GetFieldID(chapterClass, "chapterIndex", "I");
+    jfieldID fieldChapterName = env->GetFieldID(chapterClass, "chapterName", "Ljava/lang/String;");
+    jfieldID fieldSrc = env->GetFieldID(chapterClass, "srcName", "Ljava/lang/String;");
+    jfieldID fieldChapterSize = env->GetFieldID(chapterClass, "chaptersSize", "I");
 
-    jstring chapterId = (jstring)env->GetObjectField(chapter, fieldChapterId);
-    jstring parentChapterId = (jstring)env->GetObjectField(chapter, fieldParentChapterId);
+    jstring chapterId = (jstring) env->GetObjectField(chapter, fieldChapterId);
+    jstring parentChapterId = (jstring) env->GetObjectField(chapter, fieldParentChapterId);
     jlong bookId = env->GetLongField(chapter, fieldBookId);
     jint chapterIndex = env->GetIntField(chapter, fieldChapterIndex);
-    jstring chapterName = (jstring)env->GetObjectField(chapter, fieldChapterName);
-    jstring src = (jstring)env->GetObjectField(chapter, fieldSrc);
+    jstring chapterName = (jstring) env->GetObjectField(chapter, fieldChapterName);
+    jstring src = (jstring) env->GetObjectField(chapter, fieldSrc);
     jint chapterSize = env->GetIntField(chapter, fieldChapterSize);
 
-    const char* chapterIdStr = env->GetStringUTFChars(chapterId, nullptr);
-    const char* parentChapterIdStr = env->GetStringUTFChars(parentChapterId, nullptr);
-    const char* chapterNameStr = env->GetStringUTFChars(chapterName, nullptr);
-    const char* srcStr = env->GetStringUTFChars(src, nullptr);
+    const char *chapterIdStr = env->GetStringUTFChars(chapterId, nullptr);
+    const char *parentChapterIdStr = env->GetStringUTFChars(parentChapterId, nullptr);
+    const char *chapterNameStr = env->GetStringUTFChars(chapterName, nullptr);
+    const char *srcStr = env->GetStringUTFChars(src, nullptr);
 
     NavPoint point;
     point.id = chapterIdStr;
@@ -344,7 +345,8 @@ Java_com_wxn_mobi_inative_NativeLib_getChapter(JNIEnv *env, jobject thiz, jobjec
     point.parentId = parentChapterIdStr;
     long book_id = bookId;
     int chapter_size = chapterSize;
-    LOGD("%s:chapterId=%s,text=%s,playOrder=%d,src=%s,book_id=%ld,chapter_size=%d", __func__, chapterIdStr, chapterNameStr, point.playOrder, srcStr, bookId, chapter_size);
+    LOGD("%s:chapterId=%s,text=%s,playOrder=%d,src=%s,book_id=%ld,chapter_size=%d", __func__, chapterIdStr, chapterNameStr, point.playOrder, srcStr, bookId,
+         chapter_size);
 
     create_mobi_util(book_id, nativeStr);
 
@@ -388,16 +390,17 @@ Java_com_wxn_mobi_inative_NativeLib_getChapter(JNIEnv *env, jobject thiz, jobjec
     if (textTagClass == nullptr || env->ExceptionCheck()) {
         return nullptr;
     }
-    jmethodID textTagConstructor = env->GetMethodID(textTagClass, "<init>", "(Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;IILjava/lang/String;Ljava/lang/String;)V");
+    jmethodID textTagConstructor = env->GetMethodID(textTagClass, "<init>",
+                                                    "(Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;IILjava/lang/String;Ljava/lang/String;)V");
     if (textTagConstructor == nullptr) {
         return nullptr;
     }
 
-    for(int i=0; i< length; i++) {
+    for (int i = 0; i < length; i++) {
         auto item = docTexts[i];
         jobject list = env->NewObject(listClass, listConstructor);
-        if(!item.tagInfos.empty()) {
-            for(auto& tag : item.tagInfos) {
+        if (!item.tagInfos.empty()) {
+            for (auto &tag: item.tagInfos) {
                 jobject textTag = env->NewObject(textTagClass, textTagConstructor,
                                                  env->NewStringUTF(tag.uuid.c_str()),
                                                  env->NewStringUTF(tag.anchor_id.c_str()),
@@ -406,13 +409,13 @@ Java_com_wxn_mobi_inative_NativeLib_getChapter(JNIEnv *env, jobject thiz, jobjec
                                                  tag.endPos,
                                                  env->NewStringUTF(tag.parent_uuid.c_str()),
                                                  env->NewStringUTF(tag.params.c_str())
-                                                 );
+                );
                 env->CallBooleanMethod(list, listAdd, textTag);
             }
         }
         jobject readerText = env->NewObject(objClass, constructor,
-                       env->NewStringUTF(item.text.c_str()),
-                       list);
+                                            env->NewStringUTF(item.text.c_str()),
+                                            list);
         env->SetObjectArrayElement(result, i, readerText);
     }
 
@@ -422,6 +425,116 @@ Java_com_wxn_mobi_inative_NativeLib_getChapter(JNIEnv *env, jobject thiz, jobjec
     env->ReleaseStringUTFChars(parentChapterId, parentChapterIdStr);
     env->ReleaseStringUTFChars(chapterName, chapterNameStr);
     env->ReleaseStringUTFChars(src, srcStr);
+
+    return result;
+}
+
+extern "C"
+JNIEXPORT jobjectArray JNICALL
+Java_com_wxn_mobi_inative_NativeLib_getCssInfo(JNIEnv *env, jobject thiz, jobject context, jlong book_id, jobjectArray css_names) {
+
+    if (mobiutil == nullptr || mobiutil.use_count() == 0) {
+        LOGE("%s failed, mobiutil is destroyed", __func__);
+        return nullptr;
+    }
+
+    if (book_id != mobiutil->bookid()) {
+        LOGE("%s:failed,is not the same bookid, param book_id[%d],mobiutil.bookid[%d]", __func__, book_id, mobiutil->bookid());
+        return nullptr;
+    }
+
+    jsize length = env->GetArrayLength(css_names);
+    if (length == 0) {
+        LOGE("%s:failed empty css_names", __func__);
+        return nullptr;
+    }
+    std::vector<std::string> cssNames;
+    for (jsize i = 0; i < length; ++i) {
+        jstring jstr = static_cast<jstring>(env->GetObjectArrayElement(css_names, i));
+        if (jstr == nullptr) {
+            continue;
+        }
+        const char *str = env->GetStringUTFChars(jstr, nullptr);
+        if (str != nullptr) {
+            cssNames.push_back(std::string(str));
+            env->ReleaseStringUTFChars(jstr, str);
+        }
+    }
+
+    if (cssNames.empty()) {
+        LOGE("%s:failed empty cssNames", __func__);
+        return nullptr;
+    }
+
+    std::vector<CssInfo> cssInfos;
+    int ret = mobiutil->getCss(cssNames, cssInfos);
+    if (ret != 1) {
+        LOGE("%s:fail parse css info", __func__);
+        return nullptr;
+    }
+
+    if (cssInfos.empty()) {
+        LOGE("%s cssInfos is empty", __func__);
+        return nullptr;
+    }
+
+    jclass cssInfoClass = env->FindClass("com/wxn/base/bean/CssInfo");
+    jclass ruleDataClass = env->FindClass("com/wxn/base/bean/RuleData");
+    if (cssInfoClass == nullptr || ruleDataClass == nullptr || env->ExceptionCheck()) {
+        LOGE("%s failed to find class CssInfo or RuleData", __func__);
+        return nullptr;
+    }
+
+    jmethodID cssInfoConstructor = env->GetMethodID(cssInfoClass, "<init>", "(Ljava/lang/String;IZLjava/util/List;)V");
+    if (cssInfoConstructor == nullptr) {
+        LOGE("%s cssInfo constructor is null", __func__);
+        return nullptr;
+    }
+    jmethodID ruleDataConstructor = env->GetMethodID(ruleDataClass, "<init>", "(Ljava/lang/String;Ljava/lang/String;)V");
+    if (ruleDataConstructor == nullptr) {
+        LOGE("%s ruleData constructor is null", __func__);
+        return nullptr;
+    }
+
+    int cssInfoLength = cssInfos.size();
+    jobjectArray result = env->NewObjectArray(cssInfoLength, cssInfoClass, nullptr);
+    if (result == nullptr) {
+        LOGE("%s failed to create result object array", __func__);
+        return nullptr;
+    }
+
+    jclass listClass = env->FindClass("java/util/ArrayList");
+    if (listClass == nullptr || env->ExceptionCheck()) {
+        return nullptr;
+    }
+    jmethodID listConstructor = env->GetMethodID(listClass, "<init>", "()V");
+    if (listConstructor == nullptr) {
+        return nullptr;
+    }
+    jmethodID listAdd = env->GetMethodID(listClass, "add", "(Ljava/lang/Object;)Z");
+    if (listAdd == nullptr) {
+        return nullptr;
+    }
+
+    for (int i = 0; i < cssInfoLength; i++) {
+        auto item = cssInfos[i];
+
+        jobject list = env->NewObject(listClass, listConstructor);
+        if (!item.ruleDatas.empty()) {
+            for (auto &data: item.ruleDatas) {
+                jobject jdata = env->NewObject(ruleDataClass, ruleDataConstructor,
+                                               env->NewStringUTF(data.name.c_str()),
+                                               env->NewStringUTF(data.value.c_str()));
+                env->CallBooleanMethod(list, listAdd, jdata);
+            }
+        }
+        jobject cssInfo = env->NewObject(cssInfoClass, cssInfoConstructor,
+                                         env->NewStringUTF(item.identifier.c_str()),
+                                         item.weight,
+                                         item.isBaseSelector,
+                                         list);
+        env->SetObjectArrayElement(result, i, cssInfo);
+    }
 
     return result;
 }

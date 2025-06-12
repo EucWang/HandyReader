@@ -36,6 +36,7 @@ extern "C" {
 #include "utf8.h"
 #include <android/bitmap.h>
 #include <android/imagedecoder.h>
+#include <list>
 
 #include "../../cssparser/CSSParser/CSSParser.hpp"
 
@@ -64,6 +65,18 @@ typedef struct TagInfo_ {
     std::string parent_uuid;    //父级uuid
     std::string params;           //字符串拼接的键值对，
 } TagInfo;
+
+typedef struct RuleData_{
+    std::string name;
+    std::string value;
+} RuleData;
+
+typedef struct CssInfo_ {
+    std::string identifier;
+    int weight;
+    bool isBaseSelector;
+    std::vector<RuleData> ruleDatas;
+} CssInfo;
 
 typedef struct DocText_ {
     std::string text;
@@ -128,6 +141,8 @@ public:
 
     int getChapter(JNIEnv *env, long book_id, const char *path, NavPoint& chapter, std::vector<DocText> &docTexts);
 
+    int getCss(std::vector<std::string> &cssClasses, std::vector<CssInfo> &cssInfos);
+
     long bookid(){
         return book_id;
     }
@@ -142,15 +157,17 @@ private:
     std::string book_path;
     mutable std::mutex m_Mutex;
     mutable std::mutex m_Mutex2;
+    mutable std::mutex m_Mutex3;
     MOBIRawml *mobi_rawml;
     MOBIData *mobi_data;
     std::vector<NavPoint> allChapters;
-
+    std::vector<std::string> cssSrc;
 
     int init();
 
     void mobi_data_free();
 
+    int parseCssSrcList();
     /****
  * 从资源索引路径中解析出 prefix， srcId, anchorId, suffix
  * @param src [in]

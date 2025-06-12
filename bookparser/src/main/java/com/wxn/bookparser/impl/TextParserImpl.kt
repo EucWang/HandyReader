@@ -2,6 +2,7 @@ package com.wxn.bookparser.impl
 
 import android.util.Log
 import com.wxn.base.bean.BookChapter
+import com.wxn.base.bean.CssInfo
 import com.wxn.base.bean.ReaderText
 import com.wxn.base.util.Logger
 import com.wxn.bookparser.TextParser
@@ -186,4 +187,55 @@ class TextParserImpl @Inject constructor(
             }
         }
     }
+
+    override suspend fun parseCss(bookId: Long, cachedFile: CachedFile, cssNames: List<String>): List<CssInfo> {
+        if (!cachedFile.canAccess()) {
+            Log.e(TEXT_PARSER, "File does not exist or no read access is granted.")
+            return emptyList()
+        }
+
+        val fileFormat = cachedFile.extension
+        Logger.d("TextParserImpl:parse:fileFormat=$fileFormat")
+        return withContext(Dispatchers.IO) {
+            when (fileFormat) {
+                "pdf" -> {
+                    pdfTextParser.parseCss(bookId, cachedFile, cssNames)
+                }
+
+                "epub" -> {
+                    epubTextParser.parseCss(bookId, cachedFile, cssNames)
+                }
+
+                in listOf("mobi", "azw3") -> {
+                    mobiTextParser.parseCss(bookId, cachedFile, cssNames)
+                }
+
+                "txt" -> {
+                    txtTextParser.parseCss(bookId, cachedFile, cssNames)
+                }
+
+                "fb2" -> {
+                    xmlTextParser.parseCss(bookId, cachedFile, cssNames)
+                }
+
+                "html" -> {
+                    htmlTextParser.parseCss(bookId, cachedFile, cssNames)
+                }
+
+                "htm" -> {
+                    htmlTextParser.parseCss(bookId, cachedFile, cssNames)
+                }
+
+                "md" -> {
+                    htmlTextParser.parseCss(bookId, cachedFile, cssNames)
+                }
+
+                else -> {
+                    Log.e(TEXT_PARSER, "Wrong file format, could not find supported extension.")
+                    emptyList()
+                }
+            }
+        }
+    }
+
 }
