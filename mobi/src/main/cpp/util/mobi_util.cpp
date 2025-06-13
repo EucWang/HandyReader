@@ -159,7 +159,9 @@ int mobi_util::parseOpfData(const char *opf_data, size_t opf_data_size, std::vec
         auto &opf = orderedItemSrc[startOpfIndex];
 
         if (point.src.find(opf) != std::string::npos) { //找到了
-            startOpfIndex++;
+            if (startOpfIndex < orderedItemSrc.size() - 1) {
+                startOpfIndex++;
+            }
         } else {
             //没有找到, 则在opf中往前找
             int opfIndex = startOpfIndex - 1;
@@ -229,6 +231,28 @@ int mobi_util::parseOpfData(const char *opf_data, size_t opf_data_size, std::vec
             newPoints.push_back(points[i]);
         }
     }
+
+    if (orderedItemSrc.size() == 1 && points.size() > 1) { //全部都在一个资源文件中
+        std::string &src = points[0].src;
+        std::string prefix;
+        std::string spineSrc;
+        std::string suffix;
+        std::string anchorId;
+        int prefixType;
+        int srcUid;
+        if (1 != parseSrcName(src, prefix, spineSrc, &prefixType, &srcUid, anchorId, suffix)) {
+            return 0;
+        }
+        if (!anchorId.empty()) { //第一章，不是从资源最开始位置开始的
+            NavPoint point;
+            point.src = orderedItemSrc[0];
+            point.text = "";
+            point.id = generate_uuid();
+            point.parentId = "";
+            newPoints.insert(newPoints.begin(), point);
+        }
+    }
+
     int order = 1;
     for (auto &point: newPoints) {
         point.playOrder = order++;
@@ -519,35 +543,6 @@ int mobi_util::loadMobi(std::string fullpath,
     return SUCCESS;
 }
 
-size_t parseElement(const tinyxml2::XMLElement *elem, std::string &fullText, std::string &parent_uuid, size_t initialOffset, std::vector<TagInfo> &subTags) {
-    size_t currentOffset = initialOffset;
-
-    for (const tinyxml2::XMLNode *child = elem->FirstChild(); child != nullptr; child = child->NextSibling()) {
-        if (child->ToText()) {
-            const char *text = child->Value();
-            fullText += text;
-            currentOffset += utf8Count(text);
-        } else if (child->ToElement()) {
-            size_t childStart = currentOffset;
-            const char *id = elem->Attribute("id");
-            std::string tagId = "";
-            if (id != nullptr) {
-                tagId = id;
-            }
-            auto newTag = TagInfo{generate_uuid(), tagId, elem->Name(), currentOffset, currentOffset, parent_uuid, ""};
-
-            currentOffset = parseElement(child->ToElement(), fullText, newTag.uuid, childStart, subTags);
-
-            if (currentOffset > childStart) {
-                newTag.endPos = currentOffset;
-            }
-            subTags.push_back(newTag);
-        }
-    }
-    return currentOffset;
-}
-
-
 std::string
 mobi_util::getEleParams(const tinyxml2::XMLElement *elem) {
     std::string params;
@@ -564,8 +559,52 @@ mobi_util::getEleParams(const tinyxml2::XMLElement *elem) {
     return params;
 }
 
+size_t mobi_util::parseElement(const tinyxml2::XMLElement *elem, std::string &fullText, std::string &parent_uuid, size_t initialOffset, std::vector<TagInfo> &subTags,
+                               std::string &startAnchorId,
+                               std::string &endAnchorId,
+                               int *flagAdd) {
+    size_t currentOffset = initialOffset;
+
+    for (const tinyxml2::XMLNode *child = elem->FirstChild(); child != nullptr; child = child->NextSibling()) {
+        if (child->ToText()) {
+            const char *text = child->Value();
+            fullText += text;
+            currentOffset += utf8Count(text);
+        } else if (child->ToElement()) {
+            size_t childStart = currentOffset;
+            const char *id = elem->Attribute("id");
+            std::string tagId = "";
+            if (id != nullptr) {
+                tagId = id;
+            }
+
+            if (!startAnchorId.empty() && startAnchorId == tagId) {
+                *flagAdd = 1;
+            } else if (!endAnchorId.empty() && endAnchorId == tagId) {
+                *flagAdd = 2;
+                break;
+            }
+
+            std::string params = getEleParams(elem);
+            auto newTag = TagInfo{generate_uuid(), tagId, elem->Name(), currentOffset, currentOffset, parent_uuid, ""};
+
+            currentOffset += parseElement(child->ToElement(), fullText, newTag.uuid, childStart, subTags, startAnchorId, endAnchorId, flagAdd);
+
+            if (currentOffset > childStart) {
+                newTag.endPos = currentOffset;
+            }
+            subTags.push_back(newTag);
+        }
+    }
+    return currentOffset;
+}
+
+
 std::string
-mobi_util::processParagraph(const tinyxml2::XMLElement *pElem, std::vector<TagInfo> &subTags, std::string &startAnchorId, std::string &endAnchorId,
+mobi_util::processParagraph(const tinyxml2::XMLElement *pElem,
+                            std::vector<TagInfo> &subTags,
+                            std::string &startAnchorId,
+                            std::string &endAnchorId,
                             int *flagAdd) {
     size_t offset = 0;
     std::string fullText;
@@ -596,7 +635,7 @@ mobi_util::processParagraph(const tinyxml2::XMLElement *pElem, std::vector<TagIn
             std::string params = getEleParams(elem);
 
             auto newTag = TagInfo{generate_uuid(), aid, elem->Name(), childStart, childStart, "", params};
-            offset = parseElement(child->ToElement(), fullText, newTag.uuid, childStart, subTags);
+            offset = parseElement(child->ToElement(), fullText, newTag.uuid, childStart, subTags, startAnchorId, endAnchorId, flagAdd);
 
             if (offset > childStart) {
                 newTag.endPos = offset;
@@ -761,6 +800,32 @@ int mobi_util::cacheImage(JNIEnv *env, long book_id, MOBIRawml *mobi_rawml, std:
     return 1;
 }
 
+/****
+ * 判断子元素中是否有文本元素
+ * @param elem
+ * @return true: 有， false： 没有
+ */
+bool hasChildText(tinyxml2::XMLElement *elem) {
+    auto child = elem->FirstChild();
+    bool ret = false;
+    while(child != nullptr){
+        if (child->ToText() != nullptr) {
+            ret = true;
+            break;
+        } else if (child->ToElement() != nullptr) {
+            auto childEle = child->ToElement();
+            const char* name = childEle->Name();
+            std::string nameStr(name, name + strlen(name));
+            if (nameStr == "img" || nameStr == "p" || nameStr == "div" || nameStr == "blockquote") {
+                ret = false;
+                break;
+            }
+        }
+        child = child->NextSibling();
+    }
+    return ret;
+}
+
 int mobi_util::parseHtmlDoc(JNIEnv *env,
                             long book_id,
                             MOBIRawml *mobi_rawml,
@@ -784,7 +849,7 @@ int mobi_util::parseHtmlDoc(JNIEnv *env,
         }
 
         std::string name = elem->Name();
-        if (name == "div" || name == "ul" || name == "ol" || name == "p" || name == "li" || name == "span" || name == "font") {
+        if (name == "div" || name == "ul" || name == "ol" || name == "p" || name == "li" || name == "span" || name == "font" || name == "blockquote") {
             const char *id = elem->Attribute("id");
             std::string aid;
             if (id != nullptr && strlen(id) > 0) {
@@ -797,8 +862,8 @@ int mobi_util::parseHtmlDoc(JNIEnv *env,
                 break;
             }
 
-            const char *divText = elem->GetText();
-            if (divText != nullptr && utf8Count(divText) > 0) {
+//            const char *divText = elem->GetText();
+            if (hasChildText(elem)) {
                 std::vector<TagInfo> tagInfos;
                 DocText docText{"", tagInfos};
                 std::string text = processParagraph(elem, tagInfos, startAnchorId, endAnchorId, flagAdd);
@@ -833,7 +898,7 @@ int mobi_util::parseHtmlDoc(JNIEnv *env,
                     docTexts.push_back(docText);
                 }
             } else {
-                int count = elem->ChildElementCount();
+                auto count = elem->ChildElementCount();
                 tinyxml2::XMLElement *child = elem->FirstChildElement();
                 if (count > 0 && child != nullptr) {
                     std::string params = getEleParams(elem);
@@ -1170,7 +1235,7 @@ int mobi_util::getCss(std::vector<std::string> &cssClasses, std::vector<CssInfo>
                     std::vector<std::string> datas = split(ruleData, ';');
                     std::vector<RuleData> params;
                     if (!datas.empty()) {
-                        for(auto& data : datas) {
+                        for (auto &data: datas) {
                             trim(data);
                             std::vector<std::string> kv = split(data, ':');
                             if (kv.size() == 2) {
@@ -1182,7 +1247,7 @@ int mobi_util::getCss(std::vector<std::string> &cssClasses, std::vector<CssInfo>
                             }
                         }
                     }
-                    cssInfos.emplace_back(CssInfo{cssid, weight,isBaseSelector, params});
+                    cssInfos.emplace_back(CssInfo{cssid, weight, isBaseSelector, params});
                     if (cssInfos.size() >= cssClasses.size()) {
                         break;
                     }
@@ -1334,8 +1399,60 @@ int mobi_util::getChapter(JNIEnv *env, long book_id, const char *path, NavPoint 
     if (firstElem != nullptr) {
         std::vector<TagInfo> tags;
         parseHtmlDoc(env, book_id, mobi_rawml, firstElem, docTexts, anchorId, endAnchorId, &flagAdd, spineSrc, tags);
+        mockFirstPage(chapter, docTexts);
     }
 
-
     return 1;
+}
+
+/***
+ * 第一章没有内容，由于合并ncx 和opf可能导致的首页没有内容，则需要填充一个默认的内容
+ * @param chapter
+ * @param docTexts
+ */
+void mobi_util::mockFirstPage(NavPoint &chapter, std::vector<DocText> &docTexts) {
+    if (docTexts.empty() && chapter.playOrder == 1) {
+        char* title = mobi_meta_get_title(mobi_data);
+        char* author = mobi_meta_get_author(mobi_data);
+        char* publisher = mobi_meta_get_publisher(mobi_data);
+        if (title != nullptr) {
+            std::vector<TagInfo> tagInfos;
+            tagInfos.push_back(TagInfo{
+                    generate_uuid(),
+                    "",
+                    "h1",
+                    0,
+                    strlen(title),
+                    "",
+                    ""
+            });
+            docTexts.emplace_back(DocText{std::string(title, title + strlen(title)), tagInfos});
+        }
+        if (author != nullptr) {
+            std::vector<TagInfo> tagInfos;
+            tagInfos.push_back(TagInfo{
+                    generate_uuid(),
+                    "",
+                    "p",
+                    0,
+                    strlen(author),
+                    "",
+                    "align=center"
+            });
+            docTexts.emplace_back(DocText{std::string(author, author + strlen(author)), tagInfos});
+        }
+        if (publisher != nullptr) {
+            std::vector<TagInfo> tagInfos;
+            tagInfos.push_back(TagInfo{
+                    generate_uuid(),
+                    "",
+                    "p",
+                    0,
+                    strlen(publisher),
+                    "",
+                    "align=center"
+            });
+            docTexts.emplace_back(DocText{std::string(publisher, publisher + strlen(publisher)), tagInfos});
+        }
+    }
 }

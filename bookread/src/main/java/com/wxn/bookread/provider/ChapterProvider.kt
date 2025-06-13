@@ -9,24 +9,17 @@ import android.os.Build
 import android.text.Layout
 import android.text.StaticLayout
 import android.text.TextPaint
-import com.wxn.base.bean.Book
 import com.wxn.base.bean.BookChapter
 import com.wxn.base.bean.CssFontStyle
 import com.wxn.base.bean.CssFontWeight
-import com.wxn.base.bean.CssInfo
 import com.wxn.base.bean.CssTextAlign
 import com.wxn.base.bean.ReaderText
-import com.wxn.base.bean.ReaderText.Text
-import com.wxn.base.bean.TextTag
 import com.wxn.base.ext.isContentPath
 import com.wxn.base.ext.statusBarHeight
 import com.wxn.base.ext.toStringArray
-import com.wxn.base.util.PathUtil
-import com.wxn.bookread.data.source.local.ReaderPreferencesUtil
-import com.wxn.bookread.ext.dp
-import com.wxn.bookread.ext.sp
 import com.wxn.base.util.Coroutines
 import com.wxn.base.util.Logger
+import com.wxn.base.util.PathUtil
 import com.wxn.bookread.data.model.TextChapter
 import com.wxn.bookread.data.model.TextChar
 import com.wxn.bookread.data.model.TextLine
@@ -34,12 +27,13 @@ import com.wxn.bookread.data.model.TextPage
 import com.wxn.bookread.data.model.preference.BASE_FONT_SIZE
 import com.wxn.bookread.data.model.preference.BASE_TITLE_FONT_SIZE
 import com.wxn.bookread.data.source.local.ReadTipPreferencesUtil
+import com.wxn.bookread.data.source.local.ReaderPreferencesUtil
+import com.wxn.bookread.ext.dp
 import com.wxn.bookread.textHeight
 import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.launch
-import java.io.File
 import java.util.regex.Pattern
-import kotlin.collections.firstOrNull
+import kotlin.math.roundToInt
 
 
 object ChapterProvider {
@@ -149,30 +143,36 @@ object ChapterProvider {
     fun getTypeface(fontWeight: CssFontWeight, cssFontStyle: CssFontStyle) =
         when (fontWeight) {
             CssFontWeight.FontWeightNormal -> {
-                Typeface.create(typeface, if (cssFontStyle == CssFontStyle.CssFontStyleItalic) {
-                    Typeface.ITALIC
-                } else {
-                    Typeface.NORMAL
-                })
+                Typeface.create(
+                    typeface, if (cssFontStyle == CssFontStyle.CssFontStyleItalic) {
+                        Typeface.ITALIC
+                    } else {
+                        Typeface.NORMAL
+                    }
+                )
             }
 
             CssFontWeight.FontWeightBold -> {
-                Typeface.create(typeface, if (cssFontStyle == CssFontStyle.CssFontStyleItalic) {
-                    Typeface.BOLD_ITALIC
-                } else {
-                    Typeface.BOLD
-                })
+                Typeface.create(
+                    typeface, if (cssFontStyle == CssFontStyle.CssFontStyleItalic) {
+                        Typeface.BOLD_ITALIC
+                    } else {
+                        Typeface.BOLD
+                    }
+                )
             }
 
             CssFontWeight.FontWeightBolder -> {
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
                     Typeface.create(typeface, 900, cssFontStyle == CssFontStyle.CssFontStyleItalic)
                 } else {
-                    Typeface.create(typeface, if (cssFontStyle == CssFontStyle.CssFontStyleItalic) {
-                        Typeface.BOLD_ITALIC
-                    } else {
-                        Typeface.BOLD
-                    })
+                    Typeface.create(
+                        typeface, if (cssFontStyle == CssFontStyle.CssFontStyleItalic) {
+                            Typeface.BOLD_ITALIC
+                        } else {
+                            Typeface.BOLD
+                        }
+                    )
                 }
             }
 
@@ -180,11 +180,13 @@ object ChapterProvider {
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
                     Typeface.create(typeface, 300, cssFontStyle == CssFontStyle.CssFontStyleItalic)
                 } else {
-                    Typeface.create(typeface, if (cssFontStyle == CssFontStyle.CssFontStyleItalic) {
-                        Typeface.ITALIC
-                    } else {
-                        Typeface.NORMAL
-                    })
+                    Typeface.create(
+                        typeface, if (cssFontStyle == CssFontStyle.CssFontStyleItalic) {
+                            Typeface.ITALIC
+                        } else {
+                            Typeface.NORMAL
+                        }
+                    )
                 }
             }
         }
@@ -418,6 +420,8 @@ object ChapterProvider {
         val stringBuilder = StringBuilder()
         var offsetY = 0f    //每一行显示时，和顶部的偏移量
 
+        val isOneElePage = (contents.size == 1) //只有一个元素的页面
+
         textPages.add(TextPage())   //增加一空白页，然后给这个页面增加显示内容
         contents.forEachIndexed { index, paragraph -> //遍历需要显示的内容的每一个自然段， 一个段落一个段落（图片）的遍历
             when (paragraph) {
@@ -622,6 +626,8 @@ object ChapterProvider {
         }
         textPaint.set(parentPaint)
 
+        var marginLeft = 0f
+        var marginRight = 0f
         //对齐方式
         var textAlign: CssTextAlign =
             if (isTitle) {
@@ -633,6 +639,8 @@ object ChapterProvider {
             //文字大小
             if (paragraph.textCssInfo.fontSize.isEm()) {
                 textPaint.textSize *= paragraph.textCssInfo.fontSize.value
+            } else if (paragraph.textCssInfo.fontSize.isPx()) {
+                textPaint.textSize = paragraph.textCssInfo.fontSize.value
             }
             //文字粗体
             textPaint.typeface = getTypeface(paragraph.textCssInfo.fontWeight, paragraph.textCssInfo.fontStyle)
@@ -640,9 +648,34 @@ object ChapterProvider {
             if (paragraph.textCssInfo.fontStyle == CssFontStyle.CssFontStyleItalic) {   //设置斜体
                 textPaint.textSkewX = -0.25f
             }
+
+            //左边距
+            marginLeft = (if (paragraph.textCssInfo.marginLeft.isEm()) {
+                val oneCh: String = (text.getOrNull(0)?.toString() ?: " ")
+                val oneEmWidth =  StaticLayout.getDesiredWidth(oneCh, textPaint)
+                oneEmWidth * paragraph.textCssInfo.marginLeft.value
+            } else if (paragraph.textCssInfo.marginLeft.isPx()) {
+                paragraph.textCssInfo.marginLeft.value
+            } else if (paragraph.textCssInfo.marginLeft.isPercent()) {
+                visibleWidth * paragraph.textCssInfo.marginLeft.value
+            } else {
+                0f
+            }).coerceIn(0f, visibleWidth / 4f)
+            //右边距
+            marginRight = (if (paragraph.textCssInfo.marginRight.isEm()) {
+                val oneCh: String = (text.getOrNull(0)?.toString() ?: " ")
+                val oneEmWidth =  StaticLayout.getDesiredWidth(oneCh, textPaint)
+                oneEmWidth * paragraph.textCssInfo.marginRight.value
+            } else if (paragraph.textCssInfo.marginRight.isPx()) {
+                paragraph.textCssInfo.marginRight.value
+            } else if (paragraph.textCssInfo.marginRight.isPercent()) {
+                visibleWidth * paragraph.textCssInfo.marginRight.value
+            } else {
+                0f
+            }).coerceIn(0f, visibleWidth / 4f)
         }
 
-        val layout = StaticLayout(text, textPaint, visibleWidth, Layout.Alignment.ALIGN_NORMAL, 0f, 0f, true)
+        val layout = StaticLayout(text, textPaint, visibleWidth - marginLeft.roundToInt() - marginRight.roundToInt(), Layout.Alignment.ALIGN_NORMAL, 0f, 0f, true)
         for (lineIndex in 0 until layout.lineCount) {  //排版，按行遍历
             val offsetStart = layout.getLineStart(lineIndex)
             val offsetEnd = layout.getLineEnd(lineIndex)
@@ -653,18 +686,18 @@ object ChapterProvider {
             val desiredWidth = layout.getLineWidth(lineIndex)   //排版要求的宽度
             var isLastLine = (lineIndex == layout.lineCount - 1)
 
-            when(textAlign) {
-                CssTextAlign.CssTextAlignLeft ->  addCharsToLineLeft(textLine, words.toStringArray(), textPaint, 0f)
-                CssTextAlign.CssTextAlignRight -> addCharsToLineRight(textLine, words.toStringArray(), textPaint, desiredWidth)
+            when (textAlign) {
+                CssTextAlign.CssTextAlignLeft -> addCharsToLineLeft(textLine, words.toStringArray(), textPaint, marginLeft)
+                CssTextAlign.CssTextAlignRight -> addCharsToLineRight(textLine, words.toStringArray(), textPaint, desiredWidth, marginRight)
                 CssTextAlign.CssTextAlignCenter -> addCharsToLineCenter(textLine, words.toStringArray(), textPaint, desiredWidth)
                 CssTextAlign.CssTextAlignJustify -> {
                     if (layout.lineCount == 1) {
-                        addCharsToLineLeft(textLine, words.toStringArray(), textPaint, 0f)
+                        addCharsToLineLeft(textLine, words.toStringArray(), textPaint, marginLeft)
                     } else {
                         if (isLastLine) {    //两端对齐，除了最后一行
-                            addCharsToLineLeft(textLine, words.toStringArray(), textPaint, 0f)
+                            addCharsToLineLeft(textLine, words.toStringArray(), textPaint, marginLeft)
                         } else {
-                            addCharsToLineMiddle(textLine, words.toStringArray(), textPaint, desiredWidth, 0f)
+                            addCharsToLineMiddle(textLine, words.toStringArray(), textPaint, desiredWidth, marginLeft)
                         }
                     }
                 }
@@ -786,8 +819,8 @@ object ChapterProvider {
     /**
      * 右对齐显示文本
      */
-    private fun addCharsToLineRight(textLine: TextLine, words: Array<String>, textPaint: TextPaint, desiredWidth: Float) {
-        val x = visibleWidth - desiredWidth  //标题栏居中显示，左偏移
+    private fun addCharsToLineRight(textLine: TextLine, words: Array<String>, textPaint: TextPaint, desiredWidth: Float, marginRight:Float) {
+        val x = visibleWidth - desiredWidth - marginRight  //标题栏居中显示，左偏移
         addCharsToLineLeft(textLine, words, textPaint, x)
     }
 

@@ -40,14 +40,14 @@ extern "C" {
 
 #include "../../cssparser/CSSParser/CSSParser.hpp"
 
-typedef struct NavPoint_{
+typedef struct NavPoint_ {
     std::string id;         //章节ID
     std::string parentId;   //上一章节id
     int playOrder;          //顺序
     std::string text;       //章节名
     std::string src;        //章节开始位置
 
-    bool operator<(const struct NavPoint_& other) const { //排序用
+    bool operator<(const struct NavPoint_ &other) const { //排序用
         return playOrder < other.playOrder;
     }
 } NavPoint;
@@ -66,7 +66,7 @@ typedef struct TagInfo_ {
     std::string params;           //字符串拼接的键值对，
 } TagInfo;
 
-typedef struct RuleData_{
+typedef struct RuleData_ {
     std::string name;
     std::string value;
 } RuleData;
@@ -91,7 +91,7 @@ public:
      * @param bookid
      * @param bookpath
      */
-    mobi_util(long bookid, std::string bookpath){
+    mobi_util(long bookid, std::string bookpath) {
         book_id = bookid;
         book_path = bookpath;
         mobi_rawml = nullptr;
@@ -115,38 +115,39 @@ public:
     }
 
     static int loadMobi(std::string fullpath,
-                        std::string& coverPath,
+                        std::string &coverPath,
 
-                        std::string& title,
-                        std::string& author,
-                        std::string& contributor,
+                        std::string &title,
+                        std::string &author,
+                        std::string &contributor,
 
-                        std::string& subject,
-                        std::string& publisher,
-                        std::string& date,
+                        std::string &subject,
+                        std::string &publisher,
+                        std::string &date,
 
-                        std::string& description,
-                        std::string& review,
-                        std::string& imprint,
+                        std::string &description,
+                        std::string &review,
+                        std::string &imprint,
 
-                        std::string& copyright,
-                        std::string& isbn,
-                        std::string& asin,
+                        std::string &copyright,
+                        std::string &isbn,
+                        std::string &asin,
 
-                        std::string& language,
-                        std::string& identifier,
-                        bool& isEncrypted);
+                        std::string &language,
+                        std::string &identifier,
+                        bool &isEncrypted);
 
-    int getChapters(/*out*/std::vector<NavPoint>& points);
+    int getChapters(/*out*/std::vector<NavPoint> &points);
 
-    int getChapter(JNIEnv *env, long book_id, const char *path, NavPoint& chapter, std::vector<DocText> &docTexts);
+    int getChapter(JNIEnv *env, long book_id, const char *path, NavPoint &chapter, std::vector<DocText> &docTexts);
 
     int getCss(std::vector<std::string> &cssClasses, std::vector<CssInfo> &cssInfos);
 
-    long bookid(){
+    long bookid() {
         return book_id;
     }
-    std::string& bookpath(){
+
+    std::string &bookpath() {
         return book_path;
     }
 
@@ -168,6 +169,9 @@ private:
     void mobi_data_free();
 
     int parseCssSrcList();
+
+    void mockFirstPage(NavPoint &chapter, std::vector<DocText> &docTexts);
+
     /****
  * 从资源索引路径中解析出 prefix， srcId, anchorId, suffix
  * @param src [in]
@@ -179,13 +183,13 @@ private:
  * @param suffix  [out] 对应文件类型，取值如果是文档则是 html/htm, 如果是图片则是 png,jpg,gif,jpeg
  * @return 0 失败， 1成功
  */
-    static int parseSrcName(std::string& src,
-                     std::string& prefix,
-                     std::string& spineSrc,
-                     int* prefixType,
-                     int* srcId,
-                     std::string& anchorId,
-                     std::string& suffix);
+    static int parseSrcName(std::string &src,
+                            std::string &prefix,
+                            std::string &spineSrc,
+                            int *prefixType,
+                            int *srcId,
+                            std::string &anchorId,
+                            std::string &suffix);
 
     /****
      * 解析html文档得到中间数据DocText的集合
@@ -202,13 +206,13 @@ private:
      */
     static int parseHtmlDoc(JNIEnv *env,
                             long book_id,
-                            MOBIRawml* mobi_rawml,
+                            MOBIRawml *mobi_rawml,
                             tinyxml2::XMLElement *element,
-                            std::vector<DocText>& docTexts,
-                            std::string& startAnchorId,
-                            std::string& endAnchorId,
-                            int* flagAdd,
-                            std::string& spineSrcName,
+                            std::vector<DocText> &docTexts,
+                            std::string &startAnchorId,
+                            std::string &endAnchorId,
+                            int *flagAdd,
+                            std::string &spineSrcName,
                             std::vector<TagInfo> parentTags);
 
     /****
@@ -221,13 +225,23 @@ private:
      * @param height [out]
      * @return 成功返回1， 失败返回0
      */
-    static int cacheImage(JNIEnv *env, long book_id, MOBIRawml* mobi_rawml, std::string& imgSRc, int prefixType, int srcUid, int* width, int* height);
+    static int cacheImage(JNIEnv *env, long book_id, MOBIRawml *mobi_rawml, std::string &imgSRc, int prefixType, int srcUid, int *width, int *height);
 
     static int parseOpfData(const char *opf_data, size_t opf_data_size, std::vector<NavPoint> &points);
 
-    static std::string processParagraph(const tinyxml2::XMLElement *pElem, std::vector<TagInfo> &subTags, std::string& startAnchorId, std::string& endAnchorId, int* flagAdd);
+    static std::string
+    processParagraph(const tinyxml2::XMLElement *pElem, std::vector<TagInfo> &subTags, std::string &startAnchorId, std::string &endAnchorId, int *flagAdd);
 
-    static std::string getEleParams(const tinyxml2::XMLElement* elem);
+    static std::string getEleParams(const tinyxml2::XMLElement *elem);
+
+    static size_t parseElement(const tinyxml2::XMLElement *elem,
+                               std::string &fullText,
+                               std::string &parent_uuid,
+                               size_t initialOffset,
+                               std::vector<TagInfo> &subTags,
+                               std::string &startAnchorId,
+                               std::string &endAnchorId,
+                               int *flagAdd);
 };
 
 #endif //SIMPLEREADER2_MOBI_UTIL_H

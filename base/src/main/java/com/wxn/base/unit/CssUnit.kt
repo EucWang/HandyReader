@@ -69,17 +69,22 @@ class CssUnit(
                 Auto
             } else {
                 var ret = Unspecified
-                for (unit in arrayOf("em", "rem", "px", "%")) {
+                for (unit in arrayOf("em", "rem", "px", "pt", "%")) {
                     if (value.endsWith(unit)) {
                         val size = value.substring(0, value.length - unit.length).toFloatOrNull()
                         ret = if (size == null) {
                             Unspecified
                         } else {
                             CssUnit(
-                                size, when (unit) {
+                                if (unit == "pt") {
+                                    (size * 1.333f).coerceIn(48f, 84f)
+                                } else if (unit == "px") {
+                                    size.coerceIn(48f, 84f)
+                                } else { size }, when (unit) {
                                     "em" -> UnitType.Em
                                     "rem" -> UnitType.Rem
                                     "px" -> UnitType.Px
+                                    "pt" -> UnitType.Px
                                     "%" -> UnitType.Percent
                                     else -> UnitType.Undifined
                                 }
@@ -88,6 +93,15 @@ class CssUnit(
                         break
                     }
                 }
+
+                if (ret == Unspecified) {
+                    value.toIntOrNull()?.let { size ->  //size="1" 对应的是 12px（默认字体大小）
+                        if (size in 1..10) {
+                            ret = Px(size.coerceIn(4, 7) * 12f)
+                        }
+                    }
+                }
+
                 ret
             }
 

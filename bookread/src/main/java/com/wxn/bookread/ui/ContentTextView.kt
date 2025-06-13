@@ -264,6 +264,8 @@ class ContentTextView(context: Context, attrs: AttributeSet?) : View(context, at
             if (!isTitle && textCssInfo !=null) {
                 if (textCssInfo.fontSize.isEm()) {
                     paint.textSize *= textCssInfo.fontSize.value
+                } else if (textCssInfo.fontSize.isPx()) {
+                    paint.textSize = textCssInfo.fontSize.value
                 }
                 paint.typeface = when(textCssInfo.fontWeight) {
                     CssFontWeight.FontWeightNormal -> {
