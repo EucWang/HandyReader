@@ -97,7 +97,7 @@ class CssUnit(
                 if (ret == Unspecified) {
                     value.toIntOrNull()?.let { size ->  //size="1" 对应的是 12px（默认字体大小）
                         if (size in 1..10) {
-                            ret = Px(size.coerceIn(4, 7) * 12f)
+                            ret = Px(size.coerceIn(3, 7) * 12f)
                         }
                     }
                 }

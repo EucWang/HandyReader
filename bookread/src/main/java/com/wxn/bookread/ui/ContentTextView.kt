@@ -303,12 +303,15 @@ class ContentTextView(context: Context, attrs: AttributeSet?) : View(context, at
     }
 
     fun filterTags(charIndex: Int, textTags: List<TextTag>): TextTag? {
+        val tags = arrayListOf<TextTag>()
         for (tag in textTags) {
             if (tag.start <= charIndex && charIndex < tag.end) {
-                return tag
+                if (tag.name in arrayOf("h1", "h2", "h3", "h4", "a")) {
+                    tags.add(tag)
+                }
             }
         }
-        return null
+        return tags.getOrNull(0)
     }
 
     /***

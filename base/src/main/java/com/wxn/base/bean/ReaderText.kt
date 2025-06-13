@@ -346,7 +346,7 @@ sealed class ReaderText {
                                 if (kv.first == "size") {   // <font> 标签中，size 属性 默认使用的是“相对单位”, size="1" 对应的是 12px（默认字体大小）
                                     kv.second.toIntOrNull()?.let { size ->
                                         if (size in 1..10) {
-                                            parsedCss.fontSize = Px(size.coerceIn(4, 7) * 12f)
+                                            parsedCss.fontSize = Px(size.coerceIn(3, 7) * 12f)
                                         }
                                     }
                                 } else if (kv.first == "color") {

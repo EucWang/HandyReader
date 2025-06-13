@@ -544,17 +544,42 @@ int mobi_util::loadMobi(std::string fullpath,
 }
 
 std::string
-mobi_util::getEleParams(const tinyxml2::XMLElement *elem) {
+mobi_util::getEleParams(const tinyxml2::XMLElement *elem, std::string &spineSrcName) {
     std::string params;
     for (auto attri = elem->FirstAttribute(); attri != nullptr; attri = attri->Next()) {
         const char *attriName = attri->Name();
         const char *attriValue = attri->Value();
-        if (attriName != nullptr && attriValue != nullptr && strlen(attriName) > 0 && strlen(attriValue) > 0) {
-            if (!params.empty()) {
-                params.append("&");
-            }
-            params.append(attriName).append("=").append(attriValue);
+        if (attriName == nullptr || attriValue == nullptr || strlen(attriName) == 0) {
+            continue;
         }
+        std::string name(attriName, attriName + strlen(attriName));
+        std::string value(attriValue, attriValue + strlen(attriValue));
+        if (name.empty()) {
+            continue;
+        }
+
+        if (name == "href") {
+            if (!value.empty()) {
+                if(!startWith(value, "http")) {
+                    std::string href;
+                    if (!startWith(value, spineSrcName)) {
+                        href.append(spineSrcName);
+                        if (!startWith(value, "#")) {
+                            href.append("#");
+                        }
+                    }
+                    href.append(value);
+                    value = href;
+                }
+            }
+        }
+
+
+        if (!params.empty()) {
+            params.append("&");
+        }
+
+        params.append(attriName).append("=").append(attriValue);
     }
     return params;
 }
@@ -562,7 +587,8 @@ mobi_util::getEleParams(const tinyxml2::XMLElement *elem) {
 size_t mobi_util::parseElement(const tinyxml2::XMLElement *elem, std::string &fullText, std::string &parent_uuid, size_t initialOffset, std::vector<TagInfo> &subTags,
                                std::string &startAnchorId,
                                std::string &endAnchorId,
-                               int *flagAdd) {
+                               int *flagAdd,
+                               std::string &spineSrcName) {
     size_t currentOffset = initialOffset;
 
     for (const tinyxml2::XMLNode *child = elem->FirstChild(); child != nullptr; child = child->NextSibling()) {
@@ -585,10 +611,10 @@ size_t mobi_util::parseElement(const tinyxml2::XMLElement *elem, std::string &fu
                 break;
             }
 
-            std::string params = getEleParams(elem);
+            std::string params = getEleParams(elem, spineSrcName);
             auto newTag = TagInfo{generate_uuid(), tagId, elem->Name(), currentOffset, currentOffset, parent_uuid, ""};
 
-            currentOffset += parseElement(child->ToElement(), fullText, newTag.uuid, childStart, subTags, startAnchorId, endAnchorId, flagAdd);
+            currentOffset += parseElement(child->ToElement(), fullText, newTag.uuid, childStart, subTags, startAnchorId, endAnchorId, flagAdd, spineSrcName);
 
             if (currentOffset > childStart) {
                 newTag.endPos = currentOffset;
@@ -605,7 +631,8 @@ mobi_util::processParagraph(const tinyxml2::XMLElement *pElem,
                             std::vector<TagInfo> &subTags,
                             std::string &startAnchorId,
                             std::string &endAnchorId,
-                            int *flagAdd) {
+                            int *flagAdd,
+                            std::string &spineSrcName) {
     size_t offset = 0;
     std::string fullText;
 
@@ -632,10 +659,10 @@ mobi_util::processParagraph(const tinyxml2::XMLElement *pElem,
                 break;
             }
 
-            std::string params = getEleParams(elem);
+            std::string params = getEleParams(elem, spineSrcName);
 
             auto newTag = TagInfo{generate_uuid(), aid, elem->Name(), childStart, childStart, "", params};
-            offset = parseElement(child->ToElement(), fullText, newTag.uuid, childStart, subTags, startAnchorId, endAnchorId, flagAdd);
+            offset = parseElement(child->ToElement(), fullText, newTag.uuid, childStart, subTags, startAnchorId, endAnchorId, flagAdd, spineSrcName);
 
             if (offset > childStart) {
                 newTag.endPos = offset;
@@ -866,7 +893,7 @@ int mobi_util::parseHtmlDoc(JNIEnv *env,
             if (hasChildText(elem)) {
                 std::vector<TagInfo> tagInfos;
                 DocText docText{"", tagInfos};
-                std::string text = processParagraph(elem, tagInfos, startAnchorId, endAnchorId, flagAdd);
+                std::string text = processParagraph(elem, tagInfos, startAnchorId, endAnchorId, flagAdd, spineSrcName);
                 docText.text = text;
                 if (!tagInfos.empty()) {
                     for (auto &tag: tagInfos) {
@@ -874,7 +901,7 @@ int mobi_util::parseHtmlDoc(JNIEnv *env,
                     }
                 }
 
-                std::string params = getEleParams(elem);
+                std::string params = getEleParams(elem, spineSrcName);
                 if (!params.empty()) {
                     TagInfo tag;
                     tag.name = name;;
@@ -901,7 +928,7 @@ int mobi_util::parseHtmlDoc(JNIEnv *env,
                 auto count = elem->ChildElementCount();
                 tinyxml2::XMLElement *child = elem->FirstChildElement();
                 if (count > 0 && child != nullptr) {
-                    std::string params = getEleParams(elem);
+                    std::string params = getEleParams(elem, spineSrcName);
                     if (!params.empty()) {
                         TagInfo tag;
                         tag.name = name;;
@@ -933,7 +960,7 @@ int mobi_util::parseHtmlDoc(JNIEnv *env,
                 std::vector<TagInfo> tagInfos;
                 DocText docText{elemText, tagInfos};
 
-                auto tag = TagInfo{generate_uuid(), aid, name, 0, utf8Count(docText.text), "", getEleParams(elem)};
+                auto tag = TagInfo{generate_uuid(), aid, name, 0, utf8Count(docText.text), "", getEleParams(elem, spineSrcName)};
                 docText.tagInfos.push_back(tag);
                 if (!parentTags.empty()) {
                     for (auto &tag: parentTags) {
@@ -950,10 +977,10 @@ int mobi_util::parseHtmlDoc(JNIEnv *env,
             } else {
                 std::vector<TagInfo> tagInfos;
                 DocText docText{"", tagInfos};
-                std::string text = processParagraph(elem, tagInfos, startAnchorId, endAnchorId, flagAdd);
+                std::string text = processParagraph(elem, tagInfos, startAnchorId, endAnchorId, flagAdd, spineSrcName);
                 if (!text.empty() || !tagInfos.empty()) {
                     docText.text = text;
-                    docText.tagInfos.push_back(TagInfo{generate_uuid(), aid, name, 0, utf8Count(docText.text), "", getEleParams(elem)});
+                    docText.tagInfos.push_back(TagInfo{generate_uuid(), aid, name, 0, utf8Count(docText.text), "", getEleParams(elem, spineSrcName)});
                     if (!tagInfos.empty()) {
                         for (auto &tag: tagInfos) {
                             docText.tagInfos.push_back(tag);
@@ -986,7 +1013,7 @@ int mobi_util::parseHtmlDoc(JNIEnv *env,
             if (elemText != nullptr && utf8Count(elemText) > 0) {
                 std::vector<TagInfo> tagInfos;
                 DocText docText{elemText, tagInfos};
-                docText.tagInfos.push_back(TagInfo{generate_uuid(), aid, name, 0, utf8Count(docText.text), "", getEleParams(elem)});
+                docText.tagInfos.push_back(TagInfo{generate_uuid(), aid, name, 0, utf8Count(docText.text), "", getEleParams(elem, spineSrcName)});
                 if (!parentTags.empty()) {
                     for (auto &tag: parentTags) {
                         if (tag.endPos == 0) {
@@ -1000,7 +1027,7 @@ int mobi_util::parseHtmlDoc(JNIEnv *env,
                 }
             }
         } else if (name == "a") {
-            const char *elemText = elem->GetText();
+//            const char *elemText = elem->GetText();
             const char *id = elem->Attribute("id");
             std::string aid;
             if (id != nullptr && strlen(id) > 0) {
@@ -1013,33 +1040,24 @@ int mobi_util::parseHtmlDoc(JNIEnv *env,
                 break;
             }
 
-            std::string text;
-            if (elemText != nullptr && strlen(elemText) > 0) {
-                text = elemText;
-            }
-
+//            std::string text;
+//            if (elemText != nullptr && strlen(elemText) > 0) {
+//                text = elemText;
+//            }
             std::vector<TagInfo> tagInfos;
-            DocText docText{text, tagInfos};
-
-            std::string params;
-            if (!aid.empty()) {
-                params = params.append("id=").append(aid);
-            }
-            const char *href = elem->Attribute("href");
-            if (href != nullptr && strlen(href) > 0) {
-                if (!params.empty()) {
-                    params = params.append("&");
+            DocText docText{"", tagInfos};
+            std::string text = processParagraph(elem, tagInfos, startAnchorId, endAnchorId, flagAdd, spineSrcName);
+            docText.text = text;
+            if (!tagInfos.empty()) {
+                for (auto &tag: tagInfos) {
+                    docText.tagInfos.push_back(tag);
                 }
-                params = params.append("href=");
-                if (!startWith(href, spineSrcName)) {
-                    params = params.append(spineSrcName);
-                }
-                if (!startWith(href, "#")) {
-                    params = params.append("#");
-                }
-                params = params.append(href);
             }
 
+//            std::vector<TagInfo> tagInfos;
+//            DocText docText{text, tagInfos};
+
+            std::string params = getEleParams(elem, spineSrcName);
             docText.tagInfos.push_back(TagInfo{generate_uuid(), aid, name, 0, utf8Count(docText.text), "", params});
             if (!parentTags.empty()) {
                 for (auto &tag: parentTags) {

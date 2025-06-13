@@ -237,9 +237,10 @@ private:
     static int parseOpfData(const char *opf_data, size_t opf_data_size, std::vector<NavPoint> &points);
 
     static std::string
-    processParagraph(const tinyxml2::XMLElement *pElem, std::vector<TagInfo> &subTags, std::string &startAnchorId, std::string &endAnchorId, int *flagAdd);
+    processParagraph(const tinyxml2::XMLElement *pElem, std::vector<TagInfo> &subTags, std::string &startAnchorId, std::string &endAnchorId, int *flagAdd,
+                     std::string &spineSrcName);
 
-    static std::string getEleParams(const tinyxml2::XMLElement *elem);
+    static std::string getEleParams(const tinyxml2::XMLElement *elem, std::string &spineSrcName);
 
     static size_t parseElement(const tinyxml2::XMLElement *elem,
                                std::string &fullText,
@@ -248,7 +249,8 @@ private:
                                std::vector<TagInfo> &subTags,
                                std::string &startAnchorId,
                                std::string &endAnchorId,
-                               int *flagAdd);
+                               int *flagAdd,
+                               std::string &spineSrcName);
 };
 
 #endif //SIMPLEREADER2_MOBI_UTIL_H
