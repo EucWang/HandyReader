@@ -262,7 +262,9 @@ class ContentTextView(context: Context, attrs: AttributeSet?) : View(context, at
             paint.set(parentPaint)
 
             if (!isTitle && textCssInfo !=null) {
-                paint.textSize *= textCssInfo.fontSize.toFloat()
+                if (textCssInfo.fontSize.isEm()) {
+                    paint.textSize *= textCssInfo.fontSize.value
+                }
                 paint.typeface = when(textCssInfo.fontWeight) {
                     CssFontWeight.FontWeightNormal -> {
                         Typeface.create(typeface, Typeface.NORMAL)

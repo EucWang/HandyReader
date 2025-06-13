@@ -631,7 +631,9 @@ object ChapterProvider {
             }
         if (paragraph is ReaderText.Text) {
             //文字大小
-            textPaint.textSize *= paragraph.textCssInfo.fontSize.toFloat()
+            if (paragraph.textCssInfo.fontSize.isEm()) {
+                textPaint.textSize *= paragraph.textCssInfo.fontSize.value
+            }
             //文字粗体
             textPaint.typeface = getTypeface(paragraph.textCssInfo.fontWeight, paragraph.textCssInfo.fontStyle)
             textAlign = paragraph.textCssInfo.textAlign

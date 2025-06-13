@@ -128,7 +128,7 @@ object BookHelper {
                 content.line = line
 
                 content.parseTextCss(csssheets)
-                val textIndent = content.textCssInfo.textIndent
+                val textIndent = if (content.textCssInfo.textIndent.isEm()) content.textCssInfo.textIndent.value.toInt() else 0
 
                 if (!content.line.isEmpty() && content.isText) {
                     val lineStrBuilder = StringBuilder()

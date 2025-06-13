@@ -2,6 +2,8 @@ package com.wxn.base.bean
 
 import android.R
 import androidx.compose.runtime.Immutable
+import com.wxn.base.unit.CssUnit
+import com.wxn.base.unit.CssUnit.Companion.Em
 import com.wxn.base.util.Logger
 
 data class TextTag(
@@ -33,30 +35,30 @@ data class TextTag(
 }
 
 data class TextCssInfo(
-    var fontSize: Double = 1.0,
+    var fontSize: CssUnit = Em(1.0f),
     var fontFamily: List<String> = emptyList<String>(),
     var fontWeight: CssFontWeight = CssFontWeight.FontWeightNormal,
     var fontStyle: CssFontStyle = CssFontStyle.CssFontStyleNormal,
-    var textIndent: Int = 0,
+    var textIndent: CssUnit = Em(0f),
     var fontColor: String = "",
     var textDecoration: CssTextDecoration = CssTextDecoration.CssTextDecorationNone,
 
     var textAlign: CssTextAlign = CssTextAlign.CssTextAlignLeft,
     var verticalAlign: CssVerticalAlign = CssVerticalAlign.CssVerticalAlignBaseLine,
 
-    var lineHeight: Double = 1.0,
+    var lineHeight: CssUnit = Em(1f),
     var background: String = "",
     var isFullScreen: Boolean = false,
 
-    var marginLeft: Double = 0.0,
-    var marginRight: Double = 0.0,
-    var marginTop: Double = 0.0,
-    var marginBottom: Double = 0.0,
+    var marginLeft: CssUnit = Em(0f),
+    var marginRight: CssUnit = Em(0f),
+    var marginTop: CssUnit = Em(0f),
+    var marginBottom: CssUnit = Em(0f),
 
-    var paddingLeft: Double = 0.0,
-    var paddingRight: Double = 0.0,
-    var paddingTop: Double = 0.0,
-    var paddingBottom: Double = 0.0
+    var paddingLeft: CssUnit = Em(0f),
+    var paddingRight: CssUnit = Em(0f),
+    var paddingTop: CssUnit = Em(0f),
+    var paddingBottom: CssUnit = Em(0f),
 ) {
 
 }
@@ -139,7 +141,7 @@ sealed class ReaderText {
                 for (ruleData in ruleDatas) {
                     when (ruleData.name) {
                         "font-size" -> {
-                            parsedCss.fontSize = parseCell(ruleData.value)
+                            parsedCss.fontSize = CssUnit.format(ruleData.value)
                         }
 
                         "font-family" -> {
@@ -162,7 +164,7 @@ sealed class ReaderText {
                         }
 
                         "text-indent" -> {
-                            parsedCss.textIndent = parseCellInt(ruleData.value, 0)
+                            parsedCss.textIndent = CssUnit.format(ruleData.value)
                         }
 
                         "color" -> {
@@ -183,7 +185,7 @@ sealed class ReaderText {
                         }
 
                         "line-height" -> {
-                            parsedCss.lineHeight = parseCell(ruleData.value)
+                            parsedCss.lineHeight = CssUnit.format(ruleData.value)
 
                         }
 
@@ -204,30 +206,105 @@ sealed class ReaderText {
                         }
 
                         "margin-left" -> {
-                            //TODO
+                            parsedCss.marginLeft = CssUnit.format(ruleData.value)
                         }
 
                         "margin-right" -> {
-
+                            parsedCss.marginRight = CssUnit.format(ruleData.value)
                         }
 
                         "margin-top" -> {
-
+                            parsedCss.marginTop = CssUnit.format(ruleData.value)
                         }
 
                         "margin-bottom" -> {
-
+                            parsedCss.marginBottom = CssUnit.format(ruleData.value)
                         }
 
                         "margin" -> {
+                            val datas = ruleData.value.split(" ")
+                            when(datas.size) {
+                                1 -> {
+                                    val value = CssUnit.format(datas[0].trim())
+                                    parsedCss.marginLeft = value
+                                    parsedCss.marginTop = value
+                                    parsedCss.marginRight = value
+                                    parsedCss.marginBottom = value
+                                }
+                                2 -> {
+                                    val horizontalValue = CssUnit.format(datas[0].trim())
+                                    val verticalValue = CssUnit.format(datas[1].trim())
+                                    parsedCss.marginLeft = horizontalValue
+                                    parsedCss.marginTop = verticalValue
+                                    parsedCss.marginRight = horizontalValue
+                                    parsedCss.marginBottom = verticalValue
+                                }
+                                4 -> {
+                                    val left = CssUnit.format(datas[0].trim())
+                                    val top = CssUnit.format(datas[1].trim())
+                                    val right = CssUnit.format(datas[2].trim())
+                                    val bottom = CssUnit.format(datas[3].trim())
+                                    parsedCss.marginLeft = left
+                                    parsedCss.marginTop = top
+                                    parsedCss.marginRight = right
+                                    parsedCss.marginBottom = bottom
+                                }
+                            }
+                        }
 
+
+                        "padding-left" -> {
+                            parsedCss.paddingLeft = CssUnit.format(ruleData.value)
+                        }
+
+                        "padding-right" -> {
+                            parsedCss.paddingRight = CssUnit.format(ruleData.value)
+                        }
+
+                        "padding-top" -> {
+                            parsedCss.paddingTop = CssUnit.format(ruleData.value)
+                        }
+
+                        "padding-bottom" -> {
+                            parsedCss.paddingBottom = CssUnit.format(ruleData.value)
+                        }
+
+                        "padding" -> {
+                            val datas = ruleData.value.split(" ")
+                            when(datas.size) {
+                                1 -> {
+                                    val value = CssUnit.format(datas[0].trim())
+                                    parsedCss.paddingLeft = value
+                                    parsedCss.paddingTop = value
+                                    parsedCss.paddingRight = value
+                                    parsedCss.paddingBottom = value
+                                }
+                                2 -> {
+                                    val horizontalValue = CssUnit.format(datas[0].trim())
+                                    val verticalValue = CssUnit.format(datas[1].trim())
+                                    parsedCss.paddingLeft = horizontalValue
+                                    parsedCss.paddingTop = verticalValue
+                                    parsedCss.paddingRight = horizontalValue
+                                    parsedCss.paddingBottom = verticalValue
+                                }
+                                4 -> {
+                                    val left = CssUnit.format(datas[0].trim())
+                                    val top = CssUnit.format(datas[1].trim())
+                                    val right = CssUnit.format(datas[2].trim())
+                                    val bottom = CssUnit.format(datas[3].trim())
+                                    parsedCss.paddingLeft = left
+                                    parsedCss.paddingTop = top
+                                    parsedCss.paddingRight = right
+                                    parsedCss.paddingBottom = bottom
+                                }
+                            }
                         }
                     }
                 }
             }
             //居中或者右对齐是，首行缩进为0
-            if (parsedCss.textIndent > 0 && (parsedCss.textAlign == CssTextAlign.CssTextAlignCenter || parsedCss.textAlign == CssTextAlign.CssTextAlignRight)) {
-                parsedCss.textIndent = 0
+            if (parsedCss.textIndent.value > 0 && (parsedCss.textAlign == CssTextAlign.CssTextAlignCenter || parsedCss.textAlign == CssTextAlign.CssTextAlignRight)) {
+                parsedCss.textIndent = Em(0f)
             }
             annotations.forEach { tag ->
                 if (tag.end - tag.start >= line.length) {
@@ -270,33 +347,7 @@ sealed class ReaderText {
             this.textCssInfo = parsedCss
         }
 
-        companion object {
-            fun parseCell(value: String): Double {
-                val cells = arrayListOf<String>("em", "rem")
-                for (cell in cells) {
-                    if (value.endsWith(cell)) {
-                        val value = value.substring(0, value.length - cell.length)
-                        return value.toDoubleOrNull() ?: 1.0
-                    }
-                }
-                return 0.0
-            }
-
-            fun parseCellInt(value: String, defaultValue: Int): Int {
-                val cells = arrayListOf<String>("em", "rem")
-                for (cell in cells) {
-                    if (value.endsWith(cell)) {
-                        val value = value.substring(0, value.length - cell.length)
-                        return value.toIntOrNull() ?: defaultValue
-                    }
-                }
-                return defaultValue
-            }
-        }
-
         var textCssInfo = TextCssInfo()
-
-
     }
 
     /****
