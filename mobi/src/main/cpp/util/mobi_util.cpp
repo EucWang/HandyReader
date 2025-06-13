@@ -790,9 +790,9 @@ int mobi_util::parseHtmlDoc(JNIEnv *env,
             if (id != nullptr && strlen(id) > 0) {
                 aid = id;
             }
-            if (!flagAdd && !startAnchorId.empty() && startAnchorId == aid) {
+            if (0 == *flagAdd && !startAnchorId.empty() && startAnchorId == aid) {
                 *flagAdd = 1;
-            } else if (flagAdd && !endAnchorId.empty() && endAnchorId == aid) {
+            } else if (1 == *flagAdd && !endAnchorId.empty() && endAnchorId == aid) {
                 *flagAdd = 2;
                 break;
             }
