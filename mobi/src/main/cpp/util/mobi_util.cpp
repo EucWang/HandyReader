@@ -1312,69 +1312,74 @@ int mobi_util::getChapter(JNIEnv *env, long book_id, const char *path, NavPoint 
         }
     }
 
-    MOBIPart *curr = nullptr;
-    if (prefixType == 1 && mobi_rawml->flow != nullptr) {
-        curr = mobi_rawml->flow;
-    } else if (prefixType == 2 && mobi_rawml->markup != nullptr) {
-        curr = mobi_rawml->markup;
-    } else if (prefixType == 3 && mobi_rawml->resources != nullptr) {
-        curr = mobi_rawml->resources;
-    } else {
-        LOGE("%s: unknown type[%d] or rawml data is null, pass", __func__, srcUid);
-        return 0;
-    }
+    if (spineSrc != currentSrc) {
 
-    unsigned char *rawHtml = nullptr;
-    size_t rawHtmlSize = 0;
-    while (curr != nullptr) {
-        MOBIFileMeta file_meta = mobi_get_filemeta_by_type(curr->type);
-        if (curr->size > 0 && file_meta.type == T_HTML && curr->uid == srcUid) {
-            rawHtml = curr->data;
-            rawHtmlSize = curr->size;
-            break;
+        MOBIPart *curr = nullptr;
+        if (prefixType == 1 && mobi_rawml->flow != nullptr) {
+            curr = mobi_rawml->flow;
+        } else if (prefixType == 2 && mobi_rawml->markup != nullptr) {
+            curr = mobi_rawml->markup;
+        } else if (prefixType == 3 && mobi_rawml->resources != nullptr) {
+            curr = mobi_rawml->resources;
+        } else {
+            LOGE("%s: unknown type[%d] or rawml data is null, pass", __func__, srcUid);
+            return 0;
         }
-        curr = curr->next;
-    }
 
-    if (rawHtmlSize <= 0 || rawHtml == nullptr) {
-        LOGE("%s: failed, unfound chapter page data.", __func__);
-        return 0;
-    }
+        unsigned char *rawHtml = nullptr;
+        size_t rawHtmlSize = 0;
+        while (curr != nullptr) {
+            MOBIFileMeta file_meta = mobi_get_filemeta_by_type(curr->type);
+            if (curr->size > 0 && file_meta.type == T_HTML && curr->uid == srcUid) {
+                rawHtml = curr->data;
+                rawHtmlSize = curr->size;
+                break;
+            }
+            curr = curr->next;
+        }
 
-    unsigned char *normalizedHtml = nullptr;
-    size_t normalizedHtmlSize = 0;
-    TidyDoc tdoc = tidyCreate();
-    TidyBuffer output = {0};
-    TidyBuffer errbuf = {0};
+        if (rawHtmlSize <= 0 || rawHtml == nullptr) {
+            LOGE("%s: failed, unfound chapter page data.", __func__);
+            return 0;
+        }
 
-    //tidy options
-    tidyOptSetBool(tdoc, TidyXmlOut, yes); //output xhtml
-    tidyOptSetBool(tdoc, TidyQuiet, yes);   //抑制警告
-    tidyOptSetInt(tdoc, TidyWrapLen, 0);                //禁用换行
-    tidyOptSetValue(tdoc, TidyCharEncoding, "utf8");    //编码集
+        unsigned char *normalizedHtml = nullptr;
+        size_t normalizedHtmlSize = 0;
+        TidyDoc tdoc = tidyCreate();
+        TidyBuffer output = {0};
+        TidyBuffer errbuf = {0};
 
-    tidyParseString(tdoc, std::string(rawHtml, rawHtml + rawHtmlSize).c_str());
-    if (tidyCleanAndRepair(tdoc) >= 0 && tidySaveBuffer(tdoc, &output) >= 0) {
-        normalizedHtml = output.bp;
-        normalizedHtmlSize = output.size;
-    } else {
-        unsigned char *errInfo = errbuf.bp;
-        LOGE("%s:failed %s", __func__, errInfo);
-        return 0;
-    }
+        //tidy options
+        tidyOptSetBool(tdoc, TidyXmlOut, yes); //output xhtml
+        tidyOptSetBool(tdoc, TidyQuiet, yes);   //抑制警告
+        tidyOptSetInt(tdoc, TidyWrapLen, 0);                //禁用换行
+        tidyOptSetValue(tdoc, TidyCharEncoding, "utf8");    //编码集
 
-    if (normalizedHtml == nullptr || normalizedHtmlSize <= 0) {
-        LOGE("%s:failed, tidy html failed", __func__);
-        normalizedHtmlSize = rawHtmlSize;
-        normalizedHtml = rawHtml;
-    }
-    LOGD("%s:normalizedHtmlSize=%zu", __func__, normalizedHtmlSize);
+        tidyParseString(tdoc, std::string(rawHtml, rawHtml + rawHtmlSize).c_str());
+        if (tidyCleanAndRepair(tdoc) >= 0 && tidySaveBuffer(tdoc, &output) >= 0) {
+            normalizedHtml = output.bp;
+            normalizedHtmlSize = output.size;
+        } else {
+            unsigned char *errInfo = errbuf.bp;
+            LOGE("%s:failed %s", __func__, errInfo);
+            return 0;
+        }
 
-    tinyxml2::XMLDocument doc;
+        if (normalizedHtml == nullptr || normalizedHtmlSize <= 0) {
+            LOGE("%s:failed, tidy html failed", __func__);
+            normalizedHtmlSize = rawHtmlSize;
+            normalizedHtml = rawHtml;
+        }
+        LOGD("%s:normalizedHtmlSize=%zu", __func__, normalizedHtmlSize);
 
-    if (doc.Parse(std::string(normalizedHtml, normalizedHtml + normalizedHtmlSize).c_str(), normalizedHtmlSize) != tinyxml2::XML_SUCCESS) {
-        LOGE("%s failed to parse ncx", __func__);
-        return 0;
+        doc.ClearError();
+        doc.Clear();
+        if (doc.Parse(std::string(normalizedHtml, normalizedHtml + normalizedHtmlSize).c_str(), normalizedHtmlSize) != tinyxml2::XML_SUCCESS) {
+            LOGE("%s failed to parse ncx", __func__);
+            return 0;
+        }
+
+        currentSrc = spineSrc;
     }
 
     tinyxml2::XMLElement *root = doc.RootElement();

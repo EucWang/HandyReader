@@ -103,6 +103,7 @@ public:
             initStatus = true;
         }
         allChapters.clear();
+        currentSrc = "";
     }
 
     /***
@@ -112,6 +113,9 @@ public:
         book_id = 0;
         mobi_data_free();
         allChapters.clear();
+        doc.ClearError();
+        doc.Clear();
+        currentSrc = "";
     }
 
     static int loadMobi(std::string fullpath,
@@ -163,6 +167,9 @@ private:
     MOBIData *mobi_data;
     std::vector<NavPoint> allChapters;
     std::vector<std::string> cssSrc;
+
+    tinyxml2::XMLDocument doc;
+    std::string currentSrc;
 
     int init();
 
