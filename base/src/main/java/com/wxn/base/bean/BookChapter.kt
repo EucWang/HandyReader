@@ -62,6 +62,10 @@ data class BookChapter(
     /***
      * 总章节数
      */
-    var chaptersSize: Int = 0
+    var chaptersSize: Int = 0,
+
+    var wordCount: Long = 0,
+
+    var chapterProgress: Float = 0f
 ) {
 }

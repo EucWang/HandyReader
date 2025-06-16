@@ -2,11 +2,11 @@
   "formatVersion": 1,
   "database": {
     "version": 1,
-    "identityHash": "467ec03dfca5b5e8b3494f010cea70a1",
+    "identityHash": "527945b7d8372409fe9865983bcf0a3c",
     "entities": [
       {
         "tableName": "books",
-        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `uri` TEXT NOT NULL, `fileType` TEXT NOT NULL, `title` TEXT NOT NULL, `authors` TEXT NOT NULL, `description` TEXT, `publishDate` TEXT, `publisher` TEXT, `language` TEXT, `numberOfPages` INTEGER, `subjects` TEXT, `coverPath` TEXT, `locator` TEXT NOT NULL, `progression` REAL NOT NULL, `lastOpened` INTEGER, `deleted` INTEGER NOT NULL, `rating` REAL NOT NULL, `isFavorite` INTEGER NOT NULL, `readingStatus` TEXT, `readingTime` INTEGER NOT NULL, `startReadingDate` INTEGER, `endReadingDate` INTEGER, `review` TEXT, `duration` INTEGER, `narrator` TEXT, `scrollIndex` INTEGER NOT NULL, `scrollOffset` INTEGER NOT NULL, `cachedDir` TEXT NOT NULL, `crc` INTEGER NOT NULL)",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `uri` TEXT NOT NULL, `fileType` TEXT NOT NULL, `title` TEXT NOT NULL, `authors` TEXT NOT NULL, `description` TEXT, `publishDate` TEXT, `publisher` TEXT, `language` TEXT, `numberOfPages` INTEGER, `wordCount` INTEGER NOT NULL, `subjects` TEXT, `coverPath` TEXT, `locator` TEXT NOT NULL, `progression` REAL NOT NULL, `lastOpened` INTEGER, `deleted` INTEGER NOT NULL, `rating` REAL NOT NULL, `isFavorite` INTEGER NOT NULL, `readingStatus` TEXT, `readingTime` INTEGER NOT NULL, `startReadingDate` INTEGER, `endReadingDate` INTEGER, `review` TEXT, `duration` INTEGER, `narrator` TEXT, `scrollIndex` INTEGER NOT NULL, `scrollOffset` INTEGER NOT NULL, `cachedDir` TEXT NOT NULL, `crc` INTEGER NOT NULL)",
         "fields": [
           {
             "fieldPath": "id",
@@ -67,6 +67,12 @@
             "columnName": "numberOfPages",
             "affinity": "INTEGER",
             "notNull": false
+          },
+          {
+            "fieldPath": "wordCount",
+            "columnName": "wordCount",
+            "affinity": "INTEGER",
+            "notNull": true
           },
           {
             "fieldPath": "subjects",
@@ -531,7 +537,7 @@
       },
       {
         "tableName": "chapters",
-        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `bookId` INTEGER NOT NULL, `chapterIndex` INTEGER NOT NULL, `chapterName` TEXT NOT NULL, `createTimeValue` INTEGER NOT NULL, `updateDate` TEXT NOT NULL, `updateTimeValue` INTEGER NOT NULL, `chapterUrl` TEXT, `srcName` TEXT, `chaptersSize` INTEGER NOT NULL, `chapterId` TEXT NOT NULL, `parentChapterId` TEXT NOT NULL)",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `bookId` INTEGER NOT NULL, `chapterIndex` INTEGER NOT NULL, `chapterName` TEXT NOT NULL, `createTimeValue` INTEGER NOT NULL, `updateDate` TEXT NOT NULL, `updateTimeValue` INTEGER NOT NULL, `chapterUrl` TEXT, `srcName` TEXT, `chaptersSize` INTEGER NOT NULL, `chapterId` TEXT NOT NULL, `parentChapterId` TEXT NOT NULL, `wordCount` INTEGER NOT NULL, `chapterProgress` REAL NOT NULL)",
         "fields": [
           {
             "fieldPath": "id",
@@ -604,6 +610,18 @@
             "columnName": "parentChapterId",
             "affinity": "TEXT",
             "notNull": true
+          },
+          {
+            "fieldPath": "wordCount",
+            "columnName": "wordCount",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "chapterProgress",
+            "columnName": "chapterProgress",
+            "affinity": "REAL",
+            "notNull": true
           }
         ],
         "primaryKey": {
@@ -619,7 +637,7 @@
     "views": [],
     "setupQueries": [
       "CREATE TABLE IF NOT EXISTS room_master_table (id INTEGER PRIMARY KEY,identity_hash TEXT)",
-      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, '467ec03dfca5b5e8b3494f010cea70a1')"
+      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, '527945b7d8372409fe9865983bcf0a3c')"
     ]
   }
 }

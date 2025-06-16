@@ -41,6 +41,7 @@ import com.wxn.reader.domain.repository.ShelfRepository
 import com.wxn.reader.domain.use_case.books.UpdateBookUseCase
 import com.wxn.reader.domain.use_case.chapters.GetChapterByIdUserCase
 import com.wxn.reader.domain.use_case.chapters.GetChapterCountByBookIdUserCase
+import com.wxn.reader.domain.use_case.chapters.UpdateChapterWordCountUserCase
 import com.wxn.reader.presentation.mainReader.PageViewController
 import com.wxn.reader.util.LanguageHelper
 import com.wxn.reader.util.PdfBitmapConverter
@@ -199,12 +200,21 @@ object AppModule {
     fun providePageViewController(
         @ApplicationContext context: Context,
         getChapterByIdUserCase: GetChapterByIdUserCase,
-        getChapterCountByBookIdUserCase : GetChapterCountByBookIdUserCase,
+        getChapterCountByBookIdUserCase: GetChapterCountByBookIdUserCase,
+        updateChapterWordCountUserCase: UpdateChapterWordCountUserCase,
         updateBookUseCase: UpdateBookUseCase,
         appPreferencesUtil: AppPreferencesUtil,
         textParser: TextParser
     ): PageViewController {
-        return PageViewController(context, getChapterByIdUserCase, getChapterCountByBookIdUserCase, updateBookUseCase, appPreferencesUtil, textParser)
+        return PageViewController(
+            context,
+            getChapterByIdUserCase,
+            getChapterCountByBookIdUserCase,
+            updateChapterWordCountUserCase,
+            updateBookUseCase,
+            appPreferencesUtil,
+            textParser
+        )
     }
 
     @Provides

@@ -31,6 +31,7 @@ data class Book(
     val language: String? = "", // New: Primary language 语言
 
     val numberOfPages: Int? = 0, // New: Total number of pages 总页数
+    var wordCount: Long = 0,   // 总字数
     val locator: String = "", //阅读位置
     val deleted: Boolean = false, // flag to mark the book as deleted 是否删除
 

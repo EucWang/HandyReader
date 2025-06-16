@@ -42,7 +42,7 @@ fun MainReadScreen(
     var loadTimemillis by remember { mutableStateOf(0L) }
 
     LaunchedEffect(uiState) {
-        viewModel.fetchInitialLocator()
+//        viewModel.fetchInitialLocator()
         if (uiState is BookReaderUiState.Loading) {
             loadTimemillis = System.currentTimeMillis()
         } else if (uiState is BookReaderUiState.LOAD_BOOK_SUCCESS) {

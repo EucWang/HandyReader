@@ -253,7 +253,7 @@ Java_com_wxn_mobi_inative_NativeLib_getChapters(JNIEnv *env, jobject thiz, jobje
     }
 
     jmethodID constructor = env->GetMethodID(objClass, "<init>",
-                                             "(JLjava/lang/String;Ljava/lang/String;JILjava/lang/String;JLjava/lang/String;JLjava/lang/String;Ljava/lang/String;I)V");
+                                             "(JLjava/lang/String;Ljava/lang/String;JILjava/lang/String;JLjava/lang/String;JLjava/lang/String;Ljava/lang/String;IJF)V");
     if (constructor == nullptr) {
         LOGE("%s failed, BookChapter's constructor is null", __func__);
         return nullptr;
@@ -281,7 +281,9 @@ Java_com_wxn_mobi_inative_NativeLib_getChapters(JNIEnv *env, jobject thiz, jobje
                                       0L,
                                       env->NewStringUTF(""),
                                       env->NewStringUTF(src.c_str()),
-                                      length
+                                      length,
+                                      0L,
+                                      0.0f
         );
         if (item == nullptr) {
             LOGE("%s create BookChapter failed", __func__);

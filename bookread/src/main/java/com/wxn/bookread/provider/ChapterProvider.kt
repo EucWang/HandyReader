@@ -486,7 +486,6 @@ object ChapterProvider {
             page.upLinesPosition()                      //对一页的高度进行纠偏
         }
 
-
         return TextChapter(
             position = chapter.chapterIndex,
             title = chapter.chapterName,

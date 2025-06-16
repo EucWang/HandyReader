@@ -19,7 +19,10 @@ data class TextChapter(
     val chaptersSize: Int,          //总章节数,
     var annotations: Map<Int, List<TextTag>> = emptyMap<Int, List<TextTag>>(),   //每个自然段包含的文本标记
     var textCssInfos: Map<Int, TextCssInfo> = emptyMap<Int, TextCssInfo>(),
-    var readerTexts: List<ReaderText> = emptyList<ReaderText>()                  //按自然段分布的文本内容，
+    var readerTexts: List<ReaderText> = emptyList<ReaderText>(),                  //按自然段分布的文本内容，
+    var wordCount: Long = 0L,
+    var chapterProgress: Float = 0f,
+    var totalWordCount: Long = 0L,
 ) {
 
     fun page(index: Int): TextPage? {

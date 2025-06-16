@@ -45,8 +45,11 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import org.readium.r2.navigator.epub.EpubNavigatorFragment
 import androidx.compose.runtime.setValue
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.wxn.bookread.ui.TextPageFactory
-import com.wxn.reader.presentation.mainReader.PageViewController
+import com.wxn.reader.presentation.mainReader.MainReadViewModel
+import com.wxn.reader.util.LogCompositions
+import com.wxn.reader.util.format
 
 
 @Composable
@@ -217,7 +220,8 @@ fun BottomToolbar(
 fun BottomToolbar(
     textPageFactory:  TextPageFactory?,
     showToolbar: Boolean,
-    progression: Double,
+//    progression: Double,
+    viewModel: MainReadViewModel,
     onPageChange: (Double) -> Unit,  // Add this parameter
     onToggleFontSettings: () -> Unit,
     onTogglePageSettings: () -> Unit,
@@ -225,8 +229,10 @@ fun BottomToolbar(
     onToggleReaderSettings: () -> Unit
 ) {
 
-    var sliderPosition by remember(progression) { mutableDoubleStateOf(progression) }
+    val progression by viewModel.readProgression.collectAsStateWithLifecycle()
+    LogCompositions("BottomToolbar:progression=${progression}")
 
+    var sliderPosition by remember(progression) { mutableDoubleStateOf(progression) }
 
     AnimatedVisibility(
         visible = showToolbar,
@@ -282,7 +288,7 @@ fun BottomToolbar(
                         horizontalArrangement = Arrangement.SpaceBetween
                     ) {
                         Text(
-                            text = "${(sliderPosition * 100).toInt()}%",
+                            text = "${(sliderPosition * 100).format(2, false)}%",
                             style = MaterialTheme.typography.labelMedium
                         )
                         Slider(

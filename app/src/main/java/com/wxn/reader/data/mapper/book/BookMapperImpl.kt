@@ -22,6 +22,7 @@ class BookMapperImpl @Inject constructor() : BookMapper {
             publisher = book.publisher,
             language = book.language,
             numberOfPages = book.numberOfPages,
+            wordCount = book.wordCount,
 
             subjects = book.category.toString(),
             coverPath = book.coverImage?.toString(),
@@ -76,6 +77,7 @@ class BookMapperImpl @Inject constructor() : BookMapper {
             language = bookEntity.language,
 
             numberOfPages = bookEntity.numberOfPages,
+            wordCount = bookEntity.wordCount,
             locator = bookEntity.locator,
             deleted = bookEntity.deleted,
 

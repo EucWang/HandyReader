@@ -18,6 +18,7 @@ data class BookEntity(
     val publisher: String?, // New: Publisher  出版商
     val language: String?, // New: Primary language 语言
     val numberOfPages: Int?, // New: Total number of pages 总页数
+    val wordCount: Long,   // 总字数
 
     val subjects: String?,      //+ New: Categories or genres  -> category 分类
 

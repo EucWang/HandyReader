@@ -1,11 +1,8 @@
 package com.wxn.reader.presentation.mainReader
 
 import android.content.Context
-import androidx.lifecycle.MutableLiveData
-import androidx.lifecycle.asLiveData
-import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.wxn.base.bean.Book
-import com.wxn.base.bean.CssInfo
+import com.wxn.base.bean.BookChapter
 import com.wxn.base.bean.ReaderText
 import com.wxn.base.bean.TextCssInfo
 import com.wxn.base.bean.TextTag
@@ -25,18 +22,16 @@ import com.wxn.reader.domain.use_case.books.UpdateBookUseCase
 import com.wxn.reader.domain.use_case.chapters.BookHelper
 import com.wxn.reader.domain.use_case.chapters.GetChapterByIdUserCase
 import com.wxn.reader.domain.use_case.chapters.GetChapterCountByBookIdUserCase
+import com.wxn.reader.domain.use_case.chapters.UpdateChapterWordCountUserCase
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.first
-import kotlinx.coroutines.flow.firstOrNull
-import kotlinx.coroutines.flow.lastOrNull
-import kotlinx.coroutines.flow.singleOrNull
-import kotlinx.coroutines.flow.stateIn
 import javax.inject.Inject
 
 open class PageViewController @Inject constructor(
     val context: Context,
     val getChapterByIdUserCase: GetChapterByIdUserCase,
     val getChapterCountByBookIdUserCase: GetChapterCountByBookIdUserCase,
+    val updateChapterWordCountUserCase: UpdateChapterWordCountUserCase,
     val updateBookUseCase: UpdateBookUseCase,
     val appPreferencesUtil: AppPreferencesUtil,
     val textParser: TextParser
@@ -60,6 +55,7 @@ open class PageViewController @Inject constructor(
     interface OnClickListener {
         fun onCenterClick()
         fun onLinkClick(href: String?, clickX: Float, clickY: Float)
+        fun onPageChange()
     }
 
     var clickListener: OnClickListener? = null
@@ -91,19 +87,21 @@ open class PageViewController @Inject constructor(
 
     val progression: Double
         get() {
-            return if (chapterSize <= 0) {
-                1.0
-            } else {
-                val chapterProgression = durChapterIndex / chapterSize
-
-                val pageSizeInChapter = curTextChapter?.pageSize ?: 0
-                val pageProgression = if (pageSizeInChapter > 0) {
-                    durChapterIndex.toDouble() / pageSizeInChapter.toDouble()
+            var retVal = curTextChapter?.chapterProgress?.toDouble() ?: 0.0
+            curTextChapter?.let { textChapter ->
+                val chapterPercent = if (textChapter.totalWordCount > 0) {
+                    textChapter.wordCount.toDouble() / textChapter.totalWordCount.toDouble()
                 } else {
                     0.0
                 }
-                chapterProgression * (1.0 + pageProgression)
+                val pageSize = textChapter.pageSize
+                if (pageSize > 0) {
+                    retVal += chapterPercent * (durPageIndex.toDouble() / pageSize.toDouble())
+                }
+                Logger.d("PageViewController::progression::totalWordCount=${textChapter.totalWordCount},wordCount=${textChapter.wordCount}," +
+                        "pageSize=${pageSize},durPageIndex=${durPageIndex}, retVal=${retVal}")
             }
+            return retVal
         }
 
     init {
@@ -114,6 +112,78 @@ open class PageViewController @Inject constructor(
      * 初始章节加载成功/失败回调
      */
     private var onInitChapterLoadListener: ((Boolean) -> Unit)? = null
+
+    /****
+     * 计算每一章节的字数，已经进度，便于计算用户阅读进度
+     */
+    suspend fun calcChaptersWords(book: Book, chapters: List<BookChapter>) {
+        var totalWordCount = 0L
+        val chapterIndexWords = arrayListOf<Pair<Int, Long>>()
+        for ((index, chapter) in chapters.withIndex()) {
+            if (chapter.wordCount == 0L) {
+                var readerTexts = BookHelper.loadChapterContent(context, book, chapter, textParser)
+
+//                Logger.i("PageViewController:calcChaptersWords:loadContent:index=$index, contents.size=${readerTexts.size}")
+
+                val tags = hashMapOf<Int, List<TextTag>>()  //章节全部标签信息
+                readerTexts.forEachIndexed { index, content ->
+                    if (content is ReaderText.Text) {
+                        if (content.annotations.isNotEmpty()) {
+                            tags[index] = content.annotations
+                        }
+                    }
+                }
+                val cssInfos = BookHelper.loadChpaterCsses(context, book, tags, textParser)      //章节全部的css信息
+
+                readerTexts = BookHelper.disposeContent(appPreferencesUtil, chapter, readerTexts, cssInfos)
+
+                var wordCount = 0L
+                for (content in readerTexts) {
+                    if (content is ReaderText.Text) {
+                        wordCount += content.line.length
+                    }
+                }
+                Logger.d("PageViewController::calcChapterWords:index=$index,wordCount=$wordCount")
+                totalWordCount += wordCount
+                chapterIndexWords.add(Pair(chapter.chapterIndex, wordCount))
+            } else {
+                val count = chapter.wordCount
+                totalWordCount += count
+                chapterIndexWords.add(Pair(chapter.chapterIndex, count))
+            }
+        }
+        var wordCount = 0L
+        if (totalWordCount > 0) {
+            book.wordCount = totalWordCount
+            for(item in chapterIndexWords) {
+                val progress =  wordCount.toFloat() / totalWordCount
+                val count = item.second
+                updateChapterWordCountUserCase.invoke(book.id, item.first, count, progress)
+                wordCount += count
+
+                //更新当前加载了的章节的信息
+                if (curTextChapter?.position == item.first) {
+                    curTextChapter?.apply {
+                        wordCount = count
+                        chapterProgress = progress
+                    }
+                } else if (prevTextChapter?.position == item.first) {
+                    prevTextChapter?.apply {
+                        wordCount = count
+                        chapterProgress = progress
+                    }
+                } else if (nextTextChapter?.position == item.first) {
+                    nextTextChapter?.apply {
+                        wordCount = count
+                        chapterProgress = progress
+                    }
+                }
+
+            }
+            updateBookUseCase.invoke(book)
+        }
+        Logger.d("PageViewController::calcChapterWords:totalWordCount=${totalWordCount}")
+    }
 
     suspend fun resetBook(book: Book, initChapterLoadListener: ((Boolean) -> Unit)) {
         Logger.i("PageViewController::resetBook:book=$book")
@@ -133,6 +203,7 @@ open class PageViewController @Inject constructor(
         }
         this.chapterSize = count
         durChapterIndex = book.scrollIndex
+        durPageIndex = book.scrollOffset
         Logger.d("PageViewController::resetBook:chapterSize=$chapterSize, durChapterIndex=$durChapterIndex")
         isInitFinish = true
         onInitChapterLoadListener = initChapterLoadListener
@@ -181,7 +252,7 @@ open class PageViewController @Inject constructor(
                 }
             }
             var content = StringBuilder()
-            for(index in linkIndex until texts.size) {
+            for (index in linkIndex until texts.size) {
                 var paragraph = texts[index]
                 if (paragraph is ReaderText.Text) {
                     val tag = paragraph.annotations.firstOrNull { tag ->
@@ -202,24 +273,6 @@ open class PageViewController @Inject constructor(
                 }
             }
             return content.toString()
-//            if (linkIndex != -1 && linkIndex < texts.size) {
-//                var paragraph = texts[linkIndex]
-//                if (paragraph is ReaderText.Text) {
-//                    if (paragraph.line.isNotEmpty()) {
-//                        content.append(paragraph.line)
-//                    } else {
-//                        linkIndex += 1
-//                        if (linkIndex < texts.size) {
-//                            paragraph = texts[linkIndex]
-//                            if (paragraph is ReaderText.Text) {
-//                                if (paragraph.line.isNotEmpty()) {
-//                                    return paragraph.line
-//                                }
-//                            }
-//                        }
-//                    }
-//                }
-//            }
         }
         return null
     }
@@ -239,6 +292,7 @@ open class PageViewController @Inject constructor(
         durPageIndex = index
         saveRead()
         callBack?.pageChanged() // 通知界面刷新进度
+        clickListener?.onPageChange()
     }
 
     private fun saveRead() {
@@ -289,10 +343,13 @@ open class PageViewController @Inject constructor(
             val cssInfos = BookHelper.loadChpaterCsses(context, curBook, tags, textParser)      //章节全部的css信息
 
             val contents = BookHelper.disposeContent(appPreferencesUtil, chapter, contents, cssInfos)
+
             val cssInfoMaps = hashMapOf<Int, TextCssInfo>()
+            var wordCount = 0L
             for ((index, content) in contents.withIndex()) {
                 if (content is ReaderText.Text) {
                     cssInfoMaps[index] = content.textCssInfo
+                    wordCount += content.line.length
                 }
             }
 
@@ -300,6 +357,13 @@ open class PageViewController @Inject constructor(
             textChapter?.annotations = tags
             textChapter?.textCssInfos = cssInfoMaps
             textChapter?.readerTexts = contents
+            textChapter?.wordCount = wordCount
+            textChapter?.totalWordCount = curBook.wordCount
+            textChapter?.chapterProgress = chapter.chapterProgress
+
+            Logger.e("PageViewController::loadContent success onPageChange::${durChapterIndex}")
+            clickListener?.onPageChange()
+
             when (chapter.chapterIndex) {
                 durChapterIndex -> {    //加载的是当前章节
                     curTextChapter = textChapter
@@ -312,6 +376,7 @@ open class PageViewController @Inject constructor(
                         onInitChapterLoadListener?.invoke(true)
                         onInitChapterLoadListener = null
                     }
+
                 }
 
                 durChapterIndex - 1 -> { //加载的是上一章节

@@ -225,7 +225,8 @@ fun ReaderView(
                 BottomToolbar(
                     textPageFactory = viewModel.pageController.pageFactory,
                     showToolbar = areToolbarsVisible,
-                    progression = viewModel.pageController.progression,
+//                    progression = viewModel.pageController.progression,
+                    viewModel = viewModel,
                     onPageChange = ::onPageChange,
                     onToggleFontSettings = { viewModel.fontSettingsOpen() },
                     onTogglePageSettings = { viewModel.pageSettingsOpen() },

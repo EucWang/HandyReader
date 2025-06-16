@@ -20,6 +20,10 @@ class ChaptersRepositoryImpl @Inject constructor(
             }
         }
 
+    override suspend fun updateChapterWordCount(bookId:Long, chapterIndex: Int, wordCount: Long, chapterProgress: Float) {
+        chapterDao.setChapterWordCount(bookId, chapterIndex, wordCount, chapterProgress)
+    }
+
     override fun getChapter(bookId: Long, chapterIndex: Int): Flow<BookChapter> =
         chapterDao.getChapter(bookId, chapterIndex).mapNotNull { entity ->
             chapterMapper.toChapter(entity)

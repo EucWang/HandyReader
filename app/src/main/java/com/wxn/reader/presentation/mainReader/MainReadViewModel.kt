@@ -46,6 +46,7 @@ import com.wxn.reader.domain.use_case.reading_progress.SetReadingProgressUseCase
 import com.wxn.reader.presentation.bookReader.BookReaderUiState
 import com.wxn.reader.presentation.bookReader.BookReaderUiState.LOAD_CHAPTER_SUCCESS
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -205,6 +206,9 @@ class MainReadViewModel @Inject constructor(
     private var allChapters = arrayListOf<BookChapter>()
     val showOutChapters = arrayListOf<BookChapter>()
 
+    private val _readProgression = MutableStateFlow<Double>(0.0)
+    val readProgression : StateFlow<Double> = _readProgression.asStateFlow()
+
     private suspend fun fetchBook(bookId: Long): Boolean {
         try {
             val theBook = getBookByIdUseCase(bookId)
@@ -276,21 +280,32 @@ class MainReadViewModel @Inject constructor(
             })
 
             if (fetchBook(bookId)) {
-
-
                 val newBook = _book.value ?: return@launchIO
                 Logger.d("MainReaderViewModel:load reset book to pageController:${System.currentTimeMillis()}")
                 pageController.resetBook(newBook) {//重新加载章节数
                     _uiState.value = LOAD_CHAPTER_SUCCESS(0)
                     Logger.d("MainReaderViewModel:load current chapter success:${System.currentTimeMillis()}")
+
+                    _readProgression.value = pageController.progression
+                }
+
+                if (newBook.wordCount == 0L) {
+                    loadChapterWords(newBook)
                 }
             }
         }
     }
 
-    private suspend fun getInitialLocator(bookId: Long): Locator? {
+    private suspend fun loadChapterWords(book: Book) {
+        viewModelScope.launchIO {
+            delay(3000)
+            pageController.calcChaptersWords(book, allChapters)
+        }
+    }
+
+//    private suspend fun getInitialLocator(bookId: Long): Locator? {
         //TODO
-        return null
+//        return null
 //        return getReadingProgressUseCase(bookId).let { progressJson ->
 //            if (progressJson.isNotEmpty()) {
 //                Locator.fromJSON(JSONObject(progressJson))
@@ -298,15 +313,15 @@ class MainReadViewModel @Inject constructor(
 //                null
 //            }
 //        }
-    }
+//    }
 
-    fun fetchInitialLocator() {
-        viewModelScope.launch {
-            currentBookId.value?.let { bookId ->
-                _initialLocator.value = getInitialLocator(bookId)
-            }
-        }
-    }
+//    fun fetchInitialLocator() {
+//        viewModelScope.launch {
+//            currentBookId.value?.let { bookId ->
+//                _initialLocator.value = getInitialLocator(bookId)
+//            }
+//        }
+//    }
 
     fun resetReadingSession() {
         isReadingSessionActive = false
@@ -353,6 +368,11 @@ class MainReadViewModel @Inject constructor(
                 }
             }
         }
+    }
+
+    override fun onPageChange() {
+        Logger.d("MainReadViewModel:onPageChange")
+        _readProgression.value = pageController.progression
     }
 
     fun chaptersDrawerOpen(open: Boolean = true) {

@@ -27,4 +27,7 @@ import kotlinx.coroutines.flow.Flow
     @Query("UPDATE chapters SET chaptersSize = :chaptersSize WHERE chapterIndex = :chapterIndex AND bookId = :bookId")
     suspend fun setChapter(bookId: Long, chapterIndex: Int, chaptersSize: Int)
 
+    @Query("UPDATE chapters SET wordCount = :wordCount, chapterProgress = :chapterProgress WHERE chapterIndex = :chapterIndex AND bookId = :bookId")
+    suspend fun setChapterWordCount(bookId: Long, chapterIndex: Int, wordCount: Long, chapterProgress: Float)
+
 }
