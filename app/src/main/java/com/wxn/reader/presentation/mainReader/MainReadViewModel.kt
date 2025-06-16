@@ -2,21 +2,14 @@ package com.wxn.reader.presentation.mainReader
 
 import android.app.Application
 import androidx.compose.runtime.Stable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.SavedStateHandle
-import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewModelScope
 import com.wxn.base.bean.Book
 import com.wxn.base.bean.BookChapter
 import com.wxn.base.util.Logger
 import com.wxn.base.util.launchIO
 import com.wxn.bookparser.TextParser
-import com.wxn.bookparser.parser.mobi.MobiFileParser
-import com.wxn.bookparser.parser.mobi.MobiTextParser
 import com.wxn.bookread.data.model.preference.ReaderPreferences
 import com.wxn.bookread.data.source.local.ReaderPreferencesUtil
 import com.wxn.bookread.provider.ChapterProvider
@@ -25,6 +18,7 @@ import com.wxn.reader.data.model.toRediumEpubPreferences
 import com.wxn.reader.data.source.local.AppPreferencesUtil
 import com.wxn.reader.domain.model.BookAnnotation
 import com.wxn.reader.domain.model.Bookmark
+import com.wxn.reader.domain.model.LinkedContent
 import com.wxn.reader.domain.model.Note
 import com.wxn.reader.domain.use_case.annotations.AddAnnotationUseCase
 import com.wxn.reader.domain.use_case.annotations.DeleteAnnotationUseCase
@@ -52,11 +46,9 @@ import com.wxn.reader.domain.use_case.reading_progress.SetReadingProgressUseCase
 import com.wxn.reader.presentation.bookReader.BookReaderUiState
 import com.wxn.reader.presentation.bookReader.BookReaderUiState.LOAD_CHAPTER_SUCCESS
 import dagger.hilt.android.lifecycle.HiltViewModel
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
@@ -110,7 +102,7 @@ class MainReadViewModel @Inject constructor(
 
     savedStateHandle: SavedStateHandle,
 
-) : AndroidViewModel(context), PageViewController.OnClickListener {
+    ) : AndroidViewModel(context), PageViewController.OnClickListener {
     private val _appPreferences = MutableStateFlow(AppPreferencesUtil.defaultPreferences)
     val appPreferences: StateFlow<AppPreferences> = _appPreferences.asStateFlow()
 
@@ -128,7 +120,7 @@ class MainReadViewModel @Inject constructor(
     val book: StateFlow<Book?> = _book.asStateFlow()
 
     private val _bookCover = MutableStateFlow<String?>(null)
-    val bookCover : StateFlow<String?> = _bookCover.asStateFlow()
+    val bookCover: StateFlow<String?> = _bookCover.asStateFlow()
 
     private val _currentBookId = MutableStateFlow<Long?>(null)
     val currentBookId: StateFlow<Long?> = _currentBookId.asStateFlow()
@@ -143,18 +135,21 @@ class MainReadViewModel @Inject constructor(
     //显示章节列表
     private val _isChaptersDrawerOpen = MutableStateFlow<Boolean>(false)
     val isChaptersDrawerOpen: StateFlow<Boolean> = _isChaptersDrawerOpen.asStateFlow()
+
     //显示笔记列表
-    private val _isNotesDrawerOpen  = MutableStateFlow<Boolean>(false)
+    private val _isNotesDrawerOpen = MutableStateFlow<Boolean>(false)
     val isNotesDrawerOpen: StateFlow<Boolean> = _isNotesDrawerOpen.asStateFlow()
+
     //显示标签列表
     private val _isBookmarksDrawerOpen = MutableStateFlow<Boolean>(false)
     val isBookmarksDrawerOpen: StateFlow<Boolean> = _isBookmarksDrawerOpen.asStateFlow()
+
     //显示高亮列表
-    private val _isHighlightsDrawerOpen  = MutableStateFlow<Boolean>(false)
+    private val _isHighlightsDrawerOpen = MutableStateFlow<Boolean>(false)
     val isHighlightsDrawerOpen: StateFlow<Boolean> = _isHighlightsDrawerOpen.asStateFlow()
 
     //tts
-    private val _isTtsOn  = MutableStateFlow<Boolean>(false)
+    private val _isTtsOn = MutableStateFlow<Boolean>(false)
     val isTtsOn: StateFlow<Boolean> = _isTtsOn.asStateFlow()
 
     private val _isShowTextToolbar = MutableStateFlow<Boolean>(false)
@@ -164,13 +159,13 @@ class MainReadViewModel @Inject constructor(
     val showColorSelectionPanel: StateFlow<Boolean> = _isShowColorSelectionPanel.asStateFlow()
 
     private val _showUISettings = MutableStateFlow<Boolean>(false)
-    val showUISettings : StateFlow<Boolean> = _showUISettings.asStateFlow()
+    val showUISettings: StateFlow<Boolean> = _showUISettings.asStateFlow()
 
     private val _showFontSettings = MutableStateFlow<Boolean>(false)
-    val showFontSettings : StateFlow<Boolean> = _showFontSettings.asStateFlow()
+    val showFontSettings: StateFlow<Boolean> = _showFontSettings.asStateFlow()
 
     private val _showPageSettings = MutableStateFlow<Boolean>(false)
-    val showPageSettings : StateFlow<Boolean> = _showPageSettings.asStateFlow()
+    val showPageSettings: StateFlow<Boolean> = _showPageSettings.asStateFlow()
 
     private val _showReaderSettings = MutableStateFlow<Boolean>(false)
     val showReaderSettings: StateFlow<Boolean> = _showReaderSettings.asStateFlow()
@@ -182,12 +177,15 @@ class MainReadViewModel @Inject constructor(
     //选中的笔记
     private val _selectedNote = MutableStateFlow<Note?>(null)
     val selectedNote: StateFlow<Note?> = _selectedNote.asStateFlow()
+
     //笔记列表
     private val _notes = MutableStateFlow<List<Note>>(emptyList())
     val notes: StateFlow<List<Note>> = _notes.asStateFlow()
+
     //书签列表
     private val _bookmarks = MutableStateFlow<List<Bookmark>>(emptyList())
     val bookmarks: StateFlow<List<Bookmark>> = _bookmarks.asStateFlow()
+
     //注释列表
     private val _annotations = MutableStateFlow<List<BookAnnotation>>(emptyList())
     val annotations: StateFlow<List<BookAnnotation>> = _annotations.asStateFlow()
@@ -195,6 +193,9 @@ class MainReadViewModel @Inject constructor(
     //选中的注释
     private val _selectedAnnotation = MutableStateFlow<BookAnnotation?>(null)
     val selectedAnnotation: StateFlow<BookAnnotation?> = _selectedAnnotation.asStateFlow()
+
+    private val _clickedLinkContent = MutableStateFlow<LinkedContent?>(null)
+    val clickedLinkContent: StateFlow<LinkedContent?> = _clickedLinkContent.asStateFlow()
 
     private var currentDayStartTime = 0L
 
@@ -270,16 +271,16 @@ class MainReadViewModel @Inject constructor(
                 }
             }
             showOutChapters.clear()
-            showOutChapters.addAll(allChapters.filter{
+            showOutChapters.addAll(allChapters.filter {
                 !it.chapterName.isEmpty()
             })
 
-            if (fetchBook(bookId)){
+            if (fetchBook(bookId)) {
 
 
                 val newBook = _book.value ?: return@launchIO
                 Logger.d("MainReaderViewModel:load reset book to pageController:${System.currentTimeMillis()}")
-                pageController.resetBook(newBook){//重新加载章节数
+                pageController.resetBook(newBook) {//重新加载章节数
                     _uiState.value = LOAD_CHAPTER_SUCCESS(0)
                     Logger.d("MainReaderViewModel:load current chapter success:${System.currentTimeMillis()}")
                 }
@@ -332,42 +333,49 @@ class MainReadViewModel @Inject constructor(
     /***
      * 点击link链接跳转到对应章节
      */
-    override fun onLinkClick(href: String?) {
+    override fun onLinkClick(href: String?, clickX: Float, clickY: Float) {
         Logger.d("MainReaderViewModel::onLinkClick:href=$href")
         if (!href.isNullOrEmpty()) {
             if (href.startsWith("http")) {
                 //跳转到h5界面显示
             } else {
-                allChapters.find { chapter->
+                val targetChapter = allChapters.find { chapter ->
                     chapter.srcName == href
-                }?.let { targetChapter ->
+                }
+                if (targetChapter != null) {
                     pageController.changeChapter(targetChapter.chapterIndex)
+                } else {
+                    val linkContent = pageController.findLinkContent(href)
+                    Logger.d("MainReadViewModel:onLinkClick:linkContent=${linkContent}")
+                    if (!linkContent.isNullOrEmpty() && clickX >= 0 && clickY >= 0) {
+                        _clickedLinkContent.value = LinkedContent(linkContent, clickX, clickY)
+                    }
                 }
             }
         }
     }
 
-    fun chaptersDrawerOpen(open:Boolean = true) {
+    fun chaptersDrawerOpen(open: Boolean = true) {
         _isChaptersDrawerOpen.value = open
     }
 
-    fun notesDrawerOpen(open:Boolean = true){
+    fun notesDrawerOpen(open: Boolean = true) {
         _isNotesDrawerOpen.value = open
     }
 
-    fun bookmarksDrawerOpen(open:Boolean = true) {
+    fun bookmarksDrawerOpen(open: Boolean = true) {
         _isBookmarksDrawerOpen.value = open
     }
 
-    fun highlightsDrawerOpen(open:Boolean = true) {
+    fun highlightsDrawerOpen(open: Boolean = true) {
         _isHighlightsDrawerOpen.value = open
     }
 
-    fun textToolbarOpen(open:Boolean = true) {
+    fun textToolbarOpen(open: Boolean = true) {
         _isShowTextToolbar.value = open
     }
 
-    fun showColorSelectionPanel(open:Boolean = true) {
+    fun showColorSelectionPanel(open: Boolean = true) {
         _isShowColorSelectionPanel.value = open
     }
 
@@ -375,23 +383,23 @@ class MainReadViewModel @Inject constructor(
         _showUISettings.value = open
     }
 
-    fun fontSettingsOpen(open:Boolean = true) {
+    fun fontSettingsOpen(open: Boolean = true) {
         _showFontSettings.value = open
     }
 
-    fun pageSettingsOpen(open:Boolean = true) {
+    fun pageSettingsOpen(open: Boolean = true) {
         _showPageSettings.value = open
     }
 
-    fun readerSettingsOpen(open:Boolean = true) {
+    fun readerSettingsOpen(open: Boolean = true) {
         _showReaderSettings.value = open
     }
 
-    fun onToolbarsVisibilityChanged(){
+    fun onToolbarsVisibilityChanged() {
         _showMenu.value = !_showMenu.value
     }
 
-    fun noteDialogOpen(open:Boolean = true) {
+    fun noteDialogOpen(open: Boolean = true) {
         _showNoteDialog.value = open
     }
 
@@ -447,6 +455,7 @@ class MainReadViewModel @Inject constructor(
             currentBookId.value?.let { loadNotes(it) }
         }
     }
+
     /***
      * 加载注释列表
      */
@@ -523,5 +532,9 @@ class MainReadViewModel @Inject constructor(
         viewModelScope.launch {
             readerPreferencesUtil.updatePreferences(newPreferences)
         }
+    }
+
+    fun clearClickedLinkContent() {
+        _clickedLinkContent.value = null
     }
 }

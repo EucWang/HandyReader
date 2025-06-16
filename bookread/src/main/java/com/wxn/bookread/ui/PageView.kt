@@ -415,9 +415,9 @@ class PageView : FrameLayout, IDataSource, PageCallback {
             dataProvider?.pageFactory?.let { factory ->
                 val (tags, textCssInfo) = factory.getPagesAnnotation(chapterIndex, paragraphIndex, clickLine.charStartOffset, clickLine.charEndOffset)
                 val tag = tags.firstOrNull { item ->
-                    item.name == "a" && item.params.isNotEmpty()
+                    item.name == "a" && item.params.isNotEmpty() && item.params.contains("href")
                 }
-                if (tag?.name == "a" && tag.params.isNotEmpty()) {
+                if (tag != null) {
                     val tagStart = tag.start
                     val tagEnd = tag.end
                     var clickChar: TextChar? = null
@@ -431,7 +431,7 @@ class PageView : FrameLayout, IDataSource, PageCallback {
                     }
                     if (clickChar != null) {
                         Logger.d("PageView::onSingleTapUp::clickChar=${clickChar},event=(${startX}, ${startY})")
-                        dataProvider?.clickLink(tag)
+                        dataProvider?.clickLink(tag, startX, startY)
                         return true
                     }
                 }

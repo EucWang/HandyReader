@@ -11,6 +11,16 @@ import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.Search
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -20,8 +30,16 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.toArgb
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.unit.IntOffset
+import androidx.compose.ui.unit.IntRect
+import androidx.compose.ui.unit.IntSize
+import androidx.compose.ui.unit.LayoutDirection
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.compose.ui.viewinterop.AndroidView
+import androidx.compose.ui.window.Popup
+import androidx.compose.ui.window.PopupPositionProvider
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewModelScope
 import com.wxn.base.ext.toAndroidColor
@@ -30,7 +48,6 @@ import com.wxn.base.util.Logger
 import com.wxn.bookread.data.model.preference.ReaderPreferences
 import com.wxn.bookread.ui.PageView
 import com.wxn.bookread.ui.TextPageFactory
-import com.wxn.reader.domain.model.Note
 import com.wxn.reader.navigation.LocalNavController
 import com.wxn.reader.navigation.Screens
 import com.wxn.reader.presentation.bookReader.components.TextToolbar
@@ -38,7 +55,6 @@ import com.wxn.reader.presentation.bookReader.components.dialogs.NoteContent
 import com.wxn.reader.presentation.bookReader.components.dialogs.NoteDialog
 import com.wxn.reader.presentation.bookReader.components.drawers.AnnotationsDrawer
 import com.wxn.reader.presentation.bookReader.components.drawers.BookmarksDrawer
-import com.wxn.reader.presentation.bookReader.components.drawers.ChaptersDrawer
 import com.wxn.reader.presentation.bookReader.components.drawers.ChaptersDrawer2
 import com.wxn.reader.presentation.bookReader.components.drawers.NotesDrawer
 import com.wxn.reader.presentation.bookReader.components.modals.FontSettings
@@ -48,11 +64,12 @@ import com.wxn.reader.presentation.bookReader.components.modals.UiSettings
 import com.wxn.reader.presentation.bookReader.components.toolbars.BottomToolbar
 import com.wxn.reader.presentation.bookReader.components.toolbars.TopToolbar
 import com.wxn.reader.util.LogCompositions
+import com.wxn.reader.util.TopPopupPositionProvider
+import io.github.jan.supabase.realtime.Column
 import kotlinx.coroutines.launch
-import org.json.JSONObject
-import org.readium.r2.shared.publication.Locator
 
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ReaderView(
     readerPreferences: ReaderPreferences,
@@ -84,7 +101,9 @@ fun ReaderView(
     val annotations by viewModel.annotations.collectAsStateWithLifecycle()
     val selectedAnnotation by viewModel.selectedAnnotation.collectAsStateWithLifecycle()
 
-    fun onPageChange(newPage:Double) {
+    val clickedLinkContent by viewModel.clickedLinkContent.collectAsStateWithLifecycle()
+
+    fun onPageChange(newPage: Double) {
         Logger.d("ReaderView::onPageChange:$newPage")
     }
 
@@ -125,7 +144,7 @@ fun ReaderView(
                 navController = navController,
                 book = book,
                 bookTitle = book?.title,
-                currentChapter = viewModel.pageController.curTextChapter?.title.orEmpty() , //currentChapter,
+                currentChapter = viewModel.pageController.curTextChapter?.title.orEmpty(), //currentChapter,
                 onChaptersClick = { viewModel.chaptersDrawerOpen() },
                 onNotesDrawerToggle = { viewModel.notesDrawerOpen() },
                 onBookmarkDrawerToggle = { viewModel.bookmarksDrawerOpen() },
@@ -206,7 +225,7 @@ fun ReaderView(
                 BottomToolbar(
                     textPageFactory = viewModel.pageController.pageFactory,
                     showToolbar = areToolbarsVisible,
-                    progression =   viewModel.pageController.progression,
+                    progression = viewModel.pageController.progression,
                     onPageChange = ::onPageChange,
                     onToggleFontSettings = { viewModel.fontSettingsOpen() },
                     onTogglePageSettings = { viewModel.pageSettingsOpen() },
@@ -218,10 +237,10 @@ fun ReaderView(
 
         ChaptersDrawer2(
             isOpen = isChaptersDrawerOpen,
-            currentChapter =    viewModel.pageController.curTextChapter?.title.orEmpty(),
+            currentChapter = viewModel.pageController.curTextChapter?.title.orEmpty(),
             tableOfContents = viewModel.showOutChapters,
             onChapterSelect = { selectedChapter ->
-                viewModel.onLinkClick(selectedChapter.srcName)
+                viewModel.onLinkClick(selectedChapter.srcName, -1f, -1f)
                 viewModel.chaptersDrawerOpen(false)
 //                val locator = publication.locatorFromLink(selectedChapter)
 //                locator?.let {
@@ -310,7 +329,7 @@ fun ReaderView(
                     }
                     viewModel.noteDialogOpen(false)
                 },
-                onDismiss = {  viewModel.noteDialogOpen(false) },
+                onDismiss = { viewModel.noteDialogOpen(false) },
                 showPremiumModal = {
                     viewModel.noteDialogOpen(false)
                     navController.navigate(Screens.PremiumScreen.route)
@@ -353,7 +372,7 @@ fun ReaderView(
             PageSettings(
                 viewModel = viewModel,
                 readerPreferences = readerPreferences,
-                onDismiss = { viewModel.pageSettingsOpen(false)},
+                onDismiss = { viewModel.pageSettingsOpen(false) },
             )
         }
 
@@ -364,7 +383,7 @@ fun ReaderView(
                 appPreferences = appPreferences,
                 viewModel = viewModel,
                 readerPreferences = readerPreferences,
-                onDismiss = { viewModel.uiSettingsOpen(false)}
+                onDismiss = { viewModel.uiSettingsOpen(false) }
             )
         }
 
@@ -372,8 +391,46 @@ fun ReaderView(
             ReaderSettings(
                 viewModel = viewModel,
                 readerPreferences = readerPreferences,
-                onDismiss = { viewModel.readerSettingsOpen(false)}
+                onDismiss = { viewModel.readerSettingsOpen(false) }
             )
+        }
+
+        var dp16 = remember { 0f }
+        with(LocalDensity.current) {
+            dp16 = 16.dp.toPx()
+        }
+
+        if (clickedLinkContent != null) { //点击的链接内容popup
+            Popup(
+                popupPositionProvider = TopPopupPositionProvider(
+                    Alignment.TopStart,
+                    IntOffset(0, dp16.toInt()),
+                    anchor = IntOffset(clickedLinkContent?.clickX?.toInt() ?: 0, clickedLinkContent?.clickY?.toInt() ?: 0)
+                ),
+                onDismissRequest = {
+                    viewModel.clearClickedLinkContent()
+                }
+            ) {
+
+                Box(
+                    modifier = Modifier.padding(horizontal = 32.dp).fillMaxWidth().background(Color.Yellow)
+                ) {
+                    IconButton(
+                        onClick = {
+                            viewModel.clearClickedLinkContent()
+                        },
+                        modifier = Modifier.align(Alignment.TopEnd).padding(top = 4.dp, end = 4.dp)
+                    ) {
+                        Icon(
+                            Icons.Default.Close,
+                            contentDescription = "Close Popup"
+                        )
+                    }
+                    Column(Modifier.padding(8.dp, 36.dp, 8.dp, 8.dp)) {
+                        Text(text = clickedLinkContent?.content.orEmpty(), fontSize = 14.sp)
+                    }
+                }
+            }
         }
     }
 
@@ -396,7 +453,7 @@ fun ReaderView(
                 viewModel.textToolbarOpen(false)
 //                showTextToolbar = false
             },
-            onDismiss = {  viewModel.textToolbarOpen(false) },
+            onDismiss = { viewModel.textToolbarOpen(false) },
             appPreferences = appPreferences,
             selectedAnnotation = selectedAnnotation,
             onRemoveAnnotation = {
@@ -413,5 +470,6 @@ fun ReaderView(
             showColorSelectionPanel = showColorSelectionPanel
         )
     }
+
 
 }

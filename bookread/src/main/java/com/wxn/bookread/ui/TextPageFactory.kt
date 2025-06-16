@@ -191,6 +191,8 @@ class TextPageFactory(dataSource: IDataSource, val provider: PageViewDataProvide
         for (textTag in textTagList) {
             if ((lineStartOffset in textTag.start until textTag.end) || (lineEndOffset in textTag.start..textTag.end)) {
                 effectedTextTags.add(textTag)
+            } else if (textTag.start in (lineStartOffset until lineEndOffset) || (textTag.end in (lineStartOffset..lineEndOffset))) {
+                effectedTextTags.add(textTag)
             }
         }
         return Pair(effectedTextTags, textCssInfo)

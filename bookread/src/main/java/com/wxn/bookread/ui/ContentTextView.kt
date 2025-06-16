@@ -294,7 +294,6 @@ class ContentTextView(context: Context, attrs: AttributeSet?) : View(context, at
 //                }
             }
 
-
             canvas.drawText(ch.charData, ch.start, lineBase, paint) //绘制每一个字
             if (ch.selected) {
                 canvas.drawRect(ch.start, lineTop, ch.end, lineBottom, selectedPaint) //绘制选择文字时的背景框

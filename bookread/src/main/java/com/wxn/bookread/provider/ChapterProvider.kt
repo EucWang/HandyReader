@@ -392,7 +392,7 @@ object ChapterProvider {
 
 
             //间距
-            lineSpacingExtra = readerPreferences?.lineHeight?.toFloat() ?: 1.0f                //行间距系数，除上10 再和lineHeight相乘
+            lineSpacingExtra = readerPreferences?.lineHeight?.toFloat() ?: 1.2f                //行间距系数，除上10 再和lineHeight相乘
             Logger.d("ChapterProvider::upStyle::lineSpacingExtra=${lineSpacingExtra}")
             paragraphSpacing = readerPreferences?.paragraphSpacing?.toInt() ?: 0                 //段落间距
             Logger.d("ChapterProvider::upStyle::paragraphSpacing=${paragraphSpacing}")
@@ -406,7 +406,6 @@ object ChapterProvider {
             Logger.d("ChapterProvider::upStyle done")
         }
     }
-
 
     suspend fun getTextChapter(
         chapter: BookChapter,
@@ -618,7 +617,13 @@ object ChapterProvider {
 
         val textPaint = TextPaint()
         val parentPaint = if (paragraph is ReaderText.Text) {
-            getPaintByTagName(paragraph.annotations.firstOrNull()?.name)
+            val checkedTag = paragraph.annotations.firstOrNull { item ->
+                item.name == "h1" ||
+                        item.name == "h2" ||
+                        item.name == "h3" ||
+                        item.name == "a"
+            }
+            getPaintByTagName(checkedTag?.name)
         } else if (paragraph is ReaderText.Chapter) {
             titlePaint
         } else {
@@ -765,7 +770,8 @@ object ChapterProvider {
             val lastPage = textPages.last()
             lastPage.textLines.add(textLine)    //将新生成的一行加入到最后一页中
             textLine.upTopBottom(durY, textPaint)       //设置行的上，下，以及基线位置
-            durY += textPaint.textHeight * lineSpacingExtra * lineHeightParam   //将行高度，行间距加入到durY值中
+//            durY += textPaint.textHeight * lineSpacingExtra * lineHeightParam   //将行高度，行间距加入到durY值中
+            durY += textPaint.textHeight * lineSpacingExtra   //将行高度，行间距加入到durY值中
             lastPage.height = durY
         }
 

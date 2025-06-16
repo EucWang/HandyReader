@@ -59,10 +59,10 @@ open class PageViewController @Inject constructor(
 
     interface OnClickListener {
         fun onCenterClick()
-        fun onLinkClick(href: String?)
+        fun onLinkClick(href: String?, clickX: Float, clickY: Float)
     }
-    var clickListener: OnClickListener? = null
 
+    var clickListener: OnClickListener? = null
 
 
     /***
@@ -113,9 +113,9 @@ open class PageViewController @Inject constructor(
     /***
      * 初始章节加载成功/失败回调
      */
-    private var onInitChapterLoadListener: ((Boolean)->Unit)? = null
+    private var onInitChapterLoadListener: ((Boolean) -> Unit)? = null
 
-    suspend fun resetBook(book: Book, initChapterLoadListener: ((Boolean)->Unit)) {
+    suspend fun resetBook(book: Book, initChapterLoadListener: ((Boolean) -> Unit)) {
         Logger.i("PageViewController::resetBook:book=$book")
         this.prevTextChapter = null
         this.curTextChapter = null
@@ -155,6 +155,73 @@ open class PageViewController @Inject constructor(
         durChapterIndex = newChapterIndex
         durPageIndex = 0
         loadContent(true)
+    }
+
+    override fun findLinkContent(href: String): String? {
+        var anchorId = ""
+        if (href.contains("#")) {
+            val hrefParts = href.split("#")
+            if (hrefParts.size == 2) {
+                anchorId = hrefParts[1]
+            }
+        } else {
+            anchorId = href
+        }
+
+        curTextChapter?.readerTexts?.let { texts ->
+            var linkIndex = -1
+            for (index in 0 until texts.size) {
+                val paragraph = texts[index]
+                if (paragraph is ReaderText.Text) {
+                    val tag = paragraph.annotations.firstOrNull { it.anchorId.isNotEmpty() && it.anchorId == anchorId }
+                    if (tag != null) {
+                        linkIndex = index
+                        break
+                    }
+                }
+            }
+            var content = StringBuilder()
+            for(index in linkIndex until texts.size) {
+                var paragraph = texts[index]
+                if (paragraph is ReaderText.Text) {
+                    val tag = paragraph.annotations.firstOrNull { tag ->
+                        tag.anchorId.isNotEmpty()
+                    }
+                    if ((tag == null || tag.anchorId == anchorId)) {
+                        if (paragraph.line.isNotEmpty()) {
+                            content.append(paragraph.line)
+                        }
+                    } else {
+                        break
+                    }
+                    if (content.length > 5) {
+                        break
+                    } else {
+                        content.append("\n")
+                    }
+                }
+            }
+            return content.toString()
+//            if (linkIndex != -1 && linkIndex < texts.size) {
+//                var paragraph = texts[linkIndex]
+//                if (paragraph is ReaderText.Text) {
+//                    if (paragraph.line.isNotEmpty()) {
+//                        content.append(paragraph.line)
+//                    } else {
+//                        linkIndex += 1
+//                        if (linkIndex < texts.size) {
+//                            paragraph = texts[linkIndex]
+//                            if (paragraph is ReaderText.Text) {
+//                                if (paragraph.line.isNotEmpty()) {
+//                                    return paragraph.line
+//                                }
+//                            }
+//                        }
+//                    }
+//                }
+//            }
+        }
+        return null
     }
 
     override fun loadContent(resetPageOffset: Boolean) {
@@ -223,7 +290,7 @@ open class PageViewController @Inject constructor(
 
             val contents = BookHelper.disposeContent(appPreferencesUtil, chapter, contents, cssInfos)
             val cssInfoMaps = hashMapOf<Int, TextCssInfo>()
-            for((index, content) in contents.withIndex()) {
+            for ((index, content) in contents.withIndex()) {
                 if (content is ReaderText.Text) {
                     cssInfoMaps[index] = content.textCssInfo
                 }
@@ -232,6 +299,7 @@ open class PageViewController @Inject constructor(
             val textChapter = ChapterProvider.getTextChapter(chapter, contents, imageStyles = "", chapterSize)
             textChapter?.annotations = tags
             textChapter?.textCssInfos = cssInfoMaps
+            textChapter?.readerTexts = contents
             when (chapter.chapterIndex) {
                 durChapterIndex -> {    //加载的是当前章节
                     curTextChapter = textChapter
@@ -341,7 +409,7 @@ open class PageViewController @Inject constructor(
         }
 
         Coroutines.mainScope().launchIO {
-            Logger.d("PageViewController::moveToPrevChapter, durChapterIndex=${durChapterIndex-1}")
+            Logger.d("PageViewController::moveToPrevChapter, durChapterIndex=${durChapterIndex - 1}")
             loadContent(durChapterIndex.minus(1), upContent, false)
         }
         saveRead()
@@ -354,7 +422,7 @@ open class PageViewController @Inject constructor(
         clickListener?.onCenterClick()
     }
 
-    fun getSelectedText():String {
+    fun getSelectedText(): String {
         return callBack?.getSelectedText().orEmpty()
     }
 
@@ -385,14 +453,14 @@ open class PageViewController @Inject constructor(
 //        TODO("Not yet implemented")
     }
 
-    override fun clickLink(tag: TextTag) {
+    override fun clickLink(tag: TextTag, clickX: Float, clickY: Float) {
         val params = tag.paramsPairs()
         val href = params.find { pair ->
             pair.first == "href"
         }?.second.orEmpty()
         Logger.d("PageViewController::clickLink::${tag}, href=${href}")
         if (href.isNotEmpty()) {
-            clickListener?.onLinkClick(href)
+            clickListener?.onLinkClick(href, clickX, clickY)
         }
     }
 

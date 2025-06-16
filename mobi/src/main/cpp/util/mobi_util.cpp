@@ -614,8 +614,10 @@ mobi_util::parseElement(const tinyxml2::XMLElement *elem, std::string &fullText,
             fullText += text;
             currentOffset += utf8Count(text);
         } else if (child->ToElement()) {
+            auto item = child->ToElement();
             size_t childStart = currentOffset;
-            const char *id = elem->Attribute("id");
+            const char *id = item->Attribute("id");
+
             std::string tagId = "";
             if (id != nullptr) {
                 tagId = id;
@@ -628,14 +630,15 @@ mobi_util::parseElement(const tinyxml2::XMLElement *elem, std::string &fullText,
                 break;
             }
 
-            std::string params = getEleParams(elem, spineSrcName);
-            auto newTag = TagInfo{generate_uuid(), tagId, elem->Name(), currentOffset, currentOffset, parent_uuid, ""};
+            std::string params = getEleParams(item, spineSrcName);
+            auto newTag = TagInfo{generate_uuid(), tagId, item->Name(), currentOffset, currentOffset, parent_uuid, params};
 
-            currentOffset += parseElement(child->ToElement(), fullText, newTag.uuid, childStart, subTags, startAnchorId, endAnchorId, flagAdd, spineSrcName);
+            size_t endOffset = parseElement(item, fullText, newTag.uuid, childStart, subTags, startAnchorId, endAnchorId, flagAdd, spineSrcName);
 
-            if (currentOffset > childStart) {
-                newTag.endPos = currentOffset;
+            if (endOffset >= childStart) {
+                newTag.endPos = endOffset;
             }
+            currentOffset = endOffset;
             subTags.push_back(newTag);
         }
     }
@@ -893,7 +896,53 @@ int mobi_util::parseHtmlDoc(JNIEnv *env,
         }
 
         std::string name = elem->Name();
-        if (name == "div" || name == "ul" || name == "ol" || name == "p" || name == "li" || name == "span" || name == "font" || name == "blockquote") {
+        if (name == "p") {
+            const char *id = elem->Attribute("id");
+            std::string aid;
+            if (id != nullptr && strlen(id) > 0) {
+                aid = id;
+            }
+            if (0 == *flagAdd && !startAnchorId.empty() && startAnchorId == aid) {
+                *flagAdd = 1;
+            } else if (1 == *flagAdd && !endAnchorId.empty() && endAnchorId == aid) {
+                *flagAdd = 2;
+                break;
+            }
+
+            std::vector<TagInfo> tagInfos;
+            DocText docText{"", tagInfos};
+            std::string text = processParagraph(elem, tagInfos, startAnchorId, endAnchorId, flagAdd, spineSrcName);
+            docText.text = text;
+            if (!tagInfos.empty()) {
+                for (auto &tag: tagInfos) {
+                    docText.tagInfos.push_back(tag);
+                }
+            }
+
+            std::string params = getEleParams(elem, spineSrcName);
+            if (!params.empty()) {
+                TagInfo tag;
+                tag.name = name;;
+                tag.uuid = generate_uuid();
+                tag.startPos = 0;
+                tag.endPos = utf8Count(text);
+                tag.params = params;
+                docText.tagInfos.emplace_back(tag);
+            }
+
+            if (!parentTags.empty()) {
+                for (auto &tag: parentTags) {
+                    if (tag.endPos == 0) {
+                        tag.endPos = utf8Count(text);
+                    }
+                    docText.tagInfos.push_back(tag);
+                }
+            }
+
+            if (*flagAdd == 1) {
+                docTexts.push_back(docText);
+            }
+        } else if (name == "div" || name == "ul" || name == "ol" || name == "li" || name == "span" || name == "font" || name == "blockquote") {
             const char *id = elem->Attribute("id");
             std::string aid;
             if (id != nullptr && strlen(id) > 0) {

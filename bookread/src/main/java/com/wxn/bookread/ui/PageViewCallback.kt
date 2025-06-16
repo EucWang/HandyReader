@@ -39,5 +39,5 @@ interface PageViewCallback  : TextPageFactoryCallback {
      */
     fun durChapterPos(): Int
 
-    fun clickLink(tag: TextTag)
+    fun clickLink(tag: TextTag, clickX: Float, clickY: Float)
 }

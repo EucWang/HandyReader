@@ -1,6 +1,7 @@
 package com.wxn.bookread.data.model
 
 import com.wxn.base.bean.CssInfo
+import com.wxn.base.bean.ReaderText
 import com.wxn.base.bean.TextCssInfo
 import com.wxn.base.bean.TextTag
 import kotlin.math.min
@@ -17,7 +18,8 @@ data class TextChapter(
     val pageLengths: List<Int>,     //章节中每一页显示的字符数
     val chaptersSize: Int,          //总章节数,
     var annotations: Map<Int, List<TextTag>> = emptyMap<Int, List<TextTag>>(),   //每个自然段包含的文本标记
-    var textCssInfos: Map<Int, TextCssInfo> = emptyMap<Int, TextCssInfo>()
+    var textCssInfos: Map<Int, TextCssInfo> = emptyMap<Int, TextCssInfo>(),
+    var readerTexts: List<ReaderText> = emptyList<ReaderText>()                  //按自然段分布的文本内容，
 ) {
 
     fun page(index: Int): TextPage? {

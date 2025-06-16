@@ -19,6 +19,8 @@ interface PageViewDataProvider : PageViewCallback{
 
     fun changeChapter(newChapterIndex: Int)
 
+    fun findLinkContent(href: String) : String?
+
     /**
      * 加载章节内容
      */

@@ -72,7 +72,7 @@ class ReaderPreferencesUtil @Inject constructor(
             titleTopSpacing = 18.0,
             titleBottomSpacing = 15.0,
             letterSpacing = 0.0,
-            lineHeight = 1.0,
+            lineHeight = 1.2,
             pageHorizontalMargins = 0.5,
             pageVerticalMargins = 0.5,
             paragraphIndent = 0.0,
