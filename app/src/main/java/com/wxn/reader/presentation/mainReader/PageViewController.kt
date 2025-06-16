@@ -26,6 +26,7 @@ import com.wxn.reader.domain.use_case.chapters.UpdateChapterWordCountUserCase
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.first
 import javax.inject.Inject
+import kotlin.math.roundToInt
 
 open class PageViewController @Inject constructor(
     val context: Context,
@@ -44,6 +45,7 @@ open class PageViewController @Inject constructor(
 
     var inBookshelf = false
     var durPageIndex = 0
+    var targetProgress: Double = 0.0 //临时保存更改的进度，默认0.0, 不作为正常进度使用
 
     //    var isLocalBook = true
     var callBack: PageCallback? = null
@@ -222,9 +224,12 @@ open class PageViewController @Inject constructor(
         }
     }
 
-    override fun changeChapter(newChapterIndex: Int) {
+    override fun changeChapter(newChapterIndex: Int, newProgress: Double) {
         durChapterIndex = newChapterIndex
         durPageIndex = 0
+        if (newProgress > 0.0) {
+            targetProgress = newProgress
+        }
         loadContent(true)
     }
 
@@ -361,12 +366,24 @@ open class PageViewController @Inject constructor(
             textChapter?.totalWordCount = curBook.wordCount
             textChapter?.chapterProgress = chapter.chapterProgress
 
-            Logger.e("PageViewController::loadContent success onPageChange::${durChapterIndex}")
-            clickListener?.onPageChange()
+
 
             when (chapter.chapterIndex) {
                 durChapterIndex -> {    //加载的是当前章节
                     curTextChapter = textChapter
+
+                    if (targetProgress > 0.0 && curBook.wordCount > 0 && targetProgress >= chapter.chapterProgress) { //修改切换之后的显示章节的第几页
+                        val inChapterProgress = targetProgress - chapter.chapterProgress
+                        val inChapterPercent = chapter.wordCount / curBook.wordCount
+                        val pageIndex = ((inChapterProgress / inChapterPercent) * (textChapter?.pageSize?.toDouble()?:0.0)).roundToInt()
+                        Logger.d("PageViewController::inChapterProgress=${inChapterProgress},inChapterPercent=${inChapterPercent}, pageIndex =${pageIndex}")
+                        if (pageIndex in 0 until (textChapter?.pageSize?:0)) {
+                            durPageIndex = pageIndex
+                        }
+                        targetProgress = 0.0
+                    }
+
+
                     if (upContent) {
                         callBack?.upContent(resetPageOffset = resetPageOffset)
                     }
@@ -393,6 +410,9 @@ open class PageViewController @Inject constructor(
                     }
                 }
             }
+
+            Logger.e("PageViewController::loadContent success onPageChange::${durChapterIndex}")
+            clickListener?.onPageChange()
         }
     }
 

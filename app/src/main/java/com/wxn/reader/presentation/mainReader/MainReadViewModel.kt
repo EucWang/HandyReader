@@ -370,9 +370,33 @@ class MainReadViewModel @Inject constructor(
         }
     }
 
+    /***
+     * 滑动切换界面，或者跳转切换界面时，通知进度刷新
+     */
     override fun onPageChange() {
         Logger.d("MainReadViewModel:onPageChange")
         _readProgression.value = pageController.progression
+    }
+
+    /***
+     * 拖动阅读进度条来改变阅读位置
+     */
+    fun changePageByProgress(newProgress: Double) {
+        var targetChapter: BookChapter? = null
+        for(index in 0 until allChapters.size) {
+            val startProgress : Double = allChapters[index].chapterProgress.toDouble()
+            val endProgress : Double = if (index < allChapters.size - 1) {
+                allChapters[index + 1].chapterProgress.toDouble()
+            } else {
+                1.001
+            }
+            if (newProgress  >= startProgress && newProgress < endProgress) {
+                targetChapter = allChapters[index]
+            }
+        }
+        targetChapter?.chapterIndex?.let { newChapterIndex ->
+            pageController.changeChapter(newChapterIndex, newProgress)
+        }
     }
 
     fun chaptersDrawerOpen(open: Boolean = true) {

@@ -105,6 +105,7 @@ fun ReaderView(
 
     fun onPageChange(newPage: Double) {
         Logger.d("ReaderView::onPageChange:$newPage")
+        viewModel.changePageByProgress(newPage)
     }
 
     Box(
