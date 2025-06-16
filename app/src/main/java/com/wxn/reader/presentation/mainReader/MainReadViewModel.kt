@@ -334,10 +334,16 @@ class MainReadViewModel @Inject constructor(
      */
     override fun onLinkClick(href: String?) {
         Logger.d("MainReaderViewModel::onLinkClick:href=$href")
-        allChapters.find { chapter->
-            chapter.srcName == href
-        }?.let { targetChapter ->
-            pageController.changeChapter(targetChapter.chapterIndex)
+        if (!href.isNullOrEmpty()) {
+            if (href.startsWith("http")) {
+                //跳转到h5界面显示
+            } else {
+                allChapters.find { chapter->
+                    chapter.srcName == href
+                }?.let { targetChapter ->
+                    pageController.changeChapter(targetChapter.chapterIndex)
+                }
+            }
         }
     }
 

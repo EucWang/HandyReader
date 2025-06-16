@@ -414,7 +414,9 @@ class PageView : FrameLayout, IDataSource, PageCallback {
             val paragraphIndex = clickLine.paragraphIndex
             dataProvider?.pageFactory?.let { factory ->
                 val (tags, textCssInfo) = factory.getPagesAnnotation(chapterIndex, paragraphIndex, clickLine.charStartOffset, clickLine.charEndOffset)
-                val tag = tags.firstOrNull()
+                val tag = tags.firstOrNull { item ->
+                    item.name == "a" && item.params.isNotEmpty()
+                }
                 if (tag?.name == "a" && tag.params.isNotEmpty()) {
                     val tagStart = tag.start
                     val tagEnd = tag.end

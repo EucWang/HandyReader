@@ -628,6 +628,8 @@ object ChapterProvider {
 
         var marginLeft = 0f
         var marginRight = 0f
+        var marginTop = 0f
+        var marginBottom = 0f
         //对齐方式
         var textAlign: CssTextAlign =
             if (isTitle) {
@@ -635,6 +637,7 @@ object ChapterProvider {
             } else {
                 CssTextAlign.CssTextAlignLeft
             }
+        var lineHeightParam = 1f
         if (paragraph is ReaderText.Text) {
             //文字大小
             if (paragraph.textCssInfo.fontSize.isEm()) {
@@ -649,30 +652,70 @@ object ChapterProvider {
                 textPaint.textSkewX = -0.25f
             }
 
-            //左边距
-            marginLeft = (if (paragraph.textCssInfo.marginLeft.isEm()) {
+            if (paragraph.textCssInfo.marginLeft.value > 0 ||
+                paragraph.textCssInfo.marginRight.value > 0 ||
+                paragraph.textCssInfo.marginTop.value > 0 ||
+                paragraph.textCssInfo.marginBottom.value > 0) {
+
                 val oneCh: String = (text.getOrNull(0)?.toString() ?: " ")
                 val oneEmWidth =  StaticLayout.getDesiredWidth(oneCh, textPaint)
-                oneEmWidth * paragraph.textCssInfo.marginLeft.value
-            } else if (paragraph.textCssInfo.marginLeft.isPx()) {
-                paragraph.textCssInfo.marginLeft.value
-            } else if (paragraph.textCssInfo.marginLeft.isPercent()) {
-                visibleWidth * paragraph.textCssInfo.marginLeft.value
+
+                //左边距
+                marginLeft = (if (paragraph.textCssInfo.marginLeft.isEm()) {
+                    oneEmWidth * paragraph.textCssInfo.marginLeft.value
+                } else if (paragraph.textCssInfo.marginLeft.isPx()) {
+                    paragraph.textCssInfo.marginLeft.value
+                } else if (paragraph.textCssInfo.marginLeft.isPercent()) {
+                    visibleWidth * paragraph.textCssInfo.marginLeft.value
+                } else {
+                    0f
+                }).coerceIn(0f, visibleWidth / 4f)
+                //右边距
+                marginRight = (if (paragraph.textCssInfo.marginRight.isEm()) {
+                    val oneCh: String = (text.getOrNull(0)?.toString() ?: " ")
+                    val oneEmWidth =  StaticLayout.getDesiredWidth(oneCh, textPaint)
+                    oneEmWidth * paragraph.textCssInfo.marginRight.value
+                } else if (paragraph.textCssInfo.marginRight.isPx()) {
+                    paragraph.textCssInfo.marginRight.value
+                } else if (paragraph.textCssInfo.marginRight.isPercent()) {
+                    visibleWidth * paragraph.textCssInfo.marginRight.value
+                } else {
+                    0f
+                }).coerceIn(0f, visibleWidth / 4f)
+                //上边距
+                marginTop = (if (paragraph.textCssInfo.marginTop.isEm()) {
+                    oneEmWidth * paragraph.textCssInfo.marginTop.value
+                } else if (paragraph.textCssInfo.marginTop.isPx()) {
+                    paragraph.textCssInfo.marginTop.value
+                } else if (paragraph.textCssInfo.marginTop.isPercent()) {
+                    visibleHeight * paragraph.textCssInfo.marginTop.value
+                } else {
+                    0f
+                }).coerceIn(0f, visibleHeight / 4f)
+                //下边距
+                marginBottom = (if (paragraph.textCssInfo.marginBottom.isEm()) {
+                    oneEmWidth * paragraph.textCssInfo.marginBottom.value
+                } else if (paragraph.textCssInfo.marginBottom.isPx()) {
+                    paragraph.textCssInfo.marginBottom.value
+                } else if (paragraph.textCssInfo.marginBottom.isPercent()) {
+                    visibleHeight * paragraph.textCssInfo.marginBottom.value
+                } else {
+                    0f
+                }).coerceIn(0f, visibleHeight / 4f)
+            }
+
+            lineHeightParam = (if (paragraph.textCssInfo.lineHeight.isEm()) {
+                paragraph.textCssInfo.lineHeight.value
+            } else if (paragraph.textCssInfo.lineHeight.isPx()) {
+                paragraph.textCssInfo.lineHeight.value / 48f    //48f 定义为标准大小 36/48
             } else {
-                0f
-            }).coerceIn(0f, visibleWidth / 4f)
-            //右边距
-            marginRight = (if (paragraph.textCssInfo.marginRight.isEm()) {
-                val oneCh: String = (text.getOrNull(0)?.toString() ?: " ")
-                val oneEmWidth =  StaticLayout.getDesiredWidth(oneCh, textPaint)
-                oneEmWidth * paragraph.textCssInfo.marginRight.value
-            } else if (paragraph.textCssInfo.marginRight.isPx()) {
-                paragraph.textCssInfo.marginRight.value
-            } else if (paragraph.textCssInfo.marginRight.isPercent()) {
-                visibleWidth * paragraph.textCssInfo.marginRight.value
-            } else {
-                0f
-            }).coerceIn(0f, visibleWidth / 4f)
+                1f
+            }).coerceIn(0.75f, 2.0f)    //限定范围在0.75, 2.0f 间
+
+        }
+
+        if (marginTop > 0f) {
+            durY += marginTop
         }
 
         val layout = StaticLayout(text, textPaint, visibleWidth - marginLeft.roundToInt() - marginRight.roundToInt(), Layout.Alignment.ALIGN_NORMAL, 0f, 0f, true)
@@ -704,7 +747,7 @@ object ChapterProvider {
             }
 
             //新增加的行，超过了一页的显示高度, 则创建新页
-            if (durY + textPaint.textHeight > visibleHeight) {
+            if (durY + textPaint.textHeight * lineSpacingExtra * lineHeightParam > visibleHeight) {
                 val lastPage = textPages.last()
                 lastPage.text = stringBuilder.toString()
                 pageLines.add(lastPage.textLines.size)
@@ -722,13 +765,16 @@ object ChapterProvider {
             val lastPage = textPages.last()
             lastPage.textLines.add(textLine)    //将新生成的一行加入到最后一页中
             textLine.upTopBottom(durY, textPaint)       //设置行的上，下，以及基线位置
-            durY += textPaint.textHeight * lineSpacingExtra   //将行高度，行间距加入到durY值中
+            durY += textPaint.textHeight * lineSpacingExtra * lineHeightParam   //将行高度，行间距加入到durY值中
             lastPage.height = durY
         }
 
         //一个自然段落遍历完
         if (isTitle) {
             durY += titleBottomSpacing                          //是标题行，则加上标题的底部间距
+        }
+        if (marginBottom > 0f) {
+            durY += marginBottom
         }
 //        durY += textPaint.textHeight * paragraphSpacing   //是段落，则加上段落间距 //TODO
         return durY

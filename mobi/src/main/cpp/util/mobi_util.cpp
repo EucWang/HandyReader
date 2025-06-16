@@ -560,9 +560,25 @@ mobi_util::getEleParams(const tinyxml2::XMLElement *elem, std::string &spineSrcN
 
         if (name == "href") {
             if (!value.empty()) {
-                if(!startWith(value, "http")) {
+                if (!startWith(value, "http")) {
+
+                    std::string &src = value;
+                    std::string prefix;
+                    std::string spineSrc;
+                    std::string suffix;
+                    std::string anchorId;
+                    int prefixType;
+                    int srcUid;
+                    bool isSrcName = true;
+                    if (1 != parseSrcName(src, prefix, spineSrc, &prefixType, &srcUid, anchorId, suffix)) {
+                        isSrcName = false;
+                    } else if ((prefix != "flow" && prefix != "part" && prefix != "resource") &&
+                               (prefixType != 1 && prefixType != 2 && prefixType != 3)) {
+                        isSrcName = false;
+                    }
+
                     std::string href;
-                    if (!startWith(value, spineSrcName)) {
+                    if (!isSrcName) {
                         href.append(spineSrcName);
                         if (!startWith(value, "#")) {
                             href.append("#");
@@ -579,16 +595,17 @@ mobi_util::getEleParams(const tinyxml2::XMLElement *elem, std::string &spineSrcN
             params.append("&");
         }
 
-        params.append(attriName).append("=").append(attriValue);
+        params.append(name).append("=").append(value);
     }
     return params;
 }
 
-size_t mobi_util::parseElement(const tinyxml2::XMLElement *elem, std::string &fullText, std::string &parent_uuid, size_t initialOffset, std::vector<TagInfo> &subTags,
-                               std::string &startAnchorId,
-                               std::string &endAnchorId,
-                               int *flagAdd,
-                               std::string &spineSrcName) {
+size_t
+mobi_util::parseElement(const tinyxml2::XMLElement *elem, std::string &fullText, std::string &parent_uuid, size_t initialOffset, std::vector<TagInfo> &subTags,
+                        std::string &startAnchorId,
+                        std::string &endAnchorId,
+                        int *flagAdd,
+                        std::string &spineSrcName) {
     size_t currentOffset = initialOffset;
 
     for (const tinyxml2::XMLNode *child = elem->FirstChild(); child != nullptr; child = child->NextSibling()) {
@@ -835,13 +852,13 @@ int mobi_util::cacheImage(JNIEnv *env, long book_id, MOBIRawml *mobi_rawml, std:
 bool hasChildText(tinyxml2::XMLElement *elem) {
     auto child = elem->FirstChild();
     bool ret = false;
-    while(child != nullptr){
+    while (child != nullptr) {
         if (child->ToText() != nullptr) {
             ret = true;
             break;
         } else if (child->ToElement() != nullptr) {
             auto childEle = child->ToElement();
-            const char* name = childEle->Name();
+            const char *name = childEle->Name();
             std::string nameStr(name, name + strlen(name));
             if (nameStr == "img" || nameStr == "p" || nameStr == "div" || nameStr == "blockquote") {
                 ret = false;
@@ -1435,9 +1452,9 @@ int mobi_util::getChapter(JNIEnv *env, long book_id, const char *path, NavPoint 
  */
 void mobi_util::mockFirstPage(NavPoint &chapter, std::vector<DocText> &docTexts) {
     if (docTexts.empty() && chapter.playOrder == 1) {
-        char* title = mobi_meta_get_title(mobi_data);
-        char* author = mobi_meta_get_author(mobi_data);
-        char* publisher = mobi_meta_get_publisher(mobi_data);
+        char *title = mobi_meta_get_title(mobi_data);
+        char *author = mobi_meta_get_author(mobi_data);
+        char *publisher = mobi_meta_get_publisher(mobi_data);
         if (title != nullptr) {
             std::vector<TagInfo> tagInfos;
             tagInfos.push_back(TagInfo{
