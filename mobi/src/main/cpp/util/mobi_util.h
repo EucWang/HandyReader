@@ -104,6 +104,7 @@ public:
         }
         allChapters.clear();
         currentSrc = "";
+        isSingleSrc = false;
     }
 
     /***
@@ -116,6 +117,7 @@ public:
         doc.ClearError();
         doc.Clear();
         currentSrc = "";
+        isSingleSrc = false;
     }
 
     static int loadMobi(std::string fullpath,
@@ -147,7 +149,7 @@ public:
 
     int getCss(std::vector<std::string> &cssClasses, std::vector<CssInfo> &cssInfos);
 
-    void getWordCount(JNIEnv *env, std::vector<std::pair<int, int>> &wordCounts);
+    void getWordCount(std::vector<std::pair<int, size_t>> &wordCounts);
 
     long bookid() {
         return book_id;
@@ -170,6 +172,7 @@ private:
     MOBIData *mobi_data;
     std::vector<NavPoint> allChapters;
     std::vector<std::string> cssSrc;
+    bool isSingleSrc;
 
     tinyxml2::XMLDocument doc;
     std::string currentSrc;
@@ -237,7 +240,7 @@ private:
      */
     static int cacheImage(JNIEnv *env, long book_id, MOBIRawml *mobi_rawml, std::string &imgSRc, int prefixType, int srcUid, int *width, int *height);
 
-    static int parseOpfData(const char *opf_data, size_t opf_data_size, std::vector<NavPoint> &points);
+    int parseOpfData(const char *opf_data, size_t opf_data_size, std::vector<NavPoint> &points);
 
     static std::string
     processParagraph(const tinyxml2::XMLElement *pElem, std::vector<TagInfo> &subTags, std::string &startAnchorId, std::string &endAnchorId, int *flagAdd,
@@ -255,15 +258,12 @@ private:
                                int *flagAdd,
                                std::string &spineSrcName);
 
-    int countHtmlDoc(JNIEnv *env,
-                                long book_id,
-                                MOBIRawml *mobi_rawml,
-                                tinyxml2::XMLElement *element,
-                                 long* wordCount,
+    int countHtmlDoc(tinyxml2::XMLElement *element,
+                                 size_t* wordCount,
                                 std::string &startAnchorId,
                                 std::string &endAnchorId,
                                 int *flagAdd,
-                                std::string &spineSrcName,
+                                std::string &spineSrcName
 //                                std::vector<TagInfo> fatherTags
                                 );
 };

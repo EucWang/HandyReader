@@ -546,8 +546,8 @@ Java_com_wxn_mobi_inative_NativeLib_getWordCount(JNIEnv *env, jobject thiz, jobj
     const char *nativeStr = env->GetStringUTFChars(path, NULL);
     create_mobi_util(bookId, nativeStr);
 
-    std::vector<std::pair<int, int>> wordCount;
-    mobiutil->getWordCount(env, wordCount);
+    std::vector<std::pair<int, size_t>> wordCount;
+    mobiutil->getWordCount(wordCount);
 
     env->ReleaseStringUTFChars(path, nativeStr);
 }
