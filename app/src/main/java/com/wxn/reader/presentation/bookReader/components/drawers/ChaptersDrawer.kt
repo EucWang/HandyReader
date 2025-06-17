@@ -10,13 +10,20 @@ import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.wxn.base.bean.BookChapter
 import com.wxn.reader.R
+import com.wxn.reader.presentation.mainReader.MainReadViewModel
+import com.wxn.reader.util.OnLaunchFlow
 import org.readium.r2.shared.publication.Link
 
 @Composable
@@ -101,11 +108,13 @@ fun ChapterItem(
 @Composable
 fun ChaptersDrawer2(
     isOpen: Boolean,
-    currentChapter: String,
+    viewModel: MainReadViewModel,
     tableOfContents: List<BookChapter>,
     onChapterSelect: (BookChapter) -> Unit,
     onClose: () -> Unit,
 ) {
+    val curChapterIndex by viewModel.curChapterIndex.collectAsStateWithLifecycle()
+
     AnimatedVisibility(
         visible = isOpen,
         enter = slideInHorizontally(initialOffsetX = { -it }),
@@ -132,7 +141,7 @@ fun ChaptersDrawer2(
                     items(tableOfContents) { chapter ->
                         ChapterItem(
                             chapter = chapter,
-                            isCurrentChapter = chapter.chapterName == currentChapter,
+                            isCurrentChapter = chapter.chapterIndex == curChapterIndex,
                             onClick = { onChapterSelect(chapter) }
                         )
                     }

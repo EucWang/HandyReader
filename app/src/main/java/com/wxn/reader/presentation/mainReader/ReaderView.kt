@@ -103,10 +103,6 @@ fun ReaderView(
 
     val clickedLinkContent by viewModel.clickedLinkContent.collectAsStateWithLifecycle()
 
-    fun onPageChange(newPage: Double) {
-        Logger.d("ReaderView::onPageChange:$newPage")
-        viewModel.changePageByProgress(newPage)
-    }
 
     Box(
         modifier = Modifier
@@ -135,6 +131,8 @@ fun ReaderView(
             }
         )
 
+        val curChapterName by viewModel.curChapterName.collectAsStateWithLifecycle()
+
         AnimatedVisibility(
             visible = areToolbarsVisible,
             enter = slideInVertically(initialOffsetY = { -it }),
@@ -145,7 +143,7 @@ fun ReaderView(
                 navController = navController,
                 book = book,
                 bookTitle = book?.title,
-                currentChapter = viewModel.pageController.curTextChapter?.title.orEmpty(), //currentChapter,
+                currentChapter = curChapterName, //currentChapter,
                 onChaptersClick = { viewModel.chaptersDrawerOpen() },
                 onNotesDrawerToggle = { viewModel.notesDrawerOpen() },
                 onBookmarkDrawerToggle = { viewModel.bookmarksDrawerOpen() },
@@ -228,7 +226,7 @@ fun ReaderView(
                     showToolbar = areToolbarsVisible,
 //                    progression = viewModel.pageController.progression,
                     viewModel = viewModel,
-                    onPageChange = ::onPageChange,
+//                    onPageChange = ::onPageChange,
                     onToggleFontSettings = { viewModel.fontSettingsOpen() },
                     onTogglePageSettings = { viewModel.pageSettingsOpen() },
                     onToggleReaderSettings = { viewModel.readerSettingsOpen() },
@@ -239,7 +237,7 @@ fun ReaderView(
 
         ChaptersDrawer2(
             isOpen = isChaptersDrawerOpen,
-            currentChapter = viewModel.pageController.curTextChapter?.title.orEmpty(),
+            viewModel = viewModel,
             tableOfContents = viewModel.showOutChapters,
             onChapterSelect = { selectedChapter ->
                 viewModel.onLinkClick(selectedChapter.srcName, -1f, -1f)

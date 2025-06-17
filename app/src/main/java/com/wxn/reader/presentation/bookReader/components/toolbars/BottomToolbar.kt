@@ -35,9 +35,12 @@ import androidx.compose.material3.Slider
 import androidx.compose.material3.SliderDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableDoubleStateOf
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.shadow
@@ -46,9 +49,11 @@ import androidx.compose.ui.unit.dp
 import org.readium.r2.navigator.epub.EpubNavigatorFragment
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.wxn.base.util.Logger
 import com.wxn.bookread.ui.TextPageFactory
 import com.wxn.reader.presentation.mainReader.MainReadViewModel
 import com.wxn.reader.util.LogCompositions
+import com.wxn.reader.util.OnLaunchFlow
 import com.wxn.reader.util.format
 
 
@@ -220,9 +225,8 @@ fun BottomToolbar(
 fun BottomToolbar(
     textPageFactory:  TextPageFactory?,
     showToolbar: Boolean,
-//    progression: Double,
     viewModel: MainReadViewModel,
-    onPageChange: (Double) -> Unit,  // Add this parameter
+//    onPageChange: (Double) -> Unit,  // Add this parameter
     onToggleFontSettings: () -> Unit,
     onTogglePageSettings: () -> Unit,
     onToggleUISettings: () -> Unit,
@@ -230,9 +234,12 @@ fun BottomToolbar(
 ) {
 
     val progression by viewModel.readProgression.collectAsStateWithLifecycle()
+    var sliderPosition by remember { mutableStateOf(progression) }
     LogCompositions("BottomToolbar:progression=${progression}")
 
-    var sliderPosition by remember(progression) { mutableDoubleStateOf(progression) }
+    OnLaunchFlow(emitter = {progression}) {
+        sliderPosition = progression
+    }
 
     AnimatedVisibility(
         visible = showToolbar,
@@ -282,8 +289,7 @@ fun BottomToolbar(
                         .weight(1f)
                 ) {
                     Row(
-                        modifier = Modifier
-                            .fillMaxSize(),
+                        modifier = Modifier.fillMaxSize(),
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.SpaceBetween
                     ) {
@@ -294,10 +300,13 @@ fun BottomToolbar(
                         Slider(
                             value = sliderPosition.toFloat(),
                             onValueChange = { newValue ->
+                                Logger.d("BottomToolbar::onValueChange:newValue=$newValue")
                                 sliderPosition = newValue.toDouble()
                             },
                             onValueChangeFinished = {
-                                onPageChange(sliderPosition)
+                                if (!viewModel.changePageByProgress(sliderPosition)) {
+                                    sliderPosition = progression
+                                }
                             },
                             valueRange = 0f..1f,
                             colors = SliderDefaults.colors(

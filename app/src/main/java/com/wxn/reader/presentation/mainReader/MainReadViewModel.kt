@@ -8,11 +8,13 @@ import androidx.lifecycle.viewModelScope
 import com.wxn.base.bean.Book
 import com.wxn.base.bean.BookChapter
 import com.wxn.base.util.Logger
+import com.wxn.base.util.ToastUtil
 import com.wxn.base.util.launchIO
 import com.wxn.bookparser.TextParser
 import com.wxn.bookread.data.model.preference.ReaderPreferences
 import com.wxn.bookread.data.source.local.ReaderPreferencesUtil
 import com.wxn.bookread.provider.ChapterProvider
+import com.wxn.reader.R
 import com.wxn.reader.data.model.AppPreferences
 import com.wxn.reader.data.model.toRediumEpubPreferences
 import com.wxn.reader.data.source.local.AppPreferencesUtil
@@ -45,6 +47,7 @@ import com.wxn.reader.domain.use_case.reading_progress.GetReadingProgressUseCase
 import com.wxn.reader.domain.use_case.reading_progress.SetReadingProgressUseCase
 import com.wxn.reader.presentation.bookReader.BookReaderUiState
 import com.wxn.reader.presentation.bookReader.BookReaderUiState.LOAD_CHAPTER_SUCCESS
+import com.wxn.reader.ui.theme.stringResource
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -208,6 +211,15 @@ class MainReadViewModel @Inject constructor(
 
     private val _readProgression = MutableStateFlow<Double>(0.0)
     val readProgression : StateFlow<Double> = _readProgression.asStateFlow()
+
+    private val _curChapterIndex = MutableStateFlow<Int>(0)
+    val curChapterIndex : StateFlow<Int> = _curChapterIndex.asStateFlow()
+
+    private val _curChapterName = MutableStateFlow<String>("")
+    val curChapterName : StateFlow<String> = _curChapterName.asStateFlow()
+
+    private val _curChapterPageIndex = MutableStateFlow<Int>(0)
+    val curChapterPageIndex : StateFlow<Int> = _curChapterPageIndex.asStateFlow()
 
     private suspend fun fetchBook(bookId: Long): Boolean {
         try {
@@ -376,13 +388,21 @@ class MainReadViewModel @Inject constructor(
     override fun onPageChange() {
         Logger.d("MainReadViewModel:onPageChange")
         _readProgression.value = pageController.progression
+        _curChapterIndex.value = pageController.durChapterIndex
+        _curChapterPageIndex.value = pageController.durPageIndex
+        _curChapterName.value = pageController.curTextChapter?.title.orEmpty()
     }
 
     /***
      * 拖动阅读进度条来改变阅读位置
      */
-    fun changePageByProgress(newProgress: Double) {
+    fun changePageByProgress(newProgress: Double):Boolean {
         var targetChapter: BookChapter? = null
+        val curTextChapter = pageController.curTextChapter ?: return false
+        if (curTextChapter.totalWordCount == 0L || pageController.isCalcChapterWords) {
+            ToastUtil.show(stringResource(R.string.is_load_chapter_info))
+            return false
+        }
         for(index in 0 until allChapters.size) {
             val startProgress : Double = allChapters[index].chapterProgress.toDouble()
             val endProgress : Double = if (index < allChapters.size - 1) {
@@ -394,9 +414,11 @@ class MainReadViewModel @Inject constructor(
                 targetChapter = allChapters[index]
             }
         }
+        Logger.d("MainReadViewModel::changePageByProgress:newProgress[$newProgress],targetChapterIndex=${targetChapter?.chapterIndex}")
         targetChapter?.chapterIndex?.let { newChapterIndex ->
             pageController.changeChapter(newChapterIndex, newProgress)
         }
+        return true
     }
 
     fun chaptersDrawerOpen(open: Boolean = true) {

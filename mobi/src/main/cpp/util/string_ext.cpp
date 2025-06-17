@@ -10,7 +10,7 @@
 
 namespace fs = std::filesystem;
 
-bool startWith(const std::string& str, const std::string& prefix) {
+bool startWith(const std::string &str, const std::string &prefix) {
     if (prefix.empty()) return true;
     if (str.size() < prefix.size()) return false;
     return str.substr(0, prefix.size()) == prefix;
@@ -21,13 +21,13 @@ bool startWith(const std::string& str, const std::string& prefix) {
  * @param utf8_str
  * @return
  */
-size_t utf8Count(const std::string& utf8_str) {
+size_t utf8Count(const std::string &utf8_str) {
     try {
         return utf8::distance(utf8_str.begin(), utf8_str.end());
-    } catch(utf8::invalid_utf8& e) {
+    } catch (utf8::invalid_utf8 &e) {
         LOGE("%s:failed invalid utf8[%s], %s", __func__, utf8_str.c_str(), e.what());
         return 0;
-    } catch(utf8::not_enough_room& e) {
+    } catch (utf8::not_enough_room &e) {
         LOGE("%s:failed not enought room utf8[%s], %s", __func__, utf8_str.c_str(), e.what());
         return 0;
     }
@@ -73,9 +73,9 @@ std::string generate_uuid() {
 int toInt(std::string value) {
     try {
         return std::stoi(value);
-    } catch(const std::invalid_argument& e) {
+    } catch (const std::invalid_argument &e) {
         LOGE("%s failed, %s, invalide argument: %s", __func__, e.what(), value.c_str());
-    } catch(const std::out_of_range& e) {
+    } catch (const std::out_of_range &e) {
         LOGE("%s failed, %s, Out of range: %s", __func__, e.what(), value.c_str());
     }
     return 0;
@@ -156,4 +156,54 @@ bool endsWithIgnoreCase(std::string str, std::string suffix) {
     std::transform(str.begin(), str.end(), str.begin(), tolower);
     std::transform(suffix.begin(), suffix.end(), suffix.begin(), tolower);
     return str.compare(str.size() - suffix.size(), suffix.size(), suffix) == 0;
+}
+
+void replace_all(std::string &input, std::string &old_str, std::string &new_str) {
+    size_t pos = 0;
+    while ((pos = input.find(old_str, pos)) != std::string::npos) {
+        input.replace(pos, old_str.length(), new_str);
+        pos += new_str.length();
+    }
+}
+
+static std::regex regex(R"([\n\\sr\t\f\v]+)");
+static std::string emptyStr1 = "&nbsp;";    // //不换行空格
+static std::string emptyStr2 = "&ensp;";    //  //半角空格
+static std::string emptyStr3 = "&emsp;"; //全角空格
+
+static std::string emptyStr4 = "&thinsp;"; //窄空格
+static std::string emptyStr5 = "&zwnj;";   //零宽不连字，不打印字符，放在电子文本的两个字符之间，抑制本来会发生的连字
+//零宽连字，zero width joiner, 不打印字符，放在某些需要复杂排版语言（阿拉伯语，印地语）的两个字符之间，使得两个本不会发生连字的字符产生连字效果，
+// 零宽字符的Unicode码位是U+200D(HTML: &#8205; &zwj;)
+static std::string emptyStr6 = "&zwj";
+
+static std::string emptyStr7 = "&#x0020;"; //空格
+static std::string emptyStr8 = "&#x0009;"; //制表位
+static std::string emptyStr9 = "&#x000A;"; //换行
+
+static std::string emptyStr10 = "&#x000D;";  //回车
+static std::string emptyStr11 = "&#12288;";
+
+static std::string my_blank_str = " ";
+static std::string my_empty_str = "";
+static std::string my_joiner = "-";
+
+std::string &cleanStr(std::string &str) {
+    replace_all(str, emptyStr1, my_blank_str); //不换行空格
+    replace_all(str, emptyStr2, my_blank_str);         //半角空格
+    replace_all(str, emptyStr3, my_blank_str);         //全角空格
+
+    replace_all(str, emptyStr4, my_blank_str);       //窄空格
+    replace_all(str, emptyStr5, my_empty_str);        //零宽不连字，不打印字符，放在电子文本的两个字符之间，抑制本来会发生的连字
+    //零宽连字，zero width joiner, 不打印字符，放在某些需要复杂排版语言（阿拉伯语，印地语）的两个字符之间，使得两个本不会发生连字的字符产生连字效果，
+    // 零宽字符的Unicode码位是U+200D(HTML: &#8205; &zwj;)
+    replace_all(str, emptyStr6, my_joiner);
+    replace_all(str, emptyStr7, my_blank_str);       //空格
+    replace_all(str, emptyStr8, my_blank_str);       //制表位
+    replace_all(str, emptyStr9, my_empty_str);       //换行
+    replace_all(str, emptyStr10, my_empty_str);        //回车
+    replace_all(str, emptyStr11, my_empty_str);        //
+    str = std::regex_replace(str, regex, my_empty_str);
+    trim(str);
+    return str;
 }

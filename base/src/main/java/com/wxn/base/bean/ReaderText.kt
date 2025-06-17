@@ -60,10 +60,7 @@ data class TextCssInfo(
     var paddingRight: CssUnit = Em(0f),
     var paddingTop: CssUnit = Em(0f),
     var paddingBottom: CssUnit = Em(0f),
-) {
-
-}
-
+)
 
 @Immutable
 sealed class ReaderText {
@@ -85,9 +82,13 @@ sealed class ReaderText {
 
         val isText: Boolean
             get() {
-                val tagName = annotations.firstOrNull()?.name.orEmpty()
-                if (tagName == "h1" || tagName == "h2" || tagName == "h3" || tagName == "h4" || tagName == "h5" || tagName == "h6" || tagName == "h7" || tagName == "img") {
-                    return false
+                var ret = true
+                for (tag in annotations) {
+                    val tagName = tag.name
+                    if (tagName == "h1" || tagName == "h2" || tagName == "h3" || tagName == "h4" || tagName == "h5" || tagName == "h6" || tagName == "h7" || tagName == "img") {
+                        ret = false
+                        break
+                    }
                 }
                 return true
             }
@@ -112,17 +113,19 @@ sealed class ReaderText {
                         }
 
                         "width" -> {
-                            width = item.second.toIntOrNull() ?: 0
+                            width = ((item.second.toIntOrNull() ?: 0) * 1.5).toInt()
                         }
 
                         "height" -> {
-                            height = item.second.toIntOrNull() ?: 0
+                            height = ((item.second.toIntOrNull() ?: 0) * 1.5).toInt()
                         }
                     }
                 }
-                Logger.d("tryParseToImage:img=$src,width=$width, height=$height")
-                if (src.isNotEmpty() && width > 0 && height > 0) {
-                    return Image(src.trim(), width, height)
+                Logger.d("tryParseToImage:img=$src,width=$width, height=$height, css=${textCssInfo}")
+                if (src.isNotEmpty()) {
+                    val ret = Image(src.trim(), width, height)
+                    ret.textCssInfo = textCssInfo
+                    return ret
                 }
             }
             return null
@@ -224,7 +227,7 @@ sealed class ReaderText {
 
                         "margin" -> {
                             val datas = ruleData.value.split(" ")
-                            when(datas.size) {
+                            when (datas.size) {
                                 1 -> {
                                     val value = CssUnit.format(datas[0].trim())
                                     parsedCss.marginLeft = value
@@ -232,6 +235,7 @@ sealed class ReaderText {
                                     parsedCss.marginRight = value
                                     parsedCss.marginBottom = value
                                 }
+
                                 2 -> {
                                     val horizontalValue = CssUnit.format(datas[0].trim())
                                     val verticalValue = CssUnit.format(datas[1].trim())
@@ -240,6 +244,7 @@ sealed class ReaderText {
                                     parsedCss.marginRight = horizontalValue
                                     parsedCss.marginBottom = verticalValue
                                 }
+
                                 4 -> {
                                     val left = CssUnit.format(datas[0].trim())
                                     val top = CssUnit.format(datas[1].trim())
@@ -272,7 +277,7 @@ sealed class ReaderText {
 
                         "padding" -> {
                             val datas = ruleData.value.split(" ")
-                            when(datas.size) {
+                            when (datas.size) {
                                 1 -> {
                                     val value = CssUnit.format(datas[0].trim())
                                     parsedCss.paddingLeft = value
@@ -280,6 +285,7 @@ sealed class ReaderText {
                                     parsedCss.paddingRight = value
                                     parsedCss.paddingBottom = value
                                 }
+
                                 2 -> {
                                     val horizontalValue = CssUnit.format(datas[0].trim())
                                     val verticalValue = CssUnit.format(datas[1].trim())
@@ -288,6 +294,7 @@ sealed class ReaderText {
                                     parsedCss.paddingRight = horizontalValue
                                     parsedCss.paddingBottom = verticalValue
                                 }
+
                                 4 -> {
                                     val left = CssUnit.format(datas[0].trim())
                                     val top = CssUnit.format(datas[1].trim())
@@ -321,19 +328,23 @@ sealed class ReaderText {
                         "strong" -> {
                             parsedCss.fontWeight = CssFontWeight.FontWeightBolder
                         }
+
                         "p" -> {
                             tag.paramsPairs().forEach { kv ->
                                 if (kv.first == "align") {
-                                    when(kv.second) {
+                                    when (kv.second) {
                                         "center" -> {
                                             parsedCss.textAlign = CssTextAlign.CssTextAlignCenter
                                         }
+
                                         "left" -> {
                                             parsedCss.textAlign = CssTextAlign.CssTextAlignLeft
                                         }
+
                                         "right" -> {
                                             parsedCss.textAlign = CssTextAlign.CssTextAlignRight
                                         }
+
                                         "justify" -> {
                                             parsedCss.textAlign = CssTextAlign.CssTextAlignJustify
                                         }
@@ -341,6 +352,7 @@ sealed class ReaderText {
                                 }
                             }
                         }
+
                         "font" -> {
                             tag.paramsPairs().forEach { kv ->
                                 if (kv.first == "size") {   // <font> 标签中，size 属性 默认使用的是“相对单位”, size="1" 对应的是 12px（默认字体大小）
@@ -358,13 +370,19 @@ sealed class ReaderText {
                         }
                     }
                 }
+
+                tag.paramsPairs().forEach { kv ->
+                    if (kv.first == "width") {
+                        parsedCss
+                    }
+                }
             }
 
             this.textCssInfo = parsedCss
         }
-
-        var textCssInfo = TextCssInfo()
     }
+
+    var textCssInfo = TextCssInfo()
 
     /****
      * 分隔符

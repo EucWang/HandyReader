@@ -14,6 +14,10 @@ class CssUnit(
     fun isPercent() = (type == UnitType.Percent)
     fun isAuto() = (type == UnitType.Auto)
 
+    override fun toString(): String {
+        return if (type == UnitType.Undifined) "undefined" else if (isAuto()) "auto" else "$value$type"
+    }
+
     enum class UnitType {
         Undifined,
         Auto,
@@ -38,7 +42,7 @@ class CssUnit(
                 Em -> "em"
                 Rem -> "rem"
                 Px -> "px"
-                Percent -> "%s"
+                Percent -> "%"
                 else -> "undifined"
             }
         }
@@ -80,7 +84,9 @@ class CssUnit(
                                     (size * 1.333f).coerceIn(48f, 84f)
                                 } else if (unit == "px") {
                                     size.coerceIn(48f, 84f)
-                                } else { size }, when (unit) {
+                                } else {
+                                    size
+                                }, when (unit) {
                                     "em" -> UnitType.Em
                                     "rem" -> UnitType.Rem
                                     "px" -> UnitType.Px

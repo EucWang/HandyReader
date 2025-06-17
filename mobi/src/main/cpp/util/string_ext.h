@@ -19,6 +19,7 @@ extern "C" {
 #include "log.h"
 #include <string>
 #include "utf8.h"
+#include <regex>
 
 std::vector<std::string> split(const std::string &s, char delimiter);
 
@@ -59,5 +60,8 @@ int toInt(std::string value);
  */
 std::string replaceExtension(const std::string &filePath, const std::string &newExt);
 
+void replace_all(std::string &input, std::string &old_str, std::string &new_str);
+
+std::string& cleanStr(std::string &str);
 
 #endif //SIMPLEREADER2_STRING_EXT_H

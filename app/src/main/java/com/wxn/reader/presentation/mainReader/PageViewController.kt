@@ -45,7 +45,7 @@ open class PageViewController @Inject constructor(
 
     var inBookshelf = false
     var durPageIndex = 0
-    var targetProgress: Double = 0.0 //临时保存更改的进度，默认0.0, 不作为正常进度使用
+    var targetProgress: Double = -1.0 //临时保存更改的进度，默认0.0, 不作为正常进度使用
 
     //    var isLocalBook = true
     var callBack: PageCallback? = null
@@ -100,8 +100,10 @@ open class PageViewController @Inject constructor(
                 if (pageSize > 0) {
                     retVal += chapterPercent * (durPageIndex.toDouble() / pageSize.toDouble())
                 }
-                Logger.d("PageViewController::progression::totalWordCount=${textChapter.totalWordCount},wordCount=${textChapter.wordCount}," +
-                        "pageSize=${pageSize},durPageIndex=${durPageIndex}, retVal=${retVal}")
+                Logger.d(
+                    "PageViewController::progression::totalWordCount=${textChapter.totalWordCount},wordCount=${textChapter.wordCount}," +
+                            "pageSize=${pageSize},durPageIndex=${durPageIndex}, retVal=${retVal}"
+                )
             }
             return retVal
         }
@@ -109,6 +111,10 @@ open class PageViewController @Inject constructor(
     init {
         ChapterProvider.tryCreatePreference(context)
     }
+
+    @Volatile
+    var isCalcChapterWords = false
+    var calcWordsFlag = false   //防止内存泄漏
 
     /***
      * 初始章节加载成功/失败回调
@@ -121,7 +127,13 @@ open class PageViewController @Inject constructor(
     suspend fun calcChaptersWords(book: Book, chapters: List<BookChapter>) {
         var totalWordCount = 0L
         val chapterIndexWords = arrayListOf<Pair<Int, Long>>()
+        calcWordsFlag = true
+        isCalcChapterWords = true
+        val start = System.currentTimeMillis()
         for ((index, chapter) in chapters.withIndex()) {
+            if (!calcWordsFlag) {
+                break
+            }
             if (chapter.wordCount == 0L) {
                 var readerTexts = BookHelper.loadChapterContent(context, book, chapter, textParser)
 
@@ -157,34 +169,31 @@ open class PageViewController @Inject constructor(
         var wordCount = 0L
         if (totalWordCount > 0) {
             book.wordCount = totalWordCount
-            for(item in chapterIndexWords) {
-                val progress =  wordCount.toFloat() / totalWordCount
+            for (item in chapterIndexWords) {
+                val progress = wordCount.toFloat() / totalWordCount
                 val count = item.second
                 updateChapterWordCountUserCase.invoke(book.id, item.first, count, progress)
                 wordCount += count
 
                 //更新当前加载了的章节的信息
                 if (curTextChapter?.position == item.first) {
-                    curTextChapter?.apply {
-                        wordCount = count
-                        chapterProgress = progress
-                    }
+                    curTextChapter?.wordCount = count
+                    curTextChapter?.chapterProgress = progress
+                    curTextChapter?.totalWordCount = totalWordCount
                 } else if (prevTextChapter?.position == item.first) {
-                    prevTextChapter?.apply {
-                        wordCount = count
-                        chapterProgress = progress
-                    }
+                    prevTextChapter?.wordCount = count
+                    prevTextChapter?.chapterProgress = progress
+                    prevTextChapter?.totalWordCount = totalWordCount
                 } else if (nextTextChapter?.position == item.first) {
-                    nextTextChapter?.apply {
-                        wordCount = count
-                        chapterProgress = progress
-                    }
+                    nextTextChapter?.wordCount = count
+                    nextTextChapter?.chapterProgress = progress
+                    nextTextChapter?.totalWordCount = totalWordCount
                 }
-
             }
             updateBookUseCase.invoke(book)
         }
-        Logger.d("PageViewController::calcChapterWords:totalWordCount=${totalWordCount}")
+        isCalcChapterWords = false
+        Logger.d("PageViewController::calcChapterWords:totalWordCount=${totalWordCount}, spend=${System.currentTimeMillis() - start}")
     }
 
     suspend fun resetBook(book: Book, initChapterLoadListener: ((Boolean) -> Unit)) {
@@ -224,13 +233,22 @@ open class PageViewController @Inject constructor(
         }
     }
 
-    override fun changeChapter(newChapterIndex: Int, newProgress: Double) {
-        durChapterIndex = newChapterIndex
-        durPageIndex = 0
-        if (newProgress > 0.0) {
+    override fun changeChapter(newChapterIndex: Int, newProgress: Double): Boolean {
+        if (durChapterIndex != newChapterIndex) {
+            durChapterIndex = newChapterIndex
+            durPageIndex = 0
+        }
+        if (newProgress >= 0.0) {
+            val curChapter = curTextChapter ?: return false
+            if (curChapter.totalWordCount == 0L || curChapter.wordCount == 0L) {
+                Logger.e("PageViewController::changeChapter failed, no word count info")
+                return false
+            }
+
             targetProgress = newProgress
         }
         loadContent(true)
+        return true
     }
 
     override fun findLinkContent(href: String): String? {
@@ -366,23 +384,26 @@ open class PageViewController @Inject constructor(
             textChapter?.totalWordCount = curBook.wordCount
             textChapter?.chapterProgress = chapter.chapterProgress
 
-
+            var needOnPageChange = (targetProgress < 0.0)
 
             when (chapter.chapterIndex) {
                 durChapterIndex -> {    //加载的是当前章节
                     curTextChapter = textChapter
 
-                    if (targetProgress > 0.0 && curBook.wordCount > 0 && targetProgress >= chapter.chapterProgress) { //修改切换之后的显示章节的第几页
+                    if (targetProgress >= 0.0 && curBook.wordCount > 0 && targetProgress >= chapter.chapterProgress) { //修改切换之后的显示章节的第几页
                         val inChapterProgress = targetProgress - chapter.chapterProgress
-                        val inChapterPercent = chapter.wordCount / curBook.wordCount
-                        val pageIndex = ((inChapterProgress / inChapterPercent) * (textChapter?.pageSize?.toDouble()?:0.0)).roundToInt()
-                        Logger.d("PageViewController::inChapterProgress=${inChapterProgress},inChapterPercent=${inChapterPercent}, pageIndex =${pageIndex}")
-                        if (pageIndex in 0 until (textChapter?.pageSize?:0)) {
+                        val inChapterPercent = chapter.wordCount.toDouble() / curBook.wordCount.toDouble()
+                        val chapterPageSize = textChapter?.pageSize ?: 0
+
+                        Logger.d("PageViewController::inChapterProgress=${inChapterProgress},inChapterPercent=${inChapterPercent}, pageSize=${chapterPageSize} durPageIndex=$durPageIndex,targetProgress=$targetProgress")
+                        val pageIndex = ((inChapterProgress / inChapterPercent) * (chapterPageSize.toDouble() ?: 0.0)).roundToInt()
+                        if (pageIndex in 0 until (textChapter?.pageSize ?: 0)) {
                             durPageIndex = pageIndex
                         }
-                        targetProgress = 0.0
+                        Logger.d("PageViewController::pageIndex =${pageIndex}, durPageIndex=$durPageIndex, wordCount=${curTextChapter?.wordCount},totalWordCount=${curTextChapter?.totalWordCount}")
+                        targetProgress = -1.0
+                        needOnPageChange = true
                     }
-
 
                     if (upContent) {
                         callBack?.upContent(resetPageOffset = resetPageOffset)
@@ -393,7 +414,6 @@ open class PageViewController @Inject constructor(
                         onInitChapterLoadListener?.invoke(true)
                         onInitChapterLoadListener = null
                     }
-
                 }
 
                 durChapterIndex - 1 -> { //加载的是上一章节
@@ -411,8 +431,10 @@ open class PageViewController @Inject constructor(
                 }
             }
 
-            Logger.e("PageViewController::loadContent success onPageChange::${durChapterIndex}")
-            clickListener?.onPageChange()
+            if (needOnPageChange) {
+                Logger.e("PageViewController::loadContent success onPageChange::${durChapterIndex}")
+                clickListener?.onPageChange()
+            }
         }
     }
 
@@ -551,6 +573,7 @@ open class PageViewController @Inject constructor(
 
     fun clear() {
         book = null
+        calcWordsFlag = false
         callBack = null
         prevTextChapter = null
         curTextChapter = null
@@ -565,6 +588,7 @@ open class PageViewController @Inject constructor(
         autoPageProgress = 0
         pageFactory = null
         isScroll = false
+        isCalcChapterWords = false
         Logger.i("PageViewController:clear()")
     }
 }

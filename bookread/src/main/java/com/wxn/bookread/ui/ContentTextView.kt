@@ -196,6 +196,7 @@ class ContentTextView(context: Context, attrs: AttributeSet?) : View(context, at
         val lineBottom = textLine.lineBottom + relativeOffset
 
         if (textLine.isImage) {
+            Logger.d("ContentTextView::drawLine:drawImage:lineTop=${lineTop}, lineBottom=${lineBottom}")
             drawImage(canvas, textLine, lineTop, lineBottom) //绘制图片
         } else {
             drawChars(
@@ -320,6 +321,7 @@ class ContentTextView(context: Context, attrs: AttributeSet?) : View(context, at
         textLine.textChars.forEach { textChar ->
             callback?.book?.let { book ->
                 val rectF = RectF(textChar.start, lineTop, textChar.end, lineBottom)
+//                Logger.d("ContentTextView::drawImage:rect=[${rectF.left},${rectF.top},${rectF.right},${rectF.bottom},height=${rectF.height()},width=${rectF.width()}]")
                 ImageProvider.getImage(context, book, textChar.charData, true)?.let { bmp ->
                     canvas.drawBitmap(bmp, null, rectF, null)
                 }

@@ -252,5 +252,6 @@
     <string name="remove_books_from_shelf_success">Books removed from shelf successfully</string>
     <string name="remove_books_from_shelf_fail">Failed to remove books from shelf %1$s</string>
     <string name="loading">Loading...</string>
+    <string name="is_load_chapter_info">It\'s currently parsing the book information. Please wait and try again.</string>
 
 </resources>

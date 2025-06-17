@@ -9,6 +9,7 @@ import android.os.Build
 import android.text.Layout
 import android.text.StaticLayout
 import android.text.TextPaint
+import androidx.compose.ui.text.style.TextAlign
 import com.wxn.base.bean.BookChapter
 import com.wxn.base.bean.CssFontStyle
 import com.wxn.base.bean.CssFontWeight
@@ -426,26 +427,39 @@ object ChapterProvider {
             when (paragraph) {
                 is ReaderText.Image -> {
                     val image = paragraph
+
+                    val imgStyle = if ((isOneElePage || image.textCssInfo.textAlign == CssTextAlign.CssTextAlignJustify) && (image.width >= 450 || image.height >= 450)) {
+                        "FULL"
+                    } else {
+                        imageStyles
+                    }
+
                     offsetY = setTypeImage(
                         image.path,
                         image.width,
                         image.height,
                         offsetY,
                         textPages,
-                        imageStyles
+                        imgStyle
                     )
                 }
 
                 is ReaderText.Text -> {
                     val image = paragraph.tryParseToImage()
                     offsetY = if (image != null) {
+                        val imgStyle = if ((isOneElePage || image.textCssInfo.textAlign == CssTextAlign.CssTextAlignJustify) && (image.width >= 450 || image.height >= 450)) {
+                            "FULL"
+                        } else {
+                            imageStyles
+                        }
+
                         setTypeImage(
                             image.path,
                             image.width,
                             image.height,
                             offsetY,
                             textPages,
-                            imageStyles
+                            imgStyle
                         )
                     } else {
                         val title = paragraph.tryParseToChapter(chapter.chapterIndex)
@@ -515,33 +529,41 @@ object ChapterProvider {
             return offsetY
         }
 
+        val imgVerticalMargin = contentPaint.textHeight * 1.2f
         var width = 0
         var height = 0
         var originWidth = imgWidth  //图片的实际宽高
         var originHeight = imgHeight
-        if (imgWidth <= 0 || imgHeight <= 0) {
-            val options: BitmapFactory.Options = BitmapFactory.Options()
-            options.inJustDecodeBounds = true; // 不加载图片像素，只获取宽高
-            options.inSampleSize = 2
-            BitmapFactory.decodeFile(imgSrc, options)
-            originWidth = options.outWidth
-            originHeight = options.outHeight
+        val options: BitmapFactory.Options = BitmapFactory.Options()
+        options.inJustDecodeBounds = true // 不加载图片像素，只获取宽高
+        options.inSampleSize = 2
+        BitmapFactory.decodeFile(imgSrc, options)
+        val bmpOriginWidth = options.outWidth
+        val bmpOriginHeight = options.outHeight
+        if (originWidth < bmpOriginWidth || originHeight < bmpOriginHeight) {
+            originWidth = bmpOriginWidth
+            originHeight = bmpOriginHeight
         }
 
-        if (durY > visibleHeight) { // //当前可显示便宜位置超过了可视高度
+        if (durY > visibleHeight || durY + originHeight + 2 * imgVerticalMargin > visibleHeight) { // //当前可显示便宜位置超过了可视高度
             textPages.last().height = durY    //修改上一页的高度
             textPages.add(TextPage())                   //增加新一页
             durY = 0f                                  //修改当前页的距离顶部的偏移量
         }
 
-        width = imgWidth
-        height = imgHeight
+        var usableHeight = (visibleHeight - durY).toInt()   //图片显示可用高度
+        width = originWidth
+        height = originHeight
 
         //页面宽高和图片宽高的适配
         when (imageStyles.uppercase()) {
             "FULL" -> {                                         //占满宽度
                 width = visibleWidth
                 height = originHeight * width / originWidth
+                if (height > usableHeight) {
+                    height = usableHeight
+                    width = (usableHeight / originHeight) * originWidth
+                }
             }
 
             else -> {                                           //适配
@@ -550,21 +572,40 @@ object ChapterProvider {
                     width = visibleWidth
                 }
 
-                if (height > visibleHeight) {
-                    width = width * visibleHeight / height
-                    height = visibleHeight
+                if (height > usableHeight) {
+                    width = width * usableHeight / height
+                    height = usableHeight
                 }
 
-                if (durY + height > visibleHeight) { //当前页显示不下了，则创建新页用于显示图片
+                if (durY + height + 2 * imgVerticalMargin > usableHeight) { //当前页显示不下了，则创建新页用于显示图片
                     textPages.last().height = durY
                     textPages.add(TextPage())
                     durY = 0f
+
+                    usableHeight = (visibleHeight - 2 * imgVerticalMargin).toInt()  //可用高度重新计算
+                    if (originWidth > visibleWidth) {                               //重新计算显示宽高
+                        height = originHeight * visibleWidth / originWidth
+                        width = visibleWidth
+                    }
+
+                    if (height > usableHeight) {
+                        width = width * usableHeight / height
+                        height = usableHeight
+                    }
                 }
             }
         }
+        Logger.d("ChapterProvider::setTypeImage::imageStyles=${imageStyles},calc original[width=${originWidth},height=${originHeight}] [width=$width,height=$height], [visibleWidth=$visibleWidth,visibleHeight=$visibleHeight]")
 
         //构建用于显示Image的TextLine
         val textLine = TextLine(isImage = true)
+        if (imageStyles == "FULL" && usableHeight > height) {
+            val adjustHeight = (usableHeight - height) / 2f
+            durY += adjustHeight
+        } else {
+            durY += imgVerticalMargin  //加上一行的间距，作为和文字的间隔, 防止重叠
+        }
+
         textLine.lineTop = durY     //图片的顶部
         durY += height
         textLine.lineBottom = durY  //图片的底部
@@ -578,6 +619,7 @@ object ChapterProvider {
         } else {
             Pair(paddingLeft.toFloat(), (paddingLeft + width).toFloat())
         }
+        Logger.d("ChapterProvider::setTypeImage::lineTop=${textLine.lineTop},lineBottom=${textLine.lineBottom},start=${start},end=${end}")
 
         textLine.textChars.add(
             TextChar(
@@ -589,7 +631,7 @@ object ChapterProvider {
         )
         textPages.last().textLines.add(textLine)
 
-        return durY + (paragraphSpacing / 10f)
+        return durY + imgVerticalMargin
     }
 
     private suspend fun setTypeText(
