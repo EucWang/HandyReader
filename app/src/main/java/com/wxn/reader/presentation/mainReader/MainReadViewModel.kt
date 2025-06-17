@@ -311,7 +311,7 @@ class MainReadViewModel @Inject constructor(
     private suspend fun loadChapterWords(book: Book) {
         viewModelScope.launchIO {
             delay(3000)
-            pageController.calcChaptersWords(book, allChapters)
+            pageController.calcChaptersWords(book)
         }
     }
 

@@ -360,4 +360,8 @@ class EpubTextParser @Inject constructor(
     override suspend fun parseCss(bookId: Long,cachedFile: CachedFile,  cssNames: List<String>): List<CssInfo> {
         return emptyList()
     }
+
+    override suspend fun getWordCount(bookId:Long, cachedFile: CachedFile): List<Pair<Int, Int>> {
+        return emptyList()
+    }
 }

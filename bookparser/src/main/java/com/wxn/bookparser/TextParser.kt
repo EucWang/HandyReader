@@ -28,4 +28,6 @@ interface TextParser {
     suspend fun parsedChapterData(bookId: Long, cachedFile: CachedFile, chapter: BookChapter) : List<ReaderText>
 
     suspend fun parseCss(bookId: Long, cachedFile: CachedFile, cssNames: List<String>): List<CssInfo>
+
+    suspend fun getWordCount(bookId:Long, cachedFile: CachedFile): List<Pair<Int, Int>>
 }

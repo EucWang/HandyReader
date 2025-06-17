@@ -8,6 +8,7 @@ import com.wxn.base.bean.ReaderText
 import com.wxn.mobi.data.model.FileCrc
 import com.wxn.mobi.data.model.MobiInfo
 import com.wxn.mobi.inative.NativeLib
+import com.wxn.mobi.inative.NativeLib.getWordCount
 
 object MobiParser {
 
@@ -45,6 +46,12 @@ object MobiParser {
         return retVal?.toList().orEmpty()
     }
 
+    fun getMobiWordCount(context: Context, bookId: Long, path:String) {
+        Log.d("MobiParser", "getMobiWordCount:path=$path,bookId=$bookId")
+//        val retVal :List<Pair<Int, Int>> =
+            NativeLib.getWordCount(bookId, path)
+    }
+
 //    fun toEpub(context: Context, path: String): String? {
 //        Log.d("MobiParser", "toEpub:path=$path")
 //        val epubPath: String? = NativeLib.convertToEpub(context, path)
@@ -52,3 +59,4 @@ object MobiParser {
 //        return epubPath
 //    }
 }
+

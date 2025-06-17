@@ -27,4 +27,7 @@ object NativeLib {
     external fun getChapter(context: Context, path: String, chapter: BookChapter): Array<ReaderText>
 
     external fun getCssInfo(context: Context, book_id: Long, cssNames: Array<String>): Array<CssInfo>?
+
+
+    external fun NativeLib.getWordCount(bookId: Long, path: String)// : List<Pair<Int,Int>>
 }

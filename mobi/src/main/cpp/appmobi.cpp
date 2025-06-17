@@ -540,3 +540,14 @@ Java_com_wxn_mobi_inative_NativeLib_getCssInfo(JNIEnv *env, jobject thiz, jobjec
 
     return result;
 }
+extern "C"
+JNIEXPORT void JNICALL
+Java_com_wxn_mobi_inative_NativeLib_getWordCount(JNIEnv *env, jobject thiz, jobject _receiver, jlong bookId, jstring path) {
+    const char *nativeStr = env->GetStringUTFChars(path, NULL);
+    create_mobi_util(bookId, nativeStr);
+
+    std::vector<std::pair<int, int>> wordCount;
+    mobiutil->getWordCount(env, wordCount);
+
+    env->ReleaseStringUTFChars(path, nativeStr);
+}

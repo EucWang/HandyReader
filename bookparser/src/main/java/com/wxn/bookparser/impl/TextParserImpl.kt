@@ -238,4 +238,53 @@ class TextParserImpl @Inject constructor(
         }
     }
 
+    override suspend fun getWordCount(bookId:Long, cachedFile: CachedFile): List<Pair<Int, Int>> {
+        if (!cachedFile.canAccess()) {
+            Log.e(TEXT_PARSER, "File does not exist or no read access is granted.")
+            return emptyList()
+        }
+
+        val fileFormat = cachedFile.extension
+        Logger.d("TextParserImpl:parse:fileFormat=$fileFormat")
+        return withContext(Dispatchers.IO) {
+            when (fileFormat) {
+                "pdf" -> {
+                    pdfTextParser.getWordCount(bookId, cachedFile)
+                }
+
+                "epub" -> {
+                    epubTextParser.getWordCount(bookId, cachedFile)
+                }
+
+                in listOf("mobi", "azw3") -> {
+                    mobiTextParser.getWordCount(bookId, cachedFile)
+                }
+
+                "txt" -> {
+                    txtTextParser.getWordCount(bookId, cachedFile)
+                }
+
+                "fb2" -> {
+                    xmlTextParser.getWordCount(bookId, cachedFile)
+                }
+
+                "html" -> {
+                    htmlTextParser.getWordCount(bookId, cachedFile)
+                }
+
+                "htm" -> {
+                    htmlTextParser.getWordCount(bookId, cachedFile)
+                }
+
+                "md" -> {
+                    htmlTextParser.getWordCount(bookId, cachedFile)
+                }
+
+                else -> {
+                    Log.e(TEXT_PARSER, "Wrong file format, could not find supported extension.")
+                    emptyList()
+                }
+            }
+        }
+    }
 }

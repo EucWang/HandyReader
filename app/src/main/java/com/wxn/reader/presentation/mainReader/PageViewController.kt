@@ -124,74 +124,76 @@ open class PageViewController @Inject constructor(
     /****
      * 计算每一章节的字数，已经进度，便于计算用户阅读进度
      */
-    suspend fun calcChaptersWords(book: Book, chapters: List<BookChapter>) {
+    suspend fun calcChaptersWords(book: Book) {
+
         var totalWordCount = 0L
         val chapterIndexWords = arrayListOf<Pair<Int, Long>>()
         calcWordsFlag = true
         isCalcChapterWords = true
         val start = System.currentTimeMillis()
-        for ((index, chapter) in chapters.withIndex()) {
-            if (!calcWordsFlag) {
-                break
-            }
-            if (chapter.wordCount == 0L) {
-                var readerTexts = BookHelper.loadChapterContent(context, book, chapter, textParser)
-
-//                Logger.i("PageViewController:calcChaptersWords:loadContent:index=$index, contents.size=${readerTexts.size}")
-
-                val tags = hashMapOf<Int, List<TextTag>>()  //章节全部标签信息
-                readerTexts.forEachIndexed { index, content ->
-                    if (content is ReaderText.Text) {
-                        if (content.annotations.isNotEmpty()) {
-                            tags[index] = content.annotations
-                        }
-                    }
-                }
-                val cssInfos = BookHelper.loadChpaterCsses(context, book, tags, textParser)      //章节全部的css信息
-
-                readerTexts = BookHelper.disposeContent(appPreferencesUtil, chapter, readerTexts, cssInfos)
-
-                var wordCount = 0L
-                for (content in readerTexts) {
-                    if (content is ReaderText.Text) {
-                        wordCount += content.line.length
-                    }
-                }
-                Logger.d("PageViewController::calcChapterWords:index=$index,wordCount=$wordCount")
-                totalWordCount += wordCount
-                chapterIndexWords.add(Pair(chapter.chapterIndex, wordCount))
-            } else {
-                val count = chapter.wordCount
-                totalWordCount += count
-                chapterIndexWords.add(Pair(chapter.chapterIndex, count))
-            }
-        }
-        var wordCount = 0L
-        if (totalWordCount > 0) {
-            book.wordCount = totalWordCount
-            for (item in chapterIndexWords) {
-                val progress = wordCount.toFloat() / totalWordCount
-                val count = item.second
-                updateChapterWordCountUserCase.invoke(book.id, item.first, count, progress)
-                wordCount += count
-
-                //更新当前加载了的章节的信息
-                if (curTextChapter?.position == item.first) {
-                    curTextChapter?.wordCount = count
-                    curTextChapter?.chapterProgress = progress
-                    curTextChapter?.totalWordCount = totalWordCount
-                } else if (prevTextChapter?.position == item.first) {
-                    prevTextChapter?.wordCount = count
-                    prevTextChapter?.chapterProgress = progress
-                    prevTextChapter?.totalWordCount = totalWordCount
-                } else if (nextTextChapter?.position == item.first) {
-                    nextTextChapter?.wordCount = count
-                    nextTextChapter?.chapterProgress = progress
-                    nextTextChapter?.totalWordCount = totalWordCount
-                }
-            }
-            updateBookUseCase.invoke(book)
-        }
+        BookHelper.loadWordCount(context, book, textParser)
+//        for ((index, chapter) in chapters.withIndex()) {
+//            if (!calcWordsFlag) {
+//                break
+//            }
+//            if (chapter.wordCount == 0L) {
+//                var readerTexts = BookHelper.loadChapterContent(context, book, chapter, textParser)
+//
+////                Logger.i("PageViewController:calcChaptersWords:loadContent:index=$index, contents.size=${readerTexts.size}")
+//
+////                val tags = hashMapOf<Int, List<TextTag>>()  //章节全部标签信息
+////                readerTexts.forEachIndexed { index, content ->
+////                    if (content is ReaderText.Text) {
+////                        if (content.annotations.isNotEmpty()) {
+////                            tags[index] = content.annotations
+////                        }
+////                    }
+////                }
+////                val cssInfos = BookHelper.loadChpaterCsses(context, book, tags, textParser)      //章节全部的css信息
+////
+////                readerTexts = BookHelper.disposeContent(appPreferencesUtil, chapter, readerTexts, cssInfos)
+//
+//                var wordCount = 0L
+//                for (content in readerTexts) {
+//                    if (content is ReaderText.Text) {
+//                        wordCount += content.line.length
+//                    }
+//                }
+//                Logger.d("PageViewController::calcChapterWords:index=$index,wordCount=$wordCount")
+//                totalWordCount += wordCount
+//                chapterIndexWords.add(Pair(chapter.chapterIndex, wordCount))
+//            } else {
+//                val count = chapter.wordCount
+//                totalWordCount += count
+//                chapterIndexWords.add(Pair(chapter.chapterIndex, count))
+//            }
+//        }
+//        var wordCount = 0L
+//        if (totalWordCount > 0) {
+//            book.wordCount = totalWordCount
+//            for (item in chapterIndexWords) {
+//                val progress = wordCount.toFloat() / totalWordCount
+//                val count = item.second
+//                updateChapterWordCountUserCase.invoke(book.id, item.first, count, progress)
+//                wordCount += count
+//
+//                //更新当前加载了的章节的信息
+//                if (curTextChapter?.position == item.first) {
+//                    curTextChapter?.wordCount = count
+//                    curTextChapter?.chapterProgress = progress
+//                    curTextChapter?.totalWordCount = totalWordCount
+//                } else if (prevTextChapter?.position == item.first) {
+//                    prevTextChapter?.wordCount = count
+//                    prevTextChapter?.chapterProgress = progress
+//                    prevTextChapter?.totalWordCount = totalWordCount
+//                } else if (nextTextChapter?.position == item.first) {
+//                    nextTextChapter?.wordCount = count
+//                    nextTextChapter?.chapterProgress = progress
+//                    nextTextChapter?.totalWordCount = totalWordCount
+//                }
+//            }
+//            updateBookUseCase.invoke(book)
+//        }
         isCalcChapterWords = false
         Logger.d("PageViewController::calcChapterWords:totalWordCount=${totalWordCount}, spend=${System.currentTimeMillis() - start}")
     }
