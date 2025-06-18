@@ -20,6 +20,7 @@ public:
      * @return 获取系统API版本
      */
     static int getVersion();
+
 };
 
 

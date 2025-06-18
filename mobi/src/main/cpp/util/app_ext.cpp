@@ -17,3 +17,4 @@ int app_ext::getVersion() {
     int sdk_version = atoi(sdk);
     return sdk_version;
 }
+

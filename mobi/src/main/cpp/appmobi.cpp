@@ -186,7 +186,7 @@ Java_com_wxn_mobi_inative_NativeLib_loadMobi(
         return nullptr;
     }
 
-    jclass infoClazz = env->FindClass("com/wxn/mobi/data/model/MobiInfo");
+    jclass infoClazz = env->FindClass("com/wxn/mobi/data/model/MetaInfo");
     jmethodID constructor = env->GetMethodID(infoClazz, "<init>",
                                              "(Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;" \
                                           "Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;" \
@@ -312,7 +312,7 @@ Java_com_wxn_mobi_inative_NativeLib_loadEpub(
         return nullptr;
     }
 
-    jclass infoClazz = env->FindClass("com/wxn/mobi/data/model/MobiInfo");
+    jclass infoClazz = env->FindClass("com/wxn/mobi/data/model/MetaInfo");
     jmethodID constructor = env->GetMethodID(infoClazz, "<init>",
                                              "(Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;" \
                                           "Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;" \

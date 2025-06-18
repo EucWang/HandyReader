@@ -6,7 +6,7 @@ import com.wxn.base.bean.CssInfo
 import com.wxn.base.bean.ReaderText
 import com.wxn.mobi.data.model.CountPair
 import com.wxn.mobi.data.model.FileCrc
-import com.wxn.mobi.data.model.MobiInfo
+import com.wxn.mobi.data.model.MetaInfo
 
 object NativeLib {
 
@@ -16,9 +16,9 @@ object NativeLib {
 
     external fun nativeFilesCrc(paths: Array<String>): Array<FileCrc>?
 
-    external fun loadMobi(context: Context, path: String): MobiInfo? // Array<String>?
+    external fun loadMobi(context: Context, path: String): MetaInfo? // Array<String>?
 
-    external fun loadEpub(context: Context, path: String): MobiInfo? // Array<String>?
+    external fun loadEpub(context: Context, path: String): MetaInfo? // Array<String>?
 
 //    external fun convertToEpub(context: Context, path: String): String?
 

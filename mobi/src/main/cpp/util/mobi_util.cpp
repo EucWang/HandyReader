@@ -4,120 +4,6 @@
 
 #include "mobi_util.h"
 
-std::string getEleText(const tinyxml2::XMLElement *elem) {
-    const char *elemText = elem->GetText();
-    std::string text;
-    if (elemText != nullptr && utf8Count(elemText) > 0) {
-        text = elemText;
-    }
-    return text;
-}
-
-std::string getEleAttr(const tinyxml2::XMLElement *elem, const char *attr_name) {
-    const char *attr = elem->Attribute(attr_name);
-    std::string attr_value;
-    if (attr != nullptr && strlen(attr) > 0) {
-        attr_value = attr;
-    }
-    return attr_value;
-}
-
-std::string getEleAttr(tinyxml2::XMLElement *elem, const char *attr_name) {
-    const char *attr = elem->Attribute(attr_name);
-    std::string attr_value;
-    if (attr != nullptr && strlen(attr) > 0) {
-        attr_value = attr;
-    }
-    return attr_value;
-}
-
-/***
- * 根据id查找节点, 返回body的子节点，该节点的有id属性，或者其子节点有id属性
- * @param elem
- * @param id
- * @return
- */
-tinyxml2::XMLElement *findEleById(tinyxml2::XMLElement *elem, const char *id) {
-    auto start_time = std::chrono::high_resolution_clock::now();
-    tinyxml2::XMLElement *item = nullptr;
-    item = elem;
-    std::stack<tinyxml2::XMLElement *> stack;
-    bool flag = true;
-    tinyxml2::XMLElement *target = nullptr;
-    while (flag && item != nullptr) {
-        std::string itemId = getEleAttr(item, "id");
-        if (itemId == std::string(id)) {
-            target = item;
-            break;
-        }
-
-        //优先遍历子节点
-        int childCount = item->ChildElementCount();
-        if (childCount > 0) {
-            stack.push(item);
-            auto child = item->FirstChildElement();
-            if (child != nullptr) {
-                item = child;
-            }
-            continue;
-        }
-        //没有子节点，则遍历兄弟节点
-        tinyxml2::XMLElement *bro = item->NextSiblingElement();
-        if (bro != nullptr) {
-            item = bro;
-            continue;
-        }
-
-        //没有兄弟节点了，则这一层已经遍历完，从stack中弹出上一层的没有遍历完的节点，得到该节点的兄弟节点
-        bro = nullptr;
-        while (true) {
-            if (stack.empty()) {//栈空，退出总循环
-                flag = false;
-                break;
-            }
-            tinyxml2::XMLElement *&top = stack.top();
-            if (top == nullptr) { //stack空，退出循环
-                flag = false;
-                break;
-            }
-            stack.pop();
-            bro = top->NextSiblingElement();    //，得到该节点的兄弟节点
-            if (bro != nullptr) {   //该兄弟节点不为空，继续外层循环， 为空，则继续从栈顶拿结点
-                break;
-            }
-        }
-        if (flag && bro != nullptr) {
-            item = bro;
-        }
-    }
-    if (target == nullptr) {
-        return nullptr;
-    }
-    tinyxml2::XMLElement *child = target;
-    while (child != nullptr) {
-        auto parent = child->Parent();
-        if (parent == nullptr) {
-            break;
-        }
-        auto parentItem = parent->ToElement();
-        if (parentItem == nullptr) {
-            break;
-        }
-        std::string parentName = parentItem->Name();
-        if (parentName != "body") {
-            child = parentItem;
-            continue;
-        }
-        target = child;
-        break;
-    }
-    auto end_time = std::chrono::high_resolution_clock::now();
-    //输出结果统计信息(性能分析)
-    auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(end_time - start_time).count();
-    LOGD("%s: duration = %lld ms", __func__, duration);
-    return target;
-}
-
 void mobi_util::mobi_data_free() {
     if (mobi_rawml != nullptr) {
         mobi_free_rawml(mobi_rawml);
@@ -1460,7 +1346,7 @@ int mobi_util::getCss(std::vector<std::string> &cssClasses, std::vector<CssInfo>
         }
 
         if (rawCss == nullptr || rawCssSize <= 0) {
-            LOGE("%s failed, rawCss is null or rawCssSize is %d", __func__, rawCssSize);
+            LOGE("%s failed, rawCss is null or rawCssSize is %zu", __func__, rawCssSize);
             return 0;
         }
 //        LOGD("%s:rawCssSize=%d", __func__, rawCssSize);
@@ -1587,7 +1473,7 @@ int mobi_util::getChapter(JNIEnv *env, long book_id, const char *path, NavPoint 
     if (anchorId.empty()) {
         flagAdd = 1;
     } else {
-        auto ele = findEleById(firstElem, anchorId.c_str());
+        auto ele = xml_ext::findEleById(firstElem, anchorId.c_str());
         if (ele != nullptr) {
             firstElem = ele;
         }
@@ -1733,7 +1619,7 @@ int32_t mobi_util::getWordCount(std::vector<std::pair<int32_t, int32_t>> &wordCo
             if (anchorId.empty()) {
                 flagAdd = 1;
             } else {
-                auto ele = findEleById(firstElem, anchorId.c_str());
+                auto ele = xml_ext::findEleById(firstElem, anchorId.c_str());
                 if (ele != nullptr) {
                     firstElem = ele;
                 }
@@ -1745,7 +1631,7 @@ int32_t mobi_util::getWordCount(std::vector<std::pair<int32_t, int32_t>> &wordCo
             }
             wordCounts.emplace_back(chapter.playOrder, wordCount);
             total += wordCount;
-            LOGD("%s: chapter.playOrder[%d], count[%ld]", __func__, chapter.playOrder, wordCount);
+            LOGD("%s: chapter.playOrder[%d], count[%d]", __func__, chapter.playOrder, wordCount);
         }
     } else {
         std::vector<std::string> anchors;
@@ -1889,7 +1775,7 @@ int mobi_util::countHtmlDoc2(
         if (*chapterIndex > anchors.size()) {
             break;
         }
-        std::string aid = getEleAttr(elem, "id");
+        std::string aid = xml_ext::getEleAttr(elem, "id");
         if (*chapterIndex < anchors.size() - 1) {
             if (aid == anchors[(*chapterIndex) + 1]) { //找到了下一个锚点，
                 size_t words = *chapterWordCount;
@@ -1923,7 +1809,7 @@ int mobi_util::countHtmlDoc2(
                 }
             }
         } else if (name == "h1" || name == "h2" || name == "h3" || name == "h4" || name == "h5" || name == "h6" || name == "h7") {
-            std::string eleText = getEleText(elem);
+            std::string eleText = xml_ext::getEleText(elem);
             if (!eleText.empty()) {
                 cleanStr(eleText);
                 *chapterWordCount += utf8Count(eleText);
@@ -1932,7 +1818,7 @@ int mobi_util::countHtmlDoc2(
                 *chapterWordCount += count;
             }
         } else if (name == "strong" || name == "em" || name == "b" || name == "i") {
-            std::string eleText = getEleText(elem);
+            std::string eleText = xml_ext::getEleText(elem);
             if (!eleText.empty()) {
                 cleanStr(eleText);
                 *chapterWordCount += utf8Count(eleText);
@@ -2070,7 +1956,7 @@ int mobi_util::countHtmlDoc(tinyxml2::XMLElement *element,
                 }
             }
         } else if (name == "a") {
-            std::string aid = getEleAttr(elem, "id");
+            std::string aid = xml_ext::getEleAttr(elem, "id");
             if (0 == *flagAdd && !startAnchorId.empty() && startAnchorId == aid) {
                 *flagAdd = 1;
             } else if (1 == *flagAdd && !endAnchorId.empty() && endAnchorId == aid) {
@@ -2110,7 +1996,7 @@ mobi_util::countParagraph(const tinyxml2::XMLElement *pElem,
             }
         } else if (child->ToElement()) {
             auto elem = child->ToElement();
-            std::string aid = getEleAttr(elem, "id");
+            std::string aid = xml_ext::getEleAttr(elem, "id");
             if (*chapterIndex < anchors.size() - 1) {
                 if (aid == anchors[(*chapterIndex) + 1]) { //找到了下一个锚点，
                     size_t words = *chapterWordCount;
@@ -2141,7 +2027,7 @@ mobi_util::countElement(const tinyxml2::XMLElement *elem,
             fullText += text;
         } else if (child->ToElement()) {
             auto item = child->ToElement();
-            std::string aId = getEleAttr(item, "id");
+            std::string aId = xml_ext::getEleAttr(item, "id");
             if (*chapterIndex < anchors.size() - 1) {
                 if (aId == anchors[(*chapterIndex) + 1]) { //找到了下一个锚点，
                     size_t words = *chapterWordCount;

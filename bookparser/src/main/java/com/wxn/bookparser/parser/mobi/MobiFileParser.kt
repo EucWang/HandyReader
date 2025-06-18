@@ -10,7 +10,7 @@ import com.wxn.bookparser.domain.book.BookWithCover
 import com.wxn.bookparser.domain.file.CachedFile
 import com.wxn.bookparser.exts.rawFile
 import com.wxn.mobi.MobiParser
-import com.wxn.mobi.data.model.MobiInfo
+import com.wxn.mobi.data.model.MetaInfo
 import java.io.File
 import javax.inject.Inject
 
@@ -191,17 +191,17 @@ class MobiFileParser @Inject constructor(val context: Context) : FileParser {
         }
         val path = rawFile.absolutePath
 
-        val mobiInfo: MobiInfo = MobiParser.getMobiInfo(context, path) ?: return null
+        val metaInfo: MetaInfo = MobiParser.getMobiInfo(context, path) ?: return null
 
         return BookWithCover(
             Book(
-                title = mobiInfo.title ?: title ?: "",
-                author = mobiInfo.author.orEmpty(),
+                title = metaInfo.title ?: title ?: "",
+                author = metaInfo.author.orEmpty(),
 
-                publisher = mobiInfo.publisher.orEmpty(),
-                description = mobiInfo.description.orEmpty(),
-                language = mobiInfo.language.orEmpty(),
-                review = mobiInfo.review.orEmpty(),
+                publisher = metaInfo.publisher.orEmpty(),
+                description = metaInfo.description.orEmpty(),
+                language = metaInfo.language.orEmpty(),
+                review = metaInfo.review.orEmpty(),
 
                 scrollIndex = 0,
                 scrollOffset = 0,
@@ -209,13 +209,13 @@ class MobiFileParser @Inject constructor(val context: Context) : FileParser {
                 progress = 0f,
                 filePath = uriPath,
                 lastOpened = null,
-                category = mobiInfo.subject.orEmpty(),
-                coverImage = mobiInfo.coverPath.orEmpty(),
+                category = metaInfo.subject.orEmpty(),
+                coverImage = metaInfo.coverPath.orEmpty(),
                 fileType = format,
 
 
             ),
-            coverImage = mobiInfo.coverPath.orEmpty()
+            coverImage = metaInfo.coverPath.orEmpty()
         )
     }
 }

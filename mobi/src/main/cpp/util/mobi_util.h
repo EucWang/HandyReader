@@ -44,6 +44,7 @@ extern "C" {
 #include "doc_text.h"
 #include "nav_point.h"
 #include "tag_info.h"
+#include "xml_ext.h"
 
 class mobi_util {
 public:

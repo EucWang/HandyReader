@@ -31,6 +31,8 @@ extern "C" {
 #include <stdexcept>
 #include <mutex>
 
+#include "zip_ext.h"
+#include "xml_ext.h"
 #include "utf8.h"
 #include <android/bitmap.h>
 #include <android/imagedecoder.h>

@@ -13,6 +13,7 @@ extern "C" {
 #include "log.h"
 #include <string>
 #include <filesystem> // C++17 标准库
+#include "app_ext.h"
 
 #include <iostream>
 
@@ -24,6 +25,22 @@ public:
     static int checkAndCreateDir(const std::string &parentPath, const std::string &fileName);
 
     static int writeDataToFile(const std::string &filepath, unsigned char* data, size_t data_size);
+
+    /***
+     * 根据书名，图片类型后缀，得到给定目录下的封面图片路径
+     * @param book_title
+     * @param file_ext   取值：jpg gif png bmp
+     * @param output_path [out] 输出路径
+     * @return 1 成功， 0 失败，创建目录失败
+     */
+    static int get_cover_path(std::string &book_title, std::string &file_ext, std::string &output_path);
+
+    /***
+     * 根据media-type 得到图片文件后缀
+     * @param media_type
+     * @return
+     */
+    static std::string get_media_type_ext(std::string &media_type);
 };
 
 

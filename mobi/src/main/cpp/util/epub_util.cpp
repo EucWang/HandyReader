@@ -7,6 +7,42 @@
 const std::string container = "META-INF/container.xml";
 const std::string mimetype = "mimetype";
 
+/***
+ * @param format_str [in/out] 需要格式化的字符串，
+ * @return 1 成功，0 失败
+ */
+int tidy_html(std::string &format_str) {
+    std::string output_str;
+    unsigned char *normalizedHtml = nullptr;
+    size_t normalizedHtmlSize = 0;
+    TidyDoc tdoc = tidyCreate();
+    TidyBuffer output = {0};
+    TidyBuffer errbuf = {0};
+
+    //tidy options
+    tidyOptSetBool(tdoc, TidyXmlOut, yes); //output xhtml
+    tidyOptSetBool(tdoc, TidyQuiet, yes);   //抑制警告
+    tidyOptSetInt(tdoc, TidyWrapLen, 0);                //禁用换行
+    tidyOptSetValue(tdoc, TidyCharEncoding, "utf8");    //编码集
+
+    tidyParseString(tdoc, format_str.c_str());
+    if (tidyCleanAndRepair(tdoc) >= 0 && tidySaveBuffer(tdoc, &output) >= 0) {
+        normalizedHtml = output.bp;
+        normalizedHtmlSize = output.size;
+    } else {
+        unsigned char *errInfo = errbuf.bp;
+        LOGE("%s:failed %s", __func__, errInfo);
+        return 0;
+    }
+
+    if (normalizedHtml == nullptr || normalizedHtmlSize <= 0) {
+        LOGE("%s:failed, tidy html failed", __func__);
+    } else {
+        format_str = std::string(normalizedHtml, normalizedHtml + normalizedHtmlSize);
+    }
+    return 1;
+}
+
 
 int epub_util::epub_init() {
 
@@ -14,27 +50,27 @@ int epub_util::epub_init() {
 }
 
 int epub_util::load_epub(std::string fullpath,  //文件路径
-                     std::string &coverPath,    //封面路径
+                         std::string &book_coverPath,    //封面路径
 
-                     std::string &title,
-                     std::string &author,
-                     std::string &contributor,
+                         std::string &book_title,
+                         std::string &book_author,
+                         std::string &book_contributor,
 
-                     std::string &subject,
-                     std::string &publisher,
-                     std::string &date,
+                         std::string &book_subject,
+                         std::string &book_publisher,
+                         std::string &book_date,
 
-                     std::string &description,
-                     std::string &review,
-                     std::string &imprint,
+                         std::string &book_description,
+                         std::string &book_review,
+                         std::string &book_imprint,
 
-                     std::string &copyright,
-                     std::string &isbn,
-                     std::string &asin,
+                         std::string &book_copyright,
+                         std::string &book_isbn,
+                         std::string &book_asin,
 
-                     std::string &language,
-                     std::string &identifier,
-                     bool &isEncrypted) {
+                         std::string &book_language,
+                         std::string &book_identifier,
+                         bool &book_isEncrypted) {
 
     unzFile uf = unzOpen(fullpath.c_str());
     if (uf == nullptr) {
@@ -50,90 +86,102 @@ int epub_util::load_epub(std::string fullpath,  //文件路径
         uf = nullptr;
         return 0;
     }
-    
-    err = unzLocateFile(uf, "OEBPS/content.opf", 0);
-    if (err != UNZ_OK) {
-        LOGE("%s cannot find content.opf", __func__);
-        unzClose(uf);
-        uf = nullptr;
+
+    std::string container_data;
+    if (1 != zip_ext::read_zip_file(uf, "META-INF/container.xml", container_data)) {
         return 0;
     }
-    
-    err = unzOpenCurrentFile(uf);
-    if (err != UNZ_OK) {
-        LOGE("%s cannot open content.opf", __func__);
-        unzClose(uf);
-        uf = nullptr;
+    if (1 != tidy_html(container_data)) {
+        return 0;
+    }
+    tinyxml2::XMLDocument doc;
+    doc.ClearError();
+    doc.Clear();
+    if (doc.Parse(container_data.c_str(), container_data.size()) != tinyxml2::XML_SUCCESS) {
+        LOGE("%s failed to parse ncx", __func__);
+        return 0;
+    }
+    tinyxml2::XMLElement *root = doc.RootElement();
+    if (!root) {
+        LOGE("%s failed parse ncx, no root element", __func__);
         return 0;
     }
 
-    std::stringstream streambuffer;
-    char bufferRead[8192] = { 0 };
-    int read_bytes;
-    //将数据写出到文件中
-    while((read_bytes = unzReadCurrentFile(uf, bufferRead, sizeof(bufferRead))) > 0) {
-        streambuffer.write(bufferRead, read_bytes);
+    auto rootfiles = root->FirstChildElement("rootfiles");
+    if (rootfiles == nullptr) {
+        LOGE("%s failed parse html, no rootfiles element", __func__);
+        return 0;
     }
-    //关闭输出文件，
-    unzCloseCurrentFile(uf);
-    std::string info = streambuffer.str();
-    
-//    for (int i = 0; i < gi.number_entry; ++i) {
-//        unz_file_info file_info;
-//        char filename_inzip[256] = { 0 };
-//        //OEBPS/content.opf
-//        //OEBPS/toc.ncx
-//
-//        //获取文件信息
-//        err = unzGetCurrentFileInfo(uf, &file_info, filename_inzip, sizeof(filename_inzip), nullptr, 0, nullptr, 0);
-//        if (err != UNZ_OK) {
-//            LOGE("%s can't read file info[%d]", __func__, i);
-//            unzClose(uf);
-//            uf = nullptr;
-//            return 0;
-//        }
-////        使用 unzLocateFile 函数定位到目标文件
-////        int result = unzLocateFile(unz, "data.txt", 0);
-////        if (result != UNZ_OK) {
-////            // 处理错误
-////        }
-//
-//        //打开文件
-//        err = unzOpenCurrentFile(uf);
-//        if (err != UNZ_OK) {
-//            LOGE("%s cannt open file[%s]", __func__, filename_inzip);
-//            unzClose(uf);
-//            uf = nullptr;
-//            return 0;
-//        }
-//        //创建输出文件
-////        std::string outpath = app_ext::appCacheDir + "/" + std::string(filename_inzip, strlen(filename_inzip));
-////        FILE *out = fopen(outpath.c_str(), "wb");
-////        if (out == nullptr) {
-////        }
-//        std::stringstream streambuffer;
-//        char bufferRead[8192] = { 0 };
-//        int read_bytes;
-//        //将数据写出到文件中
-//        while((read_bytes = unzReadCurrentFile(uf, bufferRead, sizeof(bufferRead))) > 0) {
-////            fwrite(buffer, 1, read_bytes, out);
-////            fflush(out);
-//            streambuffer.write(bufferRead, read_bytes);
-//        }
-//        //关闭输出文件，
-////        fclose(out);
-//        unzCloseCurrentFile(uf);
-//
-//        //移动到下一个条目
-//        if ((i + 1) < gi.number_entry) {
-//            err = unzGoToNextFile(uf);
-//            if (err != UNZ_OK) {
-//                LOGE("%s cannot move to next file", __func__);
-//                unzClose(uf);
-//                return 0;
-//            }
-//        }
-//    }
+    auto rootfile = rootfiles->FirstChildElement("rootfile");
+    if (rootfile == nullptr) {
+        LOGE("%s failed parse html, no rootfile element", __func__);
+        return 0;
+    }
+    const char *content_path = rootfile->Attribute("full-path");
+    if (content_path == nullptr || strlen(content_path) == 0) {
+        LOGE("%s failed content.opf path is null or empty", __func__);
+        return 0;
+    }
+    LOGD("%s:content.opf path is [%s]", __func__, content_path);
+    std::string opf_content_data;
+    if (1 != zip_ext::read_zip_file(uf, content_path, opf_content_data)) {
+        return 0;
+    }
+    if (1 != tidy_html(opf_content_data)) {
+        return 0;
+    }
+    doc.ClearError();
+    doc.Clear();
+    if (doc.Parse(opf_content_data.c_str(), opf_content_data.size()) != tinyxml2::XML_SUCCESS) {
+        LOGE("%s failed to parse content.opf", __func__);
+        return 0;
+    }
+    auto opfRoot = doc.RootElement();
+    if (opfRoot == nullptr) {
+        LOGE("%s opf root element is null", __func__);
+        return 0;
+    }
+    auto opfMetadataEle = opfRoot->FirstChildElement("metadata");
+    if (opfMetadataEle == nullptr) {
+        LOGE("%s opf metadata is null", __func__);
+        return 0;
+    }
+
+//    std::string &book_review,
+//    std::string &book_imprint,
+//    std::string &book_copyright,
+//    std::string &book_asin,
+//    bool &book_isEncrypted
+    book_title = xml_ext::getText(opfMetadataEle->FirstChildElement("dc:title"));
+    book_author = xml_ext::getText(opfMetadataEle->FirstChildElement("dc:creator"));
+    book_publisher = xml_ext::getText(opfMetadataEle->FirstChildElement("dc:publisher"));
+    book_description = xml_ext::getText(opfMetadataEle->FirstChildElement("dc:description"));
+    book_contributor = xml_ext::getText(opfMetadataEle->FirstChildElement("dc:contributor"));
+    book_subject = xml_ext::getChildrenTexts(opfMetadataEle, "dc:contributor");
+    book_language = xml_ext::getText(opfMetadataEle->FirstChildElement("dc:language"));
+    book_identifier = xml_ext::getChildrenTexts(opfMetadataEle, "dc:identifier");
+    book_date = xml_ext::getText(opfMetadataEle->FirstChildElement("dc:data"));
+    book_isbn = xml_ext::getText(
+            xml_ext::getChildByNameAndAttr(opfMetadataEle, "dc:identifier", "opf:scheme", "ISBN"));
+//    <meta content="cover-image" name="cover"/>
+    auto coverEle = xml_ext::getChildByNameAndAttr(opfMetadataEle, "meta", "name", "cover");
+    std::string cover_id = xml_ext::getEleAttr(coverEle, "content");
+    if (!cover_id.empty()) {
+        auto manifestEle = opfRoot->FirstChildElement("manifest");
+        auto coverItemEle = xml_ext::getChildByNameAndAttr(manifestEle, "item", "id", cover_id);
+        std::string cover_href = xml_ext::getEleAttr(coverItemEle, "href");
+        std::string cover_type = xml_ext::getEleAttr(coverItemEle, "media-type");
+        std::string ext = file_ext::get_media_type_ext(cover_type);
+
+        if (!cover_href.empty() && !ext.empty()) {
+            std::string output_cover_path;
+            if (1 == file_ext::get_cover_path(book_title, ext, output_cover_path))  {
+                if (1 == zip_ext::write_zip_item_to_file(uf, cover_href, output_cover_path)) {
+                    book_coverPath = output_cover_path;
+                }
+            }
+        }
+    }
 
     unzClose(uf);
 
@@ -144,7 +192,8 @@ int epub_util::getChapters(/*out*/std::vector<NavPoint> &points) {
     return 1;
 }
 
-int epub_util::getChapter(JNIEnv *env, long book_id, const char *path, NavPoint &chapter, std::vector<DocText> &docTexts) {
+int epub_util::getChapter(JNIEnv *env, long book_id, const char *path, NavPoint &chapter,
+                          std::vector<DocText> &docTexts) {
     return 1;
 }
 

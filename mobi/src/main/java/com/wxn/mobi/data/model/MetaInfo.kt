@@ -1,6 +1,6 @@
 package com.wxn.mobi.data.model
 
-data class MobiInfo(
+data class MetaInfo(
     var title: String,
     var author: String,
     var contributor: String,

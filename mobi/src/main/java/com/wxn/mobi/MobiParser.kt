@@ -7,7 +7,7 @@ import com.wxn.base.bean.CssInfo
 import com.wxn.base.bean.ReaderText
 import com.wxn.mobi.data.model.CountPair
 import com.wxn.mobi.data.model.FileCrc
-import com.wxn.mobi.data.model.MobiInfo
+import com.wxn.mobi.data.model.MetaInfo
 import com.wxn.mobi.inative.NativeLib
 import com.wxn.mobi.inative.NativeLib.getWordCount
 
@@ -19,11 +19,11 @@ object MobiParser {
         return fileCrc
     }
 
-    fun getMobiInfo(context: Context, path: String): MobiInfo? {
+    fun getMobiInfo(context: Context, path: String): MetaInfo? {
         Log.d("MobiParser", "getMobiInfo:path=$path")
-        val mobiInfo: MobiInfo? = NativeLib.loadMobi(context, path)
-        Log.d("MobiParser", "mobiInfo = $mobiInfo")
-        return mobiInfo
+        val metaInfo: MetaInfo? = NativeLib.loadMobi(context, path)
+        Log.d("MobiParser", "mobiInfo = $metaInfo")
+        return metaInfo
     }
 
     fun getMobiChapter(context: Context, bookId: Long, path: String): Array<BookChapter>? {
