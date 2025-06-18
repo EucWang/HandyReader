@@ -15,6 +15,7 @@ import com.wxn.bookread.data.model.preference.ReaderPreferences
 import com.wxn.bookread.data.source.local.ReaderPreferencesUtil
 import com.wxn.bookread.provider.ChapterProvider
 import com.wxn.reader.R
+import com.wxn.reader.data.dto.ReadingStatus
 import com.wxn.reader.data.model.AppPreferences
 import com.wxn.reader.data.model.toRediumEpubPreferences
 import com.wxn.reader.data.source.local.AppPreferencesUtil
@@ -22,6 +23,7 @@ import com.wxn.reader.domain.model.BookAnnotation
 import com.wxn.reader.domain.model.Bookmark
 import com.wxn.reader.domain.model.LinkedContent
 import com.wxn.reader.domain.model.Note
+import com.wxn.reader.domain.model.ReadingActive
 import com.wxn.reader.domain.use_case.annotations.AddAnnotationUseCase
 import com.wxn.reader.domain.use_case.annotations.DeleteAnnotationUseCase
 import com.wxn.reader.domain.use_case.annotations.GetAnnotationsUseCase
@@ -315,26 +317,6 @@ class MainReadViewModel @Inject constructor(
         }
     }
 
-//    private suspend fun getInitialLocator(bookId: Long): Locator? {
-        //TODO
-//        return null
-//        return getReadingProgressUseCase(bookId).let { progressJson ->
-//            if (progressJson.isNotEmpty()) {
-//                Locator.fromJSON(JSONObject(progressJson))
-//            } else {
-//                null
-//            }
-//        }
-//    }
-
-//    fun fetchInitialLocator() {
-//        viewModelScope.launch {
-//            currentBookId.value?.let { bookId ->
-//                _initialLocator.value = getInitialLocator(bookId)
-//            }
-//        }
-//    }
-
     fun resetReadingSession() {
         isReadingSessionActive = false
         lastLocatorChangeTime = 0L
@@ -382,17 +364,112 @@ class MainReadViewModel @Inject constructor(
         }
     }
 
+
+//    private var isReadingSessionActive = false
+//    private var lastLocatorChangeTime = 0L
+//    private var currentDayStartTime = 0L
+
     /***
      * 滑动切换界面，或者跳转切换界面时，通知进度刷新
      */
     override fun onPageChange() {
         Logger.d("MainReadViewModel:onPageChange")
-        _readProgression.value = pageController.progression
+        val newProgression =  pageController.progression
+        _readProgression.value = newProgression
         _curChapterIndex.value = pageController.durChapterIndex
         _curChapterPageIndex.value = pageController.durPageIndex
         _curChapterName.value = pageController.curTextChapter?.title.orEmpty()
+
+        viewModelScope.launch {
+            if (isReadingSessionActive) {
+                updateReadingTime()
+            } else {
+                isReadingSessionActive = true
+                lastLocatorChangeTime = System.currentTimeMillis()
+            }
+            updateStartReadingDate() //尝试更新开始阅读时间
+
+            if (newProgression >= 0.99) {  //尝试更新结束阅读时间
+                updateEndReadingDate()
+            }
+        }
     }
 
+    private suspend fun updateReadingTime() {
+        val currentTime = System.currentTimeMillis()
+        if (lastLocatorChangeTime != 0L) {
+            val sessionDuration = currentTime - lastLocatorChangeTime
+            updateBookReadingTime(sessionDuration)
+            updateReadingActivity(sessionDuration)
+        }
+        lastLocatorChangeTime = currentTime
+    }
+    private suspend fun updateStartReadingDate() {
+        currentBookId.value?.let { bookId ->
+            val book = getBookByIdUseCase(bookId)
+            book?.let {
+                if (it.startReadingDate == null) {
+                    val updatedBook = it.copy(
+                        startReadingDate = System.currentTimeMillis(),
+                    )
+                    updateBookUseCase(updatedBook)
+                }
+            }
+        }
+    }
+
+    private suspend fun updateEndReadingDate() {
+        currentBookId.value?.let { bookId ->
+            val book = getBookByIdUseCase(bookId)
+            book?.let {
+                if (it.endReadingDate == null) {
+                    val updatedBook = it.copy(
+                        endReadingDate = System.currentTimeMillis(),
+                        readingStatus = ReadingStatus.FINISHED.value
+                    )
+                    updateBookUseCase(updatedBook)
+                }
+            }
+        }
+    }
+
+    private suspend fun updateBookReadingTime(sessionDuration: Long) {
+        currentBookId.value?.let { bookId ->
+            val book = getBookByIdUseCase(bookId)
+            book?.let {
+                val updatedBook = it.copy(readingTime = it.readingTime + sessionDuration)
+                updateBookUseCase(updatedBook)
+            }
+        }
+    }
+
+    private suspend fun updateReadingActivity(sessionDuration: Long) {
+        currentBookId.value?.let { bookId ->
+            val book = getBookByIdUseCase(bookId)
+            book?.let {
+                val currentDate = Calendar.getInstance().apply {
+                    set(Calendar.HOUR_OF_DAY, 0)
+                    set(Calendar.MINUTE, 0)
+                    set(Calendar.SECOND, 0)
+                    set(Calendar.MILLISECOND, 0)
+                }.timeInMillis
+
+                val existingActivity = getReadingActivityByDateUseCase(currentDate)
+                if (existingActivity != null) {
+                    val updatedActivity = existingActivity.copy(
+                        readingTime = existingActivity.readingTime + sessionDuration
+                    )
+                    addOrUpdateReadingActivityUseCase(updatedActivity)
+                } else {
+                    val newActivity = ReadingActive(
+                        date = currentDate,
+                        readingTime = sessionDuration
+                    )
+                    addOrUpdateReadingActivityUseCase(newActivity)
+                }
+            }
+        }
+    }
     /***
      * 拖动阅读进度条来改变阅读位置
      */

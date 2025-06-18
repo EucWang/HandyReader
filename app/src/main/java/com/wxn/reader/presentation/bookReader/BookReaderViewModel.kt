@@ -647,10 +647,10 @@ class BookReaderViewModel @Inject constructor(
                 isReadingSessionActive = true
                 lastLocatorChangeTime = System.currentTimeMillis()
             }
-            updateStartReadingDate()
+            updateStartReadingDate() //尝试更新开始阅读时间
 
             val progression = locator.locations.totalProgression ?: 0.0
-            if (progression >= 0.99) {
+            if (progression >= 0.99) {  //尝试更新结束阅读时间
                 updateEndReadingDate()
             }
         }

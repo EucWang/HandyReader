@@ -18,7 +18,7 @@ data class Book(
 
     var scrollIndex: Int, //对应章节位置
     var scrollOffset: Int,  //对应章节内偏移位置，从而确定当前阅读位置
-    val progress: Float,    //阅读进度,  取值：0~100
+    var progress: Float,    //阅读进度,  取值：0~100
 
     var lastOpened: Long?,
     var category: String?,

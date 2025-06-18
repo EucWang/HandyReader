@@ -295,6 +295,7 @@ open class PageViewController @Inject constructor(
             curBook.lastOpened = System.currentTimeMillis()
             curBook.scrollIndex = durChapterIndex
             curBook.scrollOffset = durPageIndex
+            curBook.progress = (progression * 100.0).toFloat()
             updateBookUseCase(curBook)
         }
     }
