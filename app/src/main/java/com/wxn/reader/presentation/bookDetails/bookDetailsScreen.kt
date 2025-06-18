@@ -223,8 +223,14 @@ fun BookInfo(book: Book, modifier: Modifier = Modifier, viewModel: BookDetailsVi
         }
         book.publisher?.let { publisher ->
             book.publishDate?.let { publishDate ->
-                val formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss'Z'")
-                val date = LocalDate.parse(publishDate, formatter)
+                val date = remember {
+                    try {
+                        val formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss'Z'")
+                        LocalDate.parse(publishDate, formatter)
+                    } catch (ex: Exception) {
+                        ""
+                    }
+                }
 
                 Row(
                     modifier = Modifier

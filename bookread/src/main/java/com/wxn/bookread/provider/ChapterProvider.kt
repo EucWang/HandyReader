@@ -258,6 +258,9 @@ object ChapterProvider {
                 Logger.d("ChapterProvider::upStyle::fontPath=$fontPath")
 //            val fontPath = ReadBookConfig.textFont  //字体路径
                 when {
+                    fontPath == "serif" -> Typeface.SERIF
+                    fontPath == "sans_serif" -> Typeface.SANS_SERIF
+                    fontPath == "monospace" -> Typeface.MONOSPACE
                     //android26以上版本, 根据file descriptor得到字体类
                     fontPath.isContentPath() && Build.VERSION.SDK_INT >= Build.VERSION_CODES.O -> {
                         val fd = context.contentResolver
@@ -272,16 +275,9 @@ object ChapterProvider {
                     //如果就是字体文件路径，直接得到字体类
                     fontPath.isNotEmpty() -> Typeface.createFromFile(fontPath)
                     //否则采用系统字体
-//                else -> when (AppConfig.systemTypefaces) {
-//                    1 -> Typeface.SERIF
-//                    2 -> Typeface.MONOSPACE
-//                    else -> Typeface.SANS_SERIF
-//                }
                     else -> Typeface.SANS_SERIF
                 }
             } catch (e: Exception) {
-//            ReadBookConfig.textFont = ""
-//            ReadBookConfig.save()
                 readerPreferences?.copy(
                     font = ""
                 )?.let { it ->
