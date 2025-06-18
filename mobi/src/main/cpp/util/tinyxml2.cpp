@@ -1053,7 +1053,7 @@ namespace tinyxml2
     {
         for( const XMLNode* node = _next; node; node = node->_next ) {
             const XMLElement* element = node->ToElementWithName( name );
-            if ( element ) {
+            if ( element != nullptr ) {
                 return element;
             }
         }
@@ -1221,13 +1221,17 @@ namespace tinyxml2
     const XMLElement* XMLNode::ToElementWithName( const char* name ) const
     {
         const XMLElement* element = this->ToElement();
-        if ( element == 0 ) {
-            return 0;
+        if ( element == nullptr ) {
+            return nullptr;
         }
-        if ( name == 0 ) {
+        if ( name == nullptr ) {
             return element;
         }
-        if ( XMLUtil::StringEqual( element->Name(), name ) ) {
+        const char *ele_name = element->Name();
+        if (ele_name == nullptr || strlen(ele_name) == 0) {
+            return nullptr;
+        }
+        if ( XMLUtil::StringEqual(ele_name, name ) ) {
             return element;
         }
         return 0;

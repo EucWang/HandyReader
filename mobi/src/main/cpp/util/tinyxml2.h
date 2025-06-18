@@ -829,9 +829,9 @@ namespace tinyxml2
         }
 
         /// Get the next (right) sibling element of this node, with an optionally supplied name.
-        const XMLElement*	NextSiblingElement( const char* name = 0 ) const;
+        const XMLElement*	NextSiblingElement( const char* name = nullptr ) const;
 
-        XMLElement*	NextSiblingElement( const char* name = 0 )	{
+        XMLElement*	NextSiblingElement( const char* name = nullptr )	{
             return const_cast<XMLElement*>(const_cast<const XMLNode*>(this)->NextSiblingElement( name ) );
         }
 

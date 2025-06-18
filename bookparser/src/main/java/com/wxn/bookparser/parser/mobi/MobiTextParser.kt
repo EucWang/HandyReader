@@ -77,7 +77,6 @@ class MobiTextParser @Inject constructor(
             Log.e("MobiTextparser", "parsedChapterData failed, path is empty")
             return emptyList()
         }
-        MobiParser.getMobiWordCount(context, bookId, path)
-        return emptyList()
+        return MobiParser.getMobiWordCount(context, bookId, path)
     }
 }

@@ -541,13 +541,41 @@ Java_com_wxn_mobi_inative_NativeLib_getCssInfo(JNIEnv *env, jobject thiz, jobjec
     return result;
 }
 extern "C"
-JNIEXPORT void JNICALL
-Java_com_wxn_mobi_inative_NativeLib_getWordCount(JNIEnv *env, jobject thiz, jobject _receiver, jlong bookId, jstring path) {
+JNIEXPORT jobject JNICALL
+Java_com_wxn_mobi_inative_NativeLib_getWordCount(JNIEnv *env, jobject thiz, jlong bookId, jstring path) {
     const char *nativeStr = env->GetStringUTFChars(path, NULL);
     create_mobi_util(bookId, nativeStr);
 
-    std::vector<std::pair<int, size_t>> wordCount;
-    mobiutil->getWordCount(wordCount);
+    std::vector<std::pair<int32_t, int32_t>> wordCount;
+    int32_t total = mobiutil->getWordCount(wordCount);
+
+    jclass listClass = env->FindClass("java/util/ArrayList");
+    if (listClass == nullptr || env->ExceptionCheck()) {
+        return nullptr;
+    }
+    jmethodID listConstructor = env->GetMethodID(listClass, "<init>", "()V");
+    if (listConstructor == nullptr) {
+        return nullptr;
+    }
+    jmethodID listAdd = env->GetMethodID(listClass, "add", "(Ljava/lang/Object;)Z");
+    if (listAdd == nullptr) {
+        return nullptr;
+    }
+    jclass pairClass = env->FindClass("com/wxn/mobi/data/model/CountPair");
+    if (pairClass == nullptr || env->ExceptionCheck()) {
+        return nullptr;
+    }
+    jmethodID pairConstructor = env->GetMethodID(pairClass, "<init>", "(II)V");
+
+    jobject jlist = env->NewObject(listClass, listConstructor);
+    for (auto &count: wordCount) {
+        jobject item = env->NewObject(pairClass, pairConstructor, count.first, count.second);
+        env->CallBooleanMethod(jlist, listAdd, item);
+    }
+    jobject total_item = env->NewObject(pairClass, pairConstructor, -1, total);
+    env->CallBooleanMethod(jlist, listAdd, total_item);
 
     env->ReleaseStringUTFChars(path, nativeStr);
+
+    return jlist;
 }

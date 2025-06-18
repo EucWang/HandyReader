@@ -4,6 +4,119 @@
 
 #include "mobi_util.h"
 
+std::string getEleText(const tinyxml2::XMLElement *elem) {
+    const char *elemText = elem->GetText();
+    std::string text;
+    if (elemText != nullptr && utf8Count(elemText) > 0) {
+        text = elemText;
+    }
+    return text;
+}
+
+std::string getEleAttr(const tinyxml2::XMLElement *elem, const char *attr_name) {
+    const char *attr = elem->Attribute(attr_name);
+    std::string attr_value;
+    if (attr != nullptr && strlen(attr) > 0) {
+        attr_value = attr;
+    }
+    return attr_value;
+}
+
+std::string getEleAttr(tinyxml2::XMLElement *elem, const char *attr_name) {
+    const char *attr = elem->Attribute(attr_name);
+    std::string attr_value;
+    if (attr != nullptr && strlen(attr) > 0) {
+        attr_value = attr;
+    }
+    return attr_value;
+}
+
+/***
+ * 根据id查找节点, 返回body的子节点，该节点的有id属性，或者其子节点有id属性
+ * @param elem
+ * @param id
+ * @return
+ */
+tinyxml2::XMLElement *findEleById(tinyxml2::XMLElement *elem, const char *id) {
+    auto start_time = std::chrono::high_resolution_clock::now();
+    tinyxml2::XMLElement *item = nullptr;
+    item = elem;
+    std::stack<tinyxml2::XMLElement *> stack;
+    bool flag = true;
+    tinyxml2::XMLElement *target = nullptr;
+    while (flag && item != nullptr) {
+        std::string itemId = getEleAttr(item, "id");
+        if (itemId == std::string(id)) {
+            target = item;
+            break;
+        }
+
+        //优先遍历子节点
+        int childCount = item->ChildElementCount();
+        if (childCount > 0) {
+            stack.push(item);
+            auto child = item->FirstChildElement();
+            if (child != nullptr) {
+                item = child;
+            }
+            continue;
+        }
+        //没有子节点，则遍历兄弟节点
+        tinyxml2::XMLElement *bro = item->NextSiblingElement();
+        if (bro != nullptr) {
+            item = bro;
+            continue;
+        }
+
+        //没有兄弟节点了，则这一层已经遍历完，从stack中弹出上一层的没有遍历完的节点，得到该节点的兄弟节点
+        bro = nullptr;
+        while (true) {
+            if (stack.empty()) {//栈空，退出总循环
+                flag = false;
+                break;
+            }
+            tinyxml2::XMLElement *&top = stack.top();
+            if (top == nullptr) { //stack空，退出循环
+                flag = false;
+                break;
+            }
+            stack.pop();
+            bro = top->NextSiblingElement();    //，得到该节点的兄弟节点
+            if (bro != nullptr) {   //该兄弟节点不为空，继续外层循环， 为空，则继续从栈顶拿结点
+                break;
+            }
+        }
+        if (flag && bro != nullptr) {
+            item = bro;
+        }
+    }
+    if (target == nullptr) {
+        return nullptr;
+    }
+    tinyxml2::XMLElement *child = target;
+    while (child != nullptr) {
+        auto parent = child->Parent();
+        if (parent == nullptr) {
+            break;
+        }
+        auto parentItem = parent->ToElement();
+        if (parentItem == nullptr) {
+            break;
+        }
+        std::string parentName = parentItem->Name();
+        if (parentName != "body") {
+            child = parentItem;
+            continue;
+        }
+        target = child;
+        break;
+    }
+    auto end_time = std::chrono::high_resolution_clock::now();
+    //输出结果统计信息(性能分析)
+    auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(end_time - start_time).count();
+    LOGD("%s: duration = %lld ms", __func__, duration);
+    return target;
+}
 
 void mobi_util::mobi_data_free() {
     if (mobi_rawml != nullptr) {
@@ -235,7 +348,7 @@ int mobi_util::parseOpfData(const char *opf_data, size_t opf_data_size, std::vec
     if (orderedItemSrc.size() == 1) {
         isSingleSrc = true;
     } else {
-        isSingleSrc =false;
+        isSingleSrc = false;
     }
 
     if (orderedItemSrc.size() == 1 && points.size() > 1) { //全部都在一个资源文件中
@@ -1391,12 +1504,15 @@ int mobi_util::getCss(std::vector<std::string> &cssClasses, std::vector<CssInfo>
 }
 
 int mobi_util::getChapter(JNIEnv *env, long book_id, const char *path, NavPoint &chapter, std::vector<DocText> &docTexts) {
+    auto start_time = std::chrono::high_resolution_clock::now();
     std::lock_guard<std::mutex> lock(m_Mutex);
+    LOGD("%s invoke,playOrder[%d],src[%s]", __func__, chapter.playOrder, chapter.src.c_str());
     if (!initStatus) {
         LOGE("%s:init status failed, so pass", __func__);
         return 0;
     }
     if (app_ext::appFileDir.empty()) {
+        LOGE("%s:failed, appFileDir is empty so pass", __func__);
         return 0;
     }
     std::string chapterSrc = chapter.src;
@@ -1411,8 +1527,8 @@ int mobi_util::getChapter(JNIEnv *env, long book_id, const char *path, NavPoint 
     if (1 != parseSrcName(src, prefix, spineSrc, &prefixType, &srcUid, anchorId, suffix)) {
         return 0;
     }
-//    LOGD("%s:getChapter:src[%s] Info[prefix=%s,srcId=%d,anchorId=%s,suffix=%s,prefixType=%d]",
-//         __func__, src.c_str(), prefix.c_str(), srcUid, anchorId.c_str(), suffix.c_str(), prefixType);
+    LOGD("%s:getChapter:src[%s] Info[prefix=%s,srcId=%d,anchorId=%s,suffix=%s,prefixType=%d]",
+         __func__, src.c_str(), prefix.c_str(), srcUid, anchorId.c_str(), suffix.c_str(), prefixType);
 
     std::string endAnchorId;
 
@@ -1440,78 +1556,16 @@ int mobi_util::getChapter(JNIEnv *env, long book_id, const char *path, NavPoint 
             }
             if (nextSrcUid == srcUid && !nextAnchorId.empty()) {
                 endAnchorId = nextAnchorId;
-//                LOGD("%s:startAnchorId=%s,endAnchorId=%s", __func__, anchorId.c_str(), endAnchorId.c_str());
+                LOGD("%s:startAnchorId=%s,endAnchorId=%s", __func__, anchorId.c_str(), endAnchorId.c_str());
             }
         }
     }
 
     if (spineSrc != currentSrc) {
-
-        MOBIPart *curr = nullptr;
-        if (prefixType == 1 && mobi_rawml->flow != nullptr) {
-            curr = mobi_rawml->flow;
-        } else if (prefixType == 2 && mobi_rawml->markup != nullptr) {
-            curr = mobi_rawml->markup;
-        } else if (prefixType == 3 && mobi_rawml->resources != nullptr) {
-            curr = mobi_rawml->resources;
-        } else {
-            LOGE("%s: unknown type[%d] or rawml data is null, pass", __func__, srcUid);
+        if (1 != parseDocDom(prefixType, srcUid)) {
+            LOGE("%s failed, parseDocDom failed", __func__);
             return 0;
         }
-
-        unsigned char *rawHtml = nullptr;
-        size_t rawHtmlSize = 0;
-        while (curr != nullptr) {
-            MOBIFileMeta file_meta = mobi_get_filemeta_by_type(curr->type);
-            if (curr->size > 0 && file_meta.type == T_HTML && curr->uid == srcUid) {
-                rawHtml = curr->data;
-                rawHtmlSize = curr->size;
-                break;
-            }
-            curr = curr->next;
-        }
-
-        if (rawHtmlSize <= 0 || rawHtml == nullptr) {
-            LOGE("%s: failed, unfound chapter page data.", __func__);
-            return 0;
-        }
-
-        unsigned char *normalizedHtml = nullptr;
-        size_t normalizedHtmlSize = 0;
-        TidyDoc tdoc = tidyCreate();
-        TidyBuffer output = {0};
-        TidyBuffer errbuf = {0};
-
-        //tidy options
-        tidyOptSetBool(tdoc, TidyXmlOut, yes); //output xhtml
-        tidyOptSetBool(tdoc, TidyQuiet, yes);   //抑制警告
-        tidyOptSetInt(tdoc, TidyWrapLen, 0);                //禁用换行
-        tidyOptSetValue(tdoc, TidyCharEncoding, "utf8");    //编码集
-
-        tidyParseString(tdoc, std::string(rawHtml, rawHtml + rawHtmlSize).c_str());
-        if (tidyCleanAndRepair(tdoc) >= 0 && tidySaveBuffer(tdoc, &output) >= 0) {
-            normalizedHtml = output.bp;
-            normalizedHtmlSize = output.size;
-        } else {
-            unsigned char *errInfo = errbuf.bp;
-            LOGE("%s:failed %s", __func__, errInfo);
-            return 0;
-        }
-
-        if (normalizedHtml == nullptr || normalizedHtmlSize <= 0) {
-            LOGE("%s:failed, tidy html failed", __func__);
-            normalizedHtmlSize = rawHtmlSize;
-            normalizedHtml = rawHtml;
-        }
-//        LOGD("%s:normalizedHtmlSize=%zu", __func__, normalizedHtmlSize);
-
-        doc.ClearError();
-        doc.Clear();
-        if (doc.Parse(std::string(normalizedHtml, normalizedHtml + normalizedHtmlSize).c_str(), normalizedHtmlSize) != tinyxml2::XML_SUCCESS) {
-            LOGE("%s failed to parse ncx", __func__);
-            return 0;
-        }
-
         currentSrc = spineSrc;
     }
 
@@ -1532,6 +1586,11 @@ int mobi_util::getChapter(JNIEnv *env, long book_id, const char *path, NavPoint 
     int flagAdd = 0;
     if (anchorId.empty()) {
         flagAdd = 1;
+    } else {
+        auto ele = findEleById(firstElem, anchorId.c_str());
+        if (ele != nullptr) {
+            firstElem = ele;
+        }
     }
 
     if (firstElem != nullptr) {
@@ -1539,7 +1598,9 @@ int mobi_util::getChapter(JNIEnv *env, long book_id, const char *path, NavPoint 
         parseHtmlDoc(env, book_id, mobi_rawml, firstElem, docTexts, anchorId, endAnchorId, &flagAdd, spineSrc, tags);
         mockFirstPage(chapter, docTexts);
     }
-
+    auto end_time = std::chrono::high_resolution_clock::now();
+    auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(end_time - start_time).count();
+    LOGD("%s: invoke done duration = %lld ms", __func__, duration);
     return 1;
 }
 
@@ -1595,161 +1656,311 @@ void mobi_util::mockFirstPage(NavPoint &chapter, std::vector<DocText> &docTexts)
     }
 }
 
-void mobi_util::getWordCount(std::vector<std::pair<int, size_t>> &wordCounts) {
+int32_t mobi_util::getWordCount(std::vector<std::pair<int32_t, int32_t>> &wordCounts) {
+    std::lock_guard<std::mutex> lock(m_Mutex);
+    LOGD("%s invoke", __func__);
     auto start_time = std::chrono::high_resolution_clock::now();
-    std::lock_guard<std::mutex> lock(m_Mutex4);
     if (!initStatus) {
         LOGE("%s:init status failed, so pass", __func__);
-        return;
+        return 0;
     }
     std::vector<NavPoint> chapters;
     if (getChapters(chapters) != 1) {
-        return;
+        return 0;
     }
-    std::string lastSpineSrc;
-    size_t total = 0;
-    for (auto item = chapters.begin(); item != chapters.end(); item++) {
-        auto &chapter = (*item);
 
-        std::string src = chapter.src;
+    size_t total = 0;
+    if (!isSingleSrc) {
+        std::string lastSpineSrc;
+        for (auto item = chapters.begin(); item != chapters.end(); item++) {
+            auto &chapter = (*item);
+
+            std::string src = chapter.src;
+            std::string prefix;
+            std::string spineSrc;   //对应的资源文件名
+            std::string suffix;
+            std::string anchorId;
+            int prefixType;
+            int srcUid;
+            if (1 != parseSrcName(src, prefix, spineSrc, &prefixType, &srcUid, anchorId, suffix)) {
+                return 0;
+            }
+            //下一章节的锚点
+            std::string endAnchorId;
+            auto nextItem = item + 1;
+            if (nextItem != chapters.end()) {
+                auto &nextChapter = *nextItem;
+                std::string &nextSrc = nextChapter.src;
+                std::string nextPrefix;
+                std::string nextSpineSrc;
+                std::string nextSuffix;
+                std::string nextAnchorId;
+                int nextPrefixType;
+                int nextSrcUid;
+                if (1 != parseSrcName(nextSrc, nextPrefix, nextSpineSrc, &nextPrefixType, &nextSrcUid, nextAnchorId, nextSuffix)) {
+                    return 0;
+                }
+                if (nextSrcUid == srcUid && !nextAnchorId.empty()) {
+                    endAnchorId = nextAnchorId;
+                }
+            }
+
+            //解析资源，得到XMLDoc
+            if (spineSrc != lastSpineSrc) {
+                if (0 == parseDocDom(prefixType, srcUid)) {
+                    LOGE("%s:parseDocDom failed", __func__);
+                    return 0;
+                }
+
+                lastSpineSrc = spineSrc;
+            }
+
+            tinyxml2::XMLElement *root = doc.RootElement();
+            if (!root) {
+                LOGE("%s failed parse ncx, no root element", __func__);
+                return 0;
+            }
+
+            auto body = root->FirstChildElement("body");
+            if (!body) {
+                LOGE("%s failed parse html, no body element", __func__);
+                return 0;
+            }
+
+            auto firstElem = body->FirstChildElement();
+
+            int flagAdd = 0;
+            if (anchorId.empty()) {
+                flagAdd = 1;
+            } else {
+                auto ele = findEleById(firstElem, anchorId.c_str());
+                if (ele != nullptr) {
+                    firstElem = ele;
+                }
+            }
+
+            int32_t wordCount = 0;
+            if (firstElem != nullptr) {
+                countHtmlDoc(firstElem, &wordCount, anchorId, endAnchorId, &flagAdd, spineSrc);
+            }
+            wordCounts.emplace_back(chapter.playOrder, wordCount);
+            total += wordCount;
+            LOGD("%s: chapter.playOrder[%d], count[%ld]", __func__, chapter.playOrder, wordCount);
+        }
+    } else {
+        std::vector<std::string> anchors;
+        std::vector<size_t> wordCount;
         std::string prefix;
         std::string spineSrc;   //对应的资源文件名
         std::string suffix;
-        std::string anchorId;
         int prefixType;
         int srcUid;
-        if (1 != parseSrcName(src, prefix, spineSrc, &prefixType, &srcUid, anchorId, suffix)) {
-            return;
+        for (auto &chapter: chapters) {
+            prefix = "";
+            spineSrc = "";
+            suffix = "";
+            prefixType = 0;
+            srcUid = 0;
+            std::string src = chapter.src;
+            std::string anchorId;
+            if (1 != parseSrcName(src, prefix, spineSrc, &prefixType, &srcUid, anchorId, suffix)) {
+                return 0;
+            }
+            anchors.push_back(anchorId);
+            wordCount.push_back(0);
         }
-        //下一章节的锚点
-        std::string endAnchorId;
-        auto nextItem = item + 1;
-        if (nextItem != chapters.end()) {
-            auto &nextChapter = *nextItem;
-            std::string &nextSrc = nextChapter.src;
-            std::string nextPrefix;
-            std::string nextSpineSrc;
-            std::string nextSuffix;
-            std::string nextAnchorId;
-            int nextPrefixType;
-            int nextSrcUid;
-            if (1 != parseSrcName(nextSrc, nextPrefix, nextSpineSrc, &nextPrefixType, &nextSrcUid, nextAnchorId, nextSuffix)) {
-                return;
+        LOGD("%s:spineSrc=[%s],currentSrc=[%s]", __func__, spineSrc.c_str(), currentSrc.c_str());
+        if (spineSrc != currentSrc) {
+            if (0 == parseDocDom(prefixType, srcUid)) {
+                LOGE("%s:parseDocDom failed", __func__);
+                return 0;
             }
-            if (nextSrcUid == srcUid && !nextAnchorId.empty()) {
-                endAnchorId = nextAnchorId;
-            }
+            currentSrc = spineSrc;
         }
-
-        //解析资源，得到XMLDoc
-        if (spineSrc != lastSpineSrc) {
-            MOBIPart *curr = nullptr;
-            if (prefixType == 1 && mobi_rawml->flow != nullptr) {
-                curr = mobi_rawml->flow;
-            } else if (prefixType == 2 && mobi_rawml->markup != nullptr) {
-                curr = mobi_rawml->markup;
-            } else if (prefixType == 3 && mobi_rawml->resources != nullptr) {
-                curr = mobi_rawml->resources;
-            } else {
-                LOGE("%s: unknown type[%d] or rawml data is null, pass", __func__, srcUid);
-                return;
-            }
-
-            unsigned char *rawHtml = nullptr;
-            size_t rawHtmlSize = 0;
-            while (curr != nullptr) {
-                MOBIFileMeta file_meta = mobi_get_filemeta_by_type(curr->type);
-                if (curr->size > 0 && file_meta.type == T_HTML && curr->uid == srcUid) {
-                    rawHtml = curr->data;
-                    rawHtmlSize = curr->size;
-                    break;
-                }
-                curr = curr->next;
-            }
-
-            if (rawHtmlSize <= 0 || rawHtml == nullptr) {
-                LOGE("%s: failed, unfound chapter page data.", __func__);
-                return;
-            }
-
-            unsigned char *normalizedHtml = nullptr;
-            size_t normalizedHtmlSize = 0;
-            TidyDoc tdoc = tidyCreate();
-            TidyBuffer output = {0};
-            TidyBuffer errbuf = {0};
-
-            //tidy options
-            tidyOptSetBool(tdoc, TidyXmlOut, yes); //output xhtml
-            tidyOptSetBool(tdoc, TidyQuiet, yes);   //抑制警告
-            tidyOptSetInt(tdoc, TidyWrapLen, 0);                //禁用换行
-            tidyOptSetValue(tdoc, TidyCharEncoding, "utf8");    //编码集
-
-            tidyParseString(tdoc, std::string(rawHtml, rawHtml + rawHtmlSize).c_str());
-            if (tidyCleanAndRepair(tdoc) >= 0 && tidySaveBuffer(tdoc, &output) >= 0) {
-                normalizedHtml = output.bp;
-                normalizedHtmlSize = output.size;
-            } else {
-                unsigned char *errInfo = errbuf.bp;
-                LOGE("%s:failed %s", __func__, errInfo);
-                return;
-            }
-
-            if (normalizedHtml == nullptr || normalizedHtmlSize <= 0) {
-                LOGE("%s:failed, tidy html failed", __func__);
-                normalizedHtmlSize = rawHtmlSize;
-                normalizedHtml = rawHtml;
-            }
-
-            doc.ClearError();
-            doc.Clear();
-            if (doc.Parse(std::string(normalizedHtml, normalizedHtml + normalizedHtmlSize).c_str(), normalizedHtmlSize) != tinyxml2::XML_SUCCESS) {
-                LOGE("%s failed to parse ncx", __func__);
-                return;
-            }
-
-            lastSpineSrc = spineSrc;
-        }
-
         tinyxml2::XMLElement *root = doc.RootElement();
         if (!root) {
             LOGE("%s failed parse ncx, no root element", __func__);
-            return;
+            return 0;
         }
-
         auto body = root->FirstChildElement("body");
         if (!body) {
             LOGE("%s failed parse html, no body element", __func__);
-            return;
+            return 0;
         }
-
         auto firstElem = body->FirstChildElement();
 
-        int flagAdd = 0;
-        if (anchorId.empty()) {
-            flagAdd = 1;
+        int chapterIndex = 0;           //计算变量，控制指针
+        size_t chapterWordCount = 0;    //计算变量，计算每一章节的字数
+        countHtmlDoc2(firstElem, anchors, wordCount, &chapterIndex, &chapterWordCount, spineSrc);
+        for (int i = 0; i < anchors.size(); ++i) {
+            auto &anchor = anchors[i];
+            auto count = wordCount[i];
+            int playOrder = chapters[i].playOrder;
+            wordCounts.emplace_back(playOrder, count);
+            total += count;
+            LOGD("%s:playOrder[%d],anchor=[%s],count=[%ld]", __func__, playOrder, anchor.c_str(), count);
         }
-
-        size_t wordCount = 0;
-        if (firstElem != nullptr) {
-            countHtmlDoc(firstElem, &wordCount, anchorId, endAnchorId, &flagAdd, spineSrc);
-        }
-        wordCounts.emplace_back(chapter.playOrder, wordCount);
-        total += wordCount;
-        LOGD("%s: chapter.playOrder[%d], count[%ld]", __func__, chapter.playOrder, wordCount);
+        LOGD("%s:total=%ld", __func__, total);
     }
     auto end_time = std::chrono::high_resolution_clock::now();
     //    //输出结果统计信息(性能分析)
     auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(end_time - start_time).count();
     LOGD("%s: duration = %lld ms", __func__, duration);
+    return total;
+}
+
+int mobi_util::parseDocDom(int prefixType, int srcUid) {
+    MOBIPart *curr = nullptr;
+    if (prefixType == 1 && mobi_rawml->flow != nullptr) {
+        curr = mobi_rawml->flow;
+    } else if (prefixType == 2 && mobi_rawml->markup != nullptr) {
+        curr = mobi_rawml->markup;
+    } else if (prefixType == 3 && mobi_rawml->resources != nullptr) {
+        curr = mobi_rawml->resources;
+    } else {
+        LOGE("%s: unknown type[%d] or rawml data is null, pass", __func__, srcUid);
+        return 0;
+    }
+
+    unsigned char *rawHtml = nullptr;
+    size_t rawHtmlSize = 0;
+    while (curr != nullptr) {
+        MOBIFileMeta file_meta = mobi_get_filemeta_by_type(curr->type);
+        if (curr->size > 0 && file_meta.type == T_HTML && curr->uid == srcUid) {
+            rawHtml = curr->data;
+            rawHtmlSize = curr->size;
+            break;
+        }
+        curr = curr->next;
+    }
+
+    if (rawHtmlSize <= 0 || rawHtml == nullptr) {
+        LOGE("%s: failed, unfound chapter page data.", __func__);
+        return 0;
+    }
+
+    unsigned char *normalizedHtml = nullptr;
+    size_t normalizedHtmlSize = 0;
+    TidyDoc tdoc = tidyCreate();
+    TidyBuffer output = {0};
+    TidyBuffer errbuf = {0};
+
+    //tidy options
+    tidyOptSetBool(tdoc, TidyXmlOut, yes); //output xhtml
+    tidyOptSetBool(tdoc, TidyQuiet, yes);   //抑制警告
+    tidyOptSetInt(tdoc, TidyWrapLen, 0);                //禁用换行
+    tidyOptSetValue(tdoc, TidyCharEncoding, "utf8");    //编码集
+
+    tidyParseString(tdoc, std::string(rawHtml, rawHtml + rawHtmlSize).c_str());
+    if (tidyCleanAndRepair(tdoc) >= 0 && tidySaveBuffer(tdoc, &output) >= 0) {
+        normalizedHtml = output.bp;
+        normalizedHtmlSize = output.size;
+    } else {
+        unsigned char *errInfo = errbuf.bp;
+        LOGE("%s:failed %s", __func__, errInfo);
+        return 0;
+    }
+
+    if (normalizedHtml == nullptr || normalizedHtmlSize <= 0) {
+        LOGE("%s:failed, tidy html failed", __func__);
+        normalizedHtmlSize = rawHtmlSize;
+        normalizedHtml = rawHtml;
+    }
+
+    doc.ClearError();
+    doc.Clear();
+    if (doc.Parse(std::string(normalizedHtml, normalizedHtml + normalizedHtmlSize).c_str(), normalizedHtmlSize) != tinyxml2::XML_SUCCESS) {
+        LOGE("%s failed to parse ncx", __func__);
+        return 0;
+    }
+    return 1;
+}
+
+int mobi_util::countHtmlDoc2(
+        tinyxml2::XMLElement *element,
+        std::vector<std::string> &anchors,
+        std::vector<size_t> &wordCount,
+        int *chapterIndex,
+        size_t *chapterWordCount,
+        std::string &spineSrcName
+) {
+    tinyxml2::XMLElement *elem = element;
+    while (elem != nullptr) {
+        if (*chapterIndex > anchors.size()) {
+            break;
+        }
+        std::string aid = getEleAttr(elem, "id");
+        if (*chapterIndex < anchors.size() - 1) {
+            if (aid == anchors[(*chapterIndex) + 1]) { //找到了下一个锚点，
+                size_t words = *chapterWordCount;
+                wordCount[*chapterIndex] = words; //保存字数
+                *chapterIndex += 1; //切换到下一个章节
+                *chapterWordCount = 0;
+            }
+        }
+
+        std::string name = elem->Name();
+        if (name == "p") {
+            if (hasChildImg(elem)) {
+                auto count = elem->ChildElementCount();
+                tinyxml2::XMLElement *child = elem->FirstChildElement();
+                if (count > 0 && child != nullptr) {
+                    countHtmlDoc2(child, anchors, wordCount, chapterIndex, chapterWordCount, spineSrcName);
+                }
+            } else {
+                size_t count = countParagraph(elem, anchors, wordCount, chapterIndex, chapterWordCount, spineSrcName);
+                *chapterWordCount += count;
+            }
+        } else if (name == "div" || name == "ul" || name == "ol" || name == "li" || name == "span" || name == "font" || name == "blockquote") {
+            if (hasChildText(elem)) {
+                size_t count = countParagraph(elem, anchors, wordCount, chapterIndex, chapterWordCount, spineSrcName);
+                *chapterWordCount += count;
+            } else {
+                auto count = elem->ChildElementCount();
+                tinyxml2::XMLElement *child = elem->FirstChildElement();
+                if (count > 0 && child != nullptr) {
+                    countHtmlDoc2(child, anchors, wordCount, chapterIndex, chapterWordCount, spineSrcName);
+                }
+            }
+        } else if (name == "h1" || name == "h2" || name == "h3" || name == "h4" || name == "h5" || name == "h6" || name == "h7") {
+            std::string eleText = getEleText(elem);
+            if (!eleText.empty()) {
+                cleanStr(eleText);
+                *chapterWordCount += utf8Count(eleText);
+            } else {
+                size_t count = countParagraph(elem, anchors, wordCount, chapterIndex, chapterWordCount, spineSrcName);
+                *chapterWordCount += count;
+            }
+        } else if (name == "strong" || name == "em" || name == "b" || name == "i") {
+            std::string eleText = getEleText(elem);
+            if (!eleText.empty()) {
+                cleanStr(eleText);
+                *chapterWordCount += utf8Count(eleText);
+            }
+        } else if (name == "a") {
+            size_t count = countParagraph(elem, anchors, wordCount, chapterIndex, chapterWordCount, spineSrcName);
+            *chapterWordCount += count;
+        }
+        elem = elem->NextSiblingElement();
+    }
+
+    if (*chapterIndex == anchors.size() - 1) {
+        if (wordCount[*chapterIndex] == 0 && *chapterWordCount > 0) {
+            size_t count = *chapterWordCount;
+            wordCount[*chapterIndex] = count;
+        }
+    }
+
+    return 1;
 }
 
 int mobi_util::countHtmlDoc(tinyxml2::XMLElement *element,
-                            size_t* wordCount,
+                            int32_t *wordCount,
                             std::string &startAnchorId,
                             std::string &endAnchorId,
                             int *flagAdd,
                             std::string &spineSrcName
-                            ) {
+) {
     tinyxml2::XMLElement *elem = element;
     while (elem != nullptr) {
         if (2 == *flagAdd) {
@@ -1859,11 +2070,7 @@ int mobi_util::countHtmlDoc(tinyxml2::XMLElement *element,
                 }
             }
         } else if (name == "a") {
-            const char *id = elem->Attribute("id");
-            std::string aid;
-            if (id != nullptr && strlen(id) > 0) {
-                aid = id;
-            }
+            std::string aid = getEleAttr(elem, "id");
             if (0 == *flagAdd && !startAnchorId.empty() && startAnchorId == aid) {
                 *flagAdd = 1;
             } else if (1 == *flagAdd && !endAnchorId.empty() && endAnchorId == aid) {
@@ -1881,4 +2088,69 @@ int mobi_util::countHtmlDoc(tinyxml2::XMLElement *element,
         elem = elem->NextSiblingElement();
     }
     return 1;
+}
+
+
+size_t
+mobi_util::countParagraph(const tinyxml2::XMLElement *pElem,
+                          std::vector<std::string> &anchors,
+                          std::vector<size_t> &wordCount,
+                          int *chapterIndex,
+                          size_t *chapterWordCount,
+                          std::string &spineSrcName) {
+//    size_t offset = 0;
+    std::string fullText;
+
+    for (const tinyxml2::XMLNode *child = pElem->FirstChild(); child != nullptr; child = child->NextSibling()) {
+        if (child->ToText()) {
+            const char *text = child->Value();
+            if (text != nullptr && utf8Count(text) > 0) {
+                fullText += text;
+//                offset += utf8Count(text);
+            }
+        } else if (child->ToElement()) {
+            auto elem = child->ToElement();
+            std::string aid = getEleAttr(elem, "id");
+            if (*chapterIndex < anchors.size() - 1) {
+                if (aid == anchors[(*chapterIndex) + 1]) { //找到了下一个锚点，
+                    size_t words = *chapterWordCount;
+                    wordCount[*chapterIndex] = words; //保存字数
+                    *chapterIndex += 1; //切换到下一个章节
+                    *chapterWordCount = 0;
+                }
+            }
+            countElement(elem, fullText, anchors, wordCount, chapterIndex, chapterWordCount, spineSrcName);
+        }
+    }
+    cleanStr(fullText);
+    return utf8Count(fullText);
+}
+
+void
+mobi_util::countElement(const tinyxml2::XMLElement *elem,
+                        std::string &fullText,
+                        std::vector<std::string> &anchors,
+                        std::vector<size_t> &wordCount,
+                        int *chapterIndex,
+                        size_t *chapterWordCount,
+                        std::string &spineSrcName) {
+
+    for (const tinyxml2::XMLNode *child = elem->FirstChild(); child != nullptr; child = child->NextSibling()) {
+        if (child->ToText()) {
+            const char *text = child->Value();
+            fullText += text;
+        } else if (child->ToElement()) {
+            auto item = child->ToElement();
+            std::string aId = getEleAttr(item, "id");
+            if (*chapterIndex < anchors.size() - 1) {
+                if (aId == anchors[(*chapterIndex) + 1]) { //找到了下一个锚点，
+                    size_t words = *chapterWordCount;
+                    wordCount[*chapterIndex] = words; //保存字数
+                    *chapterIndex += 1; //切换到下一个章节
+                    *chapterWordCount = 0;
+                }
+            }
+            countElement(item, fullText, anchors, wordCount, chapterIndex, chapterWordCount, spineSrcName);
+        }
+    }
 }

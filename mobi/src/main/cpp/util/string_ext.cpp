@@ -166,7 +166,7 @@ void replace_all(std::string &input, std::string &old_str, std::string &new_str)
     }
 }
 
-static std::regex regex(R"([\n\\sr\t\f\v]+)");
+static std::regex regex(R"([\n\r\t\f\v]+)");
 static std::string emptyStr1 = "&nbsp;";    // //不换行空格
 static std::string emptyStr2 = "&ensp;";    //  //半角空格
 static std::string emptyStr3 = "&emsp;"; //全角空格

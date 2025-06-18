@@ -37,6 +37,7 @@ extern "C" {
 #include <android/bitmap.h>
 #include <android/imagedecoder.h>
 #include <list>
+#include <stack>
 
 #include "../../cssparser/CSSParser/CSSParser.hpp"
 
@@ -149,7 +150,7 @@ public:
 
     int getCss(std::vector<std::string> &cssClasses, std::vector<CssInfo> &cssInfos);
 
-    void getWordCount(std::vector<std::pair<int, size_t>> &wordCounts);
+    int32_t getWordCount(std::vector<std::pair<int32_t, int32_t>> &wordCounts);
 
     long bookid() {
         return book_id;
@@ -167,7 +168,6 @@ private:
     mutable std::mutex m_Mutex;
     mutable std::mutex m_Mutex2;
     mutable std::mutex m_Mutex3;
-    mutable std::mutex m_Mutex4;
     MOBIRawml *mobi_rawml;
     MOBIData *mobi_data;
     std::vector<NavPoint> allChapters;
@@ -259,13 +259,39 @@ private:
                                std::string &spineSrcName);
 
     int countHtmlDoc(tinyxml2::XMLElement *element,
-                                 size_t* wordCount,
-                                std::string &startAnchorId,
-                                std::string &endAnchorId,
-                                int *flagAdd,
-                                std::string &spineSrcName
+                     int32_t *wordCount,
+                     std::string &startAnchorId,
+                     std::string &endAnchorId,
+                     int *flagAdd,
+                     std::string &spineSrcName
 //                                std::vector<TagInfo> fatherTags
-                                );
+    );
+
+    int parseDocDom(int prefixType, int srcUid);
+
+    int countHtmlDoc2(
+            tinyxml2::XMLElement *element,
+            std::vector<std::string> &anchors,
+            std::vector<size_t> &wordCount,
+            int *chapterIndex,
+            size_t *chapterWordCount,
+            std::string &spineSrcName
+    );
+
+    size_t countParagraph(const tinyxml2::XMLElement *pElem,
+                               std::vector<std::string> &anchors,
+                               std::vector<size_t> &wordCount,
+                               int *chapterIndex,
+                               size_t *chapterWordCount,
+                               std::string &spineSrcName);
+
+    void countElement(const tinyxml2::XMLElement *elem,
+                            std::string &fullText,
+                            std::vector<std::string> &anchors,
+                            std::vector<size_t> &wordCount,
+                            int *chapterIndex,
+                            size_t *chapterWordCount,
+                            std::string &spineSrcName);
 };
 
 #endif //SIMPLEREADER2_MOBI_UTIL_H

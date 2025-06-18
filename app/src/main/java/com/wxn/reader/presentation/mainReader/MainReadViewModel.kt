@@ -299,18 +299,18 @@ class MainReadViewModel @Inject constructor(
                     Logger.d("MainReaderViewModel:load current chapter success:${System.currentTimeMillis()}")
 
                     _readProgression.value = pageController.progression
-                }
 
-                if (newBook.wordCount == 0L) {
-                    loadChapterWords(newBook)
+                    if (newBook.wordCount == 0L) {
+                        loadChapterWords(newBook)
+                    }
                 }
             }
         }
     }
 
-    private suspend fun loadChapterWords(book: Book) {
+    private fun loadChapterWords(book: Book) {
         viewModelScope.launchIO {
-            delay(3000)
+            delay(1500)
             pageController.calcChaptersWords(book)
         }
     }
