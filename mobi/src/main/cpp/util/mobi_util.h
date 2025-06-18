@@ -40,49 +40,10 @@ extern "C" {
 #include <stack>
 
 #include "../../cssparser/CSSParser/CSSParser.hpp"
-
-typedef struct NavPoint_ {
-    std::string id;         //章节ID
-    std::string parentId;   //上一章节id
-    int playOrder;          //顺序
-    std::string text;       //章节名
-    std::string src;        //章节开始位置
-
-    bool operator<(const struct NavPoint_ &other) const { //排序用
-        return playOrder < other.playOrder;
-    }
-} NavPoint;
-
-/***
- * 对DocText的修饰，一些常见的css样式的简化
- */
-typedef struct TagInfo_ {
-    std::string uuid;       //唯一标识
-    std::string anchor_id;         //作为锚点使用的id
-    std::string name;       //名称，用于区分不同的修饰符类型
-    size_t startPos;              //开始位置
-    size_t endPos;                //结束位置
-
-    std::string parent_uuid;    //父级uuid
-    std::string params;           //字符串拼接的键值对，
-} TagInfo;
-
-typedef struct RuleData_ {
-    std::string name;
-    std::string value;
-} RuleData;
-
-typedef struct CssInfo_ {
-    std::string identifier;
-    int weight;
-    bool isBaseSelector;
-    std::vector<RuleData> ruleDatas;
-} CssInfo;
-
-typedef struct DocText_ {
-    std::string text;
-    std::vector<TagInfo> tagInfos;
-} DocText;
+#include "css_info.h"
+#include "doc_text.h"
+#include "nav_point.h"
+#include "tag_info.h"
 
 class mobi_util {
 public:

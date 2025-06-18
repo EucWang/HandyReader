@@ -11,6 +11,7 @@ import com.wxn.bookparser.domain.book.BookWithCover
 import com.wxn.bookparser.domain.file.CachedFile
 import com.wxn.bookparser.util.FileUtil
 import com.wxn.bookparser.util.getCoverPath
+import com.wxn.mobi.EpubParser
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import org.jsoup.Jsoup
@@ -208,6 +209,9 @@ class EpubFileParser @Inject constructor(val context: Context) : FileParser {
     }
 
     private suspend fun innerParserFile(rawFile: File?, baseName: String, absolutePath: String): BookWithCover? {
+        val path = rawFile?.absolutePath ?: return null
+        EpubParser.getEpubInfo(context, path)
+
         return try {
             var book: BookWithCover? = null
 

@@ -18,6 +18,8 @@ object NativeLib {
 
     external fun loadMobi(context: Context, path: String): MobiInfo? // Array<String>?
 
+    external fun loadEpub(context: Context, path: String): MobiInfo? // Array<String>?
+
 //    external fun convertToEpub(context: Context, path: String): String?
 
     external fun getChapters(context: Context, book_id: Long, path: String): Array<BookChapter>?

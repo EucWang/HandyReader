@@ -250,10 +250,15 @@ class MainReadViewModel @Inject constructor(
         calendar.set(Calendar.SECOND, 0)
         calendar.set(Calendar.MILLISECOND, 0)
         currentDayStartTime = calendar.timeInMillis
+
     }
 
     init {
         ChapterProvider.init(context)
+
+
+        context.cacheDir
+        context.applicationContext.filesDir
 
         val openedBookId = savedStateHandle.get<String>("bookId")?.toLongOrNull()
         val bookUri = savedStateHandle.get<String>("bookUri")

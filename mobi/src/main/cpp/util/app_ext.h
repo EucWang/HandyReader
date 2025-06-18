@@ -14,6 +14,8 @@ public:
 
     static std::string appFileDir;
 
+    static std::string appCacheDir;
+
     /***
      * @return 获取系统API版本
      */

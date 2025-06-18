@@ -64,7 +64,7 @@ fun BookShelfScreen(
                 val encodedUri = Uri.encode(openedBook.filePath)
                 isBookOpen = true  // Set the state to indicate a book is open
                 val route = when (stringToFileType(openedBook.fileType)) {
-                    FileType.EPUB -> Screens.BookReaderScreen.route + "/${openedBook.id}/${encodedUri}"
+//                    FileType.EPUB -> Screens.BookReaderScreen.route + "/${openedBook.id}/${encodedUri}"
                     FileType.PDF -> Screens.PdfReaderScreen.route + "/${openedBook.id}/${encodedUri}"
                     FileType.AUDIOBOOK -> Screens.AudiobookReaderScreen.route + "/${openedBook.id}/${encodedUri}"
                     else -> {

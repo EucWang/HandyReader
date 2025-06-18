@@ -6,6 +6,8 @@
 
 std::string app_ext::appFileDir = "";
 
+std::string app_ext::appCacheDir = "";
+
 /***
  * @return 获取系统API版本
  */

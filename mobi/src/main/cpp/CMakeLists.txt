@@ -49,6 +49,10 @@ add_library(${CMAKE_PROJECT_NAME} SHARED
         util/mobi/save_epub.h
         util/mobi/save_epub.cpp
 
+        util/nav_point.h
+        util/tag_info.h
+        util/css_info.h
+        util/doc_text.h
         util/bitmap_ext.cpp
         util/bitmap_ext.h
         util/app_ext.h
@@ -57,6 +61,8 @@ add_library(${CMAKE_PROJECT_NAME} SHARED
         util/file_ext.cpp
         util/mobi_util.h
         util/mobi_util.cpp
+        util/epub_util.h
+        util/epub_util.cpp
 
         util/tinyxml2.h
         util/tinyxml2.cpp
