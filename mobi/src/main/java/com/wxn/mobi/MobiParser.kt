@@ -28,14 +28,14 @@ object MobiParser {
 
     fun getMobiChapter(context: Context, bookId: Long, path: String): Array<BookChapter>? {
         Log.d("MobiParser", "getMobiChapter:path=$path")
-        val chapters: Array<BookChapter>? = NativeLib.getChapters(context, bookId, path)
+        val chapters: Array<BookChapter>? = NativeLib.getChapters(context, bookId, path, 1)
         Log.d("MobiParser", "getMobiChapter: = ${chapters?.size}")
         return chapters
     }
 
     fun getMobiChapterData(context: Context, path: String, chapter: BookChapter): Array<ReaderText>? {
         Log.d("MobiParser", "getMobiChapterData:path=$path,chapter=$chapter")
-        val texts: Array<ReaderText>? = NativeLib.getChapter(context, path, chapter)
+        val texts: Array<ReaderText>? = NativeLib.getChapter(context, path, chapter, 1)
         Log.d("MobiParser", "getMobiChapterData: chapter=${chapter.chapterIndex}: texts.size = ${texts?.size}")
         return texts
     }
@@ -43,7 +43,7 @@ object MobiParser {
     fun getMobiCssInfo(context: Context, bookId: Long, cssNames: List<String>?): List<CssInfo>? {
         Log.d("MobiParser", "getMobiCssInfo:bookId=$bookId")
         val names = cssNames ?: return null
-        val retVal = NativeLib.getCssInfo(context, bookId, names.toTypedArray())
+        val retVal = NativeLib.getCssInfo(context, bookId, names.toTypedArray(), 1)
         return retVal?.toList().orEmpty()
     }
 

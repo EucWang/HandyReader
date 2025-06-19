@@ -3,29 +3,96 @@
 //
 #include "xml_ext.h"
 
+//media_type
+const std::string &xml_ext::MediaTypeHtml = "application/xhtml+xml";  //html
+const std::string &xml_ext::MediaTypeCss = "text/css";                //css
+
+const std::string &xml_ext::MediaTypeSvg = "image/svg+xml";           //svg
+const std::string &xml_ext::MediaTypeJpg = "image/jpeg";              //jpg/jpeg
+const std::string &xml_ext::MediaTypeGif = "image/gif";               //gif
+const std::string &xml_ext::MediaTypePng = "image/png";               //png
+const std::string &xml_ext::MediaTypeBmp = "image/bmp";               //bmp
+
+const std::string &xml_ext::MediaTypeOtf = "application/vnd.ms-opentype";  //font
+const std::string &xml_ext::MediaTypeTtf = "application/x-font-truetype"; //字体
+
+const std::string &xml_ext::MediaTypeMp3 = "audio/mpeg";             //mp3
+const std::string &xml_ext::MediaTypeMpg = "video/mpeg";             //mp4
+
+const std::string &xml_ext::MediaTypePdf = "application/pdf";        //pdf
+
+const std::string &xml_ext::MediaTypeOpf = "application/oebps-package+xml";  //opf
+const std::string &xml_ext::MediaTypeNcx = "application/x-dtbncx+xml";       //ncx
+const std::string &xml_ext::MediaTypeDat = "application/unknown";            //data
+
+std::string xml_ext::ele_name(const tinyxml2::XMLElement *elem) {
+    std::string ret;
+    if (elem != nullptr) {
+        const char* name = elem->Name();
+        if (name != nullptr && strlen(name) > 0) {
+            ret = name;
+        }
+    }
+    return ret;
+}
+
 std::string xml_ext::getEleText(const tinyxml2::XMLElement *elem) {
-    const char *elemText = elem->GetText();
     std::string text;
-    if (elemText != nullptr && utf8Count(elemText) > 0) {
-        text = elemText;
+    if (elem != nullptr) {
+        const char *elemText = elem->GetText();
+        if (elemText != nullptr && utf8Count(elemText) > 0) {
+            text = elemText;
+        }
     }
     return text;
 }
 
 std::string xml_ext::getEleAttr(const tinyxml2::XMLElement *elem, const char *attr_name) {
-    const char *attr = elem->Attribute(attr_name);
     std::string attr_value;
-    if (attr != nullptr && strlen(attr) > 0) {
-        attr_value = attr;
+    if (elem != nullptr) {
+        const char *attr = elem->Attribute(attr_name);
+        if (attr != nullptr && strlen(attr) > 0) {
+            attr_value = attr;
+        }
     }
     return attr_value;
 }
 
+bool xml_ext::has_attr(tinyxml2::XMLElement *elem, const char *attr_name) {
+    bool ret = false;
+    if (elem != nullptr) {
+        const char* attr = elem->Attribute(attr_name);
+        if (attr != nullptr) {
+            ret = true;
+        }
+    }
+    return ret;
+}
+
+
+std::string xml_ext::get_img_src(tinyxml2::XMLElement *elem) {
+    std::string imgSrc = "";
+    if (elem != nullptr) {
+        if (xml_ext::has_attr(elem, "src")) {
+            imgSrc = xml_ext::getEleAttr(elem, "src");
+        } else if (xml_ext::has_attr(elem, "xlink:href")) {
+            imgSrc = xml_ext::getEleAttr(elem, "xlink:href");
+        } else if (xml_ext::has_attr(elem, "href")) {
+            imgSrc = xml_ext::getEleAttr(elem, "href");
+        } else if (xml_ext::has_attr(elem, "l:href")) {
+            imgSrc = xml_ext::getEleAttr(elem, "l:href");
+        }
+    }
+    return imgSrc;
+}
+
 std::string xml_ext::getEleAttr(tinyxml2::XMLElement *elem, const char *attr_name) {
-    const char *attr = elem->Attribute(attr_name);
     std::string attr_value;
-    if (attr != nullptr && strlen(attr) > 0) {
-        attr_value = attr;
+    if (elem != nullptr) {
+        const char *attr = elem->Attribute(attr_name);
+        if (attr != nullptr && strlen(attr) > 0) {
+            attr_value = attr;
+        }
     }
     return attr_value;
 }
@@ -163,12 +230,12 @@ xml_ext::getChildrenTexts(const tinyxml2::XMLElement *elem, const std::string &c
  * @return
  */
 const tinyxml2::XMLElement *xml_ext::getChildByNameAndAttr(const tinyxml2::XMLElement *elem,
-                                                    const std::string &child_name,
-                                                    const std::string &attr_name,
-                                                    const std::string &attr_value) {
+                                                           const std::string &child_name,
+                                                           const std::string &attr_name,
+                                                           const std::string &attr_value) {
     const tinyxml2::XMLElement *target = nullptr;
     if (elem != nullptr) {
-        const tinyxml2::XMLElement* child = elem->FirstChildElement(child_name.c_str());
+        const tinyxml2::XMLElement *child = elem->FirstChildElement(child_name.c_str());
         while (child != nullptr) {
             if (attr_value == getEleAttr(child, attr_name.c_str())) {
                 target = child;
@@ -178,4 +245,266 @@ const tinyxml2::XMLElement *xml_ext::getChildByNameAndAttr(const tinyxml2::XMLEl
         }
     }
     return target;
+}
+
+void xml_ext::parseNavData(tinyxml2::XMLElement *firstNavPoint, std::vector<NavPoint> &vectors, const char *parentId) {
+    for (tinyxml2::XMLElement *navPoint = firstNavPoint; navPoint; navPoint = navPoint->NextSiblingElement("navPoint")) {
+        const char *id = navPoint->Attribute("id");
+        const char *playOrder = navPoint->Attribute("playOrder");
+        const char *label = navPoint->FirstChildElement("navLabel")->FirstChildElement("text")->GetText();
+        const char *src = navPoint->FirstChildElement("content")->Attribute("src");
+        NavPoint nav;
+        nav.id = id;
+        nav.playOrder = toInt(playOrder);
+        nav.text = label;
+        nav.src = src;
+        nav.parentId = parentId;
+        vectors.push_back(nav);
+
+        if (navPoint->ChildElementCount("navPoint") > 0) {
+            parseNavData(navPoint->FirstChildElement("navPoint"), vectors, id);
+        }
+    }
+}
+
+int xml_ext::parseNcxData(std::string &ncx_data, std::vector<NavPoint> &points) {
+    tinyxml2::XMLDocument doc;
+    if (doc.Parse(ncx_data.c_str(), ncx_data.length()) != tinyxml2::XML_SUCCESS) {
+        LOGE("%s failed to parse ncx", __func__);
+        return 0;
+    }
+
+    tinyxml2::XMLElement *root = doc.RootElement();
+    if (!root) {
+        LOGE("%s failed parse ncx, no root element", __func__);
+        return 0;
+    }
+
+    tinyxml2::XMLElement *navMapElem = root->FirstChildElement("navMap");
+    if (!navMapElem) {
+        LOGE("%s failed parse ncx, no navMap element", __func__);
+        return 0;
+    }
+    tinyxml2::XMLElement *firstNavPoint = navMapElem->FirstChildElement("navPoint");
+    parseNavData(firstNavPoint, points, "");
+    return 1;
+}
+
+/****
+ * 直接子元素是否有img元素
+ * @param elem
+ * @return
+ */
+bool xml_ext::has_child_img(tinyxml2::XMLElement *elem) {
+    bool ret = false;
+    if (elem != nullptr) {
+        auto child = elem->FirstChild();
+        while (child != nullptr) {
+            auto childElem = child->ToElement();
+            if (childElem != nullptr) {
+                std::string name = ele_name(childElem);
+                if (!name.empty()) {
+                    if (name == "img" || name == "image") {
+                        ret = true;
+                        break;
+                    }
+                }
+            }
+            child = child->NextSibling();
+        }
+    }
+    return ret;
+}
+
+
+/****
+ * 将一个元素全部的属性拼接成一个字符串， 不同属性间用&拼接，属性名属性值间用=拼接, 并处理href
+ * @param elem
+ * @param spineSrcName
+ * @return
+ */
+std::string xml_ext::ele_params(const tinyxml2::XMLElement *elem, std::string &spineSrcName) {
+    std::string params;
+    if (elem != nullptr) {
+        for (auto attri = elem->FirstAttribute(); attri != nullptr; attri = attri->Next()) {
+            const char *attriName = attri->Name();
+            const char *attriValue = attri->Value();
+            if (attriName == nullptr || attriValue == nullptr) {
+                continue;
+            }
+            std::string name(attriName, attriName + strlen(attriName));
+            std::string value(attriValue, attriValue + strlen(attriValue));
+            if (name.empty()) {
+                continue;
+            }
+            if (name == "href") {
+                if (!value.empty()) {
+                    if (!startWith(value, "http")) {
+                        bool isSrcName = true;
+                        if (value.find('#') != std::string::npos) { //完整的链接
+                        } else { //只包含一部分
+                            if (is_number(value) || startWith(value, "#")) { // 只是anchor部分
+                                isSrcName = false;
+                            }
+                        }
+
+                        std::string href;
+                        if (!isSrcName) {
+                            href.append(spineSrcName);
+                            if (!startWith(value, "#")) {
+                                href.append("#");
+                            }
+                        }
+                        href.append(value);
+                        value = href;
+                    }
+                }
+            }
+            if (!params.empty()) {
+                params.append("&");
+            }
+            params.append(name).append("=").append(value);
+        }
+    }
+    return params;
+}
+
+
+/****
+ * 用来判断一个节点，是否是一个自然段落
+ * 1. 如果dom子元素首先就是文本内容，则返回true
+ * 2. 如果dom子元素第一个节点不是文本内容， 则判断dom孩子节点是否是【img, p, div, blockquote】元素，不是则返回true
+ * @param elem
+ * @return
+ */
+bool xml_ext::is_paragraph(tinyxml2::XMLElement *elem) {
+    if (elem == nullptr) {
+        return false;
+    }
+    auto child = elem->FirstChild();
+    bool ret = false;
+    while (child != nullptr) {
+        if (child->ToText() != nullptr) {
+            ret = true;
+            break;
+        } else if (child->ToElement() != nullptr) {
+            auto childEle = child->ToElement();
+            const char *name = childEle->Name();
+            std::string nameStr(name, name + strlen(name));
+            if (nameStr == "img" || nameStr == "image" || nameStr == "p" || nameStr == "div" || nameStr == "blockquote") {
+                ret = false;
+                break;
+            }
+        }
+        child = child->NextSibling();
+    }
+    return ret;
+}
+
+size_t xml_ext::parse_elem(const tinyxml2::XMLElement *elem,
+                           std::string &fullText,
+                           std::string &parent_uuid,
+                           size_t initialOffset,
+                           std::vector<TagInfo> &subTags,
+                           std::string &startAnchorId,
+                           std::string &endAnchorId,
+                           int *flagAdd,
+                           std::string &spineSrcName) {
+    size_t currentOffset = initialOffset;
+
+    if (elem != nullptr) {
+        for (const tinyxml2::XMLNode *child = elem->FirstChild(); child != nullptr; child = child->NextSibling()) {
+            if (child->ToText()) {
+                const char *text = child->Value();
+                if (text != nullptr) {
+                    fullText += text;
+                    currentOffset += utf8Count(text);
+                }
+            } else if (child->ToElement()) {
+                auto item = child->ToElement();
+                if (item != nullptr) {
+                    size_t childStart = currentOffset;
+                    std::string tagId = getEleAttr(item, "id");
+
+                    if (!startAnchorId.empty() && startAnchorId == tagId) {
+                        *flagAdd = 1;
+                    } else if (!endAnchorId.empty() && endAnchorId == tagId) {
+                        *flagAdd = 2;
+                        break;
+                    }
+
+                    std::string params = xml_ext::ele_params(item, spineSrcName);
+                    auto newTag = TagInfo{generate_uuid(), tagId, item->Name(), currentOffset, currentOffset, parent_uuid, params};
+
+                    size_t endOffset = parse_elem(item, fullText, newTag.uuid, childStart, subTags, startAnchorId, endAnchorId, flagAdd, spineSrcName);
+
+                    if (endOffset >= childStart) {
+                        newTag.endPos = endOffset;
+                    }
+                    currentOffset = endOffset;
+                    subTags.push_back(newTag);
+                }
+            }
+        }
+    }
+    return currentOffset;
+}
+
+/****
+ * 将一个dom元素的全部dom子元素内容解析成为一个自然段落
+ * @param pElem     [in] 解析的dom元素
+ * @param subTags [in,out]  全部的dom元素对应的标签信息
+ * @param startAnchorId   解析开始锚点
+ * @param endAnchorId   解析结束锚点
+ * @param flagAdd   允许解析的标记， 0:  未开始解析； 1: 正常解析中； 2: 解析结束
+ * @param spineSrcName   当前的资源文件名
+ * @return 解析之后的纯文本
+ */
+std::string xml_ext::parse_paragraph(const tinyxml2::XMLElement *pElem,
+                                     std::vector<TagInfo> &subTags,
+                                     std::string &startAnchorId,
+                                     std::string &endAnchorId,
+                                     int *flagAdd,
+                                     std::string &spineSrcName) {
+    size_t offset = 0;
+    std::string fullText;
+
+    if (pElem != nullptr) {
+        for (const tinyxml2::XMLNode *child = pElem->FirstChild(); child != nullptr; child = child->NextSibling()) {
+            if (child->ToText()) {
+                const char *text = child->Value();
+                if (text != nullptr && utf8Count(text) > 0) {
+                    fullText += text;
+                    offset += utf8Count(text);
+                }
+            } else if (child->ToElement()) {
+                size_t childStart = offset;
+
+                auto elem = child->ToElement();
+                const char *id = elem->Attribute("id");
+                std::string aid;
+                if (id != nullptr && strlen(id) > 0) {
+                    aid = id;
+                }
+                if (!startAnchorId.empty() && startAnchorId == aid) {
+                    *flagAdd = 1;
+                } else if (!endAnchorId.empty() && endAnchorId == aid) {
+                    *flagAdd = 2;
+                    break;
+                }
+
+                std::string params = xml_ext::ele_params(elem, spineSrcName);
+
+                auto newTag = TagInfo{generate_uuid(), aid, elem->Name(), childStart, childStart, "", params};
+                offset = xml_ext::parse_elem(child->ToElement(), fullText, newTag.uuid, childStart, subTags, startAnchorId, endAnchorId, flagAdd, spineSrcName);
+
+                if (offset > childStart) {
+                    newTag.endPos = offset;
+                }
+                subTags.push_back(newTag);
+            }
+        }
+    }
+    cleanStr(fullText);
+    return fullText;
 }

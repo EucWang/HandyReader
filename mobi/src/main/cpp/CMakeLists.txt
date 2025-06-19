@@ -49,6 +49,11 @@ add_library(${CMAKE_PROJECT_NAME} SHARED
         util/mobi/save_epub.h
         util/mobi/save_epub.cpp
 
+        util/css_ext.h
+        util/css_ext.cpp
+        util/meta_data.h
+        util/tidyh5_ext.h
+        util/tidyh5_ext.cpp
         util/zip_ext.h
         util/zip_ext.cpp
         util/xml_ext.h

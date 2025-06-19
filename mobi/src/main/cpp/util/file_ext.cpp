@@ -4,6 +4,25 @@
 
 #include "file_ext.h"
 
+/***
+ * 替换 文件名的 '/' 为 '_'
+ * 移除文件名中开始的'..'
+ * @param filename
+ */
+std::string file_ext::handle_filename(const std::string &filename) {
+    std::string separator = "/";
+    std::string underscore = "_";
+    std::string predir = "..";
+    std::string name;
+    name.append(filename);
+    if (startWith(name, predir)) {
+        name = name.substr(predir.length());
+    }
+    if (name.find(separator) != std::string::npos) {
+        replace_all(name, separator, underscore);
+    }
+    return name;
+}
 
 /***
  * 判断文件是否存在，如果存在返回1；
@@ -12,9 +31,9 @@
  * @return
  */
 int file_ext::checkAndCreateDir(const std::string &parentPath, const std::string &fileName) {
-    std::string fullPath = parentPath + separator + fileName;
+    std::string fullPath = parentPath + separator + handle_filename(fileName);
     if (fs::exists(fullPath) && fs::file_size(fullPath) > 0) {
-        return true;
+        return 1;
     }
 
     if (!fs::exists(parentPath)) {
@@ -44,15 +63,14 @@ int file_ext::writeDataToFile(const std::string &filepath, unsigned char *data, 
     return 1;
 }
 
-int
-file_ext::get_cover_path(std::string &book_title, std::string &file_ext, std::string &output_path) {
+std::string
+file_ext::get_cover_path(std::string &book_title, std::string &file_ext) {
     std::string file_name = book_title + "_cover." + file_ext;
     std::string parent_path = app_ext::appFileDir + "/" + "covers";
     if (!dir_exists(parent_path.c_str()) && make_directory(parent_path.c_str()) != SUCCESS) {
         return 0;
     }
-    output_path = parent_path + "/" + file_name;
-    return 1;
+    return parent_path + "/" + file_name;
 }
 
 std::string file_ext::get_media_type_ext(std::string &media_type) {
@@ -69,4 +87,12 @@ std::string file_ext::get_media_type_ext(std::string &media_type) {
         ext = "webp";
     }
     return ext;
+}
+
+std::string file_ext::get_img_path(long book_id, const std::string &imgSrc) {
+    return get_img_parent_path(book_id) + separator + handle_filename(imgSrc);
+}
+
+std::string file_ext::get_img_parent_path(long book_id) {
+    return app_ext::appFileDir + separator + "resources" + separator + std::to_string(book_id);
 }

@@ -39,7 +39,8 @@ extern "C" {
 #include <list>
 #include <stack>
 
-#include "../../cssparser/CSSParser/CSSParser.hpp"
+//#include "../../cssparser/CSSParser/CSSParser.hpp"
+#include "css_ext.h"
 #include "css_info.h"
 #include "doc_text.h"
 #include "nav_point.h"
@@ -204,21 +205,21 @@ private:
 
     int parseOpfData(const char *opf_data, size_t opf_data_size, std::vector<NavPoint> &points);
 
-    static std::string
-    processParagraph(const tinyxml2::XMLElement *pElem, std::vector<TagInfo> &subTags, std::string &startAnchorId, std::string &endAnchorId, int *flagAdd,
-                     std::string &spineSrcName);
+//    static std::string
+//    processParagraph(const tinyxml2::XMLElement *pElem, std::vector<TagInfo> &subTags, std::string &startAnchorId, std::string &endAnchorId, int *flagAdd,
+//                     std::string &spineSrcName);
 
-    static std::string getEleParams(const tinyxml2::XMLElement *elem, std::string &spineSrcName);
+//    static std::string getEleParams(const tinyxml2::XMLElement *elem, std::string &spineSrcName);
 
-    static size_t parseElement(const tinyxml2::XMLElement *elem,
-                               std::string &fullText,
-                               std::string &parent_uuid,
-                               size_t initialOffset,
-                               std::vector<TagInfo> &subTags,
-                               std::string &startAnchorId,
-                               std::string &endAnchorId,
-                               int *flagAdd,
-                               std::string &spineSrcName);
+//    static size_t parseElement(const tinyxml2::XMLElement *elem,
+//                               std::string &fullText,
+//                               std::string &parent_uuid,
+//                               size_t initialOffset,
+//                               std::vector<TagInfo> &subTags,
+//                               std::string &startAnchorId,
+//                               std::string &endAnchorId,
+//                               int *flagAdd,
+//                               std::string &spineSrcName);
 
     int countHtmlDoc(tinyxml2::XMLElement *element,
                      int32_t *wordCount,

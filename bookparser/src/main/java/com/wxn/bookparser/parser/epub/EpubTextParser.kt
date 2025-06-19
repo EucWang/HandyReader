@@ -12,6 +12,8 @@ import com.wxn.bookparser.exts.addAll
 import com.wxn.bookparser.exts.containsVisibleText
 import com.wxn.bookparser.parser.base.DocumentParser
 import com.wxn.bookparser.provideImageExtensions
+import com.wxn.mobi.EpubParser
+import com.wxn.mobi.MobiParser
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.async
@@ -345,16 +347,29 @@ class EpubTextParser @Inject constructor(
      * 解析得到章节列表
      */
     override suspend fun parseChapterInfo(bookId: Long, cachedFile: CachedFile): List<BookChapter> {
-
-        return emptyList()
+        val path  = cachedFile.rawFile?.absolutePath
+        if (path.isNullOrEmpty()) {
+            Log.e("MobiTextParser", ":parseChapterInfo failed, path is empty")
+            return emptyList()
+        }
+        val retVal = EpubParser.getEpubChapter(context, bookId, path)?.toList() ?: emptyList<BookChapter>()
+        return retVal
     }
 
     /***
      * 解析得到给定章节数据
      */
     override suspend fun parsedChapterData(bookId: Long, cachedFile: CachedFile, chapter: BookChapter) : List<ReaderText> {
-
-        return emptyList()
+        val path = cachedFile.rawFile?.absolutePath
+        if (path.isNullOrEmpty()) {
+            Log.e("MobiTextparser", "parsedChapterData failed, path is empty")
+            return emptyList()
+        }
+        val result : Array<ReaderText>? = EpubParser.getEpubChapterData(context, path, chapter)
+        if (result == null) {
+            return emptyList()
+        }
+        return result.toList()
     }
 
     override suspend fun parseCss(bookId: Long,cachedFile: CachedFile,  cssNames: List<String>): List<CssInfo> {

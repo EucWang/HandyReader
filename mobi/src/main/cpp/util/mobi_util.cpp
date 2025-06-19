@@ -548,156 +548,6 @@ int mobi_util::loadMobi(std::string fullpath,
     return SUCCESS;
 }
 
-std::string
-mobi_util::getEleParams(const tinyxml2::XMLElement *elem, std::string &spineSrcName) {
-    std::string params;
-    for (auto attri = elem->FirstAttribute(); attri != nullptr; attri = attri->Next()) {
-        const char *attriName = attri->Name();
-        const char *attriValue = attri->Value();
-        if (attriName == nullptr || attriValue == nullptr || strlen(attriName) == 0) {
-            continue;
-        }
-        std::string name(attriName, attriName + strlen(attriName));
-        std::string value(attriValue, attriValue + strlen(attriValue));
-        if (name.empty()) {
-            continue;
-        }
-
-        if (name == "href") {
-            if (!value.empty()) {
-                if (!startWith(value, "http")) {
-
-                    std::string &src = value;
-                    std::string prefix;
-                    std::string spineSrc;
-                    std::string suffix;
-                    std::string anchorId;
-                    int prefixType;
-                    int srcUid;
-                    bool isSrcName = true;
-                    if (1 != parseSrcName(src, prefix, spineSrc, &prefixType, &srcUid, anchorId, suffix)) {
-                        isSrcName = false;
-                    } else if ((prefix != "flow" && prefix != "part" && prefix != "resource") &&
-                               (prefixType != 1 && prefixType != 2 && prefixType != 3)) {
-                        isSrcName = false;
-                    }
-
-                    std::string href;
-                    if (!isSrcName) {
-                        href.append(spineSrcName);
-                        if (!startWith(value, "#")) {
-                            href.append("#");
-                        }
-                    }
-                    href.append(value);
-                    value = href;
-                }
-            }
-        }
-
-
-        if (!params.empty()) {
-            params.append("&");
-        }
-
-        params.append(name).append("=").append(value);
-    }
-    return params;
-}
-
-size_t
-mobi_util::parseElement(const tinyxml2::XMLElement *elem, std::string &fullText, std::string &parent_uuid, size_t initialOffset, std::vector<TagInfo> &subTags,
-                        std::string &startAnchorId,
-                        std::string &endAnchorId,
-                        int *flagAdd,
-                        std::string &spineSrcName) {
-    size_t currentOffset = initialOffset;
-
-    for (const tinyxml2::XMLNode *child = elem->FirstChild(); child != nullptr; child = child->NextSibling()) {
-        if (child->ToText()) {
-            const char *text = child->Value();
-            fullText += text;
-            currentOffset += utf8Count(text);
-        } else if (child->ToElement()) {
-            auto item = child->ToElement();
-            size_t childStart = currentOffset;
-            const char *id = item->Attribute("id");
-
-            std::string tagId = "";
-            if (id != nullptr) {
-                tagId = id;
-            }
-
-            if (!startAnchorId.empty() && startAnchorId == tagId) {
-                *flagAdd = 1;
-            } else if (!endAnchorId.empty() && endAnchorId == tagId) {
-                *flagAdd = 2;
-                break;
-            }
-
-            std::string params = getEleParams(item, spineSrcName);
-            auto newTag = TagInfo{generate_uuid(), tagId, item->Name(), currentOffset, currentOffset, parent_uuid, params};
-
-            size_t endOffset = parseElement(item, fullText, newTag.uuid, childStart, subTags, startAnchorId, endAnchorId, flagAdd, spineSrcName);
-
-            if (endOffset >= childStart) {
-                newTag.endPos = endOffset;
-            }
-            currentOffset = endOffset;
-            subTags.push_back(newTag);
-        }
-    }
-    return currentOffset;
-}
-
-
-std::string
-mobi_util::processParagraph(const tinyxml2::XMLElement *pElem,
-                            std::vector<TagInfo> &subTags,
-                            std::string &startAnchorId,
-                            std::string &endAnchorId,
-                            int *flagAdd,
-                            std::string &spineSrcName) {
-    size_t offset = 0;
-    std::string fullText;
-
-    for (const tinyxml2::XMLNode *child = pElem->FirstChild(); child != nullptr; child = child->NextSibling()) {
-        if (child->ToText()) {
-            const char *text = child->Value();
-            if (text != nullptr && utf8Count(text) > 0) {
-                fullText += text;
-                offset += utf8Count(text);
-            }
-        } else if (child->ToElement()) {
-            size_t childStart = offset;
-
-            auto elem = child->ToElement();
-            const char *id = elem->Attribute("id");
-            std::string aid;
-            if (id != nullptr && strlen(id) > 0) {
-                aid = id;
-            }
-            if (!startAnchorId.empty() && startAnchorId == aid) {
-                *flagAdd = 1;
-            } else if (!endAnchorId.empty() && endAnchorId == aid) {
-                *flagAdd = 2;
-                break;
-            }
-
-            std::string params = getEleParams(elem, spineSrcName);
-
-            auto newTag = TagInfo{generate_uuid(), aid, elem->Name(), childStart, childStart, "", params};
-            offset = parseElement(child->ToElement(), fullText, newTag.uuid, childStart, subTags, startAnchorId, endAnchorId, flagAdd, spineSrcName);
-
-            if (offset > childStart) {
-                newTag.endPos = offset;
-            }
-            subTags.push_back(newTag);
-        }
-    }
-    cleanStr(fullText);
-    return fullText;
-}
 
 /****
  * 从资源索引路径中解析出 prefix， srcId, anchorId, suffix
@@ -853,51 +703,6 @@ int mobi_util::cacheImage(JNIEnv *env, long book_id, MOBIRawml *mobi_rawml, std:
     return 1;
 }
 
-/****
- * 判断子元素中是否有文本元素
- * @param elem
- * @return true: 有， false： 没有
- */
-bool hasChildText(tinyxml2::XMLElement *elem) {
-    auto child = elem->FirstChild();
-    bool ret = false;
-    while (child != nullptr) {
-        if (child->ToText() != nullptr) {
-            ret = true;
-            break;
-        } else if (child->ToElement() != nullptr) {
-            auto childEle = child->ToElement();
-            const char *name = childEle->Name();
-            std::string nameStr(name, name + strlen(name));
-            if (nameStr == "img" || nameStr == "p" || nameStr == "div" || nameStr == "blockquote") {
-                ret = false;
-                break;
-            }
-        }
-        child = child->NextSibling();
-    }
-    return ret;
-}
-
-bool hasChildImg(tinyxml2::XMLElement *elem) {
-    auto child = elem->FirstChild();
-    bool ret = false;
-    while (child != nullptr) {
-        if (child->ToElement() != nullptr) {
-            auto childElem = child->ToElement();
-            const char *name = childElem->Name();
-            if (name != nullptr) {
-                std::string nameStr(name, name + strlen(name));
-                if (nameStr == "img") {
-                    ret = true;
-                    break;
-                }
-            }
-        }
-        child = child->NextSibling();
-    }
-    return ret;
-}
 
 int mobi_util::parseHtmlDoc(JNIEnv *env,
                             long book_id,
@@ -921,13 +726,13 @@ int mobi_util::parseHtmlDoc(JNIEnv *env,
             }
         }
 
-        std::string name = elem->Name();
+        std::string name = xml_ext::ele_name(elem);
         if (name == "p") {
-            if (hasChildImg(elem)) {
+            if (xml_ext::has_child_img(elem)) {
                 auto count = elem->ChildElementCount();
                 tinyxml2::XMLElement *child = elem->FirstChildElement();
                 if (count > 0 && child != nullptr) {
-                    std::string params = getEleParams(elem, spineSrcName);
+                    std::string params = xml_ext::ele_params(elem, spineSrcName);
                     if (!params.empty()) {
                         TagInfo tag;
                         tag.name = name;;
@@ -955,7 +760,7 @@ int mobi_util::parseHtmlDoc(JNIEnv *env,
 
                 std::vector<TagInfo> tagInfos;
                 DocText docText{"", tagInfos};
-                std::string text = processParagraph(elem, tagInfos, startAnchorId, endAnchorId, flagAdd, spineSrcName);
+                std::string text = xml_ext::parse_paragraph(elem, tagInfos, startAnchorId, endAnchorId, flagAdd, spineSrcName);
 
                 docText.text = text;
                 if (!tagInfos.empty()) {
@@ -964,7 +769,7 @@ int mobi_util::parseHtmlDoc(JNIEnv *env,
                     }
                 }
 
-                std::string params = getEleParams(elem, spineSrcName);
+                std::string params = xml_ext::ele_params(elem, spineSrcName);
                 if (!params.empty()) {
                     TagInfo tag;
                     tag.name = name;;
@@ -1002,10 +807,10 @@ int mobi_util::parseHtmlDoc(JNIEnv *env,
             }
 
 //            const char *divText = elem->GetText();
-            if (hasChildText(elem)) {
+            if (xml_ext::is_paragraph(elem)) {
                 std::vector<TagInfo> tagInfos;
                 DocText docText{"", tagInfos};
-                std::string text = processParagraph(elem, tagInfos, startAnchorId, endAnchorId, flagAdd, spineSrcName);
+                std::string text = xml_ext::parse_paragraph(elem, tagInfos, startAnchorId, endAnchorId, flagAdd, spineSrcName);
                 docText.text = text;
                 if (!tagInfos.empty()) {
                     for (auto &tag: tagInfos) {
@@ -1013,7 +818,7 @@ int mobi_util::parseHtmlDoc(JNIEnv *env,
                     }
                 }
 
-                std::string params = getEleParams(elem, spineSrcName);
+                std::string params = xml_ext::ele_params(elem, spineSrcName);
                 if (!params.empty()) {
                     TagInfo tag;
                     tag.name = name;;
@@ -1040,7 +845,7 @@ int mobi_util::parseHtmlDoc(JNIEnv *env,
                 auto count = elem->ChildElementCount();
                 tinyxml2::XMLElement *child = elem->FirstChildElement();
                 if (count > 0 && child != nullptr) {
-                    std::string params = getEleParams(elem, spineSrcName);
+                    std::string params = xml_ext::ele_params(elem, spineSrcName);
                     if (!params.empty()) {
                         TagInfo tag;
                         tag.name = name;;
@@ -1074,7 +879,7 @@ int mobi_util::parseHtmlDoc(JNIEnv *env,
                 cleanStr(elemTextStr);
                 DocText docText{elemTextStr, tagInfos};
 
-                auto tag = TagInfo{generate_uuid(), aid, name, 0, utf8Count(docText.text), "", getEleParams(elem, spineSrcName)};
+                auto tag = TagInfo{generate_uuid(), aid, name, 0, utf8Count(docText.text), "", xml_ext::ele_params(elem, spineSrcName)};
                 docText.tagInfos.push_back(tag);
                 if (!parentTags.empty()) {
                     for (auto &tag: parentTags) {
@@ -1091,10 +896,10 @@ int mobi_util::parseHtmlDoc(JNIEnv *env,
             } else {
                 std::vector<TagInfo> tagInfos;
                 DocText docText{"", tagInfos};
-                std::string text = processParagraph(elem, tagInfos, startAnchorId, endAnchorId, flagAdd, spineSrcName);
+                std::string text = xml_ext::parse_paragraph(elem, tagInfos, startAnchorId, endAnchorId, flagAdd, spineSrcName);
                 if (!text.empty() || !tagInfos.empty()) {
                     docText.text = text;
-                    docText.tagInfos.push_back(TagInfo{generate_uuid(), aid, name, 0, utf8Count(docText.text), "", getEleParams(elem, spineSrcName)});
+                    docText.tagInfos.push_back(TagInfo{generate_uuid(), aid, name, 0, utf8Count(docText.text), "", xml_ext::ele_params(elem, spineSrcName)});
                     if (!tagInfos.empty()) {
                         for (auto &tag: tagInfos) {
                             docText.tagInfos.push_back(tag);
@@ -1129,7 +934,7 @@ int mobi_util::parseHtmlDoc(JNIEnv *env,
                 cleanStr(elemTextStr);
                 std::vector<TagInfo> tagInfos;
                 DocText docText{elemTextStr, tagInfos};
-                docText.tagInfos.push_back(TagInfo{generate_uuid(), aid, name, 0, utf8Count(docText.text), "", getEleParams(elem, spineSrcName)});
+                docText.tagInfos.push_back(TagInfo{generate_uuid(), aid, name, 0, utf8Count(docText.text), "", xml_ext::ele_params(elem, spineSrcName)});
                 if (!parentTags.empty()) {
                     for (auto &tag: parentTags) {
                         if (tag.endPos == 0) {
@@ -1162,7 +967,7 @@ int mobi_util::parseHtmlDoc(JNIEnv *env,
 //            }
             std::vector<TagInfo> tagInfos;
             DocText docText{"", tagInfos};
-            std::string text = processParagraph(elem, tagInfos, startAnchorId, endAnchorId, flagAdd, spineSrcName);
+            std::string text = xml_ext::parse_paragraph(elem, tagInfos, startAnchorId, endAnchorId, flagAdd, spineSrcName);
             docText.text = text;
             if (!tagInfos.empty()) {
                 for (auto &tag: tagInfos) {
@@ -1170,7 +975,7 @@ int mobi_util::parseHtmlDoc(JNIEnv *env,
                 }
             }
 
-            std::string params = getEleParams(elem, spineSrcName);
+            std::string params = xml_ext::ele_params(elem, spineSrcName);
             docText.tagInfos.push_back(TagInfo{generate_uuid(), aid, name, 0, utf8Count(docText.text), "", params});
             if (!parentTags.empty()) {
                 for (auto &tag: parentTags) {
@@ -1350,41 +1155,8 @@ int mobi_util::getCss(std::vector<std::string> &cssClasses, std::vector<CssInfo>
             return 0;
         }
 //        LOGD("%s:rawCssSize=%d", __func__, rawCssSize);
-
         std::string cssData(rawCss, rawCss + rawCssSize);
-        cssParser.parseByString(cssData);
-        const std::set<future::Selector *> &set = cssParser.getSelectors();
-        for (auto it = set.begin(); it != set.end(); it++) {
-            auto type = (*it)->getType();
-            if (type == future::ClassSelector::SelectorType::ClassSelector) {
-                auto *selector = dynamic_cast<future::ClassSelector *>(*it);
-                auto cssid = selector->getClassIdentifier();
-                if (std::find(cssClasses.begin(), cssClasses.end(), cssid) != cssClasses.end()) {
-                    int weight = selector->weight();
-                    bool isBaseSelector = selector->isBaseSelector();
-                    std::string ruleData = selector->getRuleData();
-                    std::vector<std::string> datas = split(ruleData, ';');
-                    std::vector<RuleData> params;
-                    if (!datas.empty()) {
-                        for (auto &data: datas) {
-                            trim(data);
-                            std::vector<std::string> kv = split(data, ':');
-                            if (kv.size() == 2) {
-                                std::string k = trim_copy(kv[0]);
-                                std::string v = trim_copy(kv[1]);
-                                if (!k.empty() && !v.empty()) {
-                                    params.emplace_back(RuleData{k, v});
-                                }
-                            }
-                        }
-                    }
-                    cssInfos.emplace_back(CssInfo{cssid, weight, isBaseSelector, params});
-                    if (cssInfos.size() >= cssClasses.size()) {
-                        break;
-                    }
-                }
-            }
-        }
+        css_ext::query_css(cssData, cssClasses, cssInfos);
     }
     return 1;
 }
@@ -1787,7 +1559,7 @@ int mobi_util::countHtmlDoc2(
 
         std::string name = elem->Name();
         if (name == "p") {
-            if (hasChildImg(elem)) {
+            if (xml_ext::has_child_img(elem)) {
                 auto count = elem->ChildElementCount();
                 tinyxml2::XMLElement *child = elem->FirstChildElement();
                 if (count > 0 && child != nullptr) {
@@ -1798,7 +1570,7 @@ int mobi_util::countHtmlDoc2(
                 *chapterWordCount += count;
             }
         } else if (name == "div" || name == "ul" || name == "ol" || name == "li" || name == "span" || name == "font" || name == "blockquote") {
-            if (hasChildText(elem)) {
+            if (xml_ext::is_paragraph(elem)) {
                 size_t count = countParagraph(elem, anchors, wordCount, chapterIndex, chapterWordCount, spineSrcName);
                 *chapterWordCount += count;
             } else {
@@ -1854,7 +1626,7 @@ int mobi_util::countHtmlDoc(tinyxml2::XMLElement *element,
         }
         std::string name = elem->Name();
         if (name == "p") {
-            if (hasChildImg(elem)) {
+            if (xml_ext::has_child_img(elem)) {
                 auto count = elem->ChildElementCount();
                 tinyxml2::XMLElement *child = elem->FirstChildElement();
                 if (count > 0 && child != nullptr) {
@@ -1874,7 +1646,7 @@ int mobi_util::countHtmlDoc(tinyxml2::XMLElement *element,
                 }
 
                 std::vector<TagInfo> tagInfos;
-                std::string text = processParagraph(elem, tagInfos, startAnchorId, endAnchorId, flagAdd, spineSrcName);
+                std::string text = xml_ext::parse_paragraph(elem, tagInfos, startAnchorId, endAnchorId, flagAdd, spineSrcName);
                 if (*flagAdd == 1) {
                     *wordCount += utf8Count(text);
                 }
@@ -1892,9 +1664,9 @@ int mobi_util::countHtmlDoc(tinyxml2::XMLElement *element,
                 break;
             }
 
-            if (hasChildText(elem)) {
+            if (xml_ext::is_paragraph(elem)) {
                 std::vector<TagInfo> tagInfos;
-                std::string text = processParagraph(elem, tagInfos, startAnchorId, endAnchorId, flagAdd, spineSrcName);
+                std::string text = xml_ext::parse_paragraph(elem, tagInfos, startAnchorId, endAnchorId, flagAdd, spineSrcName);
 
                 if (*flagAdd == 1) {
                     *wordCount += utf8Count(text);
@@ -1930,7 +1702,7 @@ int mobi_util::countHtmlDoc(tinyxml2::XMLElement *element,
                 }
             } else {
                 std::vector<TagInfo> tagInfos;
-                std::string text = processParagraph(elem, tagInfos, startAnchorId, endAnchorId, flagAdd, spineSrcName);
+                std::string text = xml_ext::parse_paragraph(elem, tagInfos, startAnchorId, endAnchorId, flagAdd, spineSrcName);
                 if (1 == *flagAdd) {
                     *wordCount += utf8Count(text);
                 }
@@ -1965,7 +1737,7 @@ int mobi_util::countHtmlDoc(tinyxml2::XMLElement *element,
             }
 
             std::vector<TagInfo> tagInfos;
-            std::string text = processParagraph(elem, tagInfos, startAnchorId, endAnchorId, flagAdd, spineSrcName);
+            std::string text = xml_ext::parse_paragraph(elem, tagInfos, startAnchorId, endAnchorId, flagAdd, spineSrcName);
 
             if (1 == *flagAdd) {
                 *wordCount += utf8Count(text);

@@ -8,6 +8,28 @@
 #include <cctype>
 #include<algorithm>
 
+static std::regex regex(R"([\n\r\t\f\v]+)");
+static std::string emptyStr1 = "&nbsp;";    // //不换行空格
+static std::string emptyStr2 = "&ensp;";    //  //半角空格
+static std::string emptyStr3 = "&emsp;"; //全角空格
+
+static std::string emptyStr4 = "&thinsp;"; //窄空格
+static std::string emptyStr5 = "&zwnj;";   //零宽不连字，不打印字符，放在电子文本的两个字符之间，抑制本来会发生的连字
+//零宽连字，zero width joiner, 不打印字符，放在某些需要复杂排版语言（阿拉伯语，印地语）的两个字符之间，使得两个本不会发生连字的字符产生连字效果，
+// 零宽字符的Unicode码位是U+200D(HTML: &#8205; &zwj;)
+static std::string emptyStr6 = "&zwj";
+
+static std::string emptyStr7 = "&#x0020;"; //空格
+static std::string emptyStr8 = "&#x0009;"; //制表位
+static std::string emptyStr9 = "&#x000A;"; //换行
+
+static std::string emptyStr10 = "&#x000D;";  //回车
+static std::string emptyStr11 = "&#12288;";
+
+static std::string my_blank_str = " ";
+static std::string my_empty_str = "";
+static std::string my_joiner = "-";
+
 namespace fs = std::filesystem;
 
 bool startWith(const std::string &str, const std::string &prefix) {
@@ -166,27 +188,6 @@ void replace_all(std::string &input, std::string &old_str, std::string &new_str)
     }
 }
 
-static std::regex regex(R"([\n\r\t\f\v]+)");
-static std::string emptyStr1 = "&nbsp;";    // //不换行空格
-static std::string emptyStr2 = "&ensp;";    //  //半角空格
-static std::string emptyStr3 = "&emsp;"; //全角空格
-
-static std::string emptyStr4 = "&thinsp;"; //窄空格
-static std::string emptyStr5 = "&zwnj;";   //零宽不连字，不打印字符，放在电子文本的两个字符之间，抑制本来会发生的连字
-//零宽连字，zero width joiner, 不打印字符，放在某些需要复杂排版语言（阿拉伯语，印地语）的两个字符之间，使得两个本不会发生连字的字符产生连字效果，
-// 零宽字符的Unicode码位是U+200D(HTML: &#8205; &zwj;)
-static std::string emptyStr6 = "&zwj";
-
-static std::string emptyStr7 = "&#x0020;"; //空格
-static std::string emptyStr8 = "&#x0009;"; //制表位
-static std::string emptyStr9 = "&#x000A;"; //换行
-
-static std::string emptyStr10 = "&#x000D;";  //回车
-static std::string emptyStr11 = "&#12288;";
-
-static std::string my_blank_str = " ";
-static std::string my_empty_str = "";
-static std::string my_joiner = "-";
 
 std::string &cleanStr(std::string &str) {
     replace_all(str, emptyStr1, my_blank_str); //不换行空格
@@ -206,4 +207,34 @@ std::string &cleanStr(std::string &str) {
     str = std::regex_replace(str, regex, my_empty_str);
     trim(str);
     return str;
+}
+
+/***
+ * 判断是不是纯数字
+ * @param value
+ * @return
+ */
+bool is_number(std::string &str) {
+    bool hasDot = false;
+    bool hastive = false;   //是否有正负符号
+    bool ret = true;
+    for (int i =0 ; i < str.length(); ++i) {
+        char ch = str[i];
+        if (i == 0) {
+            if (!std::isdigit(ch) && ch != '+' && ch != '-'){
+                ret = false;
+                break;
+            }
+        } else {
+            if (ch == '.' && !hasDot) {
+                hasDot = true;
+                continue;
+            }
+            if (!std::isdigit(ch)) {
+                ret = false;
+                break;
+            }
+        }
+    }
+    return ret;
 }

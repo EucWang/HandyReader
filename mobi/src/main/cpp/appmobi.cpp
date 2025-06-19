@@ -284,31 +284,31 @@ Java_com_wxn_mobi_inative_NativeLib_loadEpub(
     bool isEncrypted = false;
 
     int ret = epub_util::load_epub(nativeStr,
-                                  coverPath,
-                                  title,
+                                   coverPath,
+                                   title,
 
-                                  author,
-                                  contributor,
-                                  subject,
+                                   author,
+                                   contributor,
+                                   subject,
 
-                                  publisher,
-                                  date,
-                                  description,
+                                   publisher,
+                                   date,
+                                   description,
 
-                                  review,
-                                  imprint,
-                                  copyright,
+                                   review,
+                                   imprint,
+                                   copyright,
 
-                                  isbn,
-                                  asin,
-                                  language,
+                                   isbn,
+                                   asin,
+                                   language,
 
-                                  identifier,
-                                  isEncrypted);
+                                   identifier,
+                                   isEncrypted);
 //    LOGD("%s:load mobi cover[%s], epub[%s].", __func__, coverPath.c_str(), epubPath.c_str());
     env->ReleaseStringUTFChars(path, nativeStr);
 
-    if (ret != SUCCESS) {
+    if (ret != 1) {
         return nullptr;
     }
 
@@ -380,13 +380,25 @@ Java_com_wxn_mobi_inative_NativeLib_loadEpub(
 
 extern "C"
 JNIEXPORT jobjectArray JNICALL
-Java_com_wxn_mobi_inative_NativeLib_getChapters(JNIEnv *env, jobject thiz, jobject context, jlong book_id, jstring path) {
+Java_com_wxn_mobi_inative_NativeLib_getChapters(JNIEnv *env, jobject thiz, jobject context, jlong book_id, jstring path, jint type) {
     const char *nativeStr = env->GetStringUTFChars(path, NULL);
 
-    create_mobi_util(book_id, nativeStr);
+    if (type == 1) {
+        create_mobi_util(book_id, nativeStr);
+    } else if (type == 2) {
+        create_epub_util(book_id, nativeStr);
+    } else {
+        LOGE("%s unknown type[%d]", __func__, type);
+        return nullptr;
+    }
 
     std::vector<NavPoint> vectors;
-    int ret = mobiutil->getChapters(vectors);
+    int ret = 0;
+    if (type == 1) {
+        ret = mobiutil->getChapters(vectors);
+    } else if (type == 2) {
+        ret = epubutil->getChapters(vectors);
+    }
     if (ret != 1) {
         return nullptr;
     }
@@ -454,7 +466,7 @@ Java_com_wxn_mobi_inative_NativeLib_getChapters(JNIEnv *env, jobject thiz, jobje
 
 extern "C"
 JNIEXPORT jobjectArray JNICALL
-Java_com_wxn_mobi_inative_NativeLib_getChapter(JNIEnv *env, jobject thiz, jobject context, jstring path, jobject chapter) {
+Java_com_wxn_mobi_inative_NativeLib_getChapter(JNIEnv *env, jobject thiz, jobject context, jstring path, jobject chapter, jint type) {
     const char *nativeStr = env->GetStringUTFChars(path, NULL);
 
     if (app_ext::appFileDir.empty()) {
@@ -517,10 +529,20 @@ Java_com_wxn_mobi_inative_NativeLib_getChapter(JNIEnv *env, jobject thiz, jobjec
     LOGD("%s:chapterId=%s,text=%s,playOrder=%d,src=%s,book_id=%ld,chapter_size=%d", __func__, chapterIdStr, chapterNameStr, point.playOrder, srcStr, bookId,
          chapter_size);
 
-    create_mobi_util(book_id, nativeStr);
+    if (type == 1) {
+        create_mobi_util(book_id, nativeStr);
+    } else if (type == 2) {
+        create_epub_util(book_id, nativeStr);
+    }
 
     std::vector<DocText> docTexts;
-    if (1 != mobiutil->getChapter(env, book_id, nativeStr, point, docTexts)) {
+    int ret = 0;
+    if (type == 1) {
+        ret = mobiutil->getChapter(env, book_id, nativeStr, point, docTexts);
+    } else if (type == 2) {
+        ret = epubutil->getChapter(env, book_id, nativeStr, point, docTexts);
+    }
+    if (ret != 1) {
         return nullptr;
     }
 
@@ -600,16 +622,29 @@ Java_com_wxn_mobi_inative_NativeLib_getChapter(JNIEnv *env, jobject thiz, jobjec
 
 extern "C"
 JNIEXPORT jobjectArray JNICALL
-Java_com_wxn_mobi_inative_NativeLib_getCssInfo(JNIEnv *env, jobject thiz, jobject context, jlong book_id, jobjectArray css_names) {
+Java_com_wxn_mobi_inative_NativeLib_getCssInfo(JNIEnv *env, jobject thiz, jobject context, jlong book_id, jobjectArray css_names, jint type) {
 
-    if (mobiutil == nullptr || mobiutil.use_count() == 0) {
-        LOGE("%s failed, mobiutil is destroyed", __func__);
-        return nullptr;
-    }
 
-    if (book_id != mobiutil->bookid()) {
-        LOGE("%s:failed,is not the same bookid, param book_id[%ld],mobiutil.bookid[%ld]", __func__, book_id, mobiutil->bookid());
-        return nullptr;
+    if (type == 1) {
+        if (mobiutil == nullptr || mobiutil.use_count() == 0) {
+            LOGE("%s failed, mobiutil is destroyed", __func__);
+            return nullptr;
+        }
+
+        if (book_id != mobiutil->bookid()) {
+            LOGE("%s:failed,is not the same bookid, param book_id[%ld],mobiutil.bookid[%ld]", __func__, book_id, mobiutil->bookid());
+            return nullptr;
+        }
+    } else if (type == 2) {
+        if (epubutil == nullptr || epubutil.use_count() == 0) {
+            LOGE("%s failed, epubutil is destroyed", __func__);
+            return nullptr;
+        }
+
+        if (book_id != epubutil->bookid()) {
+            LOGE("%s:failed,is not the same bookid, param book_id[%ld],epubutil.bookid[%ld]", __func__, book_id, mobiutil->bookid());
+            return nullptr;
+        }
     }
 
     jsize length = env->GetArrayLength(css_names);
@@ -636,7 +671,12 @@ Java_com_wxn_mobi_inative_NativeLib_getCssInfo(JNIEnv *env, jobject thiz, jobjec
     }
 
     std::vector<CssInfo> cssInfos;
-    int ret = mobiutil->getCss(cssNames, cssInfos);
+    int ret = 0;
+    if (type == 1) {
+        ret = mobiutil->getCss(cssNames, cssInfos);
+    } else if (type == 2) {
+        ret = epubutil->getCss(cssNames, cssInfos);
+    }
     if (ret != 1) {
         LOGE("%s:fail parse css info", __func__);
         return nullptr;

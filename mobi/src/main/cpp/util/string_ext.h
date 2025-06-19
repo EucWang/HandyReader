@@ -52,6 +52,13 @@ std::string generate_uuid();
 
 int toInt(std::string value);
 
+/***
+ * 判断是不是纯数字
+ * @param value
+ * @return
+ */
+bool is_number(std::string &value);
+
 /****
  * 替换文件的后缀名
  * @param filePath

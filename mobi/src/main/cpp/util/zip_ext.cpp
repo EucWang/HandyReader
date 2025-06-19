@@ -10,14 +10,12 @@ int zip_ext::read_zip_file(unzFile uf, const std::string &filename, std::string 
     if (err != UNZ_OK) {
         LOGE("%s cannot find %s", __func__, filename.c_str());
         unzClose(uf);
-        uf = nullptr;
         return 0;
     }
     err = unzOpenCurrentFile(uf);
     if (err != UNZ_OK) {
         LOGE("%s cannot open content.opf", __func__);
         unzClose(uf);
-        uf = nullptr;
         return 0;
     }
 
@@ -41,25 +39,22 @@ int zip_ext::read_zip_file(unzFile uf, const std::string &filename, std::string 
  * @param target_filename
  * @return
  */
-int zip_ext::write_zip_item_to_file(unzFile uf, const std::string &zipfilename,
-                           const std::string &target_filename) {
+int zip_ext::write_zip_item_to_file(unzFile uf,
+                                    const std::string &zipfilename,
+                                    const std::string &target_filename) {
     int err = unzLocateFile(uf, zipfilename.c_str(), 0);
     if (err != UNZ_OK) {
         LOGE("%s cannot find %s", __func__, zipfilename.c_str());
-        unzClose(uf);
-        uf = nullptr;
         return 0;
     }
     err = unzOpenCurrentFile(uf);
     if (err != UNZ_OK) {
         LOGE("%s cannot open content.opf", __func__);
-        unzClose(uf);
-        uf = nullptr;
         return 0;
     }
 
     FILE *file = fopen(target_filename.c_str(), "wb");
-    if (file == nullptr)  {
+    if (file == nullptr) {
         LOGE("%s cannot create file[%s]", __func__, target_filename.c_str());
         unzCloseCurrentFile(uf);
         return 0;

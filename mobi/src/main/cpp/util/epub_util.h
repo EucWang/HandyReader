@@ -38,12 +38,26 @@ extern "C" {
 #include <android/imagedecoder.h>
 #include <list>
 #include <stack>
-
-#include "../../cssparser/CSSParser/CSSParser.hpp"
 #include "css_info.h"
 #include "doc_text.h"
 #include "nav_point.h"
 #include "tag_info.h"
+#include "tidyh5_ext.h"
+#include "meta_data.h"
+#include "css_ext.h"
+
+/****
+ * opf 中的清单
+ */
+typedef struct _Manifest {
+    std::string href;
+    std::string id;
+    std::string media_type;
+} BookManifest;
+
+typedef struct _Spine {
+    std::string idref;
+} BookSpine;
 
 class epub_util {
 
@@ -51,6 +65,15 @@ public:
     explicit epub_util(long bookid, std::string bookpath) {
         book_id = bookid;
         book_path = bookpath;
+        if (1 != epub_init()) {
+            initStatus = false;
+        } else {
+            initStatus = true;
+        }
+        allChapters.clear();
+        currentSrc = "";
+        isSingleSrc = false;
+        isEmptyCss = false;
     }
 
     virtual ~epub_util() {
@@ -60,6 +83,8 @@ public:
         doc.Clear();
         currentSrc = "";
         isSingleSrc = false;
+        isEmptyCss = false;
+        epub_release();
     }
 
     /***
@@ -126,19 +151,66 @@ private:
     long book_id;
     std::string book_path;
     bool initStatus = false;
+    unzFile bookzip;
     mutable std::mutex m_Mutex;
+    mutable std::mutex m_Mutex2;
+    mutable std::mutex m_Mutex3;
     std::vector<NavPoint> allChapters;
     std::vector<std::string> cssSrc;
     tinyxml2::XMLDocument doc;
     std::string currentSrc;
     bool isSingleSrc;
+    bool isEmptyCss;
+    std::vector<BookManifest> manifests;
+    std::vector<BookSpine> spines;
+    MetaInfo meta_info;
+
+    std::string opf_path;
+    std::string ncx_path;
 
 //    int parseCssSrcList();
 
-//    void mockFirstPage(NavPoint &chapter, std::vector<DocText> &docTexts);
-
     int epub_init();
 
+    void epub_release();
+
+    int parseOpfData(std::vector<NavPoint> &points);
+
+    int parseSrcName(std::string &input, std::string &spineSrc, std::string &anchorId);
+
+
+    /***
+     * 第一章没有内容，由于合并ncx 和opf可能导致的首页没有内容，则需要填充一个默认的内容
+     * @param chapter
+     * @param docTexts
+     */
+    void mockFirstPage(NavPoint &chapter, std::vector<DocText> &docTexts);
+
+
+    int parseHtmlDoc(JNIEnv *env,
+                     long book_id,
+                     tinyxml2::XMLElement *element,
+                     std::vector<DocText> &docTexts,
+                     std::string &startAnchorId,
+                     std::string &endAnchorId,
+                     int *flagAdd,
+                     std::string &spineSrcName,
+                     std::vector<TagInfo> fatherTags);
+
+    /***
+     * 缓存图片
+     * @param env
+     * @param imgSrc
+     * @param width
+     * @param height
+     * @return
+     */
+    int cache_image(JNIEnv *env,
+                              std::string &imgSrc,
+                              int *width,
+                              int *height);
+
+    int parse_css_list();
 protected:
 };
 

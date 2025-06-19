@@ -21,5 +21,4 @@ data class MetaInfo(
     var isEncrypted:Boolean,
 
     var coverPath:String
-) {
-}
+)

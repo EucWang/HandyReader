@@ -189,30 +189,30 @@ class EpubFileParser @Inject constructor(val context: Context) : FileParser {
         return innerParse(rawFile, title, path, format)
     }
 
-    private fun extractCoverImage(file: File, coverImagePath: String?): String? {
-        if (coverImagePath.isNullOrBlank()) {
-            return null
-        }
-
-        ZipFile(file).use { zip ->
-            zip.entries().asSequence().forEach { entry ->
-                if (entry.name.endsWith(coverImagePath)) {
-                    return try {
-                        val inputStream = zip.getInputStream(entry)
-                        val targetPath = getCoverPath(context, coverImagePath)
-                        FileUtil.writeStreamToFile(inputStream, targetPath)
-                        targetPath
-                    } catch (ex: Exception) {
-                        null
-                    }
-//                    val imageBytes = zip.getInputStream(entry).readBytes()
-//                    return BitmapFactory.decodeByteArray(imageBytes, 0, imageBytes.size)
-                }
-            }
-        }
-
-        return null
-    }
+//    private fun extractCoverImage(file: File, coverImagePath: String?): String? {
+//        if (coverImagePath.isNullOrBlank()) {
+//            return null
+//        }
+//
+//        ZipFile(file).use { zip ->
+//            zip.entries().asSequence().forEach { entry ->
+//                if (entry.name.endsWith(coverImagePath)) {
+//                    return try {
+//                        val inputStream = zip.getInputStream(entry)
+//                        val targetPath = getCoverPath(context, coverImagePath)
+//                        FileUtil.writeStreamToFile(inputStream, targetPath)
+//                        targetPath
+//                    } catch (ex: Exception) {
+//                        null
+//                    }
+////                    val imageBytes = zip.getInputStream(entry).readBytes()
+////                    return BitmapFactory.decodeByteArray(imageBytes, 0, imageBytes.size)
+//                }
+//            }
+//        }
+//
+//        return null
+//    }
 
     private suspend fun innerParse(rawFile: File?, title: String, uriPath: String, format: String): BookWithCover? {
         if (rawFile == null || !rawFile.isFile || !rawFile.exists() || !rawFile.canRead()) {
