@@ -353,26 +353,49 @@ class MainReadViewModel @Inject constructor(
             if (href.startsWith("http")) {
                 //跳转到h5界面显示
             } else {
-                val targetChapter = allChapters.find { chapter ->
-                    chapter.srcName == href
+                val curIndex = curChapterIndex.value
+                val currentChapter: BookChapter? = allChapters.firstOrNull { it.chapterIndex == curIndex }
+                if (currentChapter == null) {
+                    Logger.d("MainReaderViewModel::onLinkClick:currentChapter is null")
+                    return
                 }
-                if (targetChapter != null) {
-                    pageController.changeChapter(targetChapter.chapterIndex)
-                } else {
-                    val linkContent = pageController.findLinkContent(href)
+                val currentChapterSrc = currentChapter.srcName
+                if (currentChapterSrc.isNullOrEmpty()) {
+                    Logger.e("MainReaderViewModel::onLinkClick:currentChapter src is null")
+                    return
+                }
+
+                val linkContent = pageController.findLinkContent(href)
+                if (!linkContent.isNullOrEmpty()) {                                                 //本章节中的注释
                     Logger.d("MainReadViewModel:onLinkClick:linkContent=${linkContent}")
                     if (!linkContent.isNullOrEmpty() && clickX >= 0 && clickY >= 0) {
                         _clickedLinkContent.value = LinkedContent(linkContent, clickX, clickY)
+                    }
+                } else {                                                                            //需要跳转到其他章节
+                    var targetSrcName : String = ""
+                    var targetAnchorId : String = ""
+                    if (href.contains("#")) {
+                        val hrefParts = href.split("#")
+                        if (hrefParts.size == 2) {
+                            targetSrcName = hrefParts[0]
+                            targetAnchorId = hrefParts[1]
+                        }
+                    } else {
+                        targetSrcName = href
+                    }
+
+                    val targetChapter = allChapters.find { chapter ->
+                        chapter.srcName == href || chapter.srcName?.contains(targetSrcName) == true
+                    }
+                    if (targetChapter != null) {
+                        pageController.changeChapter(targetChapter.chapterIndex)
+                    } else {
+                        Logger.d("MainReaderViewModel::onLinkClick:href=$href, no target chapter found")
                     }
                 }
             }
         }
     }
-
-
-//    private var isReadingSessionActive = false
-//    private var lastLocatorChangeTime = 0L
-//    private var currentDayStartTime = 0L
 
     /***
      * 滑动切换界面，或者跳转切换界面时，通知进度刷新

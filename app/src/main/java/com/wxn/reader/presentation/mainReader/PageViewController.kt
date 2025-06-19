@@ -245,28 +245,30 @@ open class PageViewController @Inject constructor(
                     }
                 }
             }
-            var content = StringBuilder()
-            for (index in linkIndex until texts.size) {
-                var paragraph = texts[index]
-                if (paragraph is ReaderText.Text) {
-                    val tag = paragraph.annotations.firstOrNull { tag ->
-                        tag.anchorId.isNotEmpty()
-                    }
-                    if ((tag == null || tag.anchorId == anchorId)) {
-                        if (paragraph.line.isNotEmpty()) {
-                            content.append(paragraph.line)
+            if (linkIndex >= 0 && linkIndex < texts.size) {
+                var content = StringBuilder()
+                for (index in linkIndex until texts.size) {
+                    var paragraph = texts[index]
+                    if (paragraph is ReaderText.Text) {
+                        val tag = paragraph.annotations.firstOrNull { tag ->
+                            tag.anchorId.isNotEmpty()
                         }
-                    } else {
-                        break
-                    }
-                    if (content.length > 5) {
-                        break
-                    } else {
-                        content.append("\n")
+                        if ((tag == null || tag.anchorId == anchorId)) {
+                            if (paragraph.line.isNotEmpty()) {
+                                content.append(paragraph.line)
+                            }
+                        } else {
+                            break
+                        }
+                        if (content.length > 5) {
+                            break
+                        } else {
+                            content.append("\n")
+                        }
                     }
                 }
+                return content.toString()
             }
-            return content.toString()
         }
         return null
     }
