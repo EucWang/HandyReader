@@ -760,6 +760,21 @@ object ChapterProvider {
             durY += marginTop
         }
 
+        if (paragraph is ReaderText.Text) {
+            paragraph.annotations.forEach { tag ->
+                if (tag.name == "img" || tag.name == "image") {
+                    val params = tag.paramsPairs()
+                    val width = params.firstOrNull { it.first == "width" }?.second?.toIntOrNull() ?: 0
+                    val height = params.firstOrNull { it.first == "height" }?.second?.toIntOrNull() ?: 0
+                    val pos = tag.start
+                    if (width > 0 && height > 0) {
+                        //TODO 占位字符，绘制时再插入图片
+//                        text = text.substring(0, pos) + "\u3000" +  "\u3000" +   "\u3000" + text.substring(pos)
+                    }
+                }
+            }
+        }
+
         val layout = StaticLayout(text, textPaint, visibleWidth - marginLeft.roundToInt() - marginRight.roundToInt(), Layout.Alignment.ALIGN_NORMAL, 0f, 0f, true)
         for (lineIndex in 0 until layout.lineCount) {  //排版，按行遍历
             val offsetStart = layout.getLineStart(lineIndex)

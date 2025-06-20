@@ -594,8 +594,61 @@ int epub_util::getChapter(JNIEnv *env, long book_id, const char *path, NavPoint 
 
     if (childEle != nullptr) {
         std::vector<TagInfo> tags;
-        parseHtmlDoc(env, book_id, childEle, docTexts, anchorId, endAnchorId, &flagAdd, spineSrc, tags);
+//        parseHtmlDoc(env, book_id, childEle, docTexts, anchorId, endAnchorId, &flagAdd, spineSrc, tags);
+        xml_ext::parse(book_id, childEle, docTexts, anchorId, endAnchorId, &flagAdd, spineSrc);
         mockFirstPage(chapter, docTexts);
+
+        for (auto &doctext: docTexts) {
+            if (!doctext.tagInfos.empty()) {
+                auto itag = doctext.tagInfos.begin();
+                for(; itag != doctext.tagInfos.end(); ++itag) {
+                    if ((*itag).name == "img" || (*itag).name == "image") {
+                        break;
+                    }
+                }
+                if (itag != doctext.tagInfos.end()) {
+                    TagInfo imgtag = (*itag);
+                    doctext.tagInfos.erase(itag);
+                    std::string params = imgtag.params;
+                    auto kvs = xml_ext::parse_str_params(params);
+                    std::string imgSrc;
+                    int width;
+                    int height;
+                    for(auto &kv : kvs) {
+                        if (kv.first == "src") {
+                            imgSrc = kv.second;
+                        } else if (kv.first == "width") {
+                            width = toInt(kv.second);
+                        } else if (kv.first == "height") {
+                            width = toInt(kv.second);
+                        }
+                    }
+                    if (!imgSrc.empty()) {
+                        int srcWidth;
+                        int srcHeight;
+                        if (1 == cache_image(env, imgSrc, &srcWidth, &srcHeight)) {
+                            std::string imgPath = file_ext::get_img_path(book_id, imgSrc);
+                            if (srcHeight > 0 && srcHeight > 0) {
+                                std::stringstream ss;
+                                int w = width, h = height;
+                                if (srcWidth > width || srcHeight > height) {
+                                    w = srcWidth;
+                                    h = srcHeight;
+                                }
+                                ss <<  "src=" + imgPath + "&width=" + std::to_string(w) + "&height=" + std::to_string(h);
+                                for(auto &kv : kvs) {
+                                    if (kv.first != "src" && kv.first != "width" && kv.first != "height") {
+                                        ss << "&" << kv.first << "=" << kv.second;
+                                    }
+                                }
+                                imgtag.params = ss.str();
+                                doctext.tagInfos.push_back(imgtag);
+                            }
+                        }
+                    }
+                }
+            }
+        }
     }
 
     auto end_time = std::chrono::high_resolution_clock::now();
@@ -610,7 +663,7 @@ int epub_util::parse_css_list() {
         return 0;
     }
     if (cssSrc.empty()) {
-        for (const auto& manifest: manifests) {
+        for (const auto &manifest: manifests) {
             if (manifest.media_type == xml_ext::MediaTypeCss) {
                 cssSrc.push_back(manifest.href);
             }
@@ -632,7 +685,7 @@ int epub_util::getCss(std::vector<std::string> &cssClasses, std::vector<CssInfo>
 
     future::CSSParser cssParser;
 
-    for(auto &csszip : cssSrc) {
+    for (auto &csszip: cssSrc) {
         std::string cssData;
         if (1 != zip_ext::read_zip_file(bookzip, csszip, cssData)) {
             LOGE("%s read css[%s] failed", __func__, csszip.c_str());
@@ -1011,7 +1064,7 @@ int epub_util::cache_image(JNIEnv *env,
 
     if (ret == 0) {//缓存文件不存在，缓存路径存在或者创建缓存路径成功
         std::string imgzip;
-        for(auto& manifest : manifests) {
+        for (auto &manifest: manifests) {
             if ((manifest.media_type == xml_ext::MediaTypeBmp ||
                  manifest.media_type == xml_ext::MediaTypePng ||
                  manifest.media_type == xml_ext::MediaTypeGif ||

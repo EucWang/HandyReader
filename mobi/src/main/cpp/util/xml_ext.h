@@ -12,6 +12,8 @@
 #include "nav_point.h"
 #include "tag_info.h"
 #include <stack>
+#include <list>
+#include "doc_text.h"
 
 class xml_ext {
 public:
@@ -42,6 +44,8 @@ public:
     static std::string getEleText(const tinyxml2::XMLElement *elem);
 
     static std::string getEleAttr(const tinyxml2::XMLElement *elem, const char *attr_name);
+
+    static std::string getEleAttr(const tinyxml2::XMLNode *elem, const char *attr_name);
 
     static std::string getEleAttr(tinyxml2::XMLElement *elem, const char *attr_name);
 
@@ -147,6 +151,19 @@ public:
                                        std::string &endAnchorId,
                                        int *flagAdd,
                                        std::string &spineSrcName);
+
+
+    static int parse(
+//        JNIEnv *env,
+            long book_id,
+            tinyxml2::XMLElement *element,
+            std::vector<DocText> &docTexts,
+            std::string &startAnchorId,
+            std::string &endAnchorId,
+            int *flagAdd,
+            std::string &spineSrcName);
+
+    static std::vector<std::pair<std::string, std::string>> parse_str_params(std::string &params);
 };
 
 #endif //UREAD_XML_EXT_H
