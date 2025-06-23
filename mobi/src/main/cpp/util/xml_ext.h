@@ -15,6 +15,11 @@
 #include <list>
 #include "doc_text.h"
 
+typedef struct _NodeTag {
+    tinyxml2::XMLNode * node;
+    std::string uuid;
+} NodeTag;
+
 class xml_ext {
 public:
 //media_type

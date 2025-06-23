@@ -120,7 +120,6 @@ object BookHelper {
         }
         content1.forEach { content ->
             if (content is ReaderText.Text) {
-
                 content.parseTextCss(csssheets)
             }
         }

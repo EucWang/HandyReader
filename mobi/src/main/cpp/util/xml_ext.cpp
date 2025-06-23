@@ -541,13 +541,12 @@ int xml_ext::parse(
         return 1;
     }
     tinyxml2::XMLNode *item = element;
-    std::list<tinyxml2::XMLNode *> stack;
+    std::list<NodeTag> stack;
     bool flag = true;
 
     size_t offset = 0;                              //当前的偏移量
     std::stringstream ss;                           //接受的文本流
     std::vector<TagInfo> tags;                      //当前深度优先搜索对应的html标签集
-    std::string parrent_uuid;                       //上一层的html标签的uuid值
 
     while (flag && item != nullptr) {
         std::string itemId = xml_ext::getEleAttr(item, "id");
@@ -565,14 +564,16 @@ int xml_ext::parse(
             if (domText != nullptr) {  //是文本节点, 文本节点的标签都在stack中
                 const char *text = domText->Value();
                 if (text != nullptr && strlen(text) > 0) {
-                    ss << text;
-                    offset += utf8Count(text);
+                    std::string str{text, text + strlen(text)};
+                    str = cleanStr(str);
+                    ss << str;
+                    offset += utf8Count(str);
 
                     //文本必然位于其上一层的html标签中，找到这个html标签
                     if (!stack.empty() && !tags.empty()) {
-                        std::string puuid = parrent_uuid;
-                        while(!puuid.empty()) {             //循环更新每一个上级的结束位置索引
-                            for(auto &ptag : tags) {
+                        std::string puuid = stack.back().uuid;
+                        while (!puuid.empty()) {             //循环更新每一个上级的结束位置索引
+                            for (auto &ptag: tags) {
                                 if (ptag.uuid == puuid) {
                                     ptag.endPos = offset;
                                     puuid = ptag.parent_uuid;
@@ -588,21 +589,25 @@ int xml_ext::parse(
                 if (domElem->NoChildren()) {
                     endpos = offset;
                 }
-                tags.push_back(TagInfo{generate_uuid(),
-                                       xml_ext::getEleAttr(domElem, "id"),
-                                       xml_ext::ele_name(domElem),
-                                       offset,
-                                       endpos,
-                                       parrent_uuid,
-                                       xml_ext::ele_params(domElem, spineSrcName)});
+                std::string parent_uuid = "";
+                if (!stack.empty())  {
+                    parent_uuid = stack.back().uuid;
+                }
+                auto tag = TagInfo{generate_uuid(),
+                                   xml_ext::getEleAttr(domElem, "id"),
+                                   xml_ext::ele_name(domElem),
+                                   offset,
+                                   endpos,
+                                   parent_uuid,
+                                   xml_ext::ele_params(domElem, spineSrcName)};
+                tags.push_back(tag);
             }
         }
 
         //优先遍历子节点
         auto child = item->FirstChild();
-        if (child != nullptr && item->ToElement() != nullptr) { //当前节点是Element，并且孩子节点不为空，则深入下一层
-            stack.push_back(item);
-            parrent_uuid = tags.back().uuid;
+        if (child != nullptr && domElem != nullptr) { //当前节点是Element，并且孩子节点不为空，则深入下一层
+            stack.push_back(NodeTag{domElem, tags.back().uuid});
             item = child;
             continue;
         }
@@ -623,11 +628,11 @@ int xml_ext::parse(
                     ss.clear();
                     tags.clear();
                     offset = 0;
-                //一些段落标签/img/image，非body直接子标签，也需要处理成自然段落
+                    //一些段落标签/img/image，非body直接子标签，也需要处理成自然段落
                 } else if (name == "p" || name == "div" || name == "ol" || name == "li" ||
                            name == "blockquote" || name == "h1" || name == "h2" || name == "h3" ||
                            name == "h4" || name == "h5" || name == "h6" || name == "h7" ||
-//                           name == "img" || name == "image" ||
+                           //                           name == "img" || name == "image" ||
                            name == "section" || name == "article" ||
                            name == "hr" || name == "br") {
                     if (!tags.empty()) {
@@ -673,138 +678,138 @@ int xml_ext::parse(
             continue;
         }
 
-        if (*flagAdd == 1) {
-            //------------------------------------------------------------------
-            // 遍历完全部子节点，则上层标签结束 // tag end
-            // 设置tag的结束索引
-            if (domElem) { //当前是一个html标签节点，修改结束位置
-                if (!tags.empty()) {
-                    auto &tag = tags[tags.size() - 1];
-                    size_t end = tag.endPos;
-                    if (end < offset) {
-                        tag.endPos = offset;
-                    }
-                    std::string parent_uuid = tag.parent_uuid;
-                    while (!parent_uuid.empty()) {  //修改全部父级html标签结束位置
-                        for(auto &itag : tags) {
-                            if (itag.uuid == tag.parent_uuid) {
-                                itag.endPos = offset;
-                                parent_uuid = itag.parent_uuid; //父级的父级
-                                break;
-                            }
-                        }
-                    }
-                }
-            }
-            //获得上层html标签
-            tinyxml2::XMLElement *upperEle = nullptr;
-            if (!stack.empty()) {
-                upperEle = stack.back()->ToElement();
-            }
-            if (upperEle != nullptr) {
-                std::string name = xml_ext::ele_name(upperEle);
-                //判断需不需要生成一个自然段落
-                if (stack.size() == 1) {                // 上层html标签是body的直接子标签， body直接子标签全部都是自然段落
-                    std::string line = ss.str();        //
-                    if (!tags.empty() || utf8Count(line) > 0) {
-                        docTexts.emplace_back(DocText{line, tags});
-                    }
-                    ss.str("");
-                    ss.clear();
-                    tags.clear();
-                    offset = 0;
-                } else if (//一些段落标签/img/image，非body直接子标签，也需要处理成自然段落
-                        name == "p" || name == "div" || name == "ol" || name == "li" ||
-                        name == "blockquote" || name == "h1" || name == "h2" || name == "h3" ||
-                        name == "h4" || name == "h5" || name == "h6" || name == "h7" ||
-//                        name == "img" || name == "image" ||
-                        name == "section" || name == "article" ||
-                        name == "hr" || name == "br") {
-                    if (!tags.empty()) {
-                        //弹出最后一个加入的html标签
-                        auto curTag = tags[tags.size() - 1];
-                        tags.pop_back();
-                        std::string line = ss.str();
-                        size_t lineLength = curTag.endPos - curTag.startPos;
-                        if (lineLength < 0) {
-                            lineLength = 0;
-                        }
-                        size_t cur_start = line.size() - lineLength;
-                        std::string curLine = line.substr(lineLength);
-                        if (lineLength <= 0) {
-                            //因为当前html标签内没有文本，则直接将其他html标签和文本内容作为一个段落
-                            if (!tags.empty() || !line.empty()) {
-                                docTexts.emplace_back(DocText{line, tags});
-                            }
-                        } else {
-                            std::string otherLine = line.substr(0, lineLength);
-                            if (!tags.empty() || !otherLine.empty()) {
-                                docTexts.emplace_back(DocText{otherLine, tags});
-                            }
-                            curLine = line.substr(lineLength);
-                        }
-                        //清空
-                        ss.str("");
-                        ss.clear();
-                        //tags 中的数量要清空到和stack中的数量一致，不能全部清空
-                        while (tags.size() > stack.size()) {
-                            tags.pop_back();
-                        }
-                        offset = 0;
-                        //当前标签单独作为一个段落
-                        curTag.startPos = 0;
-                        curTag.endPos = lineLength;
-                        std::vector<TagInfo> curTags;
-                        //将tags中保留的也放入当前tags中
-                        curTags.reserve(tags.size());
-                        for (auto &tag: tags) {
-                            curTags.push_back(tag);
-                        }
-                        curTags.push_back(curTag);
-                        docTexts.emplace_back(DocText{curLine, curTags});
-                        //处理完毕，为了保持tags和stack对齐，tags中还需要移除最后一个，因为下面有出栈操作
-                        if (!tags.empty()) {
-                            tags.pop_back();
-                        }
-                    }
-                }
-            }
-            //------------------------------------------------------------------
-        }
-
         //没有兄弟节点，则这一层已经遍历完，从stack中弹出上一层的没有遍历完的节点，得到该节点的兄弟节点
         bro = nullptr;
+        std::vector<std::string> nodeTagUUIds;
         while (true) {
             if (stack.empty()) {
                 flag = false;
-                parrent_uuid = "";
                 break;
             }
-            auto &last = stack.back();
+            NodeTag lastNode = stack.back();
             stack.pop_back();
-            //退栈的同时，得到上一级的tag的parrent_uuid
-            if (!tags.empty()) {
-                for(auto &itag : tags) {
-                    if (itag.uuid == parrent_uuid) { //找到对应的uuid，得到该tag的parent_uuid
-                        parrent_uuid = itag.parent_uuid;
-                        break;
-                    }
-                }
-            } else {
-                parrent_uuid = "";
-            }
 
-            if (last == nullptr) {
+            if (lastNode.node == nullptr) {
                 flag = false;
-                parrent_uuid = "";
                 break;
             }
 
-            bro = last->NextSibling();      // 得到该节点的兄弟节点
+            nodeTagUUIds.push_back(lastNode.uuid);
+            auto node = lastNode.node;
+
+            bro = lastNode.node->NextSibling();
             if (bro != nullptr) {           // 该兄弟节点不为空，继续外层循环， 为空，则继续从栈顶拿结点
                 break;
             }
         }
+
+        if (!nodeTagUUIds.empty()) {
+            if (stack.empty()) { //栈空，则全部内容作为一个段落
+                std::string line = ss.str();
+                if (!tags.empty() || utf8Count(line) > 0) {
+                    docTexts.emplace_back(DocText{line, tags});
+                }
+                ss.str("");
+                ss.clear();
+                tags.clear();
+                offset = 0;
+            } else {
+                bool newParagraph = false;
+                for (auto nodeTagUUID: nodeTagUUIds) {
+                    std::string name = "";
+                    for(auto tag : tags) {
+                        if (!nodeTagUUID.empty() && tag.uuid == nodeTagUUID) {
+                            name = tag.name;
+                            break;
+                        }
+                    }
+                    if (name == "p" || name == "div" || name == "ol" || name == "li" ||
+                        name == "blockquote" || name == "h1" || name == "h2" || name == "h3" ||
+                        name == "h4" || name == "h5" || name == "h6" || name == "h7" ||
+                        name == "section" || name == "article" ||
+                        name == "hr" || name == "br") {
+                        newParagraph = true;
+                        break;
+                    }
+                }
+                if (newParagraph) {
+                    auto nodeTagUUID = nodeTagUUIds.back();
+                    TagInfo targetTag;
+                    for(auto tag : tags) {
+                        if (!nodeTagUUID.empty() && tag.uuid == nodeTagUUID) {
+                            targetTag = tag;
+                            break;
+                        }
+                    }
+                    if (targetTag.startPos != 0) { //需要将内容分成两个段落
+                        int partPos = targetTag.startPos;
+                        std::string line = ss.str();
+                        if (partPos < line.size()) {
+                            std::string partOne = line.substr(0, partPos);
+                            std::vector<TagInfo> partOneTags;
+                            std::string partTwo = line.substr(partPos);
+                            std::vector<TagInfo> partTwoTags;
+                            for (auto &tag: tags) {
+                                if (tag.endPos < partPos) {
+                                    partOneTags.push_back(tag);
+                                } else if (tag.startPos > partPos) {
+                                    partTwoTags.push_back(tag);
+                                } else if (tag.startPos == 0 && tag.endPos > partPos) {
+                                    partOneTags.push_back(tag);
+                                    partTwoTags.push_back(tag);
+                                }
+                            }
+                            docTexts.push_back(DocText{partOne, partOneTags});
+                            docTexts.push_back(DocText{partTwo, partTwoTags});
+                            ss.clear();
+                            ss.str("");
+                            offset = 0;
+                            std::vector<TagInfo> parentTags;
+                            for(auto item : stack) {
+                                for(auto tag : tags) {
+                                    if (tag.uuid == item.uuid && !item.uuid.empty()) {
+                                        parentTags.push_back(tag);
+                                    }
+                                }
+                            }
+                            tags.clear();
+                            if (!parentTags.empty()) {
+                                for(auto tag : parentTags) {
+                                    tag.startPos = 0;
+                                    tag.endPos = 0;
+                                    tags.push_back(tag);
+                                }
+                            }
+                        }
+                    } else {    //不需要分段
+                        std::string line = ss.str();
+                        if (!tags.empty() || utf8Count(line) > 0) {
+                            docTexts.emplace_back(DocText{line, tags});
+                        }
+                        ss.str("");
+                        ss.clear();
+                        offset = 0;
+                        std::vector<TagInfo> parentTags;
+                        for(auto item : stack) {
+                            for(auto tag : tags) {
+                                if (tag.uuid == item.uuid && !item.uuid.empty()) {
+                                    parentTags.push_back(tag);
+                                }
+                            }
+                        }
+                        tags.clear();
+                        if (!parentTags.empty()) {
+                            for(auto tag : parentTags) {
+                                tag.startPos = 0;
+                                tag.endPos = 0;
+                                tags.push_back(tag);
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
         //遍历上/上上级的兄弟节点
         if (flag && bro != nullptr) {
             item = bro;

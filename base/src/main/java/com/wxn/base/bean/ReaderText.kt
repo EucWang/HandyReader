@@ -144,7 +144,9 @@ sealed class ReaderText {
             var parsedCss = TextCssInfo()
             val cssClasses = arrayListOf<String>()
             annotations.forEach { tag ->
-                cssClasses.addAll(tag.cssClasses())
+                if (tag.start == 0 && tag.end >= line.length -1) {
+                    cssClasses.addAll(tag.cssClasses())
+                }
             }
             for (css in cssClasses) {
                 val ruleDatas = csssheets[css]?.datas.orEmpty()
