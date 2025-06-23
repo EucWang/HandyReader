@@ -612,8 +612,8 @@ int epub_util::getChapter(JNIEnv *env, long book_id, const char *path, NavPoint 
                     std::string params = imgtag.params;
                     auto kvs = xml_ext::parse_str_params(params);
                     std::string imgSrc;
-                    int width;
-                    int height;
+                    int width = 0;
+                    int height = 0;
                     for(auto &kv : kvs) {
                         if (kv.first == "src") {
                             imgSrc = kv.second;

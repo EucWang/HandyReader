@@ -122,23 +122,6 @@ object BookHelper {
             if (content is ReaderText.Text) {
 
                 content.parseTextCss(csssheets)
-                val textIndent = if (content.textCssInfo.textIndent.isEm()) content.textCssInfo.textIndent.value.toInt() else 0
-
-                if (!content.line.isEmpty() && content.isText) {
-                    val lineStrBuilder = StringBuilder()
-                    if (textIndent > 0) {
-                        repeat(textIndent) {
-                            lineStrBuilder.append(ChapterProvider.oneParagraphIndent)
-                        }
-                    }
-                    lineStrBuilder.append(content.line)
-
-                    content.line = lineStrBuilder.toString()
-                    content.annotations.forEach { anno ->
-                        anno.start += textIndent
-                        anno.end += textIndent
-                    }
-                }
             }
         }
         return content1

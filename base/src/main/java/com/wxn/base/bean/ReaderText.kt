@@ -94,15 +94,21 @@ sealed class ReaderText {
             }
 
         fun tryParseToChapter(chapterIndex: Int): Chapter? {
-            if (annotations.firstOrNull()?.name == "h1") {
+            val titleTag = annotations.firstOrNull { it.name == "h1" }
+            if (titleTag != null && line.isNotEmpty()) {
                 return Chapter(chapterIndex.toString(), title = line.trim(), nested = false)
             }
             return null
         }
 
         fun tryParseToImage(): Image? {
-            if (annotations.firstOrNull()?.name == "img" && !annotations.firstOrNull()?.params.isNullOrEmpty()) {
-                val paramItems = annotations.firstOrNull()?.paramsPairs().orEmpty()
+            val imgTag = annotations.firstOrNull { it.name == "img" || it.name == "image" }
+//            val src = imgTag?.paramsPairs()?.firstOrNull { it.first == "src" }?.second.orEmpty()
+//            val width = imgTag?.paramsPairs()?.firstOrNull { it.first == "width" }?.second?.toIntOrNull() ?: 0
+//            val height = imgTag?.paramsPairs()?.firstOrNull { it.first == "height" }?.second?.toIntOrNull() ?: 0
+
+            if (line.isEmpty() && imgTag != null) {
+                val paramItems = imgTag.paramsPairs()
                 var src = ""
                 var width = 0
                 var height = 0

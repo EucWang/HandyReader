@@ -529,7 +529,6 @@ std::string xml_ext::parse_paragraph(const tinyxml2::XMLElement *pElem,
 }
 
 int xml_ext::parse(
-//        JNIEnv *env,
         long book_id,
         tinyxml2::XMLElement *element,
         std::vector<DocText> &docTexts,
@@ -788,6 +787,7 @@ int xml_ext::parse(
                 for(auto &itag : tags) {
                     if (itag.uuid == parrent_uuid) { //找到对应的uuid，得到该tag的parent_uuid
                         parrent_uuid = itag.parent_uuid;
+                        break;
                     }
                 }
             } else {
@@ -805,6 +805,7 @@ int xml_ext::parse(
                 break;
             }
         }
+        //遍历上/上上级的兄弟节点
         if (flag && bro != nullptr) {
             item = bro;
         }

@@ -19,6 +19,7 @@ import com.wxn.base.util.ColorUtil
 import com.wxn.base.util.Coroutines
 import com.wxn.base.util.Logger
 import com.wxn.bookread.R
+import com.wxn.bookread.data.model.TextChar
 import com.wxn.bookread.data.model.TextLine
 import com.wxn.bookread.data.model.TextPage
 import com.wxn.bookread.provider.ChapterProvider
@@ -295,7 +296,14 @@ class ContentTextView(context: Context, attrs: AttributeSet?) : View(context, at
 //                }
             }
 
-            canvas.drawText(ch.charData, ch.start, lineBase, paint) //绘制每一个字
+            if (ch.isImage) {
+                val lineTop = textLine.lineTop
+                val lineBottom = textLine.lineBottom
+                Logger.d("ContentTextView::drawLine:drawInnerImage:lineTop=${lineTop}, lineBottom=${lineBottom}")
+                drawImage(canvas, ch, lineTop, lineBottom) //绘制图片
+            } else {
+                canvas.drawText(ch.charData, ch.start, lineBase, paint) //绘制每一个字
+            }
             if (ch.selected) {
                 canvas.drawRect(ch.start, lineTop, ch.end, lineBottom, selectedPaint) //绘制选择文字时的背景框
             }
@@ -325,6 +333,19 @@ class ContentTextView(context: Context, attrs: AttributeSet?) : View(context, at
                 ImageProvider.getImage(context, book, textChar.charData, true)?.let { bmp ->
                     canvas.drawBitmap(bmp, null, rectF, null)
                 }
+            }
+        }
+    }
+
+    /***
+     * 绘制图片
+     */
+    private fun drawImage(canvas: Canvas, textChar: TextChar, lineTop: Float, lineBottom: Float) {
+        callback?.book?.let { book ->
+            val rectF = RectF(textChar.start, lineTop, textChar.end, lineBottom)
+//                Logger.d("ContentTextView::drawImage:rect=[${rectF.left},${rectF.top},${rectF.right},${rectF.bottom},height=${rectF.height()},width=${rectF.width()}]")
+            ImageProvider.getImage(context, book, textChar.charData, true)?.let { bmp ->
+                canvas.drawBitmap(bmp, null, rectF, null)
             }
         }
     }

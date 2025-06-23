@@ -15,6 +15,7 @@ import com.wxn.base.bean.CssFontStyle
 import com.wxn.base.bean.CssFontWeight
 import com.wxn.base.bean.CssTextAlign
 import com.wxn.base.bean.ReaderText
+import com.wxn.base.bean.TextTag
 import com.wxn.base.ext.isContentPath
 import com.wxn.base.ext.statusBarHeight
 import com.wxn.base.ext.toStringArray
@@ -424,11 +425,12 @@ object ChapterProvider {
                 is ReaderText.Image -> {
                     val image = paragraph
 
-                    val imgStyle = if ((isOneElePage || image.textCssInfo.textAlign == CssTextAlign.CssTextAlignJustify) && (image.width >= 450 || image.height >= 450)) {
-                        "FULL"
-                    } else {
-                        imageStyles
-                    }
+                    val imgStyle =
+                        if ((isOneElePage || image.textCssInfo.textAlign == CssTextAlign.CssTextAlignJustify) && (image.width >= 450 || image.height >= 450)) {
+                            "FULL"
+                        } else {
+                            imageStyles
+                        }
 
                     offsetY = setTypeImage(
                         image.path,
@@ -443,11 +445,12 @@ object ChapterProvider {
                 is ReaderText.Text -> {
                     val image = paragraph.tryParseToImage()
                     offsetY = if (image != null) {
-                        val imgStyle = if ((isOneElePage || image.textCssInfo.textAlign == CssTextAlign.CssTextAlignJustify) && (image.width >= 450 || image.height >= 450)) {
-                            "FULL"
-                        } else {
-                            imageStyles
-                        }
+                        val imgStyle =
+                            if ((isOneElePage || image.textCssInfo.textAlign == CssTextAlign.CssTextAlignJustify) && (image.width >= 450 || image.height >= 450)) {
+                                "FULL"
+                            } else {
+                                imageStyles
+                            }
 
                         setTypeImage(
                             image.path,
@@ -672,6 +675,7 @@ object ChapterProvider {
         var marginRight = 0f
         var marginTop = 0f
         var marginBottom = 0f
+        var firstLineIndent = 0f
         //对齐方式
         var textAlign: CssTextAlign =
             if (isTitle) {
@@ -694,14 +698,19 @@ object ChapterProvider {
                 textPaint.textSkewX = -0.25f
             }
 
+            val textIndent = if (paragraph.textCssInfo.textIndent.isEm()) paragraph.textCssInfo.textIndent.value.toInt() else 0
             if (paragraph.textCssInfo.marginLeft.value > 0 ||
                 paragraph.textCssInfo.marginRight.value > 0 ||
                 paragraph.textCssInfo.marginTop.value > 0 ||
-                paragraph.textCssInfo.marginBottom.value > 0) {
+                paragraph.textCssInfo.marginBottom.value > 0 ||
+                textIndent > 0
+            ) {
 
                 val oneCh: String = (text.getOrNull(0)?.toString() ?: " ")
-                val oneEmWidth =  StaticLayout.getDesiredWidth(oneCh, textPaint)
-
+                val oneEmWidth = StaticLayout.getDesiredWidth(oneCh, textPaint)
+                //首行缩进
+                firstLineIndent = textIndent * oneEmWidth
+                Logger.d("ChapterProvider::firstLineIndent[$firstLineIndent],oneEmWidth=$oneEmWidth")
                 //左边距
                 marginLeft = (if (paragraph.textCssInfo.marginLeft.isEm()) {
                     oneEmWidth * paragraph.textCssInfo.marginLeft.value
@@ -715,7 +724,7 @@ object ChapterProvider {
                 //右边距
                 marginRight = (if (paragraph.textCssInfo.marginRight.isEm()) {
                     val oneCh: String = (text.getOrNull(0)?.toString() ?: " ")
-                    val oneEmWidth =  StaticLayout.getDesiredWidth(oneCh, textPaint)
+                    val oneEmWidth = StaticLayout.getDesiredWidth(oneCh, textPaint)
                     oneEmWidth * paragraph.textCssInfo.marginRight.value
                 } else if (paragraph.textCssInfo.marginRight.isPx()) {
                     paragraph.textCssInfo.marginRight.value
@@ -760,71 +769,232 @@ object ChapterProvider {
             durY += marginTop
         }
 
-        if (paragraph is ReaderText.Text) {
-            paragraph.annotations.forEach { tag ->
-                if (tag.name == "img" || tag.name == "image") {
-                    val params = tag.paramsPairs()
-                    val width = params.firstOrNull { it.first == "width" }?.second?.toIntOrNull() ?: 0
-                    val height = params.firstOrNull { it.first == "height" }?.second?.toIntOrNull() ?: 0
-                    val pos = tag.start
-                    if (width > 0 && height > 0) {
-                        //TODO 占位字符，绘制时再插入图片
-//                        text = text.substring(0, pos) + "\u3000" +  "\u3000" +   "\u3000" + text.substring(pos)
-                    }
-                }
-            }
-        }
+        val hasInlineImg = if (paragraph is ReaderText.Text) {
+            paragraph.annotations.firstOrNull { tag ->
+                tag.name == "img" || tag.name == "image"
+            } != null
+        } else false
 
-        val layout = StaticLayout(text, textPaint, visibleWidth - marginLeft.roundToInt() - marginRight.roundToInt(), Layout.Alignment.ALIGN_NORMAL, 0f, 0f, true)
-        for (lineIndex in 0 until layout.lineCount) {  //排版，按行遍历
-            val offsetStart = layout.getLineStart(lineIndex)
-            val offsetEnd = layout.getLineEnd(lineIndex)
-            val textLine = TextLine(isTitle = isTitle, paragraphIndex = paragraphIndex, charStartOffset = offsetStart, charEndOffset = offsetEnd)
-            val words = text.substring(offsetStart, offsetEnd)
+        if (!hasInlineImg) {    //没有段落内的图片
+            val layout = StaticLayout.Builder.obtain(
+                text,
+                0,
+                text.length,
+                textPaint,
+                visibleWidth - marginLeft.roundToInt() - marginRight.roundToInt()
+            ).setAlignment(Layout.Alignment.ALIGN_NORMAL)
+                .setIncludePad(true)
+                .setIndents(intArrayOf(firstLineIndent.toInt(), 0), intArrayOf(0, 0))
+                .build()
+
+            for (lineIndex in 0 until layout.lineCount) {  //排版，按行遍历
+                val offsetStart = layout.getLineStart(lineIndex)
+                val offsetEnd = layout.getLineEnd(lineIndex)
+                val textLine = TextLine(isTitle = isTitle, paragraphIndex = paragraphIndex, charStartOffset = offsetStart, charEndOffset = offsetEnd)
+                val words = text.substring(offsetStart, offsetEnd)
 //            textLine.text = if (lineIndex == layout.lineCount - 1) "$words\n" else words        //  //增加一次换行
-            textLine.text = words        //  //增加一次换行
-            val desiredWidth = layout.getLineWidth(lineIndex)   //排版要求的宽度
-            var isLastLine = (lineIndex == layout.lineCount - 1)
+                textLine.text = words        //  //增加一次换行
+                val desiredWidth = layout.getLineWidth(lineIndex)   //排版要求的宽度
+                var isLastLine = (lineIndex == layout.lineCount - 1)
 
-            when (textAlign) {
-                CssTextAlign.CssTextAlignLeft -> addCharsToLineLeft(textLine, words.toStringArray(), textPaint, marginLeft)
-                CssTextAlign.CssTextAlignRight -> addCharsToLineRight(textLine, words.toStringArray(), textPaint, desiredWidth, marginRight)
-                CssTextAlign.CssTextAlignCenter -> addCharsToLineCenter(textLine, words.toStringArray(), textPaint, desiredWidth)
-                CssTextAlign.CssTextAlignJustify -> {
-                    if (layout.lineCount == 1) {
-                        addCharsToLineLeft(textLine, words.toStringArray(), textPaint, marginLeft)
-                    } else {
-                        if (isLastLine) {    //两端对齐，除了最后一行
+                when (textAlign) {
+                    CssTextAlign.CssTextAlignLeft -> addCharsToLineLeft(
+                        textLine,
+                        words.toStringArray(),
+                        textPaint,
+                        marginLeft + (if (lineIndex == 0) firstLineIndent.toFloat() else 0f)
+                    )
+
+                    CssTextAlign.CssTextAlignRight -> addCharsToLineRight(textLine, words.toStringArray(), textPaint, desiredWidth, marginRight)
+                    CssTextAlign.CssTextAlignCenter -> addCharsToLineCenter(textLine, words.toStringArray(), textPaint, desiredWidth)
+                    CssTextAlign.CssTextAlignJustify -> {
+                        if (layout.lineCount == 1) {
                             addCharsToLineLeft(textLine, words.toStringArray(), textPaint, marginLeft)
                         } else {
-                            addCharsToLineMiddle(textLine, words.toStringArray(), textPaint, desiredWidth, marginLeft)
+                            if (isLastLine) {    //两端对齐，除了最后一行
+                                addCharsToLineLeft(textLine, words.toStringArray(), textPaint, marginLeft)
+                            } else {
+                                addCharsToLineMiddle(textLine, words.toStringArray(), textPaint, desiredWidth, marginLeft)
+                            }
                         }
                     }
                 }
-            }
 
-            //新增加的行，超过了一页的显示高度, 则创建新页
-            if (durY + textPaint.textHeight * lineSpacingExtra * lineHeightParam > visibleHeight) {
+                //新增加的行，超过了一页的显示高度, 则创建新页
+                if (durY + textPaint.textHeight * lineSpacingExtra * lineHeightParam > visibleHeight) {
+                    val lastPage = textPages.last()
+                    lastPage.text = stringBuilder.toString()
+                    pageLines.add(lastPage.textLines.size)
+                    pageLengths.add(lastPage.text.length)
+                    lastPage.height = durY
+
+                    textPages.add(TextPage())
+                    stringBuilder.clear()
+                    durY = 0f
+                }
+
+                stringBuilder.append(words)
+                if (isLastLine) stringBuilder.append("\n")  //段落的最后一行，增加换行符
+
                 val lastPage = textPages.last()
-                lastPage.text = stringBuilder.toString()
-                pageLines.add(lastPage.textLines.size)
-                pageLengths.add(lastPage.text.length)
+                lastPage.textLines.add(textLine)    //将新生成的一行加入到最后一页中
+                textLine.upTopBottom(durY, textPaint)       //设置行的上，下，以及基线位置
+//            durY += textPaint.textHeight * lineSpacingExtra * lineHeightParam   //将行高度，行间距加入到durY值中
+                durY += textPaint.textHeight * lineSpacingExtra   //将行高度，行间距加入到durY值中
                 lastPage.height = durY
+            }
+        } else {    //有段落内的图片
+            if (paragraph is ReaderText.Text) {
+                //拿到行内图片
+                var imgTags = paragraph.annotations.filter { tag ->
+                    tag.name == "img" || tag.name == "image"
+                }
+                //根据图片的位置把段落分割成多个小段
+                val texts = arrayListOf<String>()
+                if (!imgTags.isEmpty()) {
+                    var lastEnd = 0
+                    imgTags = imgTags.sortedBy { it.start }
+                    for ((index, tag) in imgTags.withIndex()) {
+                        if (index < imgTags.size - 1) {
+                            if (tag.start > 0 && tag.start < paragraph.line.length) {
+                                texts.add(paragraph.line.substring(lastEnd, tag.start))
+                                lastEnd = tag.start
+                            }
+                        } else {
+                            if (tag.start > 0 && tag.start < paragraph.line.length) {
+                                texts.add(paragraph.line.substring(lastEnd, tag.start))
+                                texts.add(paragraph.line.substring(tag.start))
+                            }
+                        }
+                    }
+                }
+                var morePartIndent = firstLineIndent
+                var newPartWithNewLine = true   //新的分段是否需要新的分行，
+                var latestPartLine : TextLine? = null
+                var pentingImg : TextTag? = null //上一小分段中，图片塞不下了， 放入到下一行第一个位置显示
+                for ((partIndex, text) in texts.withIndex()) {
 
-                textPages.add(TextPage())
-                stringBuilder.clear()
-                durY = 0f
+                    val layout = StaticLayout.Builder.obtain(
+                        text, 0, text.length,
+                        textPaint,
+                        visibleWidth - marginLeft.roundToInt() - marginRight.roundToInt()
+                    )
+                        .setAlignment(Layout.Alignment.ALIGN_NORMAL)
+                        .setIncludePad(true)
+                        .setIndents(
+                            intArrayOf(morePartIndent.toInt(), 0),
+                            intArrayOf(0, 0)
+                        )
+                        .build()
+
+                    for (lineIndex in 0 until layout.lineCount) {  //排版，按行遍历
+                        val offsetStart = layout.getLineStart(lineIndex)
+                        val offsetEnd = layout.getLineEnd(lineIndex)
+                        val textLine = if (lineIndex == 0 && partIndex >0 && latestPartLine != null) {
+                            latestPartLine
+                        } else {
+                            TextLine(isTitle = isTitle, paragraphIndex = paragraphIndex, charStartOffset = offsetStart, charEndOffset = offsetEnd)
+                        }
+                        if (latestPartLine != null) {
+                            latestPartLine = null
+                        }
+                        if (pentingImg != null) {
+                            val pairs = pentingImg.paramsPairs()
+                            val imgSrc = pairs.firstOrNull { it.first == "src" }?.second.orEmpty()
+                            val width = pairs.firstOrNull {it.first == "width" }?.second?.toIntOrNull() ?: 0
+                            val height = pairs.firstOrNull {it.first == "height" }?.second?.toIntOrNull() ?: 0
+                            if (imgSrc.isNotEmpty() && width > 0 && height > 0) {
+                                textLine.textChars.add(TextChar(imgSrc, morePartIndent, morePartIndent + width, false, true))
+                            }
+                            pentingImg = null
+                        }
+                        val words = text.substring(offsetStart, offsetEnd)
+
+                        textLine.text += words        //  //增加一次换行
+                        val desiredWidth = layout.getLineWidth(lineIndex)   //排版要求的宽度
+                        var isLastLine = (lineIndex == layout.lineCount - 1)
+
+                        when (textAlign) {
+                            CssTextAlign.CssTextAlignLeft -> addCharsToLineLeft(
+                                textLine,
+                                words.toStringArray(),
+                                textPaint,
+                                marginLeft + (if (lineIndex == 0) morePartIndent else 0f)
+                            )
+
+                            CssTextAlign.CssTextAlignRight -> addCharsToLineRight(textLine, words.toStringArray(), textPaint, desiredWidth, marginRight)
+                            CssTextAlign.CssTextAlignCenter -> addCharsToLineCenter(textLine, words.toStringArray(), textPaint, desiredWidth)
+                            CssTextAlign.CssTextAlignJustify -> {
+                                if (layout.lineCount == 1) {
+                                    addCharsToLineLeft(textLine, words.toStringArray(), textPaint, marginLeft)
+                                } else {
+                                    if (isLastLine) {    //两端对齐，除了最后一行
+                                        addCharsToLineLeft(textLine, words.toStringArray(), textPaint, marginLeft)
+                                    } else {
+                                        addCharsToLineMiddle(textLine, words.toStringArray(), textPaint, desiredWidth, marginLeft)
+                                    }
+                                }
+                            }
+                        }
+
+                        //新增加的行，超过了一页的显示高度, 则创建新页
+                        if (durY + textPaint.textHeight * lineSpacingExtra * lineHeightParam > visibleHeight) {
+                            val lastPage = textPages.last()
+                            lastPage.text = stringBuilder.toString()
+                            pageLines.add(lastPage.textLines.size)
+                            pageLengths.add(lastPage.text.length)
+                            lastPage.height = durY
+
+                            textPages.add(TextPage())
+                            stringBuilder.clear()
+                            durY = 0f
+                        }
+
+                        stringBuilder.append(words)
+
+                        if (isLastLine) {
+                            if (partIndex ==texts.size - 1) {
+                                stringBuilder.append("\n")  //段落的最后一行，增加换行符
+                            } else {
+                                val lastLineEnd = textLine.textChars.last().end
+                                imgTags.getOrNull(partIndex)?.let { imgTag ->
+                                    val pairs = imgTag.paramsPairs()
+                                    val imgWidth = pairs.firstOrNull { it.first == "width" }?.second?.toIntOrNull() ?: 0
+                                    val imgHeight = pairs.firstOrNull { it.first == "height" }?.second?.toIntOrNull() ?: 0
+                                    val imgSrc = pairs.firstOrNull {it.first == "src" }?.second.orEmpty()
+                                    val lineWidth =  visibleWidth - marginLeft.roundToInt() - marginRight.roundToInt()
+                                    if (imgWidth > 0 && imgHeight > 0 && imgSrc.isNotEmpty()) {
+                                        if (lastLineEnd + imgWidth < lineWidth) {
+                                            morePartIndent = lastLineEnd + imgWidth
+                                            newPartWithNewLine = false
+                                            textLine.textChars.add(TextChar(imgSrc, lastLineEnd, lastLineEnd + imgWidth, false, true))
+                                        } else {
+                                            morePartIndent = imgWidth.toFloat()
+                                            newPartWithNewLine = true
+                                            pentingImg = imgTag
+                                        }
+                                        Logger.d("ChapterProvider::imgTag[$imgTag],imgWidth=$imgWidth,lastLineEnd=$lastLineEnd,morePartIndent=$morePartIndent,newPartWithNewLine=$newPartWithNewLine")
+                                    }
+                                }
+                            }
+                        }
+
+                        if (newPartWithNewLine) {
+                            val lastPage = textPages.last()
+                            lastPage.textLines.add(textLine)    //将新生成的一行加入到最后一页中
+                            textLine.upTopBottom(durY, textPaint)       //设置行的上，下，以及基线位置
+//            durY += textPaint.textHeight * lineSpacingExtra * lineHeightParam   //将行高度，行间距加入到durY值中
+                            durY += textPaint.textHeight * lineSpacingExtra   //将行高度，行间距加入到durY值中
+                            lastPage.height = durY
+                        } else {
+                            latestPartLine = textLine
+                            newPartWithNewLine = true
+                        }
+                    }
+
+                }
             }
 
-            stringBuilder.append(words)
-            if (isLastLine) stringBuilder.append("\n")  //段落的最后一行，增加换行符
-
-            val lastPage = textPages.last()
-            lastPage.textLines.add(textLine)    //将新生成的一行加入到最后一页中
-            textLine.upTopBottom(durY, textPaint)       //设置行的上，下，以及基线位置
-//            durY += textPaint.textHeight * lineSpacingExtra * lineHeightParam   //将行高度，行间距加入到durY值中
-            durY += textPaint.textHeight * lineSpacingExtra   //将行高度，行间距加入到durY值中
-            lastPage.height = durY
         }
 
         //一个自然段落遍历完
@@ -923,7 +1093,7 @@ object ChapterProvider {
     /**
      * 右对齐显示文本
      */
-    private fun addCharsToLineRight(textLine: TextLine, words: Array<String>, textPaint: TextPaint, desiredWidth: Float, marginRight:Float) {
+    private fun addCharsToLineRight(textLine: TextLine, words: Array<String>, textPaint: TextPaint, desiredWidth: Float, marginRight: Float) {
         val x = visibleWidth - desiredWidth - marginRight  //标题栏居中显示，左偏移
         addCharsToLineLeft(textLine, words, textPaint, x)
     }
