@@ -7,6 +7,7 @@ import com.wxn.base.bean.ReaderText
 import com.wxn.mobi.data.model.CountPair
 import com.wxn.mobi.data.model.FileCrc
 import com.wxn.mobi.data.model.MetaInfo
+import com.wxn.mobi.data.model.ParagraphData
 
 object NativeLib {
 
@@ -38,7 +39,7 @@ object NativeLib {
      * @param type 1: mobi/azw3; 2: epub
      * @return
      */
-    external fun getChapter(context: Context, path: String, chapter: BookChapter, type: Int): Array<ReaderText>
+    external fun getChapter(context: Context, path: String, chapter: BookChapter, type: Int): Array<ParagraphData>
 
     external fun getCssInfo(context: Context, book_id: Long, cssNames: Array<String>, type: Int): Array<CssInfo>?
 

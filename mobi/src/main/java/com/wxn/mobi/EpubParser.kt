@@ -6,6 +6,7 @@ import com.wxn.base.bean.BookChapter
 import com.wxn.base.bean.CssInfo
 import com.wxn.base.bean.ReaderText
 import com.wxn.mobi.data.model.MetaInfo
+import com.wxn.mobi.data.model.ParagraphData
 import com.wxn.mobi.inative.NativeLib
 
 object EpubParser {
@@ -26,9 +27,15 @@ object EpubParser {
 
     fun getEpubChapterData(context: Context, path: String, chapter: BookChapter): Array<ReaderText>? {
         Log.d("MobiParser", "getMobiChapterData:path=$path,chapter=$chapter")
-        val texts: Array<ReaderText>? = NativeLib.getChapter(context, path, chapter, 2)
+        val texts: Array<ParagraphData>? = NativeLib.getChapter(context, path, chapter, 2)
+        val ret = arrayListOf<ReaderText>()
+        if (texts != null) {
+            for (text in texts) {
+                ret.add(ReaderText.Text(String(text.line), text.tags))
+            }
+        }
         Log.d("MobiParser", "getMobiChapterData: chapter=${chapter.chapterIndex}: texts.size = ${texts?.size}")
-        return texts
+        return ret.toTypedArray()
     }
 
     fun getEpubCssInfo(context: Context, bookId: Long, cssNames: List<String>?): List<CssInfo>? {

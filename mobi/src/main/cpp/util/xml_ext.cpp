@@ -524,8 +524,151 @@ std::string xml_ext::parse_paragraph(const tinyxml2::XMLElement *pElem,
             }
         }
     }
-    cleanStr(fullText);
+    fullText = cleanStr(fullText);
     return fullText;
+}
+
+/***
+ * 是段落html标签
+ * @param tag_name
+ * @return
+ */
+bool is_paragraph_tag(const std::string &name) {
+    if (name == "p" || name == "div" || name == "ol" || name == "li" ||
+        name == "blockquote" || name == "h1" || name == "h2" || name == "h3" ||
+        name == "h4" || name == "h5" || name == "h6" || name == "h7" ||
+        //                           name == "img" || name == "image" ||
+        name == "section" || name == "article" ||
+        name == "hr" || name == "br") {
+        return true;
+    }
+    return false;
+}
+
+/***
+ * 从tags中找到全部是cur_tags的全部父系节点
+ * @param cur_tags
+ * @param tags
+ * @return
+ */
+std::vector<TagInfo> get_fathers_tags(const std::string &parent_uuid, const std::vector<TagInfo> &tags) {
+    std::vector<TagInfo> ret_tags;
+    if (tags.empty() || parent_uuid.empty()) {
+        return ret_tags;
+    }
+
+    std::set<std::string> parents_uuid;
+    parents_uuid.insert(parent_uuid);
+    //先找到全部的父级uuid
+    for(auto item = tags.rbegin(); item != tags.rend(); ++item) {
+        std::vector<std::string> new_parents_uuid;
+        for(auto &uuid : parents_uuid) {
+            if ((*item).uuid == uuid && !((*item).parent_uuid.empty())) { //直接父级节点
+                new_parents_uuid.push_back((*item).parent_uuid);
+            }
+        }
+        if (!new_parents_uuid.empty()) {
+            for(auto &uuid : new_parents_uuid) {
+                parents_uuid.insert(uuid);
+            }
+        }
+    }
+    for(auto &item : tags) {
+        if(parents_uuid.find(item.uuid) != parents_uuid.end()) {
+            ret_tags.push_back(item);
+        }
+    }
+    return ret_tags;
+}
+/***
+ * 从tags中找到全部是cur_tags的全部父系节点，最终结果会合并cur_tags中的节点
+ * @param cur_tags
+ * @param tags
+ * @return
+ */
+std::vector<TagInfo> get_fathers_tags(const std::vector<TagInfo> cur_tags, const std::vector<TagInfo> &tags) {
+    std::vector<TagInfo> ret_tags;
+    if (tags.empty() || cur_tags.empty()) {
+        return ret_tags;
+    }
+
+    std::set<std::string> parents_uuid;
+    for(auto &tag: cur_tags) {
+        parents_uuid.insert(tag.parent_uuid);
+    }
+    //先找到全部的父级uuid
+    for(auto item = tags.rbegin(); item != tags.rend(); ++item) {
+        std::vector<std::string> new_parents_uuid;
+        for(auto &uuid : parents_uuid) {
+            if ((*item).uuid == uuid && !((*item).parent_uuid.empty())) { //直接父级节点
+                new_parents_uuid.push_back((*item).parent_uuid);
+            }
+        }
+        if (!new_parents_uuid.empty()) {
+            for(auto &uuid : new_parents_uuid) {
+                parents_uuid.insert(uuid);
+            }
+        }
+    }
+    for(auto &item : tags) {
+        if(parents_uuid.find(item.uuid) != parents_uuid.end()) {
+            ret_tags.push_back(item);
+        }
+    }
+    ret_tags.insert(ret_tags.end(), cur_tags.begin(), cur_tags.end());
+    return ret_tags;
+}
+
+/***
+ * 判断tags中有没有不属于当前节点的父/祖父节点的节点, 用来确定是否需要将其生成一个自然段落
+ * @param uuid 当前节点的父节点的uuid
+ * @param tags 全部tags
+ * @return 判断tags中有没有不属于当前节点的父/祖父节点的节点
+ */
+std::vector<TagInfo> non_father_tags(const std::string parent_uuid, const std::vector<TagInfo> &tags) {
+    std::vector<TagInfo> ret_tags;
+    if(tags.empty()) {
+        return ret_tags;
+    }
+
+    if(!parent_uuid.empty()) {
+        std::set<std::string> parents_uuid;
+        parents_uuid.insert(parent_uuid);
+        //先找到全部的父级uuid
+        for(auto item = tags.rbegin(); item != tags.rend(); ++item) {
+            std::vector<std::string> new_parents_uuid;
+            for(auto &uuid : parents_uuid) {
+                if ((*item).uuid == uuid && !((*item).parent_uuid.empty())) { //直接父级节点
+                    new_parents_uuid.push_back((*item).parent_uuid);
+                }
+            }
+            if (!new_parents_uuid.empty()) {
+                for(auto &uuid : new_parents_uuid) {
+                    parents_uuid.insert(uuid);
+                }
+            }
+        }
+        //再此遍历
+        for(auto &item: tags) {
+            bool inner = false;
+            for(auto uuid: parents_uuid) {
+                if (item.uuid == uuid) {
+                    inner = true;
+                    break;
+                }
+            }
+            if (!inner) {
+                ret_tags.push_back(item);
+            }
+        }
+    } else {
+        if(!tags.empty()) {
+            for(auto &item : tags) {
+                ret_tags.push_back(item);
+            }
+        }
+    }
+    return ret_tags;
 }
 
 int xml_ext::parse(
@@ -564,7 +707,7 @@ int xml_ext::parse(
             if (domText != nullptr) {  //是文本节点, 文本节点的标签都在stack中
                 const char *text = domText->Value();
                 if (text != nullptr && strlen(text) > 0) {
-                    std::string str{text, text + strlen(text)};
+                    std::string str(text);
                     str = cleanStr(str);
                     ss << str;
                     offset += utf8Count(str);
@@ -593,9 +736,40 @@ int xml_ext::parse(
                 if (!stack.empty())  {
                     parent_uuid = stack.back().uuid;
                 }
+                std::string tag_name = xml_ext::ele_name(domElem);
+
+                //开始一个新的节点之前，如果该节点是一个段落开始节点
+                if (is_paragraph_tag(tag_name)) {
+                    // 判断ss不为空, 或者tags中有不属于其父节点，
+                    std::vector<TagInfo> otherTags = non_father_tags(parent_uuid, tags);
+                    if (!otherTags.empty() || !ss.str().empty()) {
+                        //   则需要将其作为一个段落分出去
+                        std::string line = ss.str();
+//                        if (!otherTags.empty() || utf8Count(line) > 0) {
+                            docTexts.emplace_back(DocText{line, get_fathers_tags(otherTags, tags)});
+//                        }
+                        ss.str("");
+                        ss.clear();
+                        offset = 0;
+                        endpos = 0;
+                        //tags 中之需要保留父级结构
+                        if (!otherTags.empty()) {
+                            std::vector<TagInfo> parent = get_fathers_tags(parent_uuid, tags);
+                            if (!parent.empty()) {
+                                for(auto &tag : parent) {
+                                    tag.startPos = 0;
+                                    tag.endPos = 0;
+                                }
+                            }
+                            tags.clear();
+                            tags.insert(tags.end(), parent.begin(), parent.end());
+                        }
+                    }
+                }
+
                 auto tag = TagInfo{generate_uuid(),
                                    xml_ext::getEleAttr(domElem, "id"),
-                                   xml_ext::ele_name(domElem),
+                                   tag_name,
                                    offset,
                                    endpos,
                                    parent_uuid,
@@ -629,12 +803,7 @@ int xml_ext::parse(
                     tags.clear();
                     offset = 0;
                     //一些段落标签/img/image，非body直接子标签，也需要处理成自然段落
-                } else if (name == "p" || name == "div" || name == "ol" || name == "li" ||
-                           name == "blockquote" || name == "h1" || name == "h2" || name == "h3" ||
-                           name == "h4" || name == "h5" || name == "h6" || name == "h7" ||
-                           //                           name == "img" || name == "image" ||
-                           name == "section" || name == "article" ||
-                           name == "hr" || name == "br") {
+                } else if (is_paragraph_tag(name)) {
                     if (!tags.empty()) {
                         //弹出最后一个加入的html标签
                         auto curTag = tags[tags.size() - 1];
@@ -723,11 +892,7 @@ int xml_ext::parse(
                             break;
                         }
                     }
-                    if (name == "p" || name == "div" || name == "ol" || name == "li" ||
-                        name == "blockquote" || name == "h1" || name == "h2" || name == "h3" ||
-                        name == "h4" || name == "h5" || name == "h6" || name == "h7" ||
-                        name == "section" || name == "article" ||
-                        name == "hr" || name == "br") {
+                    if (is_paragraph_tag(name)) {
                         newParagraph = true;
                         break;
                     }

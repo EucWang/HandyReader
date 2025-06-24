@@ -876,7 +876,7 @@ int mobi_util::parseHtmlDoc(JNIEnv *env,
             if (elemText != nullptr && utf8Count(elemText) > 0) {
                 std::vector<TagInfo> tagInfos;
                 std::string elemTextStr(elemText, elemText + strlen(elemText));
-                cleanStr(elemTextStr);
+                elemTextStr = cleanStr(elemTextStr);
                 DocText docText{elemTextStr, tagInfos};
 
                 auto tag = TagInfo{generate_uuid(), aid, name, 0, utf8Count(docText.text), "", xml_ext::ele_params(elem, spineSrcName)};
@@ -931,7 +931,7 @@ int mobi_util::parseHtmlDoc(JNIEnv *env,
             }
             if (elemText != nullptr && utf8Count(elemText) > 0) {
                 std::string elemTextStr(elemText, elemText + strlen(elemText));
-                cleanStr(elemTextStr);
+                elemTextStr = cleanStr(elemTextStr);
                 std::vector<TagInfo> tagInfos;
                 DocText docText{elemTextStr, tagInfos};
                 docText.tagInfos.push_back(TagInfo{generate_uuid(), aid, name, 0, utf8Count(docText.text), "", xml_ext::ele_params(elem, spineSrcName)});
@@ -1583,7 +1583,7 @@ int mobi_util::countHtmlDoc2(
         } else if (name == "h1" || name == "h2" || name == "h3" || name == "h4" || name == "h5" || name == "h6" || name == "h7") {
             std::string eleText = xml_ext::getEleText(elem);
             if (!eleText.empty()) {
-                cleanStr(eleText);
+                eleText = cleanStr(eleText);
                 *chapterWordCount += utf8Count(eleText);
             } else {
                 size_t count = countParagraph(elem, anchors, wordCount, chapterIndex, chapterWordCount, spineSrcName);
@@ -1592,7 +1592,7 @@ int mobi_util::countHtmlDoc2(
         } else if (name == "strong" || name == "em" || name == "b" || name == "i") {
             std::string eleText = xml_ext::getEleText(elem);
             if (!eleText.empty()) {
-                cleanStr(eleText);
+                eleText = cleanStr(eleText);
                 *chapterWordCount += utf8Count(eleText);
             }
         } else if (name == "a") {
@@ -1695,7 +1695,7 @@ int mobi_util::countHtmlDoc(tinyxml2::XMLElement *element,
             if (elemText != nullptr && utf8Count(elemText) > 0) {
                 std::vector<TagInfo> tagInfos;
                 std::string elemTextStr(elemText, elemText + strlen(elemText));
-                cleanStr(elemTextStr);
+                elemTextStr = cleanStr(elemTextStr);
 
                 if (1 == *flagAdd) {
                     *wordCount += utf8Count(elemTextStr);
@@ -1722,7 +1722,7 @@ int mobi_util::countHtmlDoc(tinyxml2::XMLElement *element,
             }
             if (elemText != nullptr && utf8Count(elemText) > 0) {
                 std::string elemTextStr(elemText, elemText + strlen(elemText));
-                cleanStr(elemTextStr);
+                elemTextStr = cleanStr(elemTextStr);
                 if (1 == *flagAdd) {
                     *wordCount += utf8Count(elemTextStr);
                 }
@@ -1780,7 +1780,7 @@ mobi_util::countParagraph(const tinyxml2::XMLElement *pElem,
             countElement(elem, fullText, anchors, wordCount, chapterIndex, chapterWordCount, spineSrcName);
         }
     }
-    cleanStr(fullText);
+    fullText = cleanStr(fullText);
     return utf8Count(fullText);
 }
 

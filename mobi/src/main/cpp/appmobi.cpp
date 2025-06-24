@@ -550,16 +550,17 @@ Java_com_wxn_mobi_inative_NativeLib_getChapter(JNIEnv *env, jobject thiz, jobjec
         return nullptr;
     }
 
-    jclass objClass = env->FindClass("com/wxn/base/bean/ReaderText$Text");
+    jclass objClass = env->FindClass("com/wxn/mobi/data/model/ParagraphData");
     if (objClass == nullptr || env->ExceptionCheck()) {
         return nullptr;
     }
+
     int length = docTexts.size();
     jobjectArray result = env->NewObjectArray(length, objClass, nullptr);
     if (result == nullptr) {
         return nullptr;
     }
-    jmethodID constructor = env->GetMethodID(objClass, "<init>", "(Ljava/lang/String;Ljava/util/List;)V");
+    jmethodID constructor = env->GetMethodID(objClass, "<init>", "([BLjava/util/List;)V");
     if (constructor == nullptr) {
         return nullptr;
     }
@@ -604,10 +605,27 @@ Java_com_wxn_mobi_inative_NativeLib_getChapter(JNIEnv *env, jobject thiz, jobjec
                 env->CallBooleanMethod(list, listAdd, textTag);
             }
         }
-        jobject readerText = env->NewObject(objClass, constructor,
-                                            env->NewStringUTF(item.text.c_str()),
-                                            list);
-        env->SetObjectArrayElement(result, i, readerText);
+
+        const char* ch_text = item.text.c_str();
+        size_t length = item.text.length();
+
+        jbyteArray byteArray = env->NewByteArray(length);
+        if (byteArray == nullptr) {
+            return nullptr;
+        }
+        jbyte *bytes = env->GetByteArrayElements(byteArray, nullptr);
+        if (bytes == nullptr) {
+            return nullptr;
+        }
+        memcpy(bytes, ch_text, length);
+        env->ReleaseByteArrayElements(byteArray, bytes, 0);
+
+//        jobject readerText = env->NewObject(objClass, constructor,
+//                                            clientStringFromStdString(env, item.text),
+//                                            list);
+        jobject paragraph_data = env->NewObject(objClass, constructor, byteArray, list);
+
+        env->SetObjectArrayElement(result, i, paragraph_data);
     }
 
     env->ReleaseStringUTFChars(path, nativeStr);

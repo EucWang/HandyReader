@@ -154,7 +154,6 @@ private:
     unzFile bookzip;
     mutable std::mutex m_Mutex;
     mutable std::mutex m_Mutex2;
-    mutable std::mutex m_Mutex3;
     std::vector<NavPoint> allChapters;
     std::vector<std::string> cssSrc;
     tinyxml2::XMLDocument doc;
@@ -187,15 +186,7 @@ private:
     void mockFirstPage(NavPoint &chapter, std::vector<DocText> &docTexts);
 
 
-    int parseHtmlDoc(JNIEnv *env,
-                     long book_id,
-                     tinyxml2::XMLElement *element,
-                     std::vector<DocText> &docTexts,
-                     std::string &startAnchorId,
-                     std::string &endAnchorId,
-                     int *flagAdd,
-                     std::string &spineSrcName,
-                     std::vector<TagInfo> fatherTags);
+    void handle_image(JNIEnv *env, std::vector<DocText> &docTexts);
 
     /***
      * 缓存图片

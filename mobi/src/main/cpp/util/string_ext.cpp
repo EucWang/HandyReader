@@ -189,24 +189,25 @@ void replace_all(std::string &input, std::string &old_str, std::string &new_str)
 }
 
 
-std::string &cleanStr(std::string &str) {
-    replace_all(str, emptyStr1, my_blank_str); //不换行空格
-    replace_all(str, emptyStr2, my_blank_str);         //半角空格
-    replace_all(str, emptyStr3, my_blank_str);         //全角空格
+std::string &cleanStr(const std::string &str) {
+    std::string ret = str;
+    replace_all(ret, emptyStr1, my_blank_str); //不换行空格
+    replace_all(ret, emptyStr2, my_blank_str);         //半角空格
+    replace_all(ret, emptyStr3, my_blank_str);         //全角空格
 
-    replace_all(str, emptyStr4, my_blank_str);       //窄空格
-    replace_all(str, emptyStr5, my_empty_str);        //零宽不连字，不打印字符，放在电子文本的两个字符之间，抑制本来会发生的连字
+    replace_all(ret, emptyStr4, my_blank_str);       //窄空格
+    replace_all(ret, emptyStr5, my_empty_str);        //零宽不连字，不打印字符，放在电子文本的两个字符之间，抑制本来会发生的连字
     //零宽连字，zero width joiner, 不打印字符，放在某些需要复杂排版语言（阿拉伯语，印地语）的两个字符之间，使得两个本不会发生连字的字符产生连字效果，
     // 零宽字符的Unicode码位是U+200D(HTML: &#8205; &zwj;)
-    replace_all(str, emptyStr6, my_joiner);
-    replace_all(str, emptyStr7, my_blank_str);       //空格
-    replace_all(str, emptyStr8, my_blank_str);       //制表位
-    replace_all(str, emptyStr9, my_empty_str);       //换行
-    replace_all(str, emptyStr10, my_empty_str);        //回车
-    replace_all(str, emptyStr11, my_empty_str);        //
-    str = std::regex_replace(str, regex, my_empty_str);
-    trim(str);
-    return str;
+    replace_all(ret, emptyStr6, my_joiner);
+    replace_all(ret, emptyStr7, my_blank_str);       //空格
+    replace_all(ret, emptyStr8, my_blank_str);       //制表位
+    replace_all(ret, emptyStr9, my_empty_str);       //换行
+    replace_all(ret, emptyStr10, my_empty_str);        //回车
+    replace_all(ret, emptyStr11, my_empty_str);        //
+    ret = std::regex_replace(ret, regex, my_empty_str);
+    trim(ret);
+    return ret;
 }
 
 /***
@@ -218,10 +219,10 @@ bool is_number(std::string &str) {
     bool hasDot = false;
     bool hastive = false;   //是否有正负符号
     bool ret = true;
-    for (int i =0 ; i < str.length(); ++i) {
+    for (int i = 0; i < str.length(); ++i) {
         char ch = str[i];
         if (i == 0) {
-            if (!std::isdigit(ch) && ch != '+' && ch != '-'){
+            if (!std::isdigit(ch) && ch != '+' && ch != '-') {
                 ret = false;
                 break;
             }

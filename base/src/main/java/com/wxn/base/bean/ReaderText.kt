@@ -185,7 +185,6 @@ sealed class ReaderText {
 
                         "text-decoration" -> {
                             parsedCss.textDecoration = CssTextDecoration.format(ruleData.value)
-
                         }
 
                         "text-align" -> {

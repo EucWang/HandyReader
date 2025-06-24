@@ -13,6 +13,7 @@
 #include "tag_info.h"
 #include <stack>
 #include <list>
+#include <set>
 #include "doc_text.h"
 
 typedef struct _NodeTag {

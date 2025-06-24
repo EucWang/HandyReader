@@ -135,6 +135,7 @@ int epub_util::epub_init() {
 }
 
 void epub_util::epub_release() {
+    std::lock_guard<std::mutex> lock(m_Mutex2);
     if (initStatus) {
         unzClose(bookzip);
         initStatus = false;
@@ -597,58 +598,7 @@ int epub_util::getChapter(JNIEnv *env, long book_id, const char *path, NavPoint 
 //        parseHtmlDoc(env, book_id, childEle, docTexts, anchorId, endAnchorId, &flagAdd, spineSrc, tags);
         xml_ext::parse(book_id, childEle, docTexts, anchorId, endAnchorId, &flagAdd, spineSrc);
         mockFirstPage(chapter, docTexts);
-
-        for (auto &doctext: docTexts) {
-            if (!doctext.tagInfos.empty()) {
-                auto itag = doctext.tagInfos.begin();
-                for(; itag != doctext.tagInfos.end(); ++itag) {
-                    if ((*itag).name == "img" || (*itag).name == "image") {
-                        break;
-                    }
-                }
-                if (itag != doctext.tagInfos.end()) {
-                    TagInfo imgtag = (*itag);
-                    doctext.tagInfos.erase(itag);
-                    std::string params = imgtag.params;
-                    auto kvs = xml_ext::parse_str_params(params);
-                    std::string imgSrc;
-                    int width = 0;
-                    int height = 0;
-                    for(auto &kv : kvs) {
-                        if (kv.first == "src") {
-                            imgSrc = kv.second;
-                        } else if (kv.first == "width") {
-                            width = toInt(kv.second);
-                        } else if (kv.first == "height") {
-                            width = toInt(kv.second);
-                        }
-                    }
-                    if (!imgSrc.empty()) {
-                        int srcWidth;
-                        int srcHeight;
-                        if (1 == cache_image(env, imgSrc, &srcWidth, &srcHeight)) {
-                            std::string imgPath = file_ext::get_img_path(book_id, imgSrc);
-                            if (srcHeight > 0 && srcHeight > 0) {
-                                std::stringstream ss;
-                                int w = width, h = height;
-                                if (srcWidth > width || srcHeight > height) {
-                                    w = srcWidth;
-                                    h = srcHeight;
-                                }
-                                ss <<  "src=" + imgPath + "&width=" + std::to_string(w) + "&height=" + std::to_string(h);
-                                for(auto &kv : kvs) {
-                                    if (kv.first != "src" && kv.first != "width" && kv.first != "height") {
-                                        ss << "&" << kv.first << "=" << kv.second;
-                                    }
-                                }
-                                imgtag.params = ss.str();
-                                doctext.tagInfos.push_back(imgtag);
-                            }
-                        }
-                    }
-                }
-            }
-        }
+        handle_image(env, docTexts);
     }
 
     auto end_time = std::chrono::high_resolution_clock::now();
@@ -657,6 +607,59 @@ int epub_util::getChapter(JNIEnv *env, long book_id, const char *path, NavPoint 
     return 1;
 }
 
+void epub_util::handle_image(JNIEnv *env, std::vector<DocText> &docTexts) {
+    for (auto &doctext: docTexts) {
+        if (!doctext.tagInfos.empty()) {
+            auto itag = doctext.tagInfos.begin();
+            for(; itag != doctext.tagInfos.end(); ++itag) {
+                if ((*itag).name == "img" || (*itag).name == "image") {
+                    break;
+                }
+            }
+            if (itag != doctext.tagInfos.end()) {
+                TagInfo imgtag = (*itag);
+                doctext.tagInfos.erase(itag);
+                std::string params = imgtag.params;
+                auto kvs = xml_ext::parse_str_params(params);
+                std::string imgSrc;
+                int width = 0;
+                int height = 0;
+                for(auto &kv : kvs) {
+                    if (kv.first == "src") {
+                        imgSrc = kv.second;
+                    } else if (kv.first == "width") {
+                        width = toInt(kv.second);
+                    } else if (kv.first == "height") {
+                        width = toInt(kv.second);
+                    }
+                }
+                if (!imgSrc.empty()) {
+                    int srcWidth;
+                    int srcHeight;
+                    if (1 == cache_image(env, imgSrc, &srcWidth, &srcHeight)) {
+                        std::string imgPath = file_ext::get_img_path(book_id, imgSrc);
+                        if (srcHeight > 0 && srcHeight > 0) {
+                            std::stringstream ss;
+                            int w = width, h = height;
+                            if (srcWidth > width || srcHeight > height) {
+                                w = srcWidth;
+                                h = srcHeight;
+                            }
+                            ss <<  "src=" + imgPath + "&width=" + std::to_string(w) + "&height=" + std::to_string(h);
+                            for(auto &kv : kvs) {
+                                if (kv.first != "src" && kv.first != "width" && kv.first != "height") {
+                                    ss << "&" << kv.first << "=" << kv.second;
+                                }
+                            }
+                            imgtag.params = ss.str();
+                            doctext.tagInfos.push_back(imgtag);
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
 
 int epub_util::parse_css_list() {
     if (isEmptyCss) {
@@ -676,7 +679,7 @@ int epub_util::parse_css_list() {
 }
 
 int epub_util::getCss(std::vector<std::string> &cssClasses, std::vector<CssInfo> &cssInfos) {
-    std::lock_guard<std::mutex> lock(m_Mutex3);
+    std::lock_guard<std::mutex> lock(m_Mutex2);
     parse_css_list();
     if (cssSrc.empty()) {
         LOGE("%s failed get cssSrc, no css items", __func__);
@@ -752,294 +755,6 @@ void epub_util::mockFirstPage(NavPoint &chapter, std::vector<DocText> &docTexts)
             docTexts.emplace_back(DocText{publisher, tagInfos});
         }
     }
-}
-
-
-int epub_util::parseHtmlDoc(JNIEnv *env,
-                            long book_id,
-                            tinyxml2::XMLElement *element,
-                            std::vector<DocText> &docTexts,
-                            std::string &startAnchorId,
-                            std::string &endAnchorId,
-                            int *flagAdd,
-                            std::string &spineSrcName,
-                            std::vector<TagInfo> fatherTags) {
-    tinyxml2::XMLElement *elem = element;
-    while (elem != nullptr) {
-        if (2 == *flagAdd) {
-            break;
-        }
-        std::vector<TagInfo> parentTags;
-        if (!fatherTags.empty()) {
-            for (auto &tag: fatherTags) {
-                parentTags.push_back(tag);
-            }
-        }
-        std::string name = xml_ext::ele_name(elem);
-        if (name == "p") {
-            if (xml_ext::has_child_img(elem)) {
-                auto count = elem->ChildElementCount();
-                tinyxml2::XMLElement *child = elem->FirstChildElement();
-                if (count > 0 && child != nullptr) {
-                    std::string params = xml_ext::ele_params(elem, spineSrcName);
-                    if (!params.empty()) {
-                        TagInfo tag;
-                        tag.name = name;;
-                        tag.uuid = generate_uuid();
-                        tag.startPos = 0;
-                        tag.endPos = 0;
-                        tag.params = params;
-                        parentTags.emplace_back(tag);
-                    }
-
-                    parseHtmlDoc(env, book_id, child, docTexts, startAnchorId, endAnchorId, flagAdd, spineSrcName, parentTags);
-                }
-            } else {
-                std::string aid = xml_ext::getEleAttr(elem, "id");
-                if (0 == *flagAdd && !startAnchorId.empty() && startAnchorId == aid) {
-                    *flagAdd = 1;
-                } else if (1 == *flagAdd && !endAnchorId.empty() && endAnchorId == aid) {
-                    *flagAdd = 2;
-                    break;
-                }
-
-                std::vector<TagInfo> tagInfos;
-                DocText docText{"", tagInfos};
-                std::string text = xml_ext::parse_paragraph(elem, tagInfos, startAnchorId, endAnchorId, flagAdd, spineSrcName);
-
-                docText.text = text;
-                if (!tagInfos.empty()) {
-                    for (auto &tag: tagInfos) {
-                        docText.tagInfos.push_back(tag);
-                    }
-                }
-
-                std::string params = xml_ext::ele_params(elem, spineSrcName);
-                if (!params.empty()) {
-                    TagInfo tag;
-                    tag.name = name;;
-                    tag.uuid = generate_uuid();
-                    tag.startPos = 0;
-                    tag.endPos = utf8Count(text);
-                    tag.params = params;
-                    docText.tagInfos.emplace_back(tag);
-                }
-
-                if (!parentTags.empty()) {
-                    for (auto &tag: parentTags) {
-                        if (tag.endPos == 0) {
-                            tag.endPos = utf8Count(text);
-                        }
-                        docText.tagInfos.push_back(tag);
-                    }
-                }
-
-                if (*flagAdd == 1) {
-                    docTexts.push_back(docText);
-                }
-            }
-        } else if (name == "div" || name == "ul" || name == "ol" || name == "li" || name == "span" || name == "font" || name == "blockquote" || name == "svg") {
-            std::string aid = xml_ext::getEleAttr(elem, "id");
-            if (0 == *flagAdd && !startAnchorId.empty() && startAnchorId == aid) {
-                *flagAdd = 1;
-            } else if (1 == *flagAdd && !endAnchorId.empty() && endAnchorId == aid) {
-                *flagAdd = 2;
-                break;
-            }
-
-            if (xml_ext::is_paragraph(elem)) {
-                std::vector<TagInfo> tagInfos;
-                DocText docText{"", tagInfos};
-                std::string text = xml_ext::parse_paragraph(elem, tagInfos, startAnchorId, endAnchorId, flagAdd, spineSrcName);
-                docText.text = text;
-                if (!tagInfos.empty()) {
-                    for (auto &tag: tagInfos) {
-                        docText.tagInfos.push_back(tag);
-                    }
-                }
-
-                std::string params = xml_ext::ele_params(elem, spineSrcName);
-                if (!params.empty()) {
-                    TagInfo tag;
-                    tag.name = name;;
-                    tag.uuid = generate_uuid();
-                    tag.startPos = 0;
-                    tag.endPos = utf8Count(text);
-                    tag.params = params;
-                    docText.tagInfos.emplace_back(tag);
-                }
-
-                if (!parentTags.empty()) {
-                    for (auto &tag: parentTags) {
-                        if (tag.endPos == 0) {
-                            tag.endPos = utf8Count(text);
-                        }
-                        docText.tagInfos.push_back(tag);
-                    }
-                }
-
-                if (*flagAdd == 1) {
-                    docTexts.push_back(docText);
-                }
-            } else {
-                auto count = elem->ChildElementCount();
-                tinyxml2::XMLElement *child = elem->FirstChildElement();
-                if (count > 0 && child != nullptr) {
-                    std::string params = xml_ext::ele_params(elem, spineSrcName);
-                    if (!params.empty()) {
-                        TagInfo tag;
-                        tag.name = name;;
-                        tag.uuid = generate_uuid();
-                        tag.startPos = 0;
-                        tag.endPos = 0;
-                        tag.params = params;
-                        parentTags.emplace_back(tag);
-                    }
-
-                    parseHtmlDoc(env, book_id, child, docTexts, startAnchorId, endAnchorId, flagAdd, spineSrcName, parentTags);
-                }
-            }
-        } else if (name == "h1" || name == "h2" || name == "h3" || name == "h4" || name == "h5" || name == "h6" || name == "h7") {
-            std::string elemText = xml_ext::getText(elem);
-            std::string aid = xml_ext::getEleAttr(elem, "id");
-            if (0 == *flagAdd && !startAnchorId.empty() && startAnchorId == aid) {
-                *flagAdd = 1;
-            } else if (1 == *flagAdd && !endAnchorId.empty() && endAnchorId == aid) {
-                *flagAdd = 2;
-                break;
-            }
-
-            if (!elemText.empty()) {
-                std::vector<TagInfo> tagInfos;
-                cleanStr(elemText);
-                DocText docText{elemText, tagInfos};
-
-                auto tag = TagInfo{generate_uuid(), aid, name, 0, utf8Count(docText.text), "", xml_ext::ele_params(elem, spineSrcName)};
-                docText.tagInfos.push_back(tag);
-                if (!parentTags.empty()) {
-                    for (auto &tag: parentTags) {
-                        if (tag.endPos == 0) {
-                            tag.endPos = utf8Count(docText.text);
-                        }
-                        docText.tagInfos.push_back(tag);
-                    }
-                }
-
-                if (1 == *flagAdd) {
-                    docTexts.push_back(docText);
-                }
-            } else {
-                std::vector<TagInfo> tagInfos;
-                DocText docText{"", tagInfos};
-                std::string text = xml_ext::parse_paragraph(elem, tagInfos, startAnchorId, endAnchorId, flagAdd, spineSrcName);
-                if (!text.empty() || !tagInfos.empty()) {
-                    docText.text = text;
-                    docText.tagInfos.push_back(TagInfo{generate_uuid(), aid, name, 0, utf8Count(docText.text), "", xml_ext::ele_params(elem, spineSrcName)});
-                    if (!tagInfos.empty()) {
-                        for (auto &tag: tagInfos) {
-                            docText.tagInfos.push_back(tag);
-                        }
-                    }
-                    if (!parentTags.empty()) {
-                        for (auto &tag: parentTags) {
-                            if (tag.endPos == 0) {
-                                tag.endPos = utf8Count(docText.text);
-                            }
-                            docText.tagInfos.push_back(tag);
-                        }
-                    }
-                    docTexts.push_back(docText);
-                }
-            }
-        } else if (name == "strong" || name == "em" || name == "b" || name == "i") {
-            std::string elemText = xml_ext::getText(elem);
-            std::string aid = xml_ext::getEleAttr(elem, "id");
-            if (0 == *flagAdd && !startAnchorId.empty() && startAnchorId == aid) {
-                *flagAdd = 1;
-            } else if (1 == *flagAdd && !endAnchorId.empty() && endAnchorId == aid) {
-                *flagAdd = 2;
-                break;
-            }
-            if (!elemText.empty()) {
-                cleanStr(elemText);
-                std::vector<TagInfo> tagInfos;
-                DocText docText{elemText, tagInfos};
-                docText.tagInfos.push_back(TagInfo{generate_uuid(), aid, name, 0, utf8Count(docText.text), "", xml_ext::ele_params(elem, spineSrcName)});
-                if (!parentTags.empty()) {
-                    for (auto &tag: parentTags) {
-                        if (tag.endPos == 0) {
-                            tag.endPos = utf8Count(docText.text);
-                        }
-                        docText.tagInfos.push_back(tag);
-                    }
-                }
-                if (1 == *flagAdd) {
-                    docTexts.push_back(docText);
-                }
-            }
-        } else if (name == "a") {
-            std::string aid = xml_ext::getEleAttr(elem, "id");
-            if (0 == *flagAdd && !startAnchorId.empty() && startAnchorId == aid) {
-                *flagAdd = 1;
-            } else if (1 == *flagAdd && !endAnchorId.empty() && endAnchorId == aid) {
-                *flagAdd = 2;
-                break;
-            }
-
-            std::vector<TagInfo> tagInfos;
-            DocText docText{"", tagInfos};
-            std::string text = xml_ext::parse_paragraph(elem, tagInfos, startAnchorId, endAnchorId, flagAdd, spineSrcName);
-            docText.text = text;
-            if (!tagInfos.empty()) {
-                for (auto &tag: tagInfos) {
-                    docText.tagInfos.push_back(tag);
-                }
-            }
-
-            std::string params = xml_ext::ele_params(elem, spineSrcName);
-            docText.tagInfos.push_back(TagInfo{generate_uuid(), aid, name, 0, utf8Count(docText.text), "", params});
-            if (!parentTags.empty()) {
-                for (auto &tag: parentTags) {
-                    if (tag.endPos == 0) {
-                        tag.endPos = utf8Count(docText.text);
-                    }
-                    docText.tagInfos.push_back(tag);
-                }
-            }
-
-            if (1 == *flagAdd) {
-                docTexts.push_back(docText);
-            }
-        } else if (name == "img" || name == "image") {
-            std::string imgSrc = xml_ext::get_img_src(elem);
-            if (!imgSrc.empty()) {
-                int width = 0, height = 0;
-                if (1 == cache_image(env, imgSrc, &width, &height)) {
-                    std::string imgPath = file_ext::get_img_path(book_id, imgSrc);
-                    if (width > 0 && height > 0) {
-                        std::vector<TagInfo> tags;
-                        DocText docText{"", tags};
-                        std::string params = "src=" + imgPath + "&width=" + std::to_string(width) + "&height=" + std::to_string(height);
-                        docText.tagInfos.emplace_back(TagInfo{generate_uuid(), "", "img", 0, 0, "", params});
-                        if (!parentTags.empty()) {
-                            for (auto &tag: parentTags) {
-                                if (tag.endPos == 0) {
-                                    tag.endPos = utf8Count(docText.text);
-                                }
-                                docText.tagInfos.push_back(tag);
-                            }
-                        }
-                        if (1 == *flagAdd) {
-                            docTexts.push_back(docText);
-                        }
-                    }
-                }
-            }
-        }
-        elem = elem->NextSiblingElement();
-
-    }
-    return 1;
 }
 
 /***
