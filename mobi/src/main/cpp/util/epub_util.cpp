@@ -613,46 +613,41 @@ void epub_util::handle_image(JNIEnv *env, std::vector<DocText> &docTexts) {
             auto itag = doctext.tagInfos.begin();
             for(; itag != doctext.tagInfos.end(); ++itag) {
                 if ((*itag).name == "img" || (*itag).name == "image") {
-                    break;
-                }
-            }
-            if (itag != doctext.tagInfos.end()) {
-                TagInfo imgtag = (*itag);
-                doctext.tagInfos.erase(itag);
-                std::string params = imgtag.params;
-                auto kvs = xml_ext::parse_str_params(params);
-                std::string imgSrc;
-                int width = 0;
-                int height = 0;
-                for(auto &kv : kvs) {
-                    if (kv.first == "src") {
-                        imgSrc = kv.second;
-                    } else if (kv.first == "width") {
-                        width = toInt(kv.second);
-                    } else if (kv.first == "height") {
-                        width = toInt(kv.second);
+                    TagInfo &imgtag = (*itag);
+                    std::string params = imgtag.params;
+                    auto kvs = xml_ext::parse_str_params(params);
+                    std::string imgSrc;
+                    int width = 0;
+                    int height = 0;
+                    for(auto &kv : kvs) {
+                        if (kv.first == "src") {
+                            imgSrc = kv.second;
+                        } else if (kv.first == "width") {
+                            width = toInt(kv.second);
+                        } else if (kv.first == "height") {
+                            width = toInt(kv.second);
+                        }
                     }
-                }
-                if (!imgSrc.empty()) {
-                    int srcWidth;
-                    int srcHeight;
-                    if (1 == cache_image(env, imgSrc, &srcWidth, &srcHeight)) {
-                        std::string imgPath = file_ext::get_img_path(book_id, imgSrc);
-                        if (srcHeight > 0 && srcHeight > 0) {
-                            std::stringstream ss;
-                            int w = width, h = height;
-                            if (srcWidth > width || srcHeight > height) {
-                                w = srcWidth;
-                                h = srcHeight;
-                            }
-                            ss <<  "src=" + imgPath + "&width=" + std::to_string(w) + "&height=" + std::to_string(h);
-                            for(auto &kv : kvs) {
-                                if (kv.first != "src" && kv.first != "width" && kv.first != "height") {
-                                    ss << "&" << kv.first << "=" << kv.second;
+                    if (!imgSrc.empty()) {
+                        int srcWidth = 0;
+                        int srcHeight = 0;
+                        if (1 == cache_image(env, imgSrc, &srcWidth, &srcHeight)) {
+                            std::string imgPath = file_ext::get_img_path(book_id, imgSrc);
+                            if (srcWidth > 0 && srcHeight > 0 && !imgPath.empty()) {
+                                std::stringstream ss;
+                                int w = width, h = height;
+                                if (srcWidth > width || srcHeight > height) {
+                                    w = srcWidth;
+                                    h = srcHeight;
                                 }
+                                ss <<  "src=" + imgPath + "&width=" + std::to_string(w) + "&height=" + std::to_string(h);
+                                for(auto &kv : kvs) {
+                                    if (kv.first != "src" && kv.first != "width" && kv.first != "height") {
+                                        ss << "&" << kv.first << "=" << kv.second;
+                                    }
+                                }
+                                imgtag.params = ss.str();
                             }
-                            imgtag.params = ss.str();
-                            doctext.tagInfos.push_back(imgtag);
                         }
                     }
                 }

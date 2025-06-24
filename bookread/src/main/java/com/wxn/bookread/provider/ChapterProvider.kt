@@ -141,6 +141,8 @@ object ChapterProvider {
     lateinit var h3Paint: TextPaint
     lateinit var h4Paint: TextPaint
     lateinit var aPaint: TextPaint
+    
+    private var oneWordWidth = 0f
 
     fun getTypeface(fontWeight: CssFontWeight, cssFontStyle: CssFontStyle) =
         when (fontWeight) {
@@ -398,6 +400,8 @@ object ChapterProvider {
             Logger.d("ChapterProvider::upStyle::titleTopSpacing=${titleTopSpacing}")
             titleBottomSpacing = readerPreferences?.titleBottomSpacing?.dp?.toInt() ?: 0                           //标题底部间距
             Logger.d("ChapterProvider::upStyle::titleBottomSpacing=${titleBottomSpacing}")
+
+            oneWordWidth = 0f
 
             //更新屏幕参数
             upVisibleSize(context)
@@ -706,14 +710,21 @@ object ChapterProvider {
                 textIndent > 0
             ) {
 
-                val oneCh: String = (text.getOrNull(0)?.toString() ?: " ")
-                val oneEmWidth = StaticLayout.getDesiredWidth(oneCh, textPaint)
+                if (oneWordWidth <= 0f) {
+                    for(index in 0..2) {
+                        val oneCh: String = (text.getOrNull(index)?.toString() ?: " ")
+                        val width = StaticLayout.getDesiredWidth(oneCh, textPaint)
+                        if (width > oneWordWidth) {
+                            oneWordWidth = width
+                        }
+                    }
+                }
                 //首行缩进
-                firstLineIndent = textIndent * oneEmWidth
-                Logger.d("ChapterProvider::firstLineIndent[$firstLineIndent],oneEmWidth=$oneEmWidth")
+                firstLineIndent = textIndent * oneWordWidth
+                Logger.d("ChapterProvider::firstLineIndent[$firstLineIndent],oneEmWidth=$oneWordWidth")
                 //左边距
                 marginLeft = (if (paragraph.textCssInfo.marginLeft.isEm()) {
-                    oneEmWidth * paragraph.textCssInfo.marginLeft.value
+                    oneWordWidth * paragraph.textCssInfo.marginLeft.value
                 } else if (paragraph.textCssInfo.marginLeft.isPx()) {
                     paragraph.textCssInfo.marginLeft.value
                 } else if (paragraph.textCssInfo.marginLeft.isPercent()) {
@@ -735,7 +746,7 @@ object ChapterProvider {
                 }).coerceIn(0f, visibleWidth / 4f)
                 //上边距
                 marginTop = (if (paragraph.textCssInfo.marginTop.isEm()) {
-                    oneEmWidth * paragraph.textCssInfo.marginTop.value
+                    oneWordWidth * paragraph.textCssInfo.marginTop.value
                 } else if (paragraph.textCssInfo.marginTop.isPx()) {
                     paragraph.textCssInfo.marginTop.value
                 } else if (paragraph.textCssInfo.marginTop.isPercent()) {
@@ -745,7 +756,7 @@ object ChapterProvider {
                 }).coerceIn(0f, visibleHeight / 4f)
                 //下边距
                 marginBottom = (if (paragraph.textCssInfo.marginBottom.isEm()) {
-                    oneEmWidth * paragraph.textCssInfo.marginBottom.value
+                    oneWordWidth * paragraph.textCssInfo.marginBottom.value
                 } else if (paragraph.textCssInfo.marginBottom.isPx()) {
                     paragraph.textCssInfo.marginBottom.value
                 } else if (paragraph.textCssInfo.marginBottom.isPercent()) {
@@ -809,12 +820,23 @@ object ChapterProvider {
                     CssTextAlign.CssTextAlignCenter -> addCharsToLineCenter(textLine, words.toStringArray(), textPaint, desiredWidth)
                     CssTextAlign.CssTextAlignJustify -> {
                         if (layout.lineCount == 1) {
-                            addCharsToLineLeft(textLine, words.toStringArray(), textPaint, marginLeft)
+                            addCharsToLineLeft(textLine, words.toStringArray(), textPaint, marginLeft + (if (lineIndex == 0) firstLineIndent.toFloat() else 0f))
                         } else {
                             if (isLastLine) {    //两端对齐，除了最后一行
-                                addCharsToLineLeft(textLine, words.toStringArray(), textPaint, marginLeft)
+                                addCharsToLineLeft(
+                                    textLine,
+                                    words.toStringArray(),
+                                    textPaint,
+                                    marginLeft + (if (lineIndex == 0) firstLineIndent.toFloat() else 0f)
+                                )
                             } else {
-                                addCharsToLineMiddle(textLine, words.toStringArray(), textPaint, desiredWidth, marginLeft)
+                                addCharsToLineMiddle(
+                                    textLine,
+                                    words.toStringArray(),
+                                    textPaint,
+                                    desiredWidth,
+                                    marginLeft + (if (lineIndex == 0) firstLineIndent.toFloat() else 0f)
+                                )
                             }
                         }
                     }
@@ -870,8 +892,8 @@ object ChapterProvider {
                 }
                 var morePartIndent = firstLineIndent
                 var newPartWithNewLine = true   //新的分段是否需要新的分行，
-                var latestPartLine : TextLine? = null
-                var pentingImg : TextTag? = null //上一小分段中，图片塞不下了， 放入到下一行第一个位置显示
+                var latestPartLine: TextLine? = null
+                var pentingImg: TextTag? = null //上一小分段中，图片塞不下了， 放入到下一行第一个位置显示
                 for ((partIndex, text) in texts.withIndex()) {
 
                     val layout = StaticLayout.Builder.obtain(
@@ -890,7 +912,7 @@ object ChapterProvider {
                     for (lineIndex in 0 until layout.lineCount) {  //排版，按行遍历
                         val offsetStart = layout.getLineStart(lineIndex)
                         val offsetEnd = layout.getLineEnd(lineIndex)
-                        val textLine = if (lineIndex == 0 && partIndex >0 && latestPartLine != null) {
+                        val textLine = if (lineIndex == 0 && partIndex > 0 && latestPartLine != null) {
                             latestPartLine
                         } else {
                             TextLine(isTitle = isTitle, paragraphIndex = paragraphIndex, charStartOffset = offsetStart, charEndOffset = offsetEnd)
@@ -901,8 +923,8 @@ object ChapterProvider {
                         if (pentingImg != null) {
                             val pairs = pentingImg.paramsPairs()
                             val imgSrc = pairs.firstOrNull { it.first == "src" }?.second.orEmpty()
-                            val width = pairs.firstOrNull {it.first == "width" }?.second?.toIntOrNull() ?: 0
-                            val height = pairs.firstOrNull {it.first == "height" }?.second?.toIntOrNull() ?: 0
+                            val width = pairs.firstOrNull { it.first == "width" }?.second?.toIntOrNull() ?: 0
+                            val height = pairs.firstOrNull { it.first == "height" }?.second?.toIntOrNull() ?: 0
                             if (imgSrc.isNotEmpty() && width > 0 && height > 0) {
                                 textLine.textChars.add(TextChar(imgSrc, morePartIndent, morePartIndent + width, false, true))
                             }
@@ -953,7 +975,7 @@ object ChapterProvider {
                         stringBuilder.append(words)
 
                         if (isLastLine) {
-                            if (partIndex ==texts.size - 1) {
+                            if (partIndex == texts.size - 1) {
                                 stringBuilder.append("\n")  //段落的最后一行，增加换行符
                             } else {
                                 val lastLineEnd = textLine.textChars.last().end
@@ -961,8 +983,8 @@ object ChapterProvider {
                                     val pairs = imgTag.paramsPairs()
                                     val imgWidth = pairs.firstOrNull { it.first == "width" }?.second?.toIntOrNull() ?: 0
                                     val imgHeight = pairs.firstOrNull { it.first == "height" }?.second?.toIntOrNull() ?: 0
-                                    val imgSrc = pairs.firstOrNull {it.first == "src" }?.second.orEmpty()
-                                    val lineWidth =  visibleWidth - marginLeft.roundToInt() - marginRight.roundToInt()
+                                    val imgSrc = pairs.firstOrNull { it.first == "src" }?.second.orEmpty()
+                                    val lineWidth = visibleWidth - marginLeft.roundToInt() - marginRight.roundToInt()
                                     if (imgWidth > 0 && imgHeight > 0 && imgSrc.isNotEmpty()) {
                                         if (lastLineEnd + imgWidth < lineWidth) {
                                             morePartIndent = lastLineEnd + imgWidth
@@ -1008,37 +1030,6 @@ object ChapterProvider {
         return durY
     }
 
-//    /****
-//     * 段落的第一行，非标题，有缩进，处理两端对齐
-//     */
-//    private suspend fun addCharsToLineFirst(textLine: TextLine, words: Array<String>, textPaint: TextPaint, desiredWidth: Float) {
-//        val tipPreference = readTipPreferencesUtil?.readTIpPreferencesFlow?.firstOrNull()
-//        val textFullJustify = tipPreference?.textFullJustify == true
-//        val bodyIndent = paragraphIndent    //段落首行缩进的2个tab
-//
-//        var x = 0f
-//        if (!textFullJustify) { //如果不需要两端对齐，则默认从左向右显示，计算每个字母的显示位置
-//            addCharsToLineLeft(textLine, words, textPaint, x)
-//            return
-//        }
-////        val icw = StaticLayout.getDesiredWidth(bodyIndent, textPaint) / bodyIndent.length   //单个Tab的宽度
-////        bodyIndent.toStringArray().forEach { tabCh ->
-////            val x1 = x + icw
-////            textLine.addTextChar(charData = tabCh, start = paddingLeft + x, end = paddingLeft + x1) //将两个Tab加入到TextLine中
-////            x = x1
-////        }
-//        //在disposeContent()方法中，每个自然段都会默认加上2个tab字符，这里将多余的2个tab字符裁剪掉
-////        var tmpWords = words;
-////        while(true) {
-////            if (tmpWords.firstOrNull() == oneParagraphIndent) {
-////                tmpWords = words.copyOfRange(1, tmpWords.size)
-////            } else {
-////                break
-////            }
-////        }
-////        val words1 = words.copyOfRange(bodyIndent.length, words.size)
-//        addCharsToLineMiddle(textLine, words, textPaint, desiredWidth, x)
-//    }
 
     /****
      * 段落的中间行， 两端对齐

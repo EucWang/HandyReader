@@ -1,23 +1,16 @@
 package com.wxn.base.util
 
+import android.graphics.Color
+import androidx.core.graphics.toColorInt
+
 object ColorUtil {
-    fun toColorInt(fontColor: String): Int? {
-        var color = fontColor
-        if (color.isNullOrEmpty()) return null
-        if (color.startsWith("0x") || color.startsWith("0X")) {
-            color = color.substring(2)
-        } else if (color.startsWith("#")) {
-            color = color.substring(1)
-        }
-        if (color.length != 6) {
-            return null
-        }
-        val result = try {
-            color.toInt(16)
-        } catch (_: Exception) {
+
+    //在 Android 中，颜色值可以以多种格式表示，包括 rgb、argb、rrggbb、aarrggbb 等，Color.parseColor 支持这些格式
+    fun toColor(fontColor: String): Int? {
+        return try {
+            fontColor.toColorInt()
+        } catch (ex: Exception) {
             null
         }
-        return result
     }
-
 }

@@ -23,6 +23,10 @@ void css_ext::query_css(std::string &css_data, std::vector<std::string> &cssClas
                     if (!datas.empty()) {
                         for (auto &data: datas) {
                             trim(data);
+                            if (endsWith(data, "}")) {
+                                data = data.substr(0, data.size() - 1);
+                            }
+                            trim(data);
                             std::vector<std::string> kv = split(data, ':');
                             if (kv.size() == 2) {
                                 std::string k = trim_copy(kv[0]);

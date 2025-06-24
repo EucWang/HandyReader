@@ -291,9 +291,9 @@ class ContentTextView(context: Context, attrs: AttributeSet?) : View(context, at
                         }
                     }
                 }
-//                ColorUtil.toColorInt(textCssInfo.fontColor)?.let { color ->
-//                    paint.color = color
-//                }
+                ColorUtil.toColor(textCssInfo.fontColor)?.let { color ->
+                    paint.color = color
+                }
             }
 
             if (ch.isImage) {

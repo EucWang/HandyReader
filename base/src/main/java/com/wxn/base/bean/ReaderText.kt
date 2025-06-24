@@ -153,7 +153,7 @@ sealed class ReaderText {
                 for (ruleData in ruleDatas) {
                     when (ruleData.name) {
                         "font-size" -> {
-                            parsedCss.fontSize = CssUnit.format(ruleData.value)
+                            parsedCss.fontSize = CssUnit.format(ruleData.value.trim())
                         }
 
                         "font-family" -> {
@@ -168,50 +168,50 @@ sealed class ReaderText {
                         }
 
                         "font-weight" -> {
-                            parsedCss.fontWeight = CssFontWeight.format(ruleData.value)
+                            parsedCss.fontWeight = CssFontWeight.format(ruleData.value.trim())
                         }
 
                         "font-style" -> {
-                            parsedCss.fontStyle = CssFontStyle.format(ruleData.value)
+                            parsedCss.fontStyle = CssFontStyle.format(ruleData.value.trim())
                         }
 
                         "text-indent" -> {
-                            parsedCss.textIndent = CssUnit.format(ruleData.value)
+                            parsedCss.textIndent = CssUnit.format(ruleData.value.trim())
                         }
 
                         "color" -> {
-                            parsedCss.fontColor = ruleData.value
+                            parsedCss.fontColor = ruleData.value.trim()
                         }
 
                         "text-decoration" -> {
-                            parsedCss.textDecoration = CssTextDecoration.format(ruleData.value)
+                            parsedCss.textDecoration = CssTextDecoration.format(ruleData.value.trim())
                         }
 
                         "text-align" -> {
-                            parsedCss.textAlign = CssTextAlign.format(ruleData.value)
+                            parsedCss.textAlign = CssTextAlign.format(ruleData.value.trim())
                         }
 
                         "vertical-align" -> {
-                            parsedCss.verticalAlign = CssVerticalAlign.format(ruleData.value)
+                            parsedCss.verticalAlign = CssVerticalAlign.format(ruleData.value.trim())
                         }
 
                         "line-height" -> {
-                            parsedCss.lineHeight = CssUnit.format(ruleData.value)
+                            parsedCss.lineHeight = CssUnit.format(ruleData.value.trim())
 
                         }
 
                         "background" -> {
-                            parsedCss.background = ruleData.value
+                            parsedCss.background = ruleData.value.trim()
                         }
 
                         "qrfullpage" -> {
-                            if (ruleData.value == "1") {
+                            if (ruleData.value.trim() == "1") {
                                 parsedCss.isFullScreen = true
                             }
                         }
 
                         "page-break-after" -> {
-                            if (ruleData.value == "always") {
+                            if (ruleData.value.trim() == "always") {
                                 parsedCss.isFullScreen = true
                             }
                         }
@@ -233,7 +233,7 @@ sealed class ReaderText {
                         }
 
                         "margin" -> {
-                            val datas = ruleData.value.split(" ")
+                            val datas =  ruleData.value.trim().split(" ")
                             when (datas.size) {
                                 1 -> {
                                     val value = CssUnit.format(datas[0].trim())
@@ -244,12 +244,23 @@ sealed class ReaderText {
                                 }
 
                                 2 -> {
-                                    val horizontalValue = CssUnit.format(datas[0].trim())
-                                    val verticalValue = CssUnit.format(datas[1].trim())
+                                    val verticalValue = CssUnit.format(datas[0].trim())
+                                    val horizontalValue = CssUnit.format(datas[1].trim())
                                     parsedCss.marginLeft = horizontalValue
                                     parsedCss.marginTop = verticalValue
                                     parsedCss.marginRight = horizontalValue
                                     parsedCss.marginBottom = verticalValue
+                                }
+
+                                3 -> {
+                                    val top = CssUnit.format(datas[0].trim())
+                                    val right = CssUnit.format(datas[1].trim())
+                                    val bottom = CssUnit.format(datas[2].trim())
+                                    val left = right
+                                    parsedCss.marginLeft = left
+                                    parsedCss.marginTop = top
+                                    parsedCss.marginRight = right
+                                    parsedCss.marginBottom = bottom
                                 }
 
                                 4 -> {
@@ -283,7 +294,7 @@ sealed class ReaderText {
                         }
 
                         "padding" -> {
-                            val datas = ruleData.value.split(" ")
+                            val datas = ruleData.value.trim().split(" ")
                             when (datas.size) {
                                 1 -> {
                                     val value = CssUnit.format(datas[0].trim())
