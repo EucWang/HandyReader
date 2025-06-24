@@ -63,6 +63,7 @@ class epub_util {
 
 public:
     explicit epub_util(long bookid, std::string bookpath) {
+        zipEntities.clear();
         book_id = bookid;
         book_path = bookpath;
         if (1 != epub_init()) {
@@ -85,6 +86,7 @@ public:
         isSingleSrc = false;
         isEmptyCss = false;
         epub_release();
+        zipEntities.clear();
     }
 
     /***
@@ -163,6 +165,7 @@ private:
     std::vector<BookManifest> manifests;
     std::vector<BookSpine> spines;
     MetaInfo meta_info;
+    std::vector<std::string> zipEntities;
 
     std::string opf_path;
     std::string ncx_path;
@@ -202,6 +205,8 @@ private:
                               int *height);
 
     int parse_css_list();
+
+    std::string cover_to_zip_entity(const std::string &spine_name);
 protected:
 };
 

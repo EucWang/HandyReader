@@ -17,6 +17,11 @@ extern "C" {
 class zip_ext {
 public:
 
+    /****
+     * 得到全部的zip内文件路径名
+     *
+     */
+    static std::vector<std::string> inner_zip_files(unzFile uf);
 
     static int read_zip_file(unzFile uf, const std::string &filename, std::string &zip_file_data);
 

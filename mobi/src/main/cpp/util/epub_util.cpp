@@ -7,6 +7,26 @@
 const std::string epub_zfile_container = "META-INF/container.xml";
 const std::string epub_zfile_mimetype = "mimetype";
 const std::string epub_zfile_toc_ncx = "toc.ncx";
+const std::string epub_zfile_nav_xhtml = "nav.xhtml";   //epub3 中 可能会用这个文件代替toc.ncx
+
+
+std::string epub_util::cover_to_zip_entity(const std::string &spine_name) {
+    std::string ret = spine_name;
+    if (spine_name.empty()) {
+        return ret;
+    }
+    if (this->zipEntities.empty()) {
+        return ret;
+    }
+
+    auto it = std::find_if(zipEntities.begin(), zipEntities.end(), [=](std::string &item){
+        return item.find(spine_name) != std::string::npos;
+    });
+    if (it != zipEntities.end()) {
+        ret = (*it);
+    }
+    return ret;
+}
 
 int epub_util::epub_init() {
     if (book_id == 0L || book_path.empty()) {
@@ -21,10 +41,16 @@ int epub_util::epub_init() {
 
     unz_global_info gi; //获取zip文件中的条目数
     int err = unzGetGlobalInfo(bookzip, &gi);
-    if (err != UNZ_OK) {
+    if (err != UNZ_OK || gi.number_entry <= 0) {
         LOGE("%s cannot get zip file info", __func__);
         unzClose(bookzip);
         return 0;
+    }
+
+    std::vector<std::string> zipfilenames = zip_ext::inner_zip_files(bookzip);
+    if (!zipfilenames.empty()) {
+        zipEntities.clear();
+        zipEntities.insert(zipEntities.end(), zipfilenames.begin(), zipfilenames.end());
     }
 
     //解析"META-INF/container.xml" ，获得opf路径
@@ -64,13 +90,6 @@ int epub_util::epub_init() {
         return 0;
     }
 
-    if (opf_path.find("/") != std::string::npos) {
-        std::vector<std::string> paths = split(opf_path, '/');
-        ncx_path = paths[0] + "/" + epub_zfile_toc_ncx;
-    } else {
-        ncx_path = epub_zfile_toc_ncx;
-    }
-
     LOGD("%s:content.opf path is [%s]", __func__, opf_path.c_str());
     std::string opf_content_data;
     if (1 != zip_ext::read_zip_file(bookzip, opf_path, opf_content_data)) {
@@ -107,6 +126,24 @@ int epub_util::epub_init() {
     meta_info.date = xml_ext::getText(opfMetadataEle->FirstChildElement("dc:date"));
     meta_info.isbn = xml_ext::getText(xml_ext::getChildByNameAndAttr(opfMetadataEle, "dc:identifier", "opf:scheme", "ISBN"));
 
+
+    std::string spine_toc_id = "";
+    auto spineElem = opfRoot->FirstChildElement("spine");
+    if (spineElem != nullptr) {
+        std::string toc_id = xml_ext::getEleAttr(spineElem, "toc");
+        if (!toc_id.empty()) {
+            spine_toc_id = toc_id;
+        }
+
+        auto item = spineElem->FirstChildElement("itemref");
+        while (item != nullptr) {
+            std::string idref = xml_ext::getEleAttr(item, "idref");
+            this->spines.emplace_back(BookSpine{idref});
+
+            item = item->NextSiblingElement("itemref");
+        }
+    }
+
     auto manifestElem = opfRoot->FirstChildElement("manifest");
     if (manifestElem != nullptr) {
         auto item = manifestElem->FirstChildElement("item");
@@ -116,21 +153,18 @@ int epub_util::epub_init() {
             std::string media_type = xml_ext::getEleAttr(item, "media-type");
             this->manifests.emplace_back(BookManifest{href, id, media_type});
 
+            if (!spine_toc_id.empty() && id == spine_toc_id && media_type == xml_ext::MediaTypeNcx) {
+                ncx_path = href;
+            }
+
             item = item->NextSiblingElement("item");
         }
     }
 
-
-    auto spineElem = opfRoot->FirstChildElement("spine");
-    if (spineElem != nullptr) {
-        auto item = spineElem->FirstChildElement("itemref");
-        while (item != nullptr) {
-            std::string idref = xml_ext::getEleAttr(item, "idref");
-            this->spines.emplace_back(BookSpine{idref});
-
-            item = item->NextSiblingElement("itemref");
-        }
+    if (ncx_path.empty()) {
+        ncx_path = epub_zfile_toc_ncx;
     }
+
     return 1;
 }
 
@@ -195,6 +229,8 @@ int epub_util::load_epub(std::string fullpath,  //文件路径
         uf = nullptr;
         return 0;
     }
+
+    std::vector<std::string> zipfiles = zip_ext::inner_zip_files(uf);
 
     std::string container_data;
     if (1 != zip_ext::read_zip_file(uf, epub_zfile_container, container_data)) {
@@ -275,23 +311,35 @@ int epub_util::load_epub(std::string fullpath,  //文件路径
 //    <meta content="cover-image" name="cover"/>
     std::string cover_id = xml_ext::getEleAttr(xml_ext::getChildByNameAndAttr(opfMetadataEle, "meta", "name", "cover"), "content");
     if (!cover_id.empty()) {
+        LOGD("%s: cover_id is %s", __func__, cover_id.c_str());
         auto manifestEle = opfRoot->FirstChildElement("manifest");
         auto coverItemEle = xml_ext::getChildByNameAndAttr(manifestEle, "item", "id", cover_id);
-        std::string cover_href = xml_ext::getEleAttr(coverItemEle, "href");
-        std::string cover_type = xml_ext::getEleAttr(coverItemEle, "media-type");
-        std::string ext = file_ext::get_media_type_ext(cover_type);
+        if (coverItemEle != nullptr) {
+            std::string cover_href = xml_ext::getEleAttr(coverItemEle, "href");
+            std::string cover_type = xml_ext::getEleAttr(coverItemEle, "media-type");
+            std::string ext = file_ext::get_media_type_ext(cover_type);
 
-        if (!cover_href.empty() && !ext.empty()) {
-            std::string output_cover_path = file_ext::get_cover_path(book_title, ext);
-            if (!output_cover_path.empty()) {
-                LOGD("%s: output cover path [%s]", __func__, output_cover_path.c_str());
-                if (1 == zip_ext::write_zip_item_to_file(uf, cover_href, output_cover_path)) {
-                    book_coverPath = output_cover_path;
+            if (!cover_href.empty() && !ext.empty()) {
+                std::string output_cover_path = file_ext::get_cover_path(book_title, ext);
+                if (!output_cover_path.empty()) {
+                    LOGD("%s: output cover path [%s]", __func__, output_cover_path.c_str());
+
+                    auto it = std::find_if(zipfiles.begin(), zipfiles.end(), [=](std::string &item){
+                        return item.find(cover_href) != std::string::npos;
+                    });
+                    if (it != zipfiles.end()) {
+                        cover_href = (*it);
+                    }
+                    LOGD("%s: cover zip href [%s]", __func__, cover_href.c_str());
+
+                    if (1 == zip_ext::write_zip_item_to_file(uf, cover_href, output_cover_path)) {
+                        book_coverPath = output_cover_path;
+                    } else {
+                        LOGE("%s dump cover to local path failed", __func__);
+                    }
                 } else {
-                    LOGE("%s dump cover to local path failed", __func__);
+                    LOGE("%s: get cover path failed", __func__);
                 }
-            } else {
-                LOGE("%s: get cover path failed", __func__);
             }
         }
     }
@@ -303,13 +351,15 @@ int epub_util::load_epub(std::string fullpath,  //文件路径
 
 int epub_util::parseOpfData(std::vector<NavPoint> &points) {
     std::vector<std::string> orderedItemSrc;
-    int index = 0;
-    for (auto &manifest: manifests) {
-        if (spines[index].idref == manifest.id && !manifest.href.empty()) {
-            orderedItemSrc.push_back(manifest.href);
-            index++;
+    for(auto spine : spines) {
+        auto it = std::find_if(manifests.begin(), manifests.end(), [=](BookManifest &item){
+            return (spine.idref == item.id && item.media_type == xml_ext::MediaTypeHtml && !item.href.empty());
+        });
+        if (it != manifests.end()) {
+            orderedItemSrc.push_back((*it).href);
         }
     }
+
 
     //指向相同位置的章节合并
     std::vector<NavPoint> tmp;
@@ -337,7 +387,7 @@ int epub_util::parseOpfData(std::vector<NavPoint> &points) {
     }
 
     //防止前面有遗漏章节
-    index = 0;
+    int index = 0;
     int startOpfIndex = 0;
     std::vector<NavPoint> newPoints;
     while (index < points.size() && startOpfIndex < orderedItemSrc.size()) {
@@ -469,15 +519,21 @@ int epub_util::getChapters(/*out*/std::vector<NavPoint> &points) {
         return 1;
     }
 
+    //toc.ncx 文件不是必须的。根据 EPUB 3 的规范，toc.ncx 文件已被 nav.xhtml 所取代，因此它不再是 EPUB 的强制要求。
+    // 然而，许多出版商为了向前兼容 EPUB 2 的阅读器，仍然会保留 toc.ncx 文件
     std::string ncx_data;
+    ncx_path = cover_to_zip_entity(ncx_path);
     if (1 != zip_ext::read_zip_file(bookzip, ncx_path, ncx_data)) {
-        LOGE("%s get [%s] data failed", __func__, ncx_path.c_str());
+        LOGE("%s get0 [%s] ncx data failed", __func__, ncx_path.c_str());
         return 0;
     }
+    LOGD("%s ncx_path[%s]", __func__, ncx_path.c_str());
 
-    if (1 != xml_ext::parseNcxData(ncx_data, points)) {
-        LOGE("%s failed, cannot pass ncx", __func__);
-        return 0;
+    if (!ncx_data.empty()) {
+        if (1 != xml_ext::parseNcxData(ncx_data, points)) {
+            LOGE("%s failed, cannot pass ncx", __func__);
+            return 0;
+        }
     }
     if (1 != parseOpfData(points)) {
         LOGE("%s failed, cannot pass opf", __func__);
@@ -533,6 +589,8 @@ int epub_util::getChapter(JNIEnv *env, long book_id, const char *path, NavPoint 
 
     if (spineSrc != currentSrc) {
         std::string chapter_data;
+        spineSrc = cover_to_zip_entity(spineSrc);
+
         if (1 != zip_ext::read_zip_file(bookzip, spineSrc, chapter_data)) {
             LOGE("%s read [%s] failed", __func__, spineSrc.c_str());
             return 0;
@@ -595,7 +653,6 @@ int epub_util::getChapter(JNIEnv *env, long book_id, const char *path, NavPoint 
 
     if (childEle != nullptr) {
         std::vector<TagInfo> tags;
-//        parseHtmlDoc(env, book_id, childEle, docTexts, anchorId, endAnchorId, &flagAdd, spineSrc, tags);
         xml_ext::parse(book_id, childEle, docTexts, anchorId, endAnchorId, &flagAdd, spineSrc);
         mockFirstPage(chapter, docTexts);
         handle_image(env, docTexts);
@@ -685,8 +742,10 @@ int epub_util::getCss(std::vector<std::string> &cssClasses, std::vector<CssInfo>
 
     for (auto &csszip: cssSrc) {
         std::string cssData;
-        if (1 != zip_ext::read_zip_file(bookzip, csszip, cssData)) {
-            LOGE("%s read css[%s] failed", __func__, csszip.c_str());
+        std::string zipfile = cover_to_zip_entity(csszip);
+
+        if (1 != zip_ext::read_zip_file(bookzip, zipfile, cssData)) {
+            LOGE("%s read css[%s] failed", __func__, zipfile.c_str());
             return 0;
         }
         css_ext::query_css(cssData, cssClasses, cssInfos);
@@ -695,7 +754,6 @@ int epub_util::getCss(std::vector<std::string> &cssClasses, std::vector<CssInfo>
 }
 
 int32_t epub_util::getWordCount(std::vector<std::pair<int32_t, int32_t>> &wordCounts) {
-
     return 1;
 }
 
@@ -773,7 +831,7 @@ int epub_util::cache_image(JNIEnv *env,
     }
 
     if (ret == 0) {//缓存文件不存在，缓存路径存在或者创建缓存路径成功
-        std::string imgzip;
+        std::string imgzip = imgSrc;
         for (auto &manifest: manifests) {
             if ((manifest.media_type == xml_ext::MediaTypeBmp ||
                  manifest.media_type == xml_ext::MediaTypePng ||
@@ -784,6 +842,8 @@ int epub_util::cache_image(JNIEnv *env,
                 break;
             }
         }
+        imgzip = cover_to_zip_entity(imgzip);
+
         if (imgzip.empty()) {
             LOGE("%s cannot find [%s] in manifest", __func__, imgSrc.c_str());
             return 0;

@@ -548,7 +548,9 @@ object ChapterProvider {
             originHeight = bmpOriginHeight
         }
 
-        if (durY > visibleHeight || durY + originHeight + 2 * imgVerticalMargin > visibleHeight) { // //当前可显示便宜位置超过了可视高度
+        if ((durY > visibleHeight || durY + originHeight + 2 * imgVerticalMargin > visibleHeight) &&
+            textPages.lastOrNull()?.textLines?.isNullOrEmpty() != true
+            ) { // //当前可显示便宜位置超过了可视高度
             textPages.last().height = durY    //修改上一页的高度
             textPages.add(TextPage())                   //增加新一页
             durY = 0f                                  //修改当前页的距离顶部的偏移量
