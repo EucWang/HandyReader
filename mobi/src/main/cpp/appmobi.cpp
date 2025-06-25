@@ -102,6 +102,19 @@ void create_epub_util(long book_id, const char *path) {
     }
 }
 
+
+int create_util(long book_id, const char* path, int type) {
+    if (type == 1) {
+        create_mobi_util(book_id, path);
+    } else if (type == 2) {
+        create_epub_util(book_id, path);
+    } else {
+        LOGE("%s unknown type[%d]", __func__, type);
+        return 0;
+    }
+    return 1;
+}
+
 extern "C" JNIEXPORT jobject JNICALL
 Java_com_wxn_mobi_inative_NativeLib_loadMobi(
         JNIEnv *env,
@@ -383,12 +396,7 @@ JNIEXPORT jobjectArray JNICALL
 Java_com_wxn_mobi_inative_NativeLib_getChapters(JNIEnv *env, jobject thiz, jobject context, jlong book_id, jstring path, jint type) {
     const char *nativeStr = env->GetStringUTFChars(path, NULL);
 
-    if (type == 1) {
-        create_mobi_util(book_id, nativeStr);
-    } else if (type == 2) {
-        create_epub_util(book_id, nativeStr);
-    } else {
-        LOGE("%s unknown type[%d]", __func__, type);
+    if (create_util(book_id, nativeStr, type) != 1) {
         return nullptr;
     }
 
@@ -531,10 +539,8 @@ Java_com_wxn_mobi_inative_NativeLib_getChapter(JNIEnv *env, jobject thiz, jobjec
     LOGD("%s:chapterId=%s,text=%s,playOrder=%d,src=%s,book_id=%ld,chapter_size=%d", __func__, chapterIdStr, chapterNameStr, point.playOrder, srcStr, bookId,
          chapter_size);
 
-    if (type == 1) {
-        create_mobi_util(book_id, nativeStr);
-    } else if (type == 2) {
-        create_epub_util(book_id, nativeStr);
+    if (create_util(book_id, nativeStr, type) != 1) {
+        return nullptr;
     }
 
     std::vector<DocText> docTexts;
@@ -850,4 +856,21 @@ Java_com_wxn_mobi_inative_NativeLib_getWordCount(JNIEnv *env, jobject thiz, jlon
     env->ReleaseStringUTFChars(path, nativeStr);
 
     return jlist;
+}
+extern "C"
+JNIEXPORT void JNICALL
+Java_com_wxn_mobi_inative_NativeLib_closeBook(JNIEnv *env, jobject thiz, jlong book_id, jstring path, jint type) {
+    if (type == 1) {
+        if (mobiutil != nullptr && mobiutil.use_count() > 0) {
+            if (book_id == mobiutil->bookid()) {
+                mobiutil = nullptr;
+            }
+        }
+    } else if (type == 2) {
+        if (epubutil != nullptr || epubutil.use_count() > 0) {
+            if (book_id == epubutil->bookid()) {
+                epubutil = nullptr;
+            }
+        }
+    }
 }

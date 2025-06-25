@@ -181,7 +181,8 @@ public:
             const std::string &endAnchorId/*in*/,
             int *flagAdd/*in*/,
             size_t *wordcount/*out*/,
-            size_t *piccount/*out*/);
+            size_t *piccount/*out*/,
+            volatile bool *run_flag);
 
     /****
      * 在一个资源文件汇总， 根据 anchors 来确定开始位置和结束位置，统计多个章节的字数
@@ -193,7 +194,8 @@ public:
     static size_t count_words(
             tinyxml2::XMLElement *element,
             const std::vector<std::string> &anchors,
-            std::vector<std::pair<size_t, size_t>> &wordCounts);
+            std::vector<std::pair<size_t, size_t>> &wordCounts,
+            volatile bool *run_flag);
 
     static std::vector<std::pair<std::string, std::string>> parse_str_params(std::string &params);
 

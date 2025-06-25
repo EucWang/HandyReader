@@ -64,6 +64,7 @@ class epub_util {
 
 public:
     explicit epub_util(long bookid, std::string bookpath) {
+        run_flag = true;
         zipEntities.clear();
         book_id = bookid;
         book_path = bookpath;
@@ -79,6 +80,7 @@ public:
     }
 
     virtual ~epub_util() {
+        run_flag = false;
         book_id = 0;
         allChapters.clear();
         doc.ClearError();
@@ -154,6 +156,7 @@ private:
     long book_id;
     std::string book_path;
     bool initStatus = false;
+    volatile bool run_flag = false;
     unzFile bookzip;
     mutable std::mutex m_Mutex;
     mutable std::mutex m_Mutex2;

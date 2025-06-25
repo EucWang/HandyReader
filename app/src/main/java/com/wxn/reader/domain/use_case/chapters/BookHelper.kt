@@ -35,6 +35,13 @@ object BookHelper {
         return emptyList()
     }
 
+    suspend fun closeBook(context: Context, book: Book,  textparser: TextParser) {
+        val encodedUri = book.filePath.toUri()
+        val cachedFile = CachedFileCompat.fromUri(context, encodedUri)
+        val bookId = book.id
+        textparser.close(bookId, cachedFile)
+    }
+
     suspend fun loadChapterContent(context: Context, book: Book, chapter: BookChapter, textparser: TextParser): List<ReaderText> {
         val encodedUri = book.filePath.toUri()
         val cachedFile = CachedFileCompat.fromUri(context, encodedUri)

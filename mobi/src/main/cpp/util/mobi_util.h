@@ -56,6 +56,7 @@ public:
      * @param bookpath
      */
     mobi_util(long bookid, std::string bookpath) {
+        run_flag = true;
         book_id = bookid;
         book_path = bookpath;
         mobi_rawml = nullptr;
@@ -75,6 +76,7 @@ public:
      * 析构函数
      */
     virtual ~mobi_util() {
+        run_flag = false;
         book_id = 0;
         mobi_data_free();
         allChapters.clear();
@@ -136,6 +138,7 @@ private:
     std::vector<NavPoint> allChapters;
     std::vector<std::string> cssSrc;
     bool isSingleSrc;
+    volatile bool run_flag;
 
     tinyxml2::XMLDocument doc;
     std::string currentSrc;

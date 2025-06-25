@@ -10,6 +10,7 @@ import com.wxn.mobi.data.model.MetaInfo
 import com.wxn.mobi.data.model.ParagraphData
 import com.wxn.mobi.inative.NativeLib
 import com.wxn.mobi.inative.NativeLib.getWordCount
+import java.lang.annotation.Native
 
 object EpubParser {
 
@@ -56,5 +57,9 @@ object EpubParser {
         return retVal.map {
             it.toTriple()
         }
+    }
+
+    fun closeBook(bookId: Long, path: String) {
+        NativeLib.closeBook(bookId, path, 2)
     }
 }

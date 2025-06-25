@@ -68,6 +68,10 @@ object MobiParser {
         }
     }
 
+    fun closeBook(bookId: Long, path: String) {
+        NativeLib.closeBook(bookId, path, 1)
+    }
+
 //    fun toEpub(context: Context, path: String): String? {
 //        Log.d("MobiParser", "toEpub:path=$path")
 //        val epubPath: String? = NativeLib.convertToEpub(context, path)

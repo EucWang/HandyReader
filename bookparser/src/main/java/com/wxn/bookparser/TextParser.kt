@@ -30,4 +30,6 @@ interface TextParser {
     suspend fun parseCss(bookId: Long, cachedFile: CachedFile, cssNames: List<String>, tagNames: List<String>, ids: List<String>): List<CssInfo>
 
     suspend fun getWordCount(bookId:Long, cachedFile: CachedFile): List<Triple<Int, Int, Int>>
+
+    suspend fun close(bookId:Long, cachedFile: CachedFile)
 }

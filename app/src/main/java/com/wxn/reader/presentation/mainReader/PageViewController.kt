@@ -552,7 +552,12 @@ open class PageViewController @Inject constructor(
     }
 
     fun clear() {
-        book = null
+        scope?.launchIO {
+            book?.let {
+                BookHelper.closeBook(context, it, textParser)
+            }
+            book = null
+        }
         callBack = null
         prevTextChapter = null
         curTextChapter = null

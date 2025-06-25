@@ -79,4 +79,13 @@ class MobiTextParser @Inject constructor(
         }
         return MobiParser.getMobiWordCount(context, bookId, path)
     }
+
+    override suspend fun close(bookId:Long, cachedFile: CachedFile) {
+        val path  = cachedFile.rawFile?.absolutePath
+        if (path.isNullOrEmpty()) {
+            Log.e("MobiTextParser", ":parseChapterInfo failed, path is empty")
+            return
+        }
+        MobiParser.closeBook(bookId, path)
+    }
 }

@@ -367,4 +367,13 @@ class EpubTextParser @Inject constructor(
         }
         return EpubParser.getEpubWordCount(context, bookId, path)
     }
+
+    override suspend fun close(bookId:Long, cachedFile: CachedFile) {
+        val path = cachedFile.rawFile?.absolutePath
+        if (path.isNullOrEmpty()) {
+            Log.e("MobiTextparser", "parsedChapterData failed, path is empty")
+            return
+        }
+        EpubParser.closeBook(bookId, path)
+    }
 }

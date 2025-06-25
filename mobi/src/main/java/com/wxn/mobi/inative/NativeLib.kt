@@ -45,6 +45,6 @@ object NativeLib {
 
     external fun getWordCount(bookId: Long, path: String, type: Int): List<CountPair>
 
-
+    external fun closeBook(bookId: Long, path: String, type: Int)
 
 }

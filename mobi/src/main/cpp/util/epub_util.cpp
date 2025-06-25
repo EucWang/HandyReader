@@ -529,6 +529,7 @@ int epub_util::getChapters(/*out*/std::vector<NavPoint> &points) {
 
     if (!allChapters.empty()) {
         points.insert(points.end(), allChapters.begin(), allChapters.end());
+        LOGI("%s:invoke done", __func__);
         return 1;
     }
 
@@ -537,7 +538,7 @@ int epub_util::getChapters(/*out*/std::vector<NavPoint> &points) {
     std::string ncx_data;
     ncx_path = cover_to_zip_entity(ncx_path);
     if (1 != zip_ext::read_zip_file(bookzip, ncx_path, ncx_data)) {
-        LOGE("%s get0 [%s] ncx data failed", __func__, ncx_path.c_str());
+        LOGE("%s failed get0 [%s] ncx data failed", __func__, ncx_path.c_str());
         return 0;
     }
     LOGD("%s ncx_path[%s]", __func__, ncx_path.c_str());
@@ -565,6 +566,10 @@ int epub_util::getChapters(/*out*/std::vector<NavPoint> &points) {
 int epub_util::getChapter(JNIEnv *env, long book_id, const char *path, NavPoint &chapter,
                           std::vector<DocText> &docTexts) {
     LOGI("%s:invoke", __func__);
+    if (!run_flag) {
+        LOGI("%s:invoke failed, run_flag false", __func__);
+        return 0;
+    }
 
     auto start_time = std::chrono::high_resolution_clock::now();
     std::lock_guard<std::mutex> lock(m_Mutex2);
@@ -582,6 +587,11 @@ int epub_util::getChapter(JNIEnv *env, long book_id, const char *path, NavPoint 
     std::string anchorId;
     parseSrcName(chapter.src, spineSrc, anchorId);
     LOGD("%s chapter spineSrc[%s] anchorId=[%s]", __func__, spineSrc.c_str(), anchorId.c_str());
+
+    if (!run_flag) {
+        LOGI("%s:invoke failed, run_flag false", __func__);
+        return 0;
+    }
 
     std::string endAnchorId;
     std::vector<NavPoint> points;
@@ -605,9 +615,18 @@ int epub_util::getChapter(JNIEnv *env, long book_id, const char *path, NavPoint 
         }
     }
 
+    if (!run_flag) {
+        LOGI("%s:invoke failed, run_flag false", __func__);
+        return 0;
+    }
+
     if (spineSrc != currentSrc) {
         std::string chapter_data;
         spineSrc = cover_to_zip_entity(spineSrc);
+        if (!run_flag) {
+            LOGI("%s:invoke failed, run_flag false", __func__);
+            return 0;
+        }
 
         if (1 != zip_ext::read_zip_file(bookzip, spineSrc, chapter_data)) {
             LOGE("%s read [%s] failed", __func__, spineSrc.c_str());
@@ -617,6 +636,10 @@ int epub_util::getChapter(JNIEnv *env, long book_id, const char *path, NavPoint 
             LOGE("%s tidy html %s failed", __func__, spineSrc.c_str());
             return 0;
         }
+        if (!run_flag) {
+            LOGI("%s:invoke failed, run_flag false", __func__);
+            return 0;
+        }
 
         doc.ClearError();
         doc.Clear();
@@ -624,16 +647,29 @@ int epub_util::getChapter(JNIEnv *env, long book_id, const char *path, NavPoint 
             LOGE("%s failed to parse %s", __func__, spineSrc.c_str());
             return 0;
         }
-
         currentSrc = spineSrc;
+    }
+    if (!run_flag) {
+        LOGI("%s:invoke failed, run_flag false", __func__);
+        return 0;
     }
 
     int flagAdd = 0;
     tinyxml2::XMLElement *childEle = xml_ext::getStartElement(doc.RootElement(), &flagAdd, anchorId);
 
+    if (!run_flag) {
+        LOGI("%s:invoke failed, run_flag false", __func__);
+        return 0;
+    }
+
     if (childEle != nullptr) {
         std::vector<TagInfo> tags;
         xml_ext::parse(childEle, docTexts, anchorId, endAnchorId, &flagAdd, spineSrc);
+
+        if (!run_flag) {
+            LOGI("%s:invoke failed, run_flag false", __func__);
+            return 0;
+        }
         mockFirstPage(chapter, docTexts);
         handle_image(env, docTexts);
     }
@@ -701,7 +737,7 @@ void epub_util::handle_image(JNIEnv *env, std::vector<DocText> &docTexts) {
 }
 
 int epub_util::parse_css_list() {
-    LOGI("%s:invoke", __func__);
+//    LOGI("%s:invoke", __func__);
     if (isEmptyCss) {
         return 0;
     }
@@ -715,12 +751,17 @@ int epub_util::parse_css_list() {
     if (cssSrc.empty()) {
         isEmptyCss = true;
     }
-    LOGI("%s:invoke done", __func__);
+//    LOGI("%s:invoke done", __func__);
     return 1;
 }
 
 int epub_util::getCss(std::vector<std::string> &cssClasses, std::vector<std::string> &cssTags, std::vector<std::string> &cssIds, std::vector<CssInfo> &cssInfos) {
     LOGI("%s:invoke", __func__);
+    if (!run_flag) {
+        LOGI("%s:invoke failed, run_flag false", __func__);
+        return 0;
+    }
+
     auto start_time = std::chrono::high_resolution_clock::now();
     std::lock_guard<std::mutex> lock(m_Mutex2);
     parse_css_list();
@@ -735,6 +776,10 @@ int epub_util::getCss(std::vector<std::string> &cssClasses, std::vector<std::str
         std::string cssData;
         std::string zipfile = cover_to_zip_entity(csszip);
 
+        if (!run_flag) {
+            LOGI("%s:invoke failed, run_flag false", __func__);
+            return 0;
+        }
         if (1 != zip_ext::read_zip_file(bookzip, zipfile, cssData)) {
             LOGE("%s read css[%s] failed", __func__, zipfile.c_str());
             return 0;
@@ -751,6 +796,10 @@ int epub_util::getCss(std::vector<std::string> &cssClasses, std::vector<std::str
 
 int32_t epub_util::getWordCount(std::vector<ChapterCount> &wordCounts) {
     LOGI("%s:invoke", __func__);
+    if (!run_flag) {
+        LOGI("%s:invoke failed, run_flag false", __func__);
+        return 0;
+    }
     std::lock_guard<std::mutex> lock(m_Mutex3);
     auto start_time = std::chrono::high_resolution_clock::now();
     if (!initStatus) {
@@ -766,6 +815,10 @@ int32_t epub_util::getWordCount(std::vector<ChapterCount> &wordCounts) {
     if (!isSingleSrc) {
         std::string lastSpineSrc;
         for (auto item = chapters.begin(); item != chapters.end(); item++) {
+            if (!run_flag) {
+                LOGI("%s:invoke failed, run_flag false", __func__);
+                return 0;
+            }
             auto &chapter = (*item);
 
             std::string spineSrc;
@@ -791,6 +844,10 @@ int32_t epub_util::getWordCount(std::vector<ChapterCount> &wordCounts) {
                 std::string chapter_data;
                 spineSrc = cover_to_zip_entity(spineSrc);
 
+                if (!run_flag) {
+                    LOGI("%s:invoke failed, run_flag false", __func__);
+                    return 0;
+                }
                 if (1 != zip_ext::read_zip_file(bookzip, spineSrc, chapter_data)) {
                     LOGE("%s read [%s] failed", __func__, spineSrc.c_str());
                     return 0;
@@ -802,6 +859,10 @@ int32_t epub_util::getWordCount(std::vector<ChapterCount> &wordCounts) {
 
                 doc.ClearError();
                 doc.Clear();
+                if (!run_flag) {
+                    LOGI("%s:invoke failed, run_flag false", __func__);
+                    return 0;
+                }
                 if (doc.Parse(chapter_data.c_str(), chapter_data.size()) != tinyxml2::XML_SUCCESS) {
                     LOGE("%s failed to parse %s", __func__, spineSrc.c_str());
                     return 0;
@@ -816,7 +877,11 @@ int32_t epub_util::getWordCount(std::vector<ChapterCount> &wordCounts) {
             size_t wordCount = 0;
             size_t picCount = 0;
             if (childEle != nullptr) {
-                int ret = xml_ext::count_words(childEle, anchorId, endAnchorId, &flagAdd, &wordCount, &picCount);
+                if (!run_flag) {
+                    LOGI("%s:invoke failed, run_flag false", __func__);
+                    return 0;
+                }
+                xml_ext::count_words(childEle, anchorId, endAnchorId, &flagAdd, &wordCount, &picCount, &run_flag);
             }
             wordCounts.emplace_back(ChapterCount{chapter.playOrder, wordCount, picCount});
             total += wordCount;
@@ -838,7 +903,10 @@ int32_t epub_util::getWordCount(std::vector<ChapterCount> &wordCounts) {
         if (spineSrc != currentSrc) {
             std::string chapter_data;
             spineSrc = cover_to_zip_entity(spineSrc);
-
+            if (!run_flag) {
+                LOGI("%s:invoke failed, run_flag false", __func__);
+                return 0;
+            }
             if (1 != zip_ext::read_zip_file(bookzip, spineSrc, chapter_data)) {
                 LOGE("%s read [%s] failed", __func__, spineSrc.c_str());
                 return 0;
@@ -850,6 +918,10 @@ int32_t epub_util::getWordCount(std::vector<ChapterCount> &wordCounts) {
 
             doc.ClearError();
             doc.Clear();
+            if (!run_flag) {
+                LOGI("%s:invoke failed, run_flag false", __func__);
+                return 0;
+            }
             if (doc.Parse(chapter_data.c_str(), chapter_data.size()) != tinyxml2::XML_SUCCESS) {
                 LOGE("%s failed to parse %s", __func__, spineSrc.c_str());
                 return 0;
@@ -870,7 +942,11 @@ int32_t epub_util::getWordCount(std::vector<ChapterCount> &wordCounts) {
         auto firstElem = body->FirstChildElement();
 
         std::vector<std::pair<size_t, size_t>> counts;
-        total = xml_ext::count_words(firstElem, anchors, counts);
+        if (!run_flag) {
+            LOGI("%s:invoke failed, run_flag false", __func__);
+            return 0;
+        }
+        total = xml_ext::count_words(firstElem, anchors, counts, &run_flag);
         for (int i = 0; i < anchors.size(); ++i) {
             auto &anchor = anchors[i];
             auto count = counts[i];
@@ -894,8 +970,8 @@ int32_t epub_util::getWordCount(std::vector<ChapterCount> &wordCounts) {
  * @param docTexts
  */
 void epub_util::mockFirstPage(NavPoint &chapter, std::vector<DocText> &docTexts) {
-    LOGI("%s:invoke", __func__);
     if (docTexts.empty() && chapter.playOrder == 1) {
+        LOGI("%s:invoke", __func__);
         std::string &title = meta_info.title;
         std::string &author = meta_info.author;
         std::string &publisher = meta_info.publisher;
@@ -938,8 +1014,8 @@ void epub_util::mockFirstPage(NavPoint &chapter, std::vector<DocText> &docTexts)
             });
             docTexts.emplace_back(DocText{publisher, tagInfos});
         }
+        LOGI("%s:invoke done", __func__);
     }
-    LOGI("%s:invoke done", __func__);
 }
 
 /***
@@ -956,6 +1032,10 @@ int epub_util::cache_image(JNIEnv *env,
                            int *height) {
     //文件路径
     std::string fullpath = file_ext::get_img_path(book_id, imgSrc);
+    if (!run_flag) {
+        LOGI("%s:invoke failed, run_flag false", __func__);
+        return 0;
+    }
     int ret = file_ext::checkAndCreateDir(file_ext::get_img_parent_path(book_id), imgSrc);
     if (ret < 0) {
         LOGE("%s:failed, creat dir err", __func__);
@@ -980,7 +1060,10 @@ int epub_util::cache_image(JNIEnv *env,
             LOGE("%s cannot find [%s] in manifest", __func__, imgSrc.c_str());
             return 0;
         }
-
+        if (!run_flag) {
+            LOGI("%s:invoke failed, run_flag false", __func__);
+            return 0;
+        }
         if (1 != zip_ext::write_zip_item_to_file(bookzip, imgzip, fullpath)) {
             LOGE("%s write image[%s] to path[%s] failed", __func__, imgzip.c_str(), fullpath.c_str());
             return 0;

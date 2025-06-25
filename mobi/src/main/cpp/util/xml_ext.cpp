@@ -677,7 +677,8 @@ size_t xml_ext::count_words(
         const std::string &endAnchorId,
         int *flagAdd,
         size_t *wordcount,
-        size_t *piccount) {
+        size_t *piccount,
+        volatile bool *run_flag) {
     if (element == nullptr) {
         return 0;
     }
@@ -686,6 +687,9 @@ size_t xml_ext::count_words(
     bool flag = true;
 
     while (flag && item != nullptr) {
+        if (!(*run_flag)) {
+            break;
+        }
         std::string itemId = xml_ext::getEleAttr(item, "id");
         if (!endAnchorId.empty() && itemId == endAnchorId) {
             flag = false;
@@ -770,7 +774,8 @@ size_t xml_ext::count_words(
 size_t xml_ext::count_words(
         tinyxml2::XMLElement *element,
         const std::vector<std::string> &anchors,
-        std::vector<std::pair<size_t, size_t>> &wordCounts) {
+        std::vector<std::pair<size_t, size_t>> &wordCounts,
+        volatile bool *run_flag) {
     int total = 0;
     int chapterIndex = 0;
     size_t chapterWordCount = 0;
@@ -784,6 +789,9 @@ size_t xml_ext::count_words(
     bool flag = true;
 
     while (flag && item != nullptr) {
+        if (!(*run_flag)) {
+            break;
+        }
         if (chapterIndex > anchors.size()) {
             break;
         }

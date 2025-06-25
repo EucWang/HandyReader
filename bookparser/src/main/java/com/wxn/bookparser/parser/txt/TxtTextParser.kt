@@ -106,4 +106,8 @@ class TxtTextParser @Inject constructor(
     override suspend fun getWordCount(bookId:Long, cachedFile: CachedFile):  List<Triple<Int, Int, Int>> {
         return emptyList()
     }
+
+    override suspend fun close(bookId:Long, cachedFile: CachedFile) {
+
+    }
 }

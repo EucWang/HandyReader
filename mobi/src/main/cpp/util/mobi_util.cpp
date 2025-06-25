@@ -1401,7 +1401,7 @@ int32_t mobi_util::getWordCount(std::vector<ChapterCount> &wordCounts) {
             size_t picCount = 0;
             if (firstElem != nullptr) {
 //                countHtmlDoc(firstElem, &wordCount, anchorId, endAnchorId, &flagAdd, spineSrc);
-                int ret = xml_ext::count_words(firstElem, anchorId, endAnchorId, &flagAdd, &wordCount, &picCount);
+                int ret = xml_ext::count_words(firstElem, anchorId, endAnchorId, &flagAdd, &wordCount, &picCount, &run_flag);
             }
             wordCounts.emplace_back(ChapterCount{chapter.playOrder, wordCount, picCount});
             total += wordCount;
@@ -1451,7 +1451,7 @@ int32_t mobi_util::getWordCount(std::vector<ChapterCount> &wordCounts) {
         auto firstElem = body->FirstChildElement();
 
         std::vector<std::pair<size_t, size_t>> counts;
-        total = xml_ext::count_words(firstElem, anchors, counts);
+        total = xml_ext::count_words(firstElem, anchors, counts, &run_flag);
 
         for (int i = 0; i < anchors.size(); ++i) {
             auto &anchor = anchors[i];

@@ -287,4 +287,53 @@ class TextParserImpl @Inject constructor(
             }
         }
     }
+
+    override suspend fun close(bookId:Long, cachedFile: CachedFile) {
+        if (!cachedFile.canAccess()) {
+            Log.e(TEXT_PARSER, "File does not exist or no read access is granted.")
+            return
+        }
+
+        val fileFormat = cachedFile.extension
+        Logger.d("TextParserImpl:parse:fileFormat=$fileFormat")
+        return withContext(Dispatchers.IO) {
+            when (fileFormat) {
+                "pdf" -> {
+                    pdfTextParser.close(bookId, cachedFile)
+                }
+
+                "epub" -> {
+                    epubTextParser.close(bookId, cachedFile)
+                }
+
+                in listOf("mobi", "azw3") -> {
+                    mobiTextParser.close(bookId, cachedFile)
+                }
+
+                "txt" -> {
+                    txtTextParser.close(bookId, cachedFile)
+                }
+
+                "fb2" -> {
+                    xmlTextParser.close(bookId, cachedFile)
+                }
+
+                "html" -> {
+                    htmlTextParser.close(bookId, cachedFile)
+                }
+
+                "htm" -> {
+                    htmlTextParser.close(bookId, cachedFile)
+                }
+
+                "md" -> {
+                    htmlTextParser.close(bookId, cachedFile)
+                }
+
+                else -> {
+                    Log.e(TEXT_PARSER, "Wrong file format, could not find supported extension.")
+                }
+            }
+        }
+    }
 }
