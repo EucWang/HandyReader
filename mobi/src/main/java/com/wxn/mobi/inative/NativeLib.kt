@@ -43,7 +43,7 @@ object NativeLib {
 
     external fun getCssInfo(context: Context, book_id: Long, cssNames: Array<String>, type: Int): Array<CssInfo>?
 
-    external fun getWordCount(bookId: Long, path: String): List<CountPair>
+    external fun getWordCount(bookId: Long, path: String, type: Int): List<CountPair>
 
 
 

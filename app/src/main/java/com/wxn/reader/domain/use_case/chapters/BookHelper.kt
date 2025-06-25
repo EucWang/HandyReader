@@ -45,7 +45,7 @@ object BookHelper {
         return textparser.parsedChapterData(bookId, cachedFile, chapter)
     }
 
-    suspend fun loadWordCount(context: Context, book: Book, textparser: TextParser): List<Pair<Int,Int>> {
+    suspend fun loadWordCount(context: Context, book: Book, textparser: TextParser): List<Triple<Int, Int,Int>> {
         val encodedUri = book.filePath.toUri()
         val cachedFile = CachedFileCompat.fromUri(context, encodedUri)
         val bookId = book.id

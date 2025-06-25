@@ -5,9 +5,11 @@ import android.util.Log
 import com.wxn.base.bean.BookChapter
 import com.wxn.base.bean.CssInfo
 import com.wxn.base.bean.ReaderText
+import com.wxn.mobi.data.model.CountPair
 import com.wxn.mobi.data.model.MetaInfo
 import com.wxn.mobi.data.model.ParagraphData
 import com.wxn.mobi.inative.NativeLib
+import com.wxn.mobi.inative.NativeLib.getWordCount
 
 object EpubParser {
 
@@ -43,5 +45,16 @@ object EpubParser {
         val names = cssNames ?: return null
         val retVal = NativeLib.getCssInfo(context, bookId, names.toTypedArray(), 2)
         return retVal?.toList().orEmpty()
+    }
+
+    fun getEpubWordCount(context: Context, bookId: Long, path: String): List<Triple<Int, Int, Int>> {
+        Log.d("MobiParser", "getMobiWordCount:path=$path,bookId=$bookId")
+        val retVal: List<CountPair>? = getWordCount(bookId, path, 2)
+        if (retVal == null || retVal.isEmpty()) {
+            return emptyList()
+        }
+        return retVal.map {
+            it.toTriple()
+        }
     }
 }

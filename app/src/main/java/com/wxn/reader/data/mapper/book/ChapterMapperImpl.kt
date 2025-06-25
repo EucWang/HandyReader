@@ -20,6 +20,7 @@ class ChapterMapperImpl @Inject constructor()  : ChapterMapper{
             chaptersSize = chapter.chaptersSize,
             parentChapterId = chapter.parentChapterId,
             wordCount = chapter.wordCount,
+            picCount = chapter.picCount,
             chapterProgress = chapter.chapterProgress
         )
     }
@@ -40,6 +41,8 @@ class ChapterMapperImpl @Inject constructor()  : ChapterMapper{
             chaptersSize = entity.chaptersSize,
             parentChapterId = entity.parentChapterId,
             wordCount = entity.wordCount,
+            picCount = entity.picCount,
+            count = entity.wordCount + entity.picCount,
             chapterProgress = entity.chapterProgress
         )
     }

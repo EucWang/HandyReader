@@ -238,7 +238,7 @@ class TextParserImpl @Inject constructor(
         }
     }
 
-    override suspend fun getWordCount(bookId:Long, cachedFile: CachedFile): List<Pair<Int, Int>> {
+    override suspend fun getWordCount(bookId:Long, cachedFile: CachedFile): List<Triple<Int, Int, Int>> {
         if (!cachedFile.canAccess()) {
             Log.e(TEXT_PARSER, "File does not exist or no read access is granted.")
             return emptyList()

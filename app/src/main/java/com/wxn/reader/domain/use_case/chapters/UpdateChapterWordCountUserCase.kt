@@ -7,7 +7,7 @@ class UpdateChapterWordCountUserCase @Inject constructor(
     private val repository: ChaptersRepository
 ) {
 
-    operator suspend fun invoke(bookId: Long, chapterIndex: Int, wordCount: Long, progress: Float) {
-        repository.updateChapterWordCount(bookId, chapterIndex, wordCount, progress)
+    operator suspend fun invoke(bookId: Long, chapterIndex: Int, wordCount: Long, picCount: Long, progress: Float) {
+        repository.updateChapterWordCount(bookId, chapterIndex, wordCount, picCount, progress)
     }
 }

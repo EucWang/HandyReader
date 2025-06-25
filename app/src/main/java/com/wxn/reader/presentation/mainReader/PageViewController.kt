@@ -118,7 +118,8 @@ open class PageViewController @Inject constructor(
      */
     private var onInitChapterLoadListener: ((Boolean) -> Unit)? = null
 
-    @Volatile var isCalcChapterWords: Boolean = false
+    @Volatile
+    var isCalcChapterWords: Boolean = false
 
     /****
      * 计算每一章节的字数，已经进度，便于计算用户阅读进度
@@ -126,37 +127,42 @@ open class PageViewController @Inject constructor(
     suspend fun calcChaptersWords(book: Book) {
         isCalcChapterWords = true
         val start = System.currentTimeMillis()
-        val chapterIndexWords : ArrayList<Pair<Int, Int>> = arrayListOf()
-        val wordCountPair = BookHelper.loadWordCount(context, book, textParser)
+        val chapterIndexWords: ArrayList<Triple<Int, Int, Int>> = arrayListOf()
+        val wordCountTriple = BookHelper.loadWordCount(context, book, textParser)
         var totalWordCount = 0
-        val lastOne = wordCountPair.lastOrNull()
+        val lastOne = wordCountTriple.lastOrNull()
         if (lastOne != null && lastOne.first == -1) {
             totalWordCount = lastOne.second
         }
         Logger.d("PageViewController::calcChaptersWords:totalWordCount=$totalWordCount")
-        var wordCount = 0L
+        var progressWordCount = 0L
         if (totalWordCount > 0) {
-            chapterIndexWords.addAll(wordCountPair)
-            chapterIndexWords.removeLastOrNull()
+            chapterIndexWords.addAll(wordCountTriple)
+            chapterIndexWords.removeLastOrNull()    //移除最后一条记录总数的条目
             book.wordCount = totalWordCount.toLong()
             for (item in chapterIndexWords) {
-                val progress = wordCount.toFloat() / totalWordCount
-                val count = item.second
+                val progress = progressWordCount.toFloat() / totalWordCount
+                val wordCount = item.second
+                val picCount = item.third
+                val count = wordCount + picCount
                 val chapterIndex = item.first - 1
-                updateChapterWordCountUserCase.invoke(book.id, chapterIndex, count.toLong(), progress)
-                wordCount += count
+                updateChapterWordCountUserCase.invoke(book.id, chapterIndex, wordCount.toLong(), picCount.toLong(), progress)
+                progressWordCount += count
 
                 //更新当前加载了的章节的信息
                 if (curTextChapter?.position == chapterIndex) {
-                    curTextChapter?.wordCount = count.toLong()
+                    curTextChapter?.wordCount = wordCount.toLong()
+                    curTextChapter?.picCount = picCount.toLong()
                     curTextChapter?.chapterProgress = progress
                     curTextChapter?.totalWordCount = totalWordCount.toLong()
                 } else if (prevTextChapter?.position == chapterIndex) {
-                    prevTextChapter?.wordCount = count.toLong()
+                    prevTextChapter?.wordCount = wordCount.toLong()
+                    prevTextChapter?.picCount = picCount.toLong()
                     prevTextChapter?.chapterProgress = progress
                     prevTextChapter?.totalWordCount = totalWordCount.toLong()
                 } else if (nextTextChapter?.position == chapterIndex) {
-                    nextTextChapter?.wordCount = count.toLong()
+                    nextTextChapter?.wordCount = wordCount.toLong()
+                    nextTextChapter?.picCount = picCount.toLong()
                     nextTextChapter?.chapterProgress = progress
                     nextTextChapter?.totalWordCount = totalWordCount.toLong()
                 }

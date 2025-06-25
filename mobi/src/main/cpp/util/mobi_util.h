@@ -39,7 +39,7 @@ extern "C" {
 #include <list>
 #include <stack>
 
-//#include "../../cssparser/CSSParser/CSSParser.hpp"
+#include "chapter_count.h"
 #include "css_ext.h"
 #include "css_info.h"
 #include "doc_text.h"
@@ -113,7 +113,7 @@ public:
 
     int getCss(std::vector<std::string> &cssClasses, std::vector<CssInfo> &cssInfos);
 
-    int32_t getWordCount(std::vector<std::pair<int32_t, int32_t>> &wordCounts);
+    int32_t getWordCount(std::vector<ChapterCount> &wordCounts);
 
     long bookid() {
         return book_id;

@@ -64,7 +64,11 @@ data class BookChapter(
      */
     var chaptersSize: Int = 0,
 
-    var wordCount: Long = 0,
+    var wordCount: Long = 0, //字数
+
+    var picCount: Long = 0, //图片数
+
+    var count : Long = 0, //字数+ 图片数
 
     var chapterProgress: Float = 0f
 ) {

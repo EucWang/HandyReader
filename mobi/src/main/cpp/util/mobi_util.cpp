@@ -1314,7 +1314,7 @@ void mobi_util::mockFirstPage(NavPoint &chapter, std::vector<DocText> &docTexts)
     }
 }
 
-int32_t mobi_util::getWordCount(std::vector<std::pair<int32_t, int32_t>> &wordCounts) {
+int32_t mobi_util::getWordCount(std::vector<ChapterCount> &wordCounts) {
     std::lock_guard<std::mutex> lock(m_Mutex);
     LOGD("%s invoke", __func__);
     auto start_time = std::chrono::high_resolution_clock::now();
@@ -1397,12 +1397,15 @@ int32_t mobi_util::getWordCount(std::vector<std::pair<int32_t, int32_t>> &wordCo
                 }
             }
 
-            int32_t wordCount = 0;
+            size_t wordCount = 0;
+            size_t picCount = 0;
             if (firstElem != nullptr) {
-                countHtmlDoc(firstElem, &wordCount, anchorId, endAnchorId, &flagAdd, spineSrc);
+//                countHtmlDoc(firstElem, &wordCount, anchorId, endAnchorId, &flagAdd, spineSrc);
+                int ret = xml_ext::count_words(firstElem, anchorId, endAnchorId, &flagAdd, &wordCount, &picCount);
             }
-            wordCounts.emplace_back(chapter.playOrder, wordCount);
+            wordCounts.emplace_back(ChapterCount{chapter.playOrder, wordCount, picCount});
             total += wordCount;
+            total += picCount;
             LOGD("%s: chapter.playOrder[%d], count[%d]", __func__, chapter.playOrder, wordCount);
         }
     } else {
@@ -1447,15 +1450,14 @@ int32_t mobi_util::getWordCount(std::vector<std::pair<int32_t, int32_t>> &wordCo
         }
         auto firstElem = body->FirstChildElement();
 
-        int chapterIndex = 0;           //计算变量，控制指针
-        size_t chapterWordCount = 0;    //计算变量，计算每一章节的字数
-        countHtmlDoc2(firstElem, anchors, wordCount, &chapterIndex, &chapterWordCount, spineSrc);
+        std::vector<std::pair<size_t, size_t>> counts;
+        total = xml_ext::count_words(firstElem, anchors, counts);
+
         for (int i = 0; i < anchors.size(); ++i) {
             auto &anchor = anchors[i];
-            auto count = wordCount[i];
+            auto count = counts[i];
             int playOrder = chapters[i].playOrder;
-            wordCounts.emplace_back(playOrder, count);
-            total += count;
+            wordCounts.emplace_back(ChapterCount{playOrder, count.first, count.second});
             LOGD("%s:playOrder[%d],anchor=[%s],count=[%ld]", __func__, playOrder, anchor.c_str(), count);
         }
         LOGD("%s:total=%ld", __func__, total);

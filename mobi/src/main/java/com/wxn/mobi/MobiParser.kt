@@ -55,14 +55,14 @@ object MobiParser {
         return retVal?.toList().orEmpty()
     }
 
-    fun getMobiWordCount(context: Context, bookId: Long, path: String): List<Pair<Int, Int>> {
+    fun getMobiWordCount(context: Context, bookId: Long, path: String): List<Triple<Int, Int, Int>> {
         Log.d("MobiParser", "getMobiWordCount:path=$path,bookId=$bookId")
-        val retVal: List<CountPair>? = getWordCount(bookId, path)
+        val retVal: List<CountPair>? = getWordCount(bookId, path, 1)
         if (retVal == null || retVal.isEmpty()) {
             return emptyList()
         }
         return retVal.map {
-            it.toPair()
+            it.toTriple()
         }
     }
 

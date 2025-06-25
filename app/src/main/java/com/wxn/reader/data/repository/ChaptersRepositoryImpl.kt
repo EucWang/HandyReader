@@ -20,8 +20,8 @@ class ChaptersRepositoryImpl @Inject constructor(
             }
         }
 
-    override suspend fun updateChapterWordCount(bookId:Long, chapterIndex: Int, wordCount: Long, chapterProgress: Float) {
-        chapterDao.setChapterWordCount(bookId, chapterIndex, wordCount, chapterProgress)
+    override suspend fun updateChapterWordCount(bookId: Long, chapterIndex: Int, wordCount: Long, picCount: Long, chapterProgress: Float) {
+        chapterDao.setChapterWordCount(bookId, chapterIndex, wordCount, picCount, chapterProgress)
     }
 
     override fun getChapter(bookId: Long, chapterIndex: Int): Flow<BookChapter> =
@@ -37,7 +37,7 @@ class ChaptersRepositoryImpl @Inject constructor(
         }
     }
 
-    override fun getChapterCount(bookId:Long): Flow<Int> {
+    override fun getChapterCount(bookId: Long): Flow<Int> {
         return chapterDao.getChapterCount(bookId)
     }
 }

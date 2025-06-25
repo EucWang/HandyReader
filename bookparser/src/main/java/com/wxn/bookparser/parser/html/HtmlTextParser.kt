@@ -71,7 +71,7 @@ class HtmlTextParser @Inject constructor(
         return emptyList()
     }
 
-    override suspend fun getWordCount(bookId:Long, cachedFile: CachedFile): List<Pair<Int, Int>> {
+    override suspend fun getWordCount(bookId:Long, cachedFile: CachedFile):  List<Triple<Int, Int, Int>> {
         return emptyList()
     }
 }

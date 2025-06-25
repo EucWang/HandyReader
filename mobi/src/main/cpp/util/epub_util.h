@@ -31,6 +31,7 @@ extern "C" {
 #include <stdexcept>
 #include <mutex>
 
+#include "chapter_count.h"
 #include "zip_ext.h"
 #include "xml_ext.h"
 #include "utf8.h"
@@ -139,7 +140,7 @@ public:
 
     int getCss(std::vector<std::string> &cssClasses, std::vector<CssInfo> &cssInfos);
 
-    int32_t getWordCount(std::vector<std::pair<int32_t, int32_t>> &wordCounts);
+    int32_t getWordCount(std::vector<ChapterCount> &wordCounts);
 
     long bookid() {
         return book_id;
@@ -156,6 +157,7 @@ private:
     unzFile bookzip;
     mutable std::mutex m_Mutex;
     mutable std::mutex m_Mutex2;
+    mutable std::mutex m_Mutex3;
     std::vector<NavPoint> allChapters;
     std::vector<std::string> cssSrc;
     tinyxml2::XMLDocument doc;
@@ -207,6 +209,8 @@ private:
     int parse_css_list();
 
     std::string cover_to_zip_entity(const std::string &spine_name);
+
+    tinyxml2::XMLElement* getStartElement(int *flagAdd, const std::string &anchorId);
 protected:
 };
 

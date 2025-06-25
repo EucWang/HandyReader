@@ -419,7 +419,7 @@ Java_com_wxn_mobi_inative_NativeLib_getChapters(JNIEnv *env, jobject thiz, jobje
     }
 
     jmethodID constructor = env->GetMethodID(objClass, "<init>",
-                                             "(JLjava/lang/String;Ljava/lang/String;JILjava/lang/String;JLjava/lang/String;JLjava/lang/String;Ljava/lang/String;IJF)V");
+                                             "(JLjava/lang/String;Ljava/lang/String;JILjava/lang/String;JLjava/lang/String;JLjava/lang/String;Ljava/lang/String;IJJJF)V");
     if (constructor == nullptr) {
         LOGE("%s failed, BookChapter's constructor is null", __func__);
         return nullptr;
@@ -448,6 +448,8 @@ Java_com_wxn_mobi_inative_NativeLib_getChapters(JNIEnv *env, jobject thiz, jobje
                                       env->NewStringUTF(""),
                                       env->NewStringUTF(src.c_str()),
                                       length,
+                                      0L,
+                                      0L,
                                       0L,
                                       0.0f
         );
@@ -767,12 +769,23 @@ Java_com_wxn_mobi_inative_NativeLib_getCssInfo(JNIEnv *env, jobject thiz, jobjec
 }
 extern "C"
 JNIEXPORT jobject JNICALL
-Java_com_wxn_mobi_inative_NativeLib_getWordCount(JNIEnv *env, jobject thiz, jlong bookId, jstring path) {
+Java_com_wxn_mobi_inative_NativeLib_getWordCount(JNIEnv *env, jobject thiz, jlong bookId, jstring path, jint type) {
     const char *nativeStr = env->GetStringUTFChars(path, NULL);
-    create_mobi_util(bookId, nativeStr);
 
-    std::vector<std::pair<int32_t, int32_t>> wordCount;
-    int32_t total = mobiutil->getWordCount(wordCount);
+    if (type == 1) {
+        create_mobi_util(bookId, nativeStr);
+    } else if (type == 2) {
+        create_epub_util(bookId, nativeStr);
+    }
+
+    int32_t total = 0;
+
+    std::vector<ChapterCount> wordCount;
+    if (type == 1) {
+        total = mobiutil->getWordCount(wordCount);
+    } else if (type== 2) {
+        total = epubutil->getWordCount(wordCount);
+    }
 
     jclass listClass = env->FindClass("java/util/ArrayList");
     if (listClass == nullptr || env->ExceptionCheck()) {
@@ -790,14 +803,14 @@ Java_com_wxn_mobi_inative_NativeLib_getWordCount(JNIEnv *env, jobject thiz, jlon
     if (pairClass == nullptr || env->ExceptionCheck()) {
         return nullptr;
     }
-    jmethodID pairConstructor = env->GetMethodID(pairClass, "<init>", "(II)V");
+    jmethodID pairConstructor = env->GetMethodID(pairClass, "<init>", "(III)V");
 
     jobject jlist = env->NewObject(listClass, listConstructor);
     for (auto &count: wordCount) {
-        jobject item = env->NewObject(pairClass, pairConstructor, count.first, count.second);
+        jobject item = env->NewObject(pairClass, pairConstructor, count.chapterOrder, count.words, count.pics);
         env->CallBooleanMethod(jlist, listAdd, item);
     }
-    jobject total_item = env->NewObject(pairClass, pairConstructor, -1, total);
+    jobject total_item = env->NewObject(pairClass, pairConstructor, -1, total, 0);
     env->CallBooleanMethod(jlist, listAdd, total_item);
 
     env->ReleaseStringUTFChars(path, nativeStr);

@@ -24,6 +24,7 @@ data class BookChapterEntity(
     val parentChapterId: String = "",
 
     val wordCount: Long = 0,
+    val picCount: Long = 0,
     val chapterProgress: Float = 0f
 ) {
 }

@@ -671,8 +671,205 @@ std::vector<TagInfo> non_father_tags(const std::string parent_uuid, const std::v
     return ret_tags;
 }
 
+size_t xml_ext::count_words(
+        tinyxml2::XMLElement *element,
+        const std::string &startAnchorId,
+        const std::string &endAnchorId,
+        int *flagAdd,
+        size_t *wordcount,
+        size_t *piccount) {
+    if (element == nullptr) {
+        return 0;
+    }
+    tinyxml2::XMLNode *item = element;
+    std::list<tinyxml2::XMLNode*> stack;
+    bool flag = true;
+
+    while (flag && item != nullptr) {
+        std::string itemId = xml_ext::getEleAttr(item, "id");
+        if (!endAnchorId.empty() && itemId == endAnchorId) {
+            flag = false;
+            *flagAdd = 2;
+            break;
+        } else if (!startAnchorId.empty() && itemId == startAnchorId) {
+            *flagAdd = 1;
+        }
+
+        tinyxml2::XMLElement *domElem = item->ToElement();
+        if (*flagAdd == 1) {
+            auto domText = item->ToText();
+            if (domText != nullptr) {  //是文本节点, 文本节点的标签都在stack中
+                const char *text = domText->Value();
+                if (text != nullptr && strlen(text) > 0) {
+                    std::string str(text);
+                    str = cleanStr(str);
+                    *wordcount += utf8Count(str);
+                }
+            } else if (domElem != nullptr) {
+                std::string name = xml_ext::ele_name(domElem);
+                if (name == "img" || name == "image"){  //一个图片占100个
+                    *piccount += 1;
+                }
+            }
+        }
+
+        //优先遍历子节点
+        auto child = item->FirstChild();
+        if (child != nullptr && domElem != nullptr) { //当前节点是Element，并且孩子节点不为空，则深入下一层
+            stack.push_back(domElem);
+            item = child;
+            continue;
+        }
+
+        //没有子节点，则遍历兄弟节点
+        auto bro = item->NextSibling();
+        if (bro != nullptr) {
+            item = bro;
+            continue;
+        }
+
+        //没有兄弟节点，则这一层已经遍历完，从stack中弹出上一层的没有遍历完的节点，得到该节点的兄弟节点
+        bro = nullptr;
+        while (true) {
+            if (stack.empty()) {
+                flag = false;
+                break;
+            }
+            tinyxml2::XMLNode* lastNode = stack.back();
+            stack.pop_back();
+
+            if (lastNode == nullptr) {
+                flag = false;
+                break;
+            }
+
+            auto node = lastNode;
+
+            bro = lastNode->NextSibling();
+            if (bro != nullptr) {           // 该兄弟节点不为空，继续外层循环， 为空，则继续从栈顶拿结点
+                break;
+            }
+        }
+
+        //遍历上/上上级的兄弟节点
+        if (flag && bro != nullptr) {
+            item = bro;
+        }
+    }
+
+    return 1;
+}
+
+/****
+ * 在一个资源文件汇总， 根据 anchors 来确定开始位置和结束位置，统计多个章节的字数
+ * @param element  DOM开始扫描的节点
+ * @param anchors  每个章节开始的锚点位置， 对应的是元素的id属性
+ * @param wordCounts 每个章节的字数
+ * @return 总字数
+ */
+size_t xml_ext::count_words(
+        tinyxml2::XMLElement *element,
+        const std::vector<std::string> &anchors,
+        std::vector<std::pair<size_t, size_t>> &wordCounts) {
+    int total = 0;
+    int chapterIndex = 0;
+    size_t chapterWordCount = 0;
+    size_t chapterPicCount = 0;
+
+    if (element == nullptr) {
+        return total;
+    }
+    tinyxml2::XMLNode *item = element;
+    std::list<tinyxml2::XMLNode*> stack;
+    bool flag = true;
+
+    while (flag && item != nullptr) {
+        if (chapterIndex > anchors.size()) {
+            break;
+        }
+        std::string itemId = xml_ext::getEleAttr(item, "id");
+        if (chapterIndex < anchors.size() - 1) {
+            if (itemId == anchors[chapterIndex + 1]) { //is next anchor
+                wordCounts.emplace_back(std::pair<size_t, size_t>(chapterWordCount, chapterPicCount));  //save count to vector
+                chapterIndex++;
+                chapterWordCount = 0;
+                chapterPicCount = 0;
+            }
+        }
+
+        auto domText = item->ToText();
+        tinyxml2::XMLElement *domElem = item->ToElement();
+        if (domText != nullptr) {  //是文本节点, 文本节点的标签都在stack中
+            const char *text = domText->Value();
+            if (text != nullptr && strlen(text) > 0) {
+                std::string str(text);
+                str = cleanStr(str);
+                size_t count = utf8Count(str);
+                chapterWordCount += count;
+                total += count;
+            }
+        } else if(domElem != nullptr) {
+            std::string name = ele_name(domElem);
+            if (name == "img" || name == "image") {
+                chapterPicCount += 1;
+                total += chapterPicCount;
+            }
+        }
+
+        //优先遍历子节点
+        auto child = item->FirstChild();
+        if (child != nullptr && domElem != nullptr) { //当前节点是Element，并且孩子节点不为空，则深入下一层
+            stack.push_back(domElem);
+            item = child;
+            continue;
+        }
+
+        //没有子节点，则遍历兄弟节点
+        auto bro = item->NextSibling();
+        if (bro != nullptr) {
+            item = bro;
+            continue;
+        }
+
+        //没有兄弟节点，则这一层已经遍历完，从stack中弹出上一层的没有遍历完的节点，得到该节点的兄弟节点
+        bro = nullptr;
+        while (true) {
+            if (stack.empty()) {
+                flag = false;
+                break;
+            }
+            tinyxml2::XMLNode* lastNode = stack.back();
+            stack.pop_back();
+
+            if (lastNode == nullptr) {
+                flag = false;
+                break;
+            }
+
+            auto node = lastNode;
+
+            bro = lastNode->NextSibling();
+            if (bro != nullptr) {           // 该兄弟节点不为空，继续外层循环， 为空，则继续从栈顶拿结点
+                break;
+            }
+        }
+
+        //遍历上/上上级的兄弟节点
+        if (flag && bro != nullptr) {
+            item = bro;
+        }
+    }
+
+    if (chapterWordCount > 0 && chapterIndex <= anchors.size()) {
+        wordCounts.push_back(std::pair<size_t, size_t>(chapterWordCount, chapterPicCount));
+    }
+    chapterWordCount = 0;
+    chapterPicCount = 0;
+
+    return total;
+}
+
 int xml_ext::parse(
-        long book_id,
         tinyxml2::XMLElement *element,
         std::vector<DocText> &docTexts,
         std::string &startAnchorId,

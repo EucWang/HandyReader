@@ -160,14 +160,40 @@ public:
 
 
     static int parse(
-//        JNIEnv *env,
-            long book_id,
             tinyxml2::XMLElement *element,
             std::vector<DocText> &docTexts,
             std::string &startAnchorId,
             std::string &endAnchorId,
             int *flagAdd,
             std::string &spineSrcName);
+
+    /***
+     * 在一个资源xml文件中， 根据startAnchorId, endAnchorId 来确定开始位置和结束位置，统计一个章节的字数
+     * @param element DOM开始扫描的节点
+     * @param startAnchorId 章节开始的锚点位置， 对应的是元素的id属性
+     * @param endAnchorId 章节结束的锚点位置， 对应的是元素的id属性
+     * @param flagAdd 标记统计状态， 0 未开始统计， 1 统计中， 2 统计结束
+     * @return 一个章节的字数
+     */
+    static size_t count_words(
+            tinyxml2::XMLElement *element/*in*/,
+            const std::string &startAnchorId/*in*/,
+            const std::string &endAnchorId/*in*/,
+            int *flagAdd/*in*/,
+            size_t *wordcount/*out*/,
+            size_t *piccount/*out*/);
+
+    /****
+     * 在一个资源文件汇总， 根据 anchors 来确定开始位置和结束位置，统计多个章节的字数
+     * @param element  DOM开始扫描的节点
+     * @param anchors  每个章节开始的锚点位置， 对应的是元素的id属性, anchors的数量对应的是章节数，最前或者最后的章节的anchor有可能为空
+     * @param wordCounts 每个章节的字数
+     * @return 总字数
+     */
+    static size_t count_words(
+            tinyxml2::XMLElement *element,
+            const std::vector<std::string> &anchors,
+            std::vector<std::pair<size_t, size_t>> &wordCounts);
 
     static std::vector<std::pair<std::string, std::string>> parse_str_params(std::string &params);
 };

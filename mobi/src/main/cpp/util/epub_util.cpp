@@ -545,6 +545,51 @@ int epub_util::getChapters(/*out*/std::vector<NavPoint> &points) {
     return 1;
 }
 
+
+tinyxml2::XMLElement* epub_util::getStartElement(int *flagAdd, const std::string &anchorId) {
+    tinyxml2::XMLElement *root = doc.RootElement();
+    if (!root) {
+        LOGE("%s failed, no root element", __func__);
+        return 0;
+    }
+    auto body = root->FirstChildElement("body");
+    if (!body) {
+        LOGE("%s failed, no body element", __func__);
+        return 0;
+    }
+    std::string bodyId = xml_ext::getEleAttr(body, "id");
+    tinyxml2::XMLElement *childEle = body->FirstChildElement();
+
+    if (anchorId.empty()) {
+        *flagAdd = 1;
+    } else {
+        if (!bodyId.empty() && bodyId == anchorId) {
+            *flagAdd = 1;
+        } else {
+            std::string firstId = xml_ext::getEleAttr(childEle, "id");
+            if (!firstId.empty() && firstId == anchorId) {
+                *flagAdd = 1;
+            }
+        }
+
+        auto ele = xml_ext::findEleById(childEle, anchorId.c_str());
+        if (ele != nullptr) {
+            std::string eleName = xml_ext::ele_name(ele);
+            if (eleName != "body") {
+                childEle = ele;
+                *flagAdd = 1;
+            } else {
+                ele = ele->FirstChildElement();
+                if (ele != nullptr) {
+                    childEle = ele;
+                    *flagAdd = 1;
+                }
+            }
+        }
+    }
+    return childEle;
+}
+
 int epub_util::getChapter(JNIEnv *env, long book_id, const char *path, NavPoint &chapter,
                           std::vector<DocText> &docTexts) {
 
@@ -610,50 +655,12 @@ int epub_util::getChapter(JNIEnv *env, long book_id, const char *path, NavPoint 
         currentSrc = spineSrc;
     }
 
-    tinyxml2::XMLElement *root = doc.RootElement();
-    if (!root) {
-        LOGE("%s failed, no root element", __func__);
-        return 0;
-    }
-    auto body = root->FirstChildElement("body");
-    if (!body) {
-        LOGE("%s failed, no body element", __func__);
-        return 0;
-    }
-    std::string bodyId = xml_ext::getEleAttr(body, "id");
-    auto childEle = body->FirstChildElement();
     int flagAdd = 0;
-    if (anchorId.empty()) {
-        flagAdd = 1;
-    } else {
-        if (!bodyId.empty() && bodyId == anchorId) {
-            flagAdd = 1;
-        } else {
-            std::string firstId = xml_ext::getEleAttr(childEle, "id");
-            if (!firstId.empty() && firstId == anchorId) {
-                flagAdd = 1;
-            }
-        }
-
-        auto ele = xml_ext::findEleById(childEle, anchorId.c_str());
-        if (ele != nullptr) {
-            std::string eleName = xml_ext::ele_name(ele);
-            if (eleName != "body") {
-                childEle = ele;
-                flagAdd = 1;
-            } else {
-                ele = ele->FirstChildElement();
-                if (ele != nullptr) {
-                    childEle = ele;
-                    flagAdd = 1;
-                }
-            }
-        }
-    }
+    tinyxml2::XMLElement *childEle = getStartElement(&flagAdd, anchorId);
 
     if (childEle != nullptr) {
         std::vector<TagInfo> tags;
-        xml_ext::parse(book_id, childEle, docTexts, anchorId, endAnchorId, &flagAdd, spineSrc);
+        xml_ext::parse(childEle, docTexts, anchorId, endAnchorId, &flagAdd, spineSrc);
         mockFirstPage(chapter, docTexts);
         handle_image(env, docTexts);
     }
@@ -753,8 +760,142 @@ int epub_util::getCss(std::vector<std::string> &cssClasses, std::vector<CssInfo>
     return 1;
 }
 
-int32_t epub_util::getWordCount(std::vector<std::pair<int32_t, int32_t>> &wordCounts) {
-    return 1;
+int32_t epub_util::getWordCount(std::vector<ChapterCount> &wordCounts) {
+    std::lock_guard<std::mutex> lock(m_Mutex3);
+    LOGD("%s invoke", __func__);
+    auto start_time = std::chrono::high_resolution_clock::now();
+    if (!initStatus) {
+        LOGE("%s:init status failed, so pass", __func__);
+        return 0;
+    }
+    std::vector<NavPoint> chapters;
+    if (getChapters(chapters) != 1) {
+        return 0;
+    }
+
+    size_t total = 0;
+    if (!isSingleSrc) {
+        std::string lastSpineSrc;
+        for (auto item = chapters.begin(); item != chapters.end(); item++) {
+            auto &chapter = (*item);
+
+            std::string spineSrc;
+            std::string anchorId;
+            parseSrcName(chapter.src, spineSrc, anchorId);
+
+            //下一章节的锚点
+            std::string endAnchorId;
+            auto nextItem = item + 1;
+            if (nextItem != chapters.end()) {
+                auto &nextChapter = *nextItem;
+                std::string nextChapterSpineSrc;
+                std::string nextChapterAnchorId;
+                parseSrcName(nextChapter.src, nextChapterSpineSrc, nextChapterAnchorId);
+
+                if (nextChapterSpineSrc == spineSrc) {
+                    endAnchorId = nextChapterAnchorId;
+                }
+            }
+
+            //解析资源，得到XMLDoc
+            if (spineSrc != lastSpineSrc) {
+                std::string chapter_data;
+                spineSrc = cover_to_zip_entity(spineSrc);
+
+                if (1 != zip_ext::read_zip_file(bookzip, spineSrc, chapter_data)) {
+                    LOGE("%s read [%s] failed", __func__, spineSrc.c_str());
+                    return 0;
+                }
+                if (1 != tidyh5_ext::tidy_html(chapter_data)) {
+                    LOGE("%s tidy html %s failed", __func__, spineSrc.c_str());
+                    return 0;
+                }
+
+                doc.ClearError();
+                doc.Clear();
+                if (doc.Parse(chapter_data.c_str(), chapter_data.size()) != tinyxml2::XML_SUCCESS) {
+                    LOGE("%s failed to parse %s", __func__, spineSrc.c_str());
+                    return 0;
+                }
+
+                lastSpineSrc = spineSrc;
+            }
+
+            int flagAdd = 0;
+            tinyxml2::XMLElement *childEle = getStartElement(&flagAdd, anchorId);
+
+            size_t wordCount = 0;
+            size_t picCount = 0;
+            if (childEle != nullptr) {
+                int ret = xml_ext::count_words(childEle, anchorId, endAnchorId, &flagAdd, &wordCount, &picCount);
+            }
+            wordCounts.emplace_back(ChapterCount{chapter.playOrder, wordCount, picCount});
+            total += wordCount;
+            total += picCount;
+            LOGD("%s: chapter.playOrder[%d], count[%d]", __func__, chapter.playOrder, wordCount);
+        }
+    } else {
+        std::vector<std::string> anchors;
+        std::string spineSrc;   //对应的资源文件名
+
+        for (auto &chapter: chapters) {
+            std::string spineSrc;
+            std::string anchorId;
+            parseSrcName(chapter.src, spineSrc, anchorId);
+
+            anchors.push_back(anchorId);
+        }
+        LOGD("%s:spineSrc=[%s],currentSrc=[%s]", __func__, spineSrc.c_str(), currentSrc.c_str());
+        if (spineSrc != currentSrc) {
+            std::string chapter_data;
+            spineSrc = cover_to_zip_entity(spineSrc);
+
+            if (1 != zip_ext::read_zip_file(bookzip, spineSrc, chapter_data)) {
+                LOGE("%s read [%s] failed", __func__, spineSrc.c_str());
+                return 0;
+            }
+            if (1 != tidyh5_ext::tidy_html(chapter_data)) {
+                LOGE("%s tidy html %s failed", __func__, spineSrc.c_str());
+                return 0;
+            }
+
+            doc.ClearError();
+            doc.Clear();
+            if (doc.Parse(chapter_data.c_str(), chapter_data.size()) != tinyxml2::XML_SUCCESS) {
+                LOGE("%s failed to parse %s", __func__, spineSrc.c_str());
+                return 0;
+            }
+
+            currentSrc = spineSrc;
+        }
+        tinyxml2::XMLElement *root = doc.RootElement();
+        if (!root) {
+            LOGE("%s failed parse ncx, no root element", __func__);
+            return 0;
+        }
+        auto body = root->FirstChildElement("body");
+        if (!body) {
+            LOGE("%s failed parse html, no body element", __func__);
+            return 0;
+        }
+        auto firstElem = body->FirstChildElement();
+
+        std::vector<std::pair<size_t, size_t>> counts;
+        total = xml_ext::count_words(firstElem, anchors, counts);
+        for (int i = 0; i < anchors.size(); ++i) {
+            auto &anchor = anchors[i];
+            auto count = counts[i];
+            int playOrder = chapters[i].playOrder;
+            wordCounts.emplace_back(ChapterCount{playOrder, count.first, count.second});
+            LOGD("%s:playOrder[%d],anchor=[%s],count=[%ld]", __func__, playOrder, anchor.c_str(), count);
+        }
+        LOGD("%s:total=%ld", __func__, total);
+    }
+    auto end_time = std::chrono::high_resolution_clock::now();
+    //    //输出结果统计信息(性能分析)
+    auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(end_time - start_time).count();
+    LOGD("%s: duration = %lld ms", __func__, duration);
+    return total;
 }
 
 

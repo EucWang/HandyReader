@@ -13,5 +13,5 @@ interface ChaptersRepository {
 
     fun getChapterCount(bookId:Long): Flow<Int>
 
-    suspend fun updateChapterWordCount(bookId:Long, chapterIndex: Int, wordCount: Long, chapterProgress: Float)
+    suspend fun updateChapterWordCount(bookId:Long, chapterIndex: Int, wordCount: Long, picCount: Long, chapterProgress: Float)
 }
