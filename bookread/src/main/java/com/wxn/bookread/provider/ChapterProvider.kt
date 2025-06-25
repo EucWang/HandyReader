@@ -199,7 +199,22 @@ object ChapterProvider {
     /****
      * 根据TextTag的name属性，得到对应的TextPaint
      */
-    fun getPaintByTagName(tagName: String?, default: TextPaint? = null): TextPaint {
+    fun getPaintByTagName(tag: TextTag?, default: TextPaint? = null): TextPaint {
+        var tagName = tag?.name.orEmpty()
+        if (tagName == "a") {
+            val pairs = tag?.paramsPairs()
+            var hasParams = false
+            if (!pairs.isNullOrEmpty()) {
+                for(item in pairs) {
+                    if (item.first == "href" || item.first == "id") {
+                        hasParams = true
+                    }
+                }
+            }
+            if (!hasParams) {
+                tagName = ""
+            }
+        }
         return when (tagName) {
             "h1" -> h1Paint
             "h2" -> h2Paint
@@ -669,7 +684,7 @@ object ChapterProvider {
                         item.name == "h3" ||
                         item.name == "a"
             }
-            getPaintByTagName(checkedTag?.name)
+            getPaintByTagName(checkedTag)
         } else if (paragraph is ReaderText.Chapter) {
             titlePaint
         } else {

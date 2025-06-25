@@ -39,6 +39,7 @@ extern "C" {
 #include <list>
 #include <stack>
 
+#include "book_util.h"
 #include "chapter_count.h"
 #include "css_ext.h"
 #include "css_info.h"
@@ -47,7 +48,7 @@ extern "C" {
 #include "tag_info.h"
 #include "xml_ext.h"
 
-class mobi_util {
+class mobi_util : public book_util {
 public:
 
     /***
@@ -55,10 +56,7 @@ public:
      * @param bookid
      * @param bookpath
      */
-    mobi_util(long bookid, std::string bookpath) {
-        run_flag = true;
-        book_id = bookid;
-        book_path = bookpath;
+    explicit mobi_util(long bookid, std::string bookpath): book_util(bookid, bookpath) {
         mobi_rawml = nullptr;
         mobi_data = nullptr;
         initStatus = false;
@@ -69,7 +67,6 @@ public:
         }
         allChapters.clear();
         currentSrc = "";
-        isSingleSrc = false;
     }
 
     /***
@@ -109,38 +106,21 @@ public:
                         std::string &identifier,
                         bool &isEncrypted);
 
-    int getChapters(/*out*/std::vector<NavPoint> &points);
+    int getChapters(/*out*/std::vector<NavPoint> &points) override;
 
-    int getChapter(JNIEnv *env, long book_id, const char *path, NavPoint &chapter, std::vector<DocText> &docTexts);
+    int getChapter(JNIEnv *env, long book_id, const char *path, NavPoint &chapter, std::vector<DocText> &docTexts)  override;
 
-    int getCss(std::vector<std::string> &cssClasses, std::vector<std::string> &cssTags, std::vector<std::string> &cssIds, std::vector<CssInfo> &cssInfos);
+    int getCss(std::vector<std::string> &cssClasses, std::vector<std::string> &cssTags, std::vector<std::string> &cssIds, std::vector<CssInfo> &cssInfos)  override;
 
-    int32_t getWordCount(std::vector<ChapterCount> &wordCounts);
-
-    long bookid() {
-        return book_id;
-    }
-
-    std::string &bookpath() {
-        return book_path;
-    }
+    int32_t getWordCount(std::vector<ChapterCount> &wordCounts) override;
 
 private:
-
-    bool initStatus;
-    long book_id;
-    std::string book_path;
     mutable std::mutex m_Mutex;
     mutable std::mutex m_Mutex2;
     mutable std::mutex m_Mutex3;
     MOBIRawml *mobi_rawml;
     MOBIData *mobi_data;
-    std::vector<NavPoint> allChapters;
-    std::vector<std::string> cssSrc;
-    bool isSingleSrc;
-    volatile bool run_flag;
 
-    tinyxml2::XMLDocument doc;
     std::string currentSrc;
 
     int init();

@@ -539,6 +539,7 @@ bool is_paragraph_tag(const std::string &name) {
         name == "h4" || name == "h5" || name == "h6" || name == "h7" ||
         //                           name == "img" || name == "image" ||
         name == "section" || name == "article" ||
+        name == "table" || name == "tr" ||
         name == "hr" || name == "br") {
         return true;
     }
@@ -869,7 +870,7 @@ size_t xml_ext::count_words(
     }
 
     if (chapterWordCount > 0 && chapterIndex <= anchors.size()) {
-        wordCounts.push_back(std::pair<size_t, size_t>(chapterWordCount, chapterPicCount));
+        wordCounts.emplace_back(chapterWordCount, chapterPicCount);
     }
     chapterWordCount = 0;
     chapterPicCount = 0;
@@ -937,7 +938,7 @@ int xml_ext::parse(
                 if (domElem->NoChildren()) {
                     endpos = offset;
                 }
-                std::string parent_uuid = "";
+                std::string parent_uuid;
                 if (!stack.empty())  {
                     parent_uuid = stack.back().uuid;
                 }
@@ -1089,9 +1090,9 @@ int xml_ext::parse(
                 offset = 0;
             } else {
                 bool newParagraph = false;
-                for (auto nodeTagUUID: nodeTagUUIds) {
-                    std::string name = "";
-                    for(auto tag : tags) {
+                for (auto &nodeTagUUID: nodeTagUUIds) {
+                    std::string name;
+                    for(auto &tag : tags) {
                         if (!nodeTagUUID.empty() && tag.uuid == nodeTagUUID) {
                             name = tag.name;
                             break;
@@ -1103,16 +1104,16 @@ int xml_ext::parse(
                     }
                 }
                 if (newParagraph) {
-                    auto nodeTagUUID = nodeTagUUIds.back();
+                    auto &nodeTagUUID = nodeTagUUIds.back();
                     TagInfo targetTag;
-                    for(auto tag : tags) {
+                    for(auto &tag : tags) {
                         if (!nodeTagUUID.empty() && tag.uuid == nodeTagUUID) {
                             targetTag = tag;
                             break;
                         }
                     }
                     if (targetTag.startPos != 0) { //需要将内容分成两个段落
-                        int partPos = targetTag.startPos;
+                        size_t partPos = targetTag.startPos;
                         std::string line = ss.str();
                         if (partPos < line.size()) {
                             std::string partOne = line.substr(0, partPos);
@@ -1135,9 +1136,9 @@ int xml_ext::parse(
                             ss.str("");
                             offset = 0;
                             std::vector<TagInfo> parentTags;
-                            for(auto item : stack) {
-                                for(auto tag : tags) {
-                                    if (tag.uuid == item.uuid && !item.uuid.empty()) {
+                            for(auto &stack_item : stack) {
+                                for(auto &tag : tags) {
+                                    if (tag.uuid == stack_item.uuid && !stack_item.uuid.empty()) {
                                         parentTags.push_back(tag);
                                     }
                                 }
@@ -1160,9 +1161,9 @@ int xml_ext::parse(
                         ss.clear();
                         offset = 0;
                         std::vector<TagInfo> parentTags;
-                        for(auto item : stack) {
-                            for(auto tag : tags) {
-                                if (tag.uuid == item.uuid && !item.uuid.empty()) {
+                        for(auto &stack_item : stack) {
+                            for(auto &tag : tags) {
+                                if (tag.uuid == stack_item.uuid && !stack_item.uuid.empty()) {
                                     parentTags.push_back(tag);
                                 }
                             }
@@ -1197,7 +1198,14 @@ std::vector<std::pair<std::string, std::string>> xml_ext::parse_str_params(std::
             for (auto &kv: kvs) {
                 std::vector<std::string> item = split(kv, '=');
                 if (item.size() == 2) {
-                    ret.emplace_back(std::pair<std::string, std::string>(item[0], item[1]));
+                    std::string key = item[0];
+                    std::string value = item[1];
+                    trim(key);
+                    trim(value);
+                    if (key == "xlink:href" || key == "href" || key == "l:href") {
+                        key = "src";
+                    }
+                    ret.emplace_back(key, value);
                 }
             }
         }
@@ -1209,12 +1217,12 @@ tinyxml2::XMLElement* xml_ext::getStartElement(tinyxml2::XMLElement *root, int *
 //    LOGI("%s:invoke", __func__);
     if (!root) {
         LOGE("%s failed, no root element", __func__);
-        return 0;
+        return nullptr;
     }
     auto body = root->FirstChildElement("body");
     if (!body) {
         LOGE("%s failed, no body element", __func__);
-        return 0;
+        return nullptr;
     }
     std::string bodyId = xml_ext::getEleAttr(body, "id");
     tinyxml2::XMLElement *childEle = body->FirstChildElement();

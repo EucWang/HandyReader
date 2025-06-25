@@ -241,7 +241,7 @@ class ContentTextView(context: Context, attrs: AttributeSet?) : View(context, at
                     defaultTextPaint = contentPaint
                 } else if (lineStartIndex >= tagStart && lineEndIndex <= tagEnd) {  //修饰标签位置和行文字完全吻合， 修饰标签
                     lineTextTag = textTags[0]
-                    defaultTextPaint = ChapterProvider.getPaintByTagName(lineTextTag.name)
+                    defaultTextPaint = ChapterProvider.getPaintByTagName(lineTextTag)
                 }
             }
         }
@@ -258,7 +258,7 @@ class ContentTextView(context: Context, attrs: AttributeSet?) : View(context, at
                 } else {
                     filterTags(charIndex, textTags)
                 }
-                ChapterProvider.getPaintByTagName(texttag?.name)
+                ChapterProvider.getPaintByTagName(texttag)
             }
             val paint = TextPaint()
             paint.set(parentPaint)

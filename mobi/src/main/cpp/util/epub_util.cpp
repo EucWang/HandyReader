@@ -671,7 +671,7 @@ int epub_util::getChapter(JNIEnv *env, long book_id, const char *path, NavPoint 
             return 0;
         }
         mockFirstPage(chapter, docTexts);
-        handle_image(env, docTexts);
+        handle_tags(env, docTexts);
     }
 
     auto end_time = std::chrono::high_resolution_clock::now();
@@ -680,7 +680,7 @@ int epub_util::getChapter(JNIEnv *env, long book_id, const char *path, NavPoint 
     return 1;
 }
 
-void epub_util::handle_image(JNIEnv *env, std::vector<DocText> &docTexts) {
+void epub_util::handle_tags(JNIEnv *env, std::vector<DocText> &docTexts) {
     auto start_time = std::chrono::high_resolution_clock::now();
     LOGI("%s:invoke", __func__);
     for (auto &doctext: docTexts) {
@@ -727,6 +727,23 @@ void epub_util::handle_image(JNIEnv *env, std::vector<DocText> &docTexts) {
                     }
                 }
             }
+
+            //没有href属性也没有id属性的的a标签，需要移除
+//            doctext.tagInfos.erase(std::remove_if(doctext.tagInfos.begin(), doctext.tagInfos.end(), [](TagInfo &tag){
+//                if (tag.name == "a") {
+//                    auto kvs = xml_ext::parse_str_params(tag.params);
+//                    if (kvs.empty()) {
+//                        return true;
+//                    } else {
+//                        auto it = std::find_if(kvs.begin(), kvs.end(), [](auto &kv){
+//                            return kv.first == "href" || kv.first == "id";
+//                        });
+//                        return it == kvs.end();
+//                    }
+//                } else {
+//                    return false;
+//                }
+//            }), doctext.tagInfos.end());
         }
     }
 

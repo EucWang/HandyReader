@@ -46,6 +46,7 @@ extern "C" {
 #include "tidyh5_ext.h"
 #include "meta_data.h"
 #include "css_ext.h"
+#include "book_util.h"
 
 /****
  * opf 中的清单
@@ -60,14 +61,11 @@ typedef struct _Spine {
     std::string idref;
 } BookSpine;
 
-class epub_util {
+class epub_util: public book_util {
 
 public:
-    explicit epub_util(long bookid, std::string bookpath) {
-        run_flag = true;
+    explicit epub_util(long bookid, std::string bookpath): book_util(bookid, bookpath) {
         zipEntities.clear();
-        book_id = bookid;
-        book_path = bookpath;
         if (1 != epub_init()) {
             initStatus = false;
         } else {
@@ -75,7 +73,6 @@ public:
         }
         allChapters.clear();
         currentSrc = "";
-        isSingleSrc = false;
         isEmptyCss = false;
     }
 
@@ -136,36 +133,20 @@ public:
                          std::string &identifier,
                          bool &isEncrypted);
 
-    int getChapters(/*out*/std::vector<NavPoint> &points);
+    int getChapters(/*out*/std::vector<NavPoint> &points) override;
 
-    int getChapter(JNIEnv *env, long book_id, const char *path, NavPoint &chapter, std::vector<DocText> &docTexts);
+    int getChapter(JNIEnv *env, long book_id, const char *path, NavPoint &chapter, std::vector<DocText> &docTexts) override;
 
-    int getCss(std::vector<std::string> &cssClasses, std::vector<std::string> &cssTags, std::vector<std::string> &cssIds, std::vector<CssInfo> &cssInfos);
+    int getCss(std::vector<std::string> &cssClasses, std::vector<std::string> &cssTags, std::vector<std::string> &cssIds, std::vector<CssInfo> &cssInfos) override;
 
-    int32_t getWordCount(std::vector<ChapterCount> &wordCounts);
-
-    long bookid() {
-        return book_id;
-    }
-
-    std::string &bookpath() {
-        return book_path;
-    }
+    int32_t getWordCount(std::vector<ChapterCount> &wordCounts) override;
 
 private:
-    long book_id;
-    std::string book_path;
-    bool initStatus = false;
-    volatile bool run_flag = false;
-    unzFile bookzip;
     mutable std::mutex m_Mutex;
     mutable std::mutex m_Mutex2;
     mutable std::mutex m_Mutex3;
-    std::vector<NavPoint> allChapters;
-    std::vector<std::string> cssSrc;
-    tinyxml2::XMLDocument doc;
+    unzFile bookzip;
     std::string currentSrc;
-    bool isSingleSrc;
     bool isEmptyCss;
     std::vector<BookManifest> manifests;
     std::vector<BookSpine> spines;
@@ -194,7 +175,7 @@ private:
     void mockFirstPage(NavPoint &chapter, std::vector<DocText> &docTexts);
 
 
-    void handle_image(JNIEnv *env, std::vector<DocText> &docTexts);
+    void handle_tags(JNIEnv *env, std::vector<DocText> &docTexts);
 
     /***
      * 缓存图片
