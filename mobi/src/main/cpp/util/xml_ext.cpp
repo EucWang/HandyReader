@@ -1196,3 +1196,48 @@ std::vector<std::pair<std::string, std::string>> xml_ext::parse_str_params(std::
     }
     return ret;
 }
+
+tinyxml2::XMLElement* xml_ext::getStartElement(tinyxml2::XMLElement *root, int *flagAdd, const std::string &anchorId) {
+//    LOGI("%s:invoke", __func__);
+    if (!root) {
+        LOGE("%s failed, no root element", __func__);
+        return 0;
+    }
+    auto body = root->FirstChildElement("body");
+    if (!body) {
+        LOGE("%s failed, no body element", __func__);
+        return 0;
+    }
+    std::string bodyId = xml_ext::getEleAttr(body, "id");
+    tinyxml2::XMLElement *childEle = body->FirstChildElement();
+
+    if (anchorId.empty()) {
+        *flagAdd = 1;
+    } else {
+        if (!bodyId.empty() && bodyId == anchorId) {
+            *flagAdd = 1;
+        } else {
+            std::string firstId = xml_ext::getEleAttr(childEle, "id");
+            if (!firstId.empty() && firstId == anchorId) {
+                *flagAdd = 1;
+            }
+        }
+
+        auto ele = xml_ext::findEleById(childEle, anchorId.c_str());
+        if (ele != nullptr) {
+            std::string eleName = xml_ext::ele_name(ele);
+            if (eleName != "body") {
+                childEle = ele;
+                *flagAdd = 1;
+            } else {
+                ele = ele->FirstChildElement();
+                if (ele != nullptr) {
+                    childEle = ele;
+                    *flagAdd = 1;
+                }
+            }
+        }
+    }
+//    LOGI("%s:invoke done", __func__);
+    return childEle;
+}

@@ -1091,7 +1091,7 @@ int mobi_util::parseCssSrcList() {
     return 1;
 }
 
-int mobi_util::getCss(std::vector<std::string> &cssClasses, std::vector<CssInfo> &cssInfos) {
+int mobi_util::getCss(std::vector<std::string> &cssClasses, std::vector<std::string> &cssTags, std::vector<std::string> &cssIds, std::vector<CssInfo> &cssInfos) {
     std::lock_guard<std::mutex> lock(m_Mutex3);
     if (!initStatus) {
         LOGE("%s:init status failed, so pass", __func__);
@@ -1156,7 +1156,7 @@ int mobi_util::getCss(std::vector<std::string> &cssClasses, std::vector<CssInfo>
         }
 //        LOGD("%s:rawCssSize=%d", __func__, rawCssSize);
         std::string cssData(rawCss, rawCss + rawCssSize);
-        css_ext::query_css(cssData, cssClasses, cssInfos);
+        css_ext::query_css(cssData, cssClasses, cssTags, cssIds,cssInfos);
     }
     return 1;
 }

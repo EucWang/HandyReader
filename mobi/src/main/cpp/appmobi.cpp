@@ -642,15 +642,20 @@ Java_com_wxn_mobi_inative_NativeLib_getChapter(JNIEnv *env, jobject thiz, jobjec
 
 extern "C"
 JNIEXPORT jobjectArray JNICALL
-Java_com_wxn_mobi_inative_NativeLib_getCssInfo(JNIEnv *env, jobject thiz, jobject context, jlong book_id, jobjectArray css_names, jint type) {
-
+Java_com_wxn_mobi_inative_NativeLib_getCssInfo(JNIEnv *env,
+                                               jobject thiz,
+                                               jobject context,
+                                               jlong book_id,
+                                               jobjectArray css_names,
+                                               jobjectArray tag_names,
+                                               jobjectArray ids_names,
+                                               jint type) {
 
     if (type == 1) {
         if (mobiutil == nullptr || mobiutil.use_count() == 0) {
             LOGE("%s failed, mobiutil is destroyed", __func__);
             return nullptr;
         }
-
         if (book_id != mobiutil->bookid()) {
             LOGE("%s:failed,is not the same bookid, param book_id[%ld],mobiutil.bookid[%ld]", __func__, book_id, mobiutil->bookid());
             return nullptr;
@@ -660,7 +665,6 @@ Java_com_wxn_mobi_inative_NativeLib_getCssInfo(JNIEnv *env, jobject thiz, jobjec
             LOGE("%s failed, epubutil is destroyed", __func__);
             return nullptr;
         }
-
         if (book_id != epubutil->bookid()) {
             LOGE("%s:failed,is not the same bookid, param book_id[%ld],epubutil.bookid[%ld]", __func__, book_id, mobiutil->bookid());
             return nullptr;
@@ -668,24 +672,54 @@ Java_com_wxn_mobi_inative_NativeLib_getCssInfo(JNIEnv *env, jobject thiz, jobjec
     }
 
     jsize length = env->GetArrayLength(css_names);
-    if (length == 0) {
-        LOGE("%s:failed empty css_names", __func__);
-        return nullptr;
-    }
     std::vector<std::string> cssNames;
-    for (jsize i = 0; i < length; ++i) {
-        jstring jstr = static_cast<jstring>(env->GetObjectArrayElement(css_names, i));
-        if (jstr == nullptr) {
-            continue;
-        }
-        const char *str = env->GetStringUTFChars(jstr, nullptr);
-        if (str != nullptr) {
-            cssNames.push_back(std::string(str));
-            env->ReleaseStringUTFChars(jstr, str);
+    if (length > 0) {
+        for (jsize i = 0; i < length; ++i) {
+            jstring jstr = static_cast<jstring>(env->GetObjectArrayElement(css_names, i));
+            if (jstr == nullptr) {
+                continue;
+            }
+            const char *str = env->GetStringUTFChars(jstr, nullptr);
+            if (str != nullptr) {
+                cssNames.push_back(std::string(str));
+                env->ReleaseStringUTFChars(jstr, str);
+            }
         }
     }
 
-    if (cssNames.empty()) {
+    jsize tagslength = env->GetArrayLength(tag_names);
+    std::vector<std::string> tagNames;
+    if (tagslength > 0) {
+        for (jsize i = 0; i < tagslength; ++i) {
+            jstring jstr = static_cast<jstring>(env->GetObjectArrayElement(tag_names, i));
+            if (jstr == nullptr) {
+                continue;
+            }
+            const char *str = env->GetStringUTFChars(jstr, nullptr);
+            if (str != nullptr) {
+                tagNames.push_back(std::string(str));
+                env->ReleaseStringUTFChars(jstr, str);
+            }
+        }
+    }
+
+    jsize idslength = env->GetArrayLength(ids_names);
+    std::vector<std::string> idNames;
+    if (idslength > 0) {
+        for (jsize i = 0; i < idslength; ++i) {
+            jstring jstr = static_cast<jstring>(env->GetObjectArrayElement(ids_names, i));
+            if (jstr == nullptr) {
+                continue;
+            }
+            const char *str = env->GetStringUTFChars(jstr, nullptr);
+            if (str != nullptr) {
+                idNames.push_back(std::string(str));
+                env->ReleaseStringUTFChars(jstr, str);
+            }
+        }
+    }
+
+    if (cssNames.empty() && tagNames.empty() && idNames.empty()) {
         LOGE("%s:failed empty cssNames", __func__);
         return nullptr;
     }
@@ -693,9 +727,9 @@ Java_com_wxn_mobi_inative_NativeLib_getCssInfo(JNIEnv *env, jobject thiz, jobjec
     std::vector<CssInfo> cssInfos;
     int ret = 0;
     if (type == 1) {
-        ret = mobiutil->getCss(cssNames, cssInfos);
+        ret = mobiutil->getCss(cssNames, tagNames, idNames, cssInfos);
     } else if (type == 2) {
-        ret = epubutil->getCss(cssNames, cssInfos);
+        ret = epubutil->getCss(cssNames, tagNames, idNames, cssInfos);
     }
     if (ret != 1) {
         LOGE("%s:fail parse css info", __func__);

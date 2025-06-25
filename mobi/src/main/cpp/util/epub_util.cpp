@@ -29,6 +29,7 @@ std::string epub_util::cover_to_zip_entity(const std::string &spine_name) {
 }
 
 int epub_util::epub_init() {
+    LOGI("%s:invoke", __func__);
     if (book_id == 0L || book_path.empty()) {
         return 0;
     }
@@ -165,20 +166,24 @@ int epub_util::epub_init() {
         ncx_path = epub_zfile_toc_ncx;
     }
 
+    LOGI("%s:invoke done", __func__);
     return 1;
 }
 
 void epub_util::epub_release() {
+    LOGI("%s:invoke", __func__);
     std::lock_guard<std::mutex> lock(m_Mutex2);
     if (initStatus) {
         unzClose(bookzip);
         initStatus = false;
     }
+    LOGI("%s:invoke done", __func__);
 }
 
 int epub_util::parseSrcName(std::string &inputSrc/*in*/,
                             std::string &spineSrc/*out*/,
                             std::string &anchorId/*out*/) {
+//    LOGI("%s:invoke", __func__);
     if (inputSrc.find('#') != std::string::npos) {
         std::vector<std::string> parts = split(inputSrc, '#');
         if (parts.size() == 2) {
@@ -188,6 +193,8 @@ int epub_util::parseSrcName(std::string &inputSrc/*in*/,
     } else {
         spineSrc = inputSrc;
     }
+
+//    LOGI("%s:invoke done", __func__);
     return 1;
 }
 
@@ -214,6 +221,7 @@ int epub_util::load_epub(std::string fullpath,  //文件路径
                          std::string &book_language,
                          std::string &book_identifier,
                          bool &book_isEncrypted) {
+    LOGI("%s:invoke", __func__);
 
     unzFile uf = unzOpen(fullpath.c_str());
     if (uf == nullptr) {
@@ -346,10 +354,12 @@ int epub_util::load_epub(std::string fullpath,  //文件路径
 
     unzClose(uf);
 
+    LOGI("%s:invoke done", __func__);
     return 1;
 }
 
 int epub_util::parseOpfData(std::vector<NavPoint> &points) {
+    LOGI("%s:invoke", __func__);
     std::vector<std::string> orderedItemSrc;
     for(auto spine : spines) {
         auto it = std::find_if(manifests.begin(), manifests.end(), [=](BookManifest &item){
@@ -503,11 +513,14 @@ int epub_util::parseOpfData(std::vector<NavPoint> &points) {
 
     points.clear();
     points.insert(points.end(), newPoints.begin(), newPoints.end());
+    LOGI("%s:invoke done", __func__);
     return 1;
 }
 
 
 int epub_util::getChapters(/*out*/std::vector<NavPoint> &points) {
+    LOGI("%s:invoke", __func__);
+    auto start_time = std::chrono::high_resolution_clock::now();
     std::lock_guard<std::mutex> lock(m_Mutex);
     if (!initStatus) {
         LOGE("%s:init status failed, so pass", __func__);
@@ -542,56 +555,16 @@ int epub_util::getChapters(/*out*/std::vector<NavPoint> &points) {
 
     allChapters.clear();
     allChapters.insert(allChapters.end(), points.begin(), points.end());
+
+    auto end_time = std::chrono::high_resolution_clock::now();
+    auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(end_time - start_time).count();
+    LOGI("%s:invoke done duration = %lld ms", __func__, duration);
     return 1;
-}
-
-
-tinyxml2::XMLElement* epub_util::getStartElement(int *flagAdd, const std::string &anchorId) {
-    tinyxml2::XMLElement *root = doc.RootElement();
-    if (!root) {
-        LOGE("%s failed, no root element", __func__);
-        return 0;
-    }
-    auto body = root->FirstChildElement("body");
-    if (!body) {
-        LOGE("%s failed, no body element", __func__);
-        return 0;
-    }
-    std::string bodyId = xml_ext::getEleAttr(body, "id");
-    tinyxml2::XMLElement *childEle = body->FirstChildElement();
-
-    if (anchorId.empty()) {
-        *flagAdd = 1;
-    } else {
-        if (!bodyId.empty() && bodyId == anchorId) {
-            *flagAdd = 1;
-        } else {
-            std::string firstId = xml_ext::getEleAttr(childEle, "id");
-            if (!firstId.empty() && firstId == anchorId) {
-                *flagAdd = 1;
-            }
-        }
-
-        auto ele = xml_ext::findEleById(childEle, anchorId.c_str());
-        if (ele != nullptr) {
-            std::string eleName = xml_ext::ele_name(ele);
-            if (eleName != "body") {
-                childEle = ele;
-                *flagAdd = 1;
-            } else {
-                ele = ele->FirstChildElement();
-                if (ele != nullptr) {
-                    childEle = ele;
-                    *flagAdd = 1;
-                }
-            }
-        }
-    }
-    return childEle;
 }
 
 int epub_util::getChapter(JNIEnv *env, long book_id, const char *path, NavPoint &chapter,
                           std::vector<DocText> &docTexts) {
+    LOGI("%s:invoke", __func__);
 
     auto start_time = std::chrono::high_resolution_clock::now();
     std::lock_guard<std::mutex> lock(m_Mutex2);
@@ -656,7 +629,7 @@ int epub_util::getChapter(JNIEnv *env, long book_id, const char *path, NavPoint 
     }
 
     int flagAdd = 0;
-    tinyxml2::XMLElement *childEle = getStartElement(&flagAdd, anchorId);
+    tinyxml2::XMLElement *childEle = xml_ext::getStartElement(doc.RootElement(), &flagAdd, anchorId);
 
     if (childEle != nullptr) {
         std::vector<TagInfo> tags;
@@ -672,6 +645,8 @@ int epub_util::getChapter(JNIEnv *env, long book_id, const char *path, NavPoint 
 }
 
 void epub_util::handle_image(JNIEnv *env, std::vector<DocText> &docTexts) {
+    auto start_time = std::chrono::high_resolution_clock::now();
+    LOGI("%s:invoke", __func__);
     for (auto &doctext: docTexts) {
         if (!doctext.tagInfos.empty()) {
             auto itag = doctext.tagInfos.begin();
@@ -718,9 +693,15 @@ void epub_util::handle_image(JNIEnv *env, std::vector<DocText> &docTexts) {
             }
         }
     }
+
+    auto end_time = std::chrono::high_resolution_clock::now();
+    //    //输出结果统计信息(性能分析)
+    auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(end_time - start_time).count();
+    LOGI("%s:invoke done duration = %lld ms", __func__, duration);
 }
 
 int epub_util::parse_css_list() {
+    LOGI("%s:invoke", __func__);
     if (isEmptyCss) {
         return 0;
     }
@@ -734,10 +715,13 @@ int epub_util::parse_css_list() {
     if (cssSrc.empty()) {
         isEmptyCss = true;
     }
+    LOGI("%s:invoke done", __func__);
     return 1;
 }
 
-int epub_util::getCss(std::vector<std::string> &cssClasses, std::vector<CssInfo> &cssInfos) {
+int epub_util::getCss(std::vector<std::string> &cssClasses, std::vector<std::string> &cssTags, std::vector<std::string> &cssIds, std::vector<CssInfo> &cssInfos) {
+    LOGI("%s:invoke", __func__);
+    auto start_time = std::chrono::high_resolution_clock::now();
     std::lock_guard<std::mutex> lock(m_Mutex2);
     parse_css_list();
     if (cssSrc.empty()) {
@@ -755,14 +739,19 @@ int epub_util::getCss(std::vector<std::string> &cssClasses, std::vector<CssInfo>
             LOGE("%s read css[%s] failed", __func__, zipfile.c_str());
             return 0;
         }
-        css_ext::query_css(cssData, cssClasses, cssInfos);
+        css_ext::query_css(cssData, cssClasses, cssTags, cssIds, cssInfos);
     }
+
+    auto end_time = std::chrono::high_resolution_clock::now();
+    //    //输出结果统计信息(性能分析)
+    auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(end_time - start_time).count();
+    LOGI("%s:invoke done duration = %lld ms", __func__, duration);
     return 1;
 }
 
 int32_t epub_util::getWordCount(std::vector<ChapterCount> &wordCounts) {
+    LOGI("%s:invoke", __func__);
     std::lock_guard<std::mutex> lock(m_Mutex3);
-    LOGD("%s invoke", __func__);
     auto start_time = std::chrono::high_resolution_clock::now();
     if (!initStatus) {
         LOGE("%s:init status failed, so pass", __func__);
@@ -822,7 +811,7 @@ int32_t epub_util::getWordCount(std::vector<ChapterCount> &wordCounts) {
             }
 
             int flagAdd = 0;
-            tinyxml2::XMLElement *childEle = getStartElement(&flagAdd, anchorId);
+            tinyxml2::XMLElement *childEle = xml_ext::getStartElement(doc.RootElement(), &flagAdd, anchorId);
 
             size_t wordCount = 0;
             size_t picCount = 0;
@@ -894,7 +883,7 @@ int32_t epub_util::getWordCount(std::vector<ChapterCount> &wordCounts) {
     auto end_time = std::chrono::high_resolution_clock::now();
     //    //输出结果统计信息(性能分析)
     auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(end_time - start_time).count();
-    LOGD("%s: duration = %lld ms", __func__, duration);
+    LOGD("%s: done duration = %lld ms", __func__, duration);
     return total;
 }
 
@@ -905,6 +894,7 @@ int32_t epub_util::getWordCount(std::vector<ChapterCount> &wordCounts) {
  * @param docTexts
  */
 void epub_util::mockFirstPage(NavPoint &chapter, std::vector<DocText> &docTexts) {
+    LOGI("%s:invoke", __func__);
     if (docTexts.empty() && chapter.playOrder == 1) {
         std::string &title = meta_info.title;
         std::string &author = meta_info.author;
@@ -949,6 +939,7 @@ void epub_util::mockFirstPage(NavPoint &chapter, std::vector<DocText> &docTexts)
             docTexts.emplace_back(DocText{publisher, tagInfos});
         }
     }
+    LOGI("%s:invoke done", __func__);
 }
 
 /***

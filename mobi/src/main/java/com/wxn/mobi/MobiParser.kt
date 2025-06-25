@@ -48,10 +48,12 @@ object MobiParser {
         return ret.toTypedArray()
     }
 
-    fun getMobiCssInfo(context: Context, bookId: Long, cssNames: List<String>?): List<CssInfo>? {
+    fun getMobiCssInfo(context: Context, bookId: Long, cssNames: List<String>, tagNames : List<String>, ids : List<String>): List<CssInfo>? {
         Log.d("MobiParser", "getMobiCssInfo:bookId=$bookId")
-        val names = cssNames ?: return null
-        val retVal = NativeLib.getCssInfo(context, bookId, names.toTypedArray(), 1)
+        if (cssNames.isEmpty() && tagNames.isEmpty() && ids.isEmpty()) {
+            return emptyList()
+        }
+        val retVal = NativeLib.getCssInfo(context, bookId, cssNames.toTypedArray(), tagNames.toTypedArray(), ids.toTypedArray(), 1)
         return retVal?.toList().orEmpty()
     }
 

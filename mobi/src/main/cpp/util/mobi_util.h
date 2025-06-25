@@ -111,7 +111,7 @@ public:
 
     int getChapter(JNIEnv *env, long book_id, const char *path, NavPoint &chapter, std::vector<DocText> &docTexts);
 
-    int getCss(std::vector<std::string> &cssClasses, std::vector<CssInfo> &cssInfos);
+    int getCss(std::vector<std::string> &cssClasses, std::vector<std::string> &cssTags, std::vector<std::string> &cssIds, std::vector<CssInfo> &cssInfos);
 
     int32_t getWordCount(std::vector<ChapterCount> &wordCounts);
 

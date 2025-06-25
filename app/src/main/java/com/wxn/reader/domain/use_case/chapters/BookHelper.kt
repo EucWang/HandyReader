@@ -58,8 +58,16 @@ object BookHelper {
         val bookId = book.id
 
         val cssClassNames = hashSetOf<String>()
+        val tagNames = hashSetOf<String>()
+        val ids = hashSetOf<String>()
         allTags?.forEach { index, tags ->
             tags.forEach { tag ->
+                if (tag.name.isNotEmpty()) {
+                    tagNames.add(tag.name)
+                }
+                if(tag.anchorId.isNotEmpty()) {
+                    ids.add(tag.anchorId)
+                }
                 tag.paramsPairs().filter {
                     it.first == "class" && it.second.isNotEmpty()
                 }.map {
@@ -69,7 +77,7 @@ object BookHelper {
                 }
             }
         }
-        val cssInfos = textParser.parseCss(bookId, cachedFile, cssClassNames.toList())
+        val cssInfos = textParser.parseCss(bookId, cachedFile, cssClassNames.toList(), tagNames.toList(), ids.toList())
         val retVal = hashMapOf<String, CssInfo>()
         cssInfos.forEach { cssInfo ->
             retVal[cssInfo.identifier] = cssInfo

@@ -138,7 +138,7 @@ public:
 
     int getChapter(JNIEnv *env, long book_id, const char *path, NavPoint &chapter, std::vector<DocText> &docTexts);
 
-    int getCss(std::vector<std::string> &cssClasses, std::vector<CssInfo> &cssInfos);
+    int getCss(std::vector<std::string> &cssClasses, std::vector<std::string> &cssTags, std::vector<std::string> &cssIds, std::vector<CssInfo> &cssInfos);
 
     int32_t getWordCount(std::vector<ChapterCount> &wordCounts);
 
@@ -210,7 +210,6 @@ private:
 
     std::string cover_to_zip_entity(const std::string &spine_name);
 
-    tinyxml2::XMLElement* getStartElement(int *flagAdd, const std::string &anchorId);
 protected:
 };
 

@@ -188,7 +188,7 @@ class TextParserImpl @Inject constructor(
         }
     }
 
-    override suspend fun parseCss(bookId: Long, cachedFile: CachedFile, cssNames: List<String>): List<CssInfo> {
+    override suspend fun parseCss(bookId: Long, cachedFile: CachedFile, cssNames: List<String>, tagNames: List<String>, ids: List<String>): List<CssInfo> {
         if (!cachedFile.canAccess()) {
             Log.e(TEXT_PARSER, "File does not exist or no read access is granted.")
             return emptyList()
@@ -199,35 +199,35 @@ class TextParserImpl @Inject constructor(
         return withContext(Dispatchers.IO) {
             when (fileFormat) {
                 "pdf" -> {
-                    pdfTextParser.parseCss(bookId, cachedFile, cssNames)
+                    pdfTextParser.parseCss(bookId, cachedFile, cssNames, tagNames, ids)
                 }
 
                 "epub" -> {
-                    epubTextParser.parseCss(bookId, cachedFile, cssNames)
+                    epubTextParser.parseCss(bookId, cachedFile, cssNames, tagNames, ids)
                 }
 
                 in listOf("mobi", "azw3") -> {
-                    mobiTextParser.parseCss(bookId, cachedFile, cssNames)
+                    mobiTextParser.parseCss(bookId, cachedFile, cssNames, tagNames, ids)
                 }
 
                 "txt" -> {
-                    txtTextParser.parseCss(bookId, cachedFile, cssNames)
+                    txtTextParser.parseCss(bookId, cachedFile, cssNames, tagNames, ids)
                 }
 
                 "fb2" -> {
-                    xmlTextParser.parseCss(bookId, cachedFile, cssNames)
+                    xmlTextParser.parseCss(bookId, cachedFile, cssNames, tagNames, ids)
                 }
 
                 "html" -> {
-                    htmlTextParser.parseCss(bookId, cachedFile, cssNames)
+                    htmlTextParser.parseCss(bookId, cachedFile, cssNames, tagNames, ids)
                 }
 
                 "htm" -> {
-                    htmlTextParser.parseCss(bookId, cachedFile, cssNames)
+                    htmlTextParser.parseCss(bookId, cachedFile, cssNames, tagNames, ids)
                 }
 
                 "md" -> {
-                    htmlTextParser.parseCss(bookId, cachedFile, cssNames)
+                    htmlTextParser.parseCss(bookId, cachedFile, cssNames, tagNames, ids)
                 }
 
                 else -> {

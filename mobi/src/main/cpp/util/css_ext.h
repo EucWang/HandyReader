@@ -13,7 +13,11 @@
 
 class css_ext {
 public:
-    static void query_css(std::string &css_data, std::vector<std::string> &cssClasses, std::vector<CssInfo> &cssInfos);
+    static void query_css(std::string &css_data,
+                          std::vector<std::string> &cssClasses,
+                          std::vector<std::string> &cssTags,
+                          std::vector<std::string> &cssIds,
+                          std::vector<CssInfo> &cssInfos);
 };
 
 

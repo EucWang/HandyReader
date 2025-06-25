@@ -142,13 +142,19 @@ sealed class ReaderText {
          */
         fun parseTextCss(csssheets: Map<String, CssInfo>) {
             var parsedCss = TextCssInfo()
-            val cssClasses = arrayListOf<String>()
+            val cssIdentifiers = arrayListOf<String>()
             annotations.forEach { tag ->
                 if (tag.start == 0 && tag.end >= line.length -1) {
-                    cssClasses.addAll(tag.cssClasses())
+                    cssIdentifiers.addAll(tag.cssClasses())
+                    if (!tag.name.isNullOrEmpty()) {
+                        cssIdentifiers.add(tag.name)
+                    }
+                    if (!tag.anchorId.isNullOrEmpty()) {
+                        cssIdentifiers.add(tag.anchorId)
+                    }
                 }
             }
-            for (css in cssClasses) {
+            for (css in cssIdentifiers) {
                 val ruleDatas = csssheets[css]?.datas.orEmpty()
                 for (ruleData in ruleDatas) {
                     when (ruleData.name) {

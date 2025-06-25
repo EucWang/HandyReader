@@ -67,8 +67,8 @@ class MobiTextParser @Inject constructor(
         val MOBI_TAG = "MobiTextParser"
     }
 
-    override suspend fun parseCss(bookId: Long,cachedFile: CachedFile,  cssNames: List<String>): List<CssInfo> {
-        return MobiParser.getMobiCssInfo(context, bookId, cssNames).orEmpty()
+    override suspend fun parseCss(bookId: Long,cachedFile: CachedFile,  cssNames: List<String>, tagNames: List<String>, ids: List<String>): List<CssInfo> {
+        return MobiParser.getMobiCssInfo(context, bookId, cssNames, tagNames, ids).orEmpty()
     }
 
     override suspend fun getWordCount(bookId:Long, cachedFile: CachedFile): List<Triple<Int, Int, Int>> {

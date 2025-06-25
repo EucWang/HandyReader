@@ -40,10 +40,10 @@ object EpubParser {
         return ret.toTypedArray()
     }
 
-    fun getEpubCssInfo(context: Context, bookId: Long, cssNames: List<String>?): List<CssInfo>? {
+    fun getEpubCssInfo(context: Context, bookId: Long, cssNames: List<String>?, tagNames: List<String> = emptyList<String>(), ids: List<String> = emptyList<String>()): List<CssInfo>? {
         Log.d("MobiParser", "getMobiCssInfo:bookId=$bookId")
         val names = cssNames ?: return null
-        val retVal = NativeLib.getCssInfo(context, bookId, names.toTypedArray(), 2)
+        val retVal = NativeLib.getCssInfo(context, bookId, names.toTypedArray(), tagNames.toTypedArray(), ids.toTypedArray(), 2)
         return retVal?.toList().orEmpty()
     }
 

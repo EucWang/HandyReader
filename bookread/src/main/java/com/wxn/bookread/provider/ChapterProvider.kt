@@ -723,7 +723,7 @@ object ChapterProvider {
                 }
                 //首行缩进
                 firstLineIndent = textIndent * oneWordWidth
-                Logger.d("ChapterProvider::firstLineIndent[$firstLineIndent],oneEmWidth=$oneWordWidth")
+//                Logger.d("ChapterProvider::firstLineIndent[$firstLineIndent],oneEmWidth=$oneWordWidth")
                 //左边距
                 marginLeft = (if (paragraph.textCssInfo.marginLeft.isEm()) {
                     oneWordWidth * paragraph.textCssInfo.marginLeft.value

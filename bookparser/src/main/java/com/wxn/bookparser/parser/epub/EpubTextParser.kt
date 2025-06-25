@@ -355,8 +355,8 @@ class EpubTextParser @Inject constructor(
         return result.toList()
     }
 
-    override suspend fun parseCss(bookId: Long, cachedFile: CachedFile, cssNames: List<String>): List<CssInfo> {
-        return EpubParser.getEpubCssInfo(context, bookId, cssNames).orEmpty()
+    override suspend fun parseCss(bookId: Long, cachedFile: CachedFile, cssNames: List<String>, tagNames: List<String>, ids: List<String>): List<CssInfo> {
+        return EpubParser.getEpubCssInfo(context, bookId, cssNames, tagNames, ids).orEmpty()
     }
 
     override suspend fun getWordCount(bookId: Long, cachedFile: CachedFile): List<Triple<Int, Int, Int>> {

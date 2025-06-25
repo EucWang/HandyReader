@@ -196,6 +196,8 @@ public:
             std::vector<std::pair<size_t, size_t>> &wordCounts);
 
     static std::vector<std::pair<std::string, std::string>> parse_str_params(std::string &params);
+
+    static tinyxml2::XMLElement* getStartElement(tinyxml2::XMLElement *root, int *flagAdd, const std::string &anchorId);
 };
 
 #endif //UREAD_XML_EXT_H

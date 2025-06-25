@@ -173,7 +173,7 @@ class PdfTextParser @Inject constructor(
         }
     }
 
-    override suspend fun parseCss(bookId: Long,cachedFile: CachedFile,  cssNames: List<String>): List<CssInfo> {
+    override suspend fun parseCss(bookId: Long,cachedFile: CachedFile,  cssNames: List<String>, tagNames: List<String>, ids: List<String>): List<CssInfo> {
         return emptyList()
     }
 
