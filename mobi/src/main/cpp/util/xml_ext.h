@@ -200,6 +200,16 @@ public:
     static std::vector<std::pair<std::string, std::string>> parse_str_params(std::string &params);
 
     static tinyxml2::XMLElement* getStartElement(tinyxml2::XMLElement *root, int *flagAdd, const std::string &anchorId);
+
+
+    /***
+     * 计算一个标签下的全部子元素中所有字数和图片数
+     * @param element
+     * @param wordcount
+     * @param piccount
+     * @return
+     */
+    static size_t count_ele_words(tinyxml2::XMLElement *element,size_t *wordcount, size_t *piccount);
 };
 
 #endif //UREAD_XML_EXT_H

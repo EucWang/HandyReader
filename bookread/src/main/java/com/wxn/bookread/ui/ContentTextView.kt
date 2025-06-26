@@ -199,6 +199,20 @@ class ContentTextView(context: Context, attrs: AttributeSet?) : View(context, at
         if (textLine.isImage) {
             Logger.d("ContentTextView::drawLine:drawImage:lineTop=${lineTop}, lineBottom=${lineBottom}")
             drawImage(canvas, textLine, lineTop, lineBottom) //绘制图片
+        } else if (textLine.isLine){
+
+            val startx = textLine.lineStart.first
+            val starty = textLine.lineStart.second + relativeOffset
+            val endx  =textLine.lineEnd.first
+            val endy = textLine.lineEnd.second + relativeOffset
+
+            val linePaint = Paint()
+            ColorUtil.toColor(textLine.lineColor.orEmpty())?.let { color ->
+                linePaint.color = color
+            }
+            linePaint.strokeWidth = if (textLine.lineBorder > 0) textLine.lineBorder else 1f
+
+            canvas.drawLine(startx, starty, endx, endy, linePaint)
         } else {
             drawChars(
                 canvas, textLine, tags, textCssInfo, lineTop, lineBase, lineBottom,

@@ -1,6 +1,7 @@
 package com.wxn.bookread.data.model
 
 import android.text.TextPaint
+import androidx.annotation.ColorInt
 import com.wxn.bookread.provider.ChapterProvider
 import com.wxn.bookread.textHeight
 
@@ -10,7 +11,7 @@ import com.wxn.bookread.textHeight
 data class TextLine(
 
     /**
-     * 显示的内容
+     * 显示的内容, 或者需要显示的图片的本地路径
      */
     var text: String = "",
 
@@ -49,7 +50,13 @@ data class TextLine(
 
     var paragraphIndex: Int = 0,    //当前行所在的段落的序号
     var charStartOffset: Int = 0,   //当前行在所在段落中的起始位置 the start index (inclusive).
-    var charEndOffset: Int = 0        //当前行在所在段落中的结束位置  the end index (exclusive)
+    var charEndOffset: Int = 0,        //当前行在所在段落中的结束位置  the end index (exclusive),
+
+    var isLine : Boolean = false,       //是否是线段
+    var lineStart: Pair<Float, Float> = Pair(0f, 0f), //线的起点
+    var lineEnd: Pair<Float, Float> = Pair(0f, 0f),      //线的终点
+    var lineBorder: Float = 1f,                            //线段的粗细
+    var lineColor: String? = null,
 ) {
 
     fun upTopBottom(durY: Float, textPaint: TextPaint) {

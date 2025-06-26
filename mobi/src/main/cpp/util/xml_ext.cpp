@@ -354,6 +354,8 @@ std::string xml_ext::ele_params(const tinyxml2::XMLElement *elem, std::string &s
                     name == "href" || name == "l:href") {
                     name = "src";
                 }
+            } else if (tagname == "table") {     //表格, 需要计算表格的 行数列数，作为参数保存到params中
+                //TODO
             }
 
             if (name == "href") {
@@ -539,7 +541,7 @@ bool is_paragraph_tag(const std::string &name) {
         name == "h4" || name == "h5" || name == "h6" || name == "h7" ||
         //                           name == "img" || name == "image" ||
         name == "section" || name == "article" ||
-        name == "table" || name == "tr" ||
+        name == "table" || name == "tr" || name == "caption" ||
         name == "hr" || name == "br") {
         return true;
     }
@@ -671,6 +673,278 @@ std::vector<TagInfo> non_father_tags(const std::string parent_uuid, const std::v
     }
     return ret_tags;
 }
+
+/***
+ * 计算一个标签下的全部子元素中所有字数和图片数
+ * @param element
+ * @param wordcount
+ * @param piccount
+ * @return
+ */
+size_t xml_ext::count_ele_words(tinyxml2::XMLElement *element,size_t *wordcount, size_t *piccount) {
+    if (element == nullptr) {
+        return 0;
+    }
+    tinyxml2::XMLNode *item = element->FirstChild();
+    std::list<tinyxml2::XMLNode*> stack;
+    bool flag = true;
+
+    while (flag && item != nullptr) {
+        std::string itemId = xml_ext::getEleAttr(item, "id");
+
+        tinyxml2::XMLElement *domElem = item->ToElement();
+        auto domText = item->ToText();
+        if (domText != nullptr) {  //是文本节点, 文本节点的标签都在stack中
+            const char *text = domText->Value();
+            if (text != nullptr && strlen(text) > 0) {
+                std::string str(text);
+                str = cleanStr(str);
+                *wordcount += utf8Count(str);
+            }
+        } else if (domElem != nullptr) {
+            std::string name = xml_ext::ele_name(domElem);
+            if (name == "img" || name == "image"){  //一个图片占100个
+                *piccount += 1;
+            }
+        }
+
+        //优先遍历子节点
+        auto child = item->FirstChild();
+        if (child != nullptr && domElem != nullptr) { //当前节点是Element，并且孩子节点不为空，则深入下一层
+            stack.push_back(domElem);
+            item = child;
+            continue;
+        }
+
+        //没有子节点，则遍历兄弟节点
+        auto bro = item->NextSibling();
+        if (bro != nullptr) {
+            item = bro;
+            continue;
+        }
+
+        //没有兄弟节点，则这一层已经遍历完，从stack中弹出上一层的没有遍历完的节点，得到该节点的兄弟节点
+        bro = nullptr;
+        while (true) {
+            if (stack.empty()) {
+                flag = false;
+                break;
+            }
+            tinyxml2::XMLNode* lastNode = stack.back();
+            stack.pop_back();
+
+            if (lastNode == nullptr) {
+                flag = false;
+                break;
+            }
+
+            auto node = lastNode;
+
+            bro = lastNode->NextSibling();
+            if (bro != nullptr) {           // 该兄弟节点不为空，继续外层循环， 为空，则继续从栈顶拿结点
+                break;
+            }
+        }
+
+        //遍历上/上上级的兄弟节点
+        if (flag && bro != nullptr) {
+            item = bro;
+        }
+    }
+
+    return 1;
+}
+
+void handle_table_cell_index(tinyxml2::XMLElement *ele_first_tr, int count_th, int count_td, int *index_row, std::vector<size_t> &col_words) {
+    tinyxml2::XMLElement *ele_tr = ele_first_tr;
+    std::string cell_name;
+    if (count_th > 0) {
+        cell_name = "th";
+    } else if (count_td > 0) {
+        cell_name = "td";
+    }
+    while(ele_tr != nullptr) {
+        if (!cell_name.empty()) {
+            auto ele_cell = ele_tr->FirstChildElement(cell_name.c_str());
+            int index_col = 0;  //列索引
+            while(ele_cell != nullptr) {
+                size_t words = 0;
+                size_t pics = 0;
+                xml_ext::count_ele_words(ele_cell, &words, &pics);
+                if (index_col >= col_words.size()) {
+                    col_words.push_back(words + pics);
+                } else {
+                    col_words[index_col] = col_words[index_col] + words + pics;
+                }
+
+                ele_cell->SetAttribute("index", index_col);
+                ele_cell = ele_cell->NextSiblingElement(cell_name.c_str());
+                index_col++;
+            }
+        }
+
+        ele_tr->SetAttribute("index", *index_row);
+        ele_tr = ele_tr->NextSiblingElement("tr");
+        (*index_row)++;
+    }
+}
+
+/***
+ * 解析一个表格的行，列数, 以及每一个tr，td的索引值，
+ * table标签上插入rows, cols 记录行数列数
+ * tr，td 标签上插入index， 记录行索引，列索引
+ * @param element
+ * @param row
+ * @param col
+ * @return
+ */
+size_t handle_table_attr(tinyxml2::XMLElement *ele_table) {
+    if (ele_table == nullptr) {
+        return 0;
+    }
+    tinyxml2::XMLNode *item = ele_table->FirstChild();
+    std::list<tinyxml2::XMLNode*> stack;
+    bool flag = true;
+    int table_rows = 0; //多少行
+    int table_cols = 0; //多少列
+    int index_row = 0;  //行索引
+    std::vector<size_t> cols_words;
+
+    int count_thead = ele_table->ChildElementCount("thead");
+    if (count_thead > 0) {
+        auto ele_thead = ele_table->FirstChildElement("thead");
+        table_rows += ele_thead->ChildElementCount("tr");
+
+        auto ele_first_tr = ele_thead->FirstChildElement("tr");
+        if (ele_first_tr != nullptr) {
+            int count_th = ele_first_tr->ChildElementCount("th");
+            if (count_th > 0 && count_th > table_cols) {
+                table_cols = count_th;
+            }
+            int count_td = ele_first_tr->ChildElementCount("td");
+            if (count_td > 0 && count_td > table_cols) {
+                table_cols = count_td;
+            }
+
+            handle_table_cell_index(ele_first_tr, count_th, count_td, &index_row, cols_words);
+        }
+    }
+
+    int count_tbody = ele_table->ChildElementCount("tbody");
+    if (count_tbody > 0) {
+        auto ele_tbody = ele_table->FirstChildElement("tbody");
+        table_rows += ele_tbody->ChildElementCount("tr");
+
+        auto ele_first_tr = ele_tbody->FirstChildElement("tr");
+        if (ele_first_tr != nullptr) {
+            int count_th = ele_first_tr->ChildElementCount("th");
+            if (count_th > 0 && count_th > table_cols) {
+                table_cols = count_th;
+            }
+            int count_td = ele_first_tr->ChildElementCount("td");
+            if (count_td > 0 && count_td > table_cols) {
+                table_cols = count_td;
+            }
+
+            handle_table_cell_index(ele_first_tr, count_th, count_td, &index_row, cols_words);
+        }
+    } else {
+        int count_top_tr = ele_table->ChildElementCount("tr");
+        if (count_top_tr > 0) {
+            table_rows += count_top_tr;
+
+            auto ele_first_tr = ele_table->FirstChildElement("tr");
+            if (ele_first_tr != nullptr) {
+                int count_th = ele_first_tr->ChildElementCount("th");
+                if (count_th > 0 && count_th > table_cols) {
+                    table_cols = count_th;
+                }
+                int count_td = ele_first_tr->ChildElementCount("td");
+                if (count_td > 0 && count_td > table_cols) {
+                    table_cols = count_td;
+                }
+
+                handle_table_cell_index(ele_first_tr, count_th, count_td, &index_row, cols_words);
+            }
+        }
+    }
+
+    int count_tfoot = ele_table->ChildElementCount("tfoot");
+    if (count_tfoot > 0) {
+        auto ele_tfoot = ele_table->FirstChildElement("tfoot");
+        table_rows += ele_tfoot->ChildElementCount("tr");
+
+        auto ele_first_tr = ele_tfoot->FirstChildElement("tr");
+        if (ele_first_tr != nullptr) {
+            int count_th = ele_first_tr->ChildElementCount("th");
+            if (count_th > 0 && count_th > table_cols) {
+                table_cols = count_th;
+            }
+            int count_td = ele_first_tr->ChildElementCount("td");
+            if (count_td > 0 && count_td > table_cols) {
+                table_cols = count_td;
+            }
+
+            handle_table_cell_index(ele_first_tr, count_th, count_td, &index_row, cols_words);
+        }
+    }
+    if (table_cols > 0 && table_rows > 0) {
+        ele_table->SetAttribute("cols", table_cols);
+        ele_table->SetAttribute("rows", table_rows);
+
+        float min_percent;    //最小百分比
+        if (table_cols <= 5) {
+            min_percent = 0.2f;
+        } else if (table_cols > 5 && table_cols <= 10) {
+            min_percent = 0.1f;
+        } else if (table_cols > 10) {
+            min_percent = 1.0f / table_cols;
+        }
+        size_t in_table_words = 0;
+        for(auto &words : cols_words) {
+            in_table_words += words;
+        }
+        if (in_table_words > 0 && !cols_words.empty()) {
+            float left_percent = 1.0;
+            std::vector<float> percents;
+            for(int i = 0; i< cols_words.size(); ++i) {
+                size_t words = cols_words[i];
+                float min_left_percent = min_percent * (cols_words.size() - i - 1);
+                float col_percent = (words * 1.0f) / in_table_words;
+                if (col_percent <= min_percent) {
+                    col_percent = min_percent;
+                }else if (col_percent >= (left_percent - min_left_percent)) {
+                    col_percent = left_percent - min_left_percent;
+                }
+                percents.push_back(col_percent);
+                left_percent -= col_percent;
+            }
+            float calced_total = 0.0f;
+            for(auto &percent : percents) {
+                calced_total += percent;
+            }
+            float diff = (1.0f - calced_total) / percents.size(); //计算是否不够100%或者超过100%，将差值从每一项中排除掉
+            if (diff != 0.0f) {
+                for(int i=0; i< percents.size(); ++i) {
+                    percents[i] = percents[i] + diff;
+                }
+            }
+            std::stringstream ss;
+            for(auto &percent: percents) {
+                if (!ss.str().empty()) {
+                    ss << ";";
+                }
+                ss << int(percent * 100) << "%";
+            }
+            std::string table_percents = ss.str();
+            ele_table->SetAttribute("table_percent", table_percents.c_str());
+            LOGD("%s table cols[%d] rows[%d] percents[%s]", __func__, table_cols, table_rows, table_percents.c_str());
+        }
+    }
+
+    return 1;
+}
+
 
 size_t xml_ext::count_words(
         tinyxml2::XMLElement *element,
@@ -943,9 +1217,12 @@ int xml_ext::parse(
                     parent_uuid = stack.back().uuid;
                 }
                 std::string tag_name = xml_ext::ele_name(domElem);
-
                 //开始一个新的节点之前，如果该节点是一个段落开始节点
                 if (is_paragraph_tag(tag_name)) {
+                    if (tag_name == "table") { //如果是table标签，需要增加cols，rows，index等一些属性
+                        handle_table_attr(domElem);
+                    }
+
                     // 判断ss不为空, 或者tags中有不属于其父节点，
                     std::vector<TagInfo> otherTags = non_father_tags(parent_uuid, tags);
                     if (!otherTags.empty() || !ss.str().empty()) {
