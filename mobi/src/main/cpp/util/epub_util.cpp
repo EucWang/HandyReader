@@ -878,10 +878,21 @@ int32_t epub_util::getWordCount(std::vector<ChapterCount> &wordCounts) {
                     LOGI("%s:invoke failed, run_flag false", __func__);
                     return 0;
                 }
-                if (1 != zip_ext::read_zip_file(bookzip, spineSrc, chapter_data)) {
-                    LOGE("%s read [%s] failed", __func__, spineSrc.c_str());
-                    return 0;
-                }
+                int retry = 3;
+                bool flag = false;
+                do {
+                    if (retry != 3) {
+                        LOGD("%s retry[%d] and await 100ms", __func__, retry);
+                        std::this_thread::sleep_for(std::chrono::milliseconds(100));
+                    }
+                    if (1 != zip_ext::read_zip_file(bookzip, spineSrc, chapter_data)) {
+                        LOGE("%s read [%s] failed", __func__, spineSrc.c_str());
+                        flag = false;
+                        retry--;
+                    } else {
+                        flag = true;
+                    }
+                } while(retry > 0 && !flag);
                 if (1 != tidyh5_ext::tidy_html(chapter_data)) {
                     LOGE("%s tidy html %s failed", __func__, spineSrc.c_str());
                     return 0;

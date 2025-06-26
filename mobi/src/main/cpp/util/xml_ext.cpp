@@ -1170,8 +1170,10 @@ int xml_ext::parse(
         std::string &endAnchorId,
         int *flagAdd,
         std::string &spineSrcName) {
+    LOGD("%s: startAnchorId[%s] endAnchorId[%s], flagAdd[%d]", __func__, startAnchorId.c_str(), endAnchorId.c_str(), *flagAdd);
 
     if (element == nullptr) {
+        LOGD("%s: failed, element is null", __func__);
         return 1;
     }
     tinyxml2::XMLNode *item = element;
@@ -1237,16 +1239,21 @@ int xml_ext::parse(
 
                         // 判断ss不为空, 或者tags中有不属于其父节点，
                         std::vector<TagInfo> otherTags = non_father_tags(parent_uuid, tags);
-                        std::string line = ss.str();
-                        if (!otherTags.empty() || !line.empty()) {
+                        if (!otherTags.empty() || !ss.str().empty()) {
                             std::vector<TagInfo> docTags;
                             if (otherTags.empty()) {
-                                docTags = get_fathers_tags(parent_uuid, tags);
+                                std::vector<TagInfo> docTags0 = get_fathers_tags(parent_uuid, tags);
+                                if (!docTags0.empty()) {
+                                    docTags.insert(docTags.end(), docTags0.begin(), docTags0.end());
+                                }
                             } else {
-                                docTags =get_fathers_tags(otherTags, tags);
+                                std::vector<TagInfo> docTags0 =get_fathers_tags(otherTags, tags);
+                                if (!docTags0.empty()) {
+                                    docTags.insert(docTags.end(), docTags0.begin(), docTags0.end());
+                                }
                             }
                             //   则需要将其作为一个段落分出去
-                            docTexts.emplace_back(DocText{line, docTags});
+                            docTexts.emplace_back(DocText{ss.str(), docTags});
                             ss.str("");
                             ss.clear();
                             offset = 0;
@@ -1291,9 +1298,9 @@ int xml_ext::parse(
         // 没有子节点，则当前标签结束， tag end // 设置tag的结束索引
         if (*flagAdd == 1) {
             //------------------------------------------------------------------ 一个节点没有子节点，则判断下需不要生成一个自然段落
-            if (domElem != nullptr && !empty_node(domElem)) {
+            std::string name = xml_ext::ele_name(domElem);
+            if (domElem != nullptr && !empty_node(domElem) && !name.empty() && name != "br") {
                 //拿到html节点名称
-                std::string name = xml_ext::ele_name(domElem);
                 //body的直接子标签全部都是自然段落
                 if (stack.empty()) {
                     std::string line = ss.str();
@@ -1483,6 +1490,7 @@ int xml_ext::parse(
         }
     }
 
+    LOGD("%s: invoke done", __func__ );
     return 1;
 }
 

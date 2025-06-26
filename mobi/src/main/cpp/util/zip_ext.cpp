@@ -51,28 +51,34 @@ std::vector<std::string> zip_ext::inner_zip_files(unzFile uf) {
 
 
 int zip_ext::read_zip_file(unzFile uf, const std::string &filename, std::string &zip_file_data) {
-    int err = unzLocateFile(uf, filename.c_str(), 0);
-    if (err != UNZ_OK) {
-        LOGE("%s cannot find %s", __func__, filename.c_str());
-        return 0;
-    }
-    err = unzOpenCurrentFile(uf);
-    if (err != UNZ_OK) {
-        LOGE("%s cannot open content.opf", __func__);
-        return 0;
-    }
+    int ret = 0;
+    do {
+        int err = unzLocateFile(uf, filename.c_str(), 0);
+        if (err != UNZ_OK) {
+            LOGE("%s cannot find %s", __func__, filename.c_str());
+            ret = 0;
+            break;
+        }
+        err = unzOpenCurrentFile(uf);
+        if (err != UNZ_OK) {
+            LOGE("%s cannot open content.opf", __func__);
+            ret = 0;
+            break;
+        }
 
-    std::stringstream streambuffer;
-    char bufferRead[8192] = {0};
-    int read_bytes;
-    //将数据写出到文件中
-    while ((read_bytes = unzReadCurrentFile(uf, bufferRead, sizeof(bufferRead))) > 0) {
-        streambuffer.write(bufferRead, read_bytes);
-    }
-    //关闭输出文件，
-    unzCloseCurrentFile(uf);
-    zip_file_data = streambuffer.str();
-    return 1;
+        std::stringstream streambuffer;
+        char bufferRead[8192] = {0};
+        int read_bytes;
+        //将数据写出到文件中
+        while ((read_bytes = unzReadCurrentFile(uf, bufferRead, sizeof(bufferRead))) > 0) {
+            streambuffer.write(bufferRead, read_bytes);
+        }
+        //关闭输出文件，
+        unzCloseCurrentFile(uf);
+        zip_file_data = streambuffer.str();
+        ret  = 1;
+    } while(false);
+    return ret;
 }
 
 /***
