@@ -210,6 +210,14 @@ public:
      * @return
      */
     static size_t count_ele_words(tinyxml2::XMLElement *element,size_t *wordcount, size_t *piccount);
+
+
+    /****
+     * 如果一个dom节点既没有子节点也没有任何属性值，则可以判定为一个空节点，空节点直接忽略掉
+     * @param elem
+     * @return
+     */
+    static bool empty_node(const tinyxml2::XMLElement *elem);
 };
 
 #endif //UREAD_XML_EXT_H

@@ -563,26 +563,27 @@ std::vector<TagInfo> get_fathers_tags(const std::string &parent_uuid, const std:
     std::set<std::string> parents_uuid;
     parents_uuid.insert(parent_uuid);
     //先找到全部的父级uuid
-    for(auto item = tags.rbegin(); item != tags.rend(); ++item) {
+    for (auto item = tags.rbegin(); item != tags.rend(); ++item) {
         std::vector<std::string> new_parents_uuid;
-        for(auto &uuid : parents_uuid) {
+        for (auto &uuid: parents_uuid) {
             if ((*item).uuid == uuid && !((*item).parent_uuid.empty())) { //直接父级节点
                 new_parents_uuid.push_back((*item).parent_uuid);
             }
         }
         if (!new_parents_uuid.empty()) {
-            for(auto &uuid : new_parents_uuid) {
+            for (auto &uuid: new_parents_uuid) {
                 parents_uuid.insert(uuid);
             }
         }
     }
-    for(auto &item : tags) {
-        if(parents_uuid.find(item.uuid) != parents_uuid.end()) {
+    for (auto &item: tags) {
+        if (parents_uuid.find(item.uuid) != parents_uuid.end()) {
             ret_tags.push_back(item);
         }
     }
     return ret_tags;
 }
+
 /***
  * 从tags中找到全部是cur_tags的全部父系节点，最终结果会合并cur_tags中的节点
  * @param cur_tags
@@ -596,25 +597,25 @@ std::vector<TagInfo> get_fathers_tags(const std::vector<TagInfo> cur_tags, const
     }
 
     std::set<std::string> parents_uuid;
-    for(auto &tag: cur_tags) {
+    for (auto &tag: cur_tags) {
         parents_uuid.insert(tag.parent_uuid);
     }
     //先找到全部的父级uuid
-    for(auto item = tags.rbegin(); item != tags.rend(); ++item) {
+    for (auto item = tags.rbegin(); item != tags.rend(); ++item) {
         std::vector<std::string> new_parents_uuid;
-        for(auto &uuid : parents_uuid) {
+        for (auto &uuid: parents_uuid) {
             if ((*item).uuid == uuid && !((*item).parent_uuid.empty())) { //直接父级节点
                 new_parents_uuid.push_back((*item).parent_uuid);
             }
         }
         if (!new_parents_uuid.empty()) {
-            for(auto &uuid : new_parents_uuid) {
+            for (auto &uuid: new_parents_uuid) {
                 parents_uuid.insert(uuid);
             }
         }
     }
-    for(auto &item : tags) {
-        if(parents_uuid.find(item.uuid) != parents_uuid.end()) {
+    for (auto &item: tags) {
+        if (parents_uuid.find(item.uuid) != parents_uuid.end()) {
             ret_tags.push_back(item);
         }
     }
@@ -630,31 +631,31 @@ std::vector<TagInfo> get_fathers_tags(const std::vector<TagInfo> cur_tags, const
  */
 std::vector<TagInfo> non_father_tags(const std::string parent_uuid, const std::vector<TagInfo> &tags) {
     std::vector<TagInfo> ret_tags;
-    if(tags.empty()) {
+    if (tags.empty()) {
         return ret_tags;
     }
 
-    if(!parent_uuid.empty()) {
+    if (!parent_uuid.empty()) {
         std::set<std::string> parents_uuid;
         parents_uuid.insert(parent_uuid);
         //先找到全部的父级uuid
-        for(auto item = tags.rbegin(); item != tags.rend(); ++item) {
+        for (auto item = tags.rbegin(); item != tags.rend(); ++item) {
             std::vector<std::string> new_parents_uuid;
-            for(auto &uuid : parents_uuid) {
+            for (auto &uuid: parents_uuid) {
                 if ((*item).uuid == uuid && !((*item).parent_uuid.empty())) { //直接父级节点
                     new_parents_uuid.push_back((*item).parent_uuid);
                 }
             }
             if (!new_parents_uuid.empty()) {
-                for(auto &uuid : new_parents_uuid) {
+                for (auto &uuid: new_parents_uuid) {
                     parents_uuid.insert(uuid);
                 }
             }
         }
         //再此遍历
-        for(auto &item: tags) {
+        for (auto &item: tags) {
             bool inner = false;
-            for(auto uuid: parents_uuid) {
+            for (auto uuid: parents_uuid) {
                 if (item.uuid == uuid) {
                     inner = true;
                     break;
@@ -665,8 +666,8 @@ std::vector<TagInfo> non_father_tags(const std::string parent_uuid, const std::v
             }
         }
     } else {
-        if(!tags.empty()) {
-            for(auto &item : tags) {
+        if (!tags.empty()) {
+            for (auto &item: tags) {
                 ret_tags.push_back(item);
             }
         }
@@ -681,12 +682,12 @@ std::vector<TagInfo> non_father_tags(const std::string parent_uuid, const std::v
  * @param piccount
  * @return
  */
-size_t xml_ext::count_ele_words(tinyxml2::XMLElement *element,size_t *wordcount, size_t *piccount) {
+size_t xml_ext::count_ele_words(tinyxml2::XMLElement *element, size_t *wordcount, size_t *piccount) {
     if (element == nullptr) {
         return 0;
     }
     tinyxml2::XMLNode *item = element->FirstChild();
-    std::list<tinyxml2::XMLNode*> stack;
+    std::list<tinyxml2::XMLNode *> stack;
     bool flag = true;
 
     while (flag && item != nullptr) {
@@ -703,7 +704,7 @@ size_t xml_ext::count_ele_words(tinyxml2::XMLElement *element,size_t *wordcount,
             }
         } else if (domElem != nullptr) {
             std::string name = xml_ext::ele_name(domElem);
-            if (name == "img" || name == "image"){  //一个图片占100个
+            if (name == "img" || name == "image") {  //一个图片占100个
                 *piccount += 1;
             }
         }
@@ -730,7 +731,7 @@ size_t xml_ext::count_ele_words(tinyxml2::XMLElement *element,size_t *wordcount,
                 flag = false;
                 break;
             }
-            tinyxml2::XMLNode* lastNode = stack.back();
+            tinyxml2::XMLNode *lastNode = stack.back();
             stack.pop_back();
 
             if (lastNode == nullptr) {
@@ -763,11 +764,11 @@ void handle_table_cell_index(tinyxml2::XMLElement *ele_first_tr, int count_th, i
     } else if (count_td > 0) {
         cell_name = "td";
     }
-    while(ele_tr != nullptr) {
+    while (ele_tr != nullptr) {
         if (!cell_name.empty()) {
             auto ele_cell = ele_tr->FirstChildElement(cell_name.c_str());
             int index_col = 0;  //列索引
-            while(ele_cell != nullptr) {
+            while (ele_cell != nullptr) {
                 size_t words = 0;
                 size_t pics = 0;
                 xml_ext::count_ele_words(ele_cell, &words, &pics);
@@ -803,7 +804,7 @@ size_t handle_table_attr(tinyxml2::XMLElement *ele_table) {
         return 0;
     }
     tinyxml2::XMLNode *item = ele_table->FirstChild();
-    std::list<tinyxml2::XMLNode*> stack;
+    std::list<tinyxml2::XMLNode *> stack;
     bool flag = true;
     int table_rows = 0; //多少行
     int table_cols = 0; //多少列
@@ -901,36 +902,36 @@ size_t handle_table_attr(tinyxml2::XMLElement *ele_table) {
             min_percent = 1.0f / table_cols;
         }
         size_t in_table_words = 0;
-        for(auto &words : cols_words) {
+        for (auto &words: cols_words) {
             in_table_words += words;
         }
         if (in_table_words > 0 && !cols_words.empty()) {
             float left_percent = 1.0;
             std::vector<float> percents;
-            for(int i = 0; i< cols_words.size(); ++i) {
+            for (int i = 0; i < cols_words.size(); ++i) {
                 size_t words = cols_words[i];
                 float min_left_percent = min_percent * (cols_words.size() - i - 1);
                 float col_percent = (words * 1.0f) / in_table_words;
                 if (col_percent <= min_percent) {
                     col_percent = min_percent;
-                }else if (col_percent >= (left_percent - min_left_percent)) {
+                } else if (col_percent >= (left_percent - min_left_percent)) {
                     col_percent = left_percent - min_left_percent;
                 }
                 percents.push_back(col_percent);
                 left_percent -= col_percent;
             }
             float calced_total = 0.0f;
-            for(auto &percent : percents) {
+            for (auto &percent: percents) {
                 calced_total += percent;
             }
             float diff = (1.0f - calced_total) / percents.size(); //计算是否不够100%或者超过100%，将差值从每一项中排除掉
             if (diff != 0.0f) {
-                for(int i=0; i< percents.size(); ++i) {
+                for (int i = 0; i < percents.size(); ++i) {
                     percents[i] = percents[i] + diff;
                 }
             }
             std::stringstream ss;
-            for(auto &percent: percents) {
+            for (auto &percent: percents) {
                 if (!ss.str().empty()) {
                     ss << ";";
                 }
@@ -958,7 +959,7 @@ size_t xml_ext::count_words(
         return 0;
     }
     tinyxml2::XMLNode *item = element;
-    std::list<tinyxml2::XMLNode*> stack;
+    std::list<tinyxml2::XMLNode *> stack;
     bool flag = true;
 
     while (flag && item != nullptr) {
@@ -986,7 +987,7 @@ size_t xml_ext::count_words(
                 }
             } else if (domElem != nullptr) {
                 std::string name = xml_ext::ele_name(domElem);
-                if (name == "img" || name == "image"){  //一个图片占100个
+                if (name == "img" || name == "image") {  //一个图片占100个
                     *piccount += 1;
                 }
             }
@@ -1014,7 +1015,7 @@ size_t xml_ext::count_words(
                 flag = false;
                 break;
             }
-            tinyxml2::XMLNode* lastNode = stack.back();
+            tinyxml2::XMLNode *lastNode = stack.back();
             stack.pop_back();
 
             if (lastNode == nullptr) {
@@ -1060,7 +1061,7 @@ size_t xml_ext::count_words(
         return total;
     }
     tinyxml2::XMLNode *item = element;
-    std::list<tinyxml2::XMLNode*> stack;
+    std::list<tinyxml2::XMLNode *> stack;
     bool flag = true;
 
     while (flag && item != nullptr) {
@@ -1091,7 +1092,7 @@ size_t xml_ext::count_words(
                 chapterWordCount += count;
                 total += count;
             }
-        } else if(domElem != nullptr) {
+        } else if (domElem != nullptr) {
             std::string name = ele_name(domElem);
             if (name == "img" || name == "image") {
                 chapterPicCount += 1;
@@ -1121,7 +1122,7 @@ size_t xml_ext::count_words(
                 flag = false;
                 break;
             }
-            tinyxml2::XMLNode* lastNode = stack.back();
+            tinyxml2::XMLNode *lastNode = stack.back();
             stack.pop_back();
 
             if (lastNode == nullptr) {
@@ -1150,6 +1151,16 @@ size_t xml_ext::count_words(
     chapterPicCount = 0;
 
     return total;
+}
+
+bool xml_ext::empty_node(const tinyxml2::XMLElement *elem) {
+    if (elem == nullptr) {
+        return true;
+    }
+    std::string noSpineSrcName = "";
+    bool nochild = elem->NoChildren();
+    bool noAttr = xml_ext::ele_params(elem, noSpineSrcName).empty();
+    return nochild && noAttr;
 }
 
 int xml_ext::parse(
@@ -1208,56 +1219,64 @@ int xml_ext::parse(
                 }
             }
             if (domElem != nullptr) {                       //是Dom节点, 加入到标签
-                size_t endpos = 0;
-                if (domElem->NoChildren()) {
-                    endpos = offset;
-                }
-                std::string parent_uuid;
-                if (!stack.empty())  {
-                    parent_uuid = stack.back().uuid;
-                }
-                std::string tag_name = xml_ext::ele_name(domElem);
-                //开始一个新的节点之前，如果该节点是一个段落开始节点
-                if (is_paragraph_tag(tag_name)) {
-                    if (tag_name == "table") { //如果是table标签，需要增加cols，rows，index等一些属性
-                        handle_table_attr(domElem);
+                if (!empty_node(domElem)) {
+                    size_t endpos = 0;
+                    if (domElem->NoChildren()) {
+                        endpos = offset;
                     }
+                    std::string parent_uuid;
+                    if (!stack.empty()) {
+                        parent_uuid = stack.back().uuid;
+                    }
+                    std::string tag_name = xml_ext::ele_name(domElem);
+                    //开始一个新的节点之前，如果该节点是一个段落开始节点
+                    if (is_paragraph_tag(tag_name)) {
+                        if (tag_name == "table") { //如果是table标签，需要增加cols，rows，index等一些属性
+                            handle_table_attr(domElem);
+                        }
 
-                    // 判断ss不为空, 或者tags中有不属于其父节点，
-                    std::vector<TagInfo> otherTags = non_father_tags(parent_uuid, tags);
-                    if (!otherTags.empty() || !ss.str().empty()) {
-                        //   则需要将其作为一个段落分出去
+                        // 判断ss不为空, 或者tags中有不属于其父节点，
+                        std::vector<TagInfo> otherTags = non_father_tags(parent_uuid, tags);
                         std::string line = ss.str();
-//                        if (!otherTags.empty() || utf8Count(line) > 0) {
-                            docTexts.emplace_back(DocText{line, get_fathers_tags(otherTags, tags)});
-//                        }
-                        ss.str("");
-                        ss.clear();
-                        offset = 0;
-                        endpos = 0;
-                        //tags 中之需要保留父级结构
-                        if (!otherTags.empty()) {
-                            std::vector<TagInfo> parent = get_fathers_tags(parent_uuid, tags);
-                            if (!parent.empty()) {
-                                for(auto &tag : parent) {
-                                    tag.startPos = 0;
-                                    tag.endPos = 0;
-                                }
+                        if (!otherTags.empty() || !line.empty()) {
+                            std::vector<TagInfo> docTags;
+                            if (otherTags.empty()) {
+                                docTags = get_fathers_tags(parent_uuid, tags);
+                            } else {
+                                docTags =get_fathers_tags(otherTags, tags);
                             }
-                            tags.clear();
-                            tags.insert(tags.end(), parent.begin(), parent.end());
+                            //   则需要将其作为一个段落分出去
+                            docTexts.emplace_back(DocText{line, docTags});
+                            ss.str("");
+                            ss.clear();
+                            offset = 0;
+                            endpos = 0;
+                            //tags 中之需要保留父级结构
+                            if (!otherTags.empty()) {
+                                std::vector<TagInfo> parent = get_fathers_tags(parent_uuid, tags);
+                                if (!parent.empty()) {
+                                    for (auto &tag: parent) {
+                                        tag.startPos = 0;
+                                        tag.endPos = 0;
+                                    }
+                                }
+                                tags.clear();
+                                tags.insert(tags.end(), parent.begin(), parent.end());
+                            }
                         }
                     }
-                }
 
-                auto tag = TagInfo{generate_uuid(),
-                                   xml_ext::getEleAttr(domElem, "id"),
-                                   tag_name,
-                                   offset,
-                                   endpos,
-                                   parent_uuid,
-                                   xml_ext::ele_params(domElem, spineSrcName)};
-                tags.push_back(tag);
+                    if(tag_name != "br") {  //br 换行标签不需要插入记录了，已经分段了
+                        auto tag = TagInfo{generate_uuid(),
+                                           xml_ext::getEleAttr(domElem, "id"),
+                                           tag_name,
+                                           offset,
+                                           endpos,
+                                           parent_uuid,
+                                           xml_ext::ele_params(domElem, spineSrcName)};
+                        tags.push_back(tag);
+                    }
+                }
             }
         }
 
@@ -1272,7 +1291,7 @@ int xml_ext::parse(
         // 没有子节点，则当前标签结束， tag end // 设置tag的结束索引
         if (*flagAdd == 1) {
             //------------------------------------------------------------------ 一个节点没有子节点，则判断下需不要生成一个自然段落
-            if (domElem != nullptr) {
+            if (domElem != nullptr && !empty_node(domElem)) {
                 //拿到html节点名称
                 std::string name = xml_ext::ele_name(domElem);
                 //body的直接子标签全部都是自然段落
@@ -1369,7 +1388,7 @@ int xml_ext::parse(
                 bool newParagraph = false;
                 for (auto &nodeTagUUID: nodeTagUUIds) {
                     std::string name;
-                    for(auto &tag : tags) {
+                    for (auto &tag: tags) {
                         if (!nodeTagUUID.empty() && tag.uuid == nodeTagUUID) {
                             name = tag.name;
                             break;
@@ -1383,7 +1402,7 @@ int xml_ext::parse(
                 if (newParagraph) {
                     auto &nodeTagUUID = nodeTagUUIds.back();
                     TagInfo targetTag;
-                    for(auto &tag : tags) {
+                    for (auto &tag: tags) {
                         if (!nodeTagUUID.empty() && tag.uuid == nodeTagUUID) {
                             targetTag = tag;
                             break;
@@ -1413,8 +1432,8 @@ int xml_ext::parse(
                             ss.str("");
                             offset = 0;
                             std::vector<TagInfo> parentTags;
-                            for(auto &stack_item : stack) {
-                                for(auto &tag : tags) {
+                            for (auto &stack_item: stack) {
+                                for (auto &tag: tags) {
                                     if (tag.uuid == stack_item.uuid && !stack_item.uuid.empty()) {
                                         parentTags.push_back(tag);
                                     }
@@ -1422,7 +1441,7 @@ int xml_ext::parse(
                             }
                             tags.clear();
                             if (!parentTags.empty()) {
-                                for(auto tag : parentTags) {
+                                for (auto tag: parentTags) {
                                     tag.startPos = 0;
                                     tag.endPos = 0;
                                     tags.push_back(tag);
@@ -1438,8 +1457,8 @@ int xml_ext::parse(
                         ss.clear();
                         offset = 0;
                         std::vector<TagInfo> parentTags;
-                        for(auto &stack_item : stack) {
-                            for(auto &tag : tags) {
+                        for (auto &stack_item: stack) {
+                            for (auto &tag: tags) {
                                 if (tag.uuid == stack_item.uuid && !stack_item.uuid.empty()) {
                                     parentTags.push_back(tag);
                                 }
@@ -1447,7 +1466,7 @@ int xml_ext::parse(
                         }
                         tags.clear();
                         if (!parentTags.empty()) {
-                            for(auto tag : parentTags) {
+                            for (auto tag: parentTags) {
                                 tag.startPos = 0;
                                 tag.endPos = 0;
                                 tags.push_back(tag);
@@ -1490,7 +1509,7 @@ std::vector<std::pair<std::string, std::string>> xml_ext::parse_str_params(std::
     return ret;
 }
 
-tinyxml2::XMLElement* xml_ext::getStartElement(tinyxml2::XMLElement *root, int *flagAdd, const std::string &anchorId) {
+tinyxml2::XMLElement *xml_ext::getStartElement(tinyxml2::XMLElement *root, int *flagAdd, const std::string &anchorId) {
 //    LOGI("%s:invoke", __func__);
     if (!root) {
         LOGE("%s failed, no root element", __func__);

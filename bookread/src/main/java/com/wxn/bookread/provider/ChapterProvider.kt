@@ -796,7 +796,6 @@ object ChapterProvider {
             durY += marginTop
         }
 
-
         val hasInlineImg = if (paragraph is ReaderText.Text) {
             paragraph.annotations.firstOrNull { tag ->
                 tag.name == "img" || tag.name == "image"

@@ -11,6 +11,7 @@ const std::string epub_zfile_nav_xhtml = "nav.xhtml";   //epub3 中 可能会用
 
 
 std::string epub_util::cover_to_zip_entity(const std::string &spine_name) {
+    LOGD("%s invoke", __func__);
     std::string ret = spine_name;
     if (spine_name.empty()) {
         return ret;
@@ -25,6 +26,7 @@ std::string epub_util::cover_to_zip_entity(const std::string &spine_name) {
     if (it != zipEntities.end()) {
         ret = (*it);
     }
+    LOGD("%s invoke done", __func__);
     return ret;
 }
 
@@ -563,7 +565,9 @@ int epub_util::getChapters(/*out*/std::vector<NavPoint> &points) {
     return 1;
 }
 
-int epub_util::getChapter(JNIEnv *env, long book_id, const char *path, NavPoint &chapter,
+int epub_util::getChapter(JNIEnv *env, long book_id,
+                          const char *path,
+                          NavPoint &chapter,
                           std::vector<DocText> &docTexts) {
     LOGI("%s:invoke", __func__);
     if (!run_flag) {
@@ -609,12 +613,13 @@ int epub_util::getChapter(JNIEnv *env, long book_id, const char *path, NavPoint 
             std::string nextChapterAnchorId;
             parseSrcName(nextChapter.src, nextChapterSpineSrc, nextChapterAnchorId);
             LOGD("%s nextChapter spine_src[%s], anchorId=[%s]", __func__, nextChapterSpineSrc.c_str(), nextChapterAnchorId.c_str());
-            if (nextChapterSpineSrc == spineSrc) {
+            if (nextChapterSpineSrc == spineSrc && !nextChapterAnchorId.empty()) {
                 endAnchorId = nextChapterAnchorId;
             }
         }
     }
 
+    LOGD("%s invoke next run_flag=%d, currentSrc=[%s]", __func__, run_flag, currentSrc.c_str());
     if (!run_flag) {
         LOGI("%s:invoke failed, run_flag false", __func__);
         return 0;
@@ -628,14 +633,17 @@ int epub_util::getChapter(JNIEnv *env, long book_id, const char *path, NavPoint 
             return 0;
         }
 
+        LOGD("%s::transform to zip entity src is %s", __func__, spineSrc.c_str());
         if (1 != zip_ext::read_zip_file(bookzip, spineSrc, chapter_data)) {
             LOGE("%s read [%s] failed", __func__, spineSrc.c_str());
             return 0;
         }
+        LOGD("%s::transform done ,chapter_data.size = %zu", __func__, chapter_data.size());
         if (1 != tidyh5_ext::tidy_html(chapter_data)) {
             LOGE("%s tidy html %s failed", __func__, spineSrc.c_str());
             return 0;
         }
+        LOGD("%s::tidy_html done ,chapter_data.size = %zu", __func__, chapter_data.size());
         if (!run_flag) {
             LOGI("%s:invoke failed, run_flag false", __func__);
             return 0;
@@ -643,6 +651,7 @@ int epub_util::getChapter(JNIEnv *env, long book_id, const char *path, NavPoint 
 
         doc.ClearError();
         doc.Clear();
+        LOGD("%s::doc clear try to parse", __func__);
         if (doc.Parse(chapter_data.c_str(), chapter_data.size()) != tinyxml2::XML_SUCCESS) {
             LOGE("%s failed to parse %s", __func__, spineSrc.c_str());
             return 0;
@@ -656,6 +665,7 @@ int epub_util::getChapter(JNIEnv *env, long book_id, const char *path, NavPoint 
 
     int flagAdd = 0;
     tinyxml2::XMLElement *childEle = xml_ext::getStartElement(doc.RootElement(), &flagAdd, anchorId);
+    LOGD("%s::getStartElement done flagAdd=%d, anchorId = %s", __func__, flagAdd, anchorId.c_str());
 
     if (!run_flag) {
         LOGI("%s:invoke failed, run_flag false", __func__);
@@ -665,6 +675,7 @@ int epub_util::getChapter(JNIEnv *env, long book_id, const char *path, NavPoint 
     if (childEle != nullptr) {
         std::vector<TagInfo> tags;
         xml_ext::parse(childEle, docTexts, anchorId, endAnchorId, &flagAdd, spineSrc);
+        LOGD("%s::parse done, docTexts.size = %zu", __func__, docTexts.size());
 
         if (!run_flag) {
             LOGI("%s:invoke failed, run_flag false", __func__);
@@ -672,6 +683,8 @@ int epub_util::getChapter(JNIEnv *env, long book_id, const char *path, NavPoint 
         }
         mockFirstPage(chapter, docTexts);
         handle_tags(env, docTexts);
+    } else {
+        LOGE("%s: invoke failed, childEle is null", __func__);
     }
 
     auto end_time = std::chrono::high_resolution_clock::now();
