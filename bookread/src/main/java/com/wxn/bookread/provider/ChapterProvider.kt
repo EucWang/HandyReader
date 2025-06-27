@@ -792,10 +792,6 @@ object ChapterProvider {
             }).coerceIn(0.75f, 2.0f)    //限定范围在0.75, 2.0f 间
         }
 
-        if (marginTop > 0f) {
-            durY += marginTop
-        }
-
         val hasInlineImg = if (paragraph is ReaderText.Text) {
             paragraph.annotations.firstOrNull { tag ->
                 tag.name == "img" || tag.name == "image"
@@ -808,6 +804,10 @@ object ChapterProvider {
                 tag.name == "tr"
             } != null
         } else false
+
+        if (marginTop > 0f && !isTableRow) {
+            durY += marginTop
+        }
 
         if (isTableRow) {   //是表格行
             durY = setTextTable(
@@ -859,12 +859,14 @@ object ChapterProvider {
             )
         }
 
-        //一个自然段落遍历完
-        if (isTitle) {
-            durY += titleBottomSpacing                          //是标题行，则加上标题的底部间距
-        }
-        if (marginBottom > 0f) {
-            durY += marginBottom
+        if (!isTableRow) {
+            //一个自然段落遍历完
+            if (isTitle) {
+                durY += titleBottomSpacing                          //是标题行，则加上标题的底部间距
+            }
+            if (marginBottom > 0f) {
+                durY += marginBottom
+            }
         }
 //        durY += textPaint.textHeight * paragraphSpacing   //是段落，则加上段落间距 //TODO
         return durY
@@ -931,6 +933,7 @@ object ChapterProvider {
                         val tagCell = tagCells[index]
                         val tagPercent: Int = tablePercents[index] //当前单元格所占的宽度的百分比,
                         val text = paragraph.line.substring(tagCell.start, tagCell.end)
+
                         val usableWidth = (fullWidth * (tagPercent / 100f) - 2 * tableCellInnerPadding).toInt()   //可用宽度
                         val leftOffset = (fullWidth * (leftOffsetPercent / 100f) + tableCellInnerPadding).toInt()    //距离屏幕左边的偏移位置
                         var rightOffset = visibleRight - (usableWidth + leftOffset)     //距离屏幕右边的偏移量
@@ -954,7 +957,11 @@ object ChapterProvider {
                                 isTitle = false,
                                 paragraphIndex = paragraphIndex,
                                 charStartOffset = offsetStart,
-                                charEndOffset = offsetEnd
+                                charEndOffset = offsetEnd,
+                                rowIndex = rowIndex,
+                                colIndex = index,
+                                rowLineOffset = tagCell.start,
+                                isTableCell = true
                             )
                             val words = text.substring(offsetStart, offsetEnd)
                             textLine.text = words
@@ -965,7 +972,7 @@ object ChapterProvider {
                                     textLine,
                                     words.toStringArray(),
                                     textPaint,
-                                    leftOffset.toFloat()
+                                    leftOffset.toFloat() + marginLeft
                                 )
 
                                 CssTextAlign.CssTextAlignRight -> addCharsToLineRight(
@@ -979,7 +986,7 @@ object ChapterProvider {
                                 CssTextAlign.CssTextAlignCenter -> {
                                     addCharsToLineLeft(
                                         textLine, words.toStringArray(), textPaint,
-                                        leftOffset + (usableWidth - desiredWidth) / 2f
+                                        leftOffset + marginLeft + (usableWidth - desiredWidth) / 2f
                                     )
                                 }
                             }
@@ -993,9 +1000,10 @@ object ChapterProvider {
 
                     val lines: List<Int> = textLineMaps.keys.toList().sorted()
                     for ((index, line) in lines.withIndex()) { //按行处理不同单元格的内容
+                        val lineHeight = textPaint.textHeight * lineSpacingExtra * lineHeightParam
                         val textLines = textLineMaps.get(line).orEmpty()
                         //新增加的表格行，如果超过了一页的显示高度，则创建新页
-                        if (durY + textPaint.textHeight * lineSpacingExtra * lineHeightParam > visibleHeight) {
+                        if (durY + lineHeight > visibleHeight) {
                             val lastPage = textPages.last()
                             lastPage.text = stringBuilder.toString()
                             pageLines.add(lastPage.textLines.size)
@@ -1039,7 +1047,6 @@ object ChapterProvider {
                             )
                         }
 
-                        val lineHeight = textPaint.textHeight * lineSpacingExtra
                         //竖线
                         var leftPercent = 0f
                         var percents = arrayListOf<Int>()

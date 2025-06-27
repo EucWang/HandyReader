@@ -183,7 +183,6 @@ class TextPageFactory(dataSource: IDataSource, val provider: PageViewDataProvide
         val textTagMaps: Map<Int, List<TextTag>> = chapter?.annotations.orEmpty()
         val textCssInfos = chapter?.textCssInfos.orEmpty()
 
-
         var textTagList = textTagMaps.get(paragraphIndex).orEmpty()
         val textCssInfo = textCssInfos.get(paragraphIndex)
 
@@ -191,7 +190,7 @@ class TextPageFactory(dataSource: IDataSource, val provider: PageViewDataProvide
         for (textTag in textTagList) {
             if ((lineStartOffset in textTag.start until textTag.end) || (lineEndOffset in textTag.start..textTag.end)) {
                 effectedTextTags.add(textTag)
-            } else if (textTag.start in (lineStartOffset until lineEndOffset) || (textTag.end in (lineStartOffset..lineEndOffset))) {
+            } else if (textTag.start in (lineStartOffset until lineEndOffset) || (textTag.end in ((lineStartOffset + 1)..lineEndOffset))) {
                 effectedTextTags.add(textTag)
             }
         }

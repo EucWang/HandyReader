@@ -413,7 +413,9 @@ class PageView : FrameLayout, IDataSource, PageCallback {
             val chapterIndex = curPage.chapterIndex
             val paragraphIndex = clickLine.paragraphIndex
             dataProvider?.pageFactory?.let { factory ->
-                val (tags, textCssInfo) = factory.getPagesAnnotation(chapterIndex, paragraphIndex, clickLine.charStartOffset, clickLine.charEndOffset)
+                val (tags, textCssInfo) = factory.getPagesAnnotation(chapterIndex, paragraphIndex,
+                    clickLine.charStartOffset + if (clickLine.isTableCell) clickLine.rowLineOffset else 0,
+                    clickLine.charEndOffset + if(clickLine.isTableCell) clickLine.rowLineOffset else 0 )
                 val tag = tags.firstOrNull { item ->
                     item.name == "a" && item.params.isNotEmpty() && item.params.contains("href")
                 }

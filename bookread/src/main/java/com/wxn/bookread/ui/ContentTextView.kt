@@ -142,8 +142,8 @@ class ContentTextView(context: Context, attrs: AttributeSet?) : View(context, at
 
         textPage.textLines.forEach { textLine ->
             val paragraphIndex = textLine.paragraphIndex    //段落索引
-            val startOffset = textLine.charStartOffset      //当前行所在段落起始索引
-            val endOffset = textLine.charEndOffset          //当前行所在段落结束索引（不包含）
+            val startOffset = textLine.charStartOffset + if(textLine.isTableCell) textLine.rowLineOffset else 0   //当前行所在段落起始索引
+            val endOffset = textLine.charEndOffset + if(textLine.isTableCell) textLine.rowLineOffset else 0         //当前行所在段落结束索引（不包含）
             val (tags, textCssInfo) = factory.getPagesAnnotation(chapterIndex, paragraphIndex, startOffset, endOffset)
 
             drawLine(canvas, textLine, tags, textCssInfo, relativeOffset)
@@ -160,8 +160,8 @@ class ContentTextView(context: Context, attrs: AttributeSet?) : View(context, at
             nextPage.textLines.forEach { textLine ->        //绘制下一页
 
                 val paragraphIndex = textLine.paragraphIndex    //段落索引
-                val startOffset = textLine.charStartOffset      //当前行所在段落起始索引
-                val endOffset = textLine.charEndOffset          //当前行所在段落结束索引（不包含）
+                val startOffset = textLine.charStartOffset  + if(textLine.isTableCell) textLine.rowLineOffset else 0      //当前行所在段落起始索引
+                val endOffset = textLine.charEndOffset  + if(textLine.isTableCell) textLine.rowLineOffset else 0          //当前行所在段落结束索引（不包含）
                 val (tags, textCssInfo) = factory.getPagesAnnotation(chapterIdx, paragraphIndex, startOffset, endOffset)
 
                 drawLine(canvas, textLine, tags, textCssInfo, relativeOffset)
@@ -178,8 +178,8 @@ class ContentTextView(context: Context, attrs: AttributeSet?) : View(context, at
                 nextNextPage.textLines.forEach { textLine ->
 
                     val paragraphIndex = textLine.paragraphIndex    //段落索引
-                    val startOffset = textLine.charStartOffset      //当前行所在段落起始索引
-                    val endOffset = textLine.charEndOffset          //当前行所在段落结束索引（不包含）
+                    val startOffset = textLine.charStartOffset + if(textLine.isTableCell) textLine.rowLineOffset else 0      //当前行所在段落起始索引
+                    val endOffset = textLine.charEndOffset  + if(textLine.isTableCell) textLine.rowLineOffset else 0          //当前行所在段落结束索引（不包含）
                     val (tags, textCssInfo) = factory.getPagesAnnotation(chapterIdx, paragraphIndex, startOffset, endOffset)
 
                     drawLine(canvas, textLine, tags, textCssInfo, relativeOffset)
@@ -196,11 +196,12 @@ class ContentTextView(context: Context, attrs: AttributeSet?) : View(context, at
         val lineBase = textLine.lineBase + relativeOffset
         val lineBottom = textLine.lineBottom + relativeOffset
 
-        if (textLine.isImage) {
-            Logger.d("ContentTextView::drawLine:drawImage:lineTop=${lineTop}, lineBottom=${lineBottom}")
-            drawImage(canvas, textLine, lineTop, lineBottom) //绘制图片
-        } else if (textLine.isLine){
 
+        if (textLine.isImage) {                              //绘制图片
+            Logger.d("ContentTextView::drawLine:drawImage:lineTop=${lineTop}, lineBottom=${lineBottom}")
+            drawImage(canvas, textLine, lineTop, lineBottom)
+
+        } else if (textLine.isLine){                        //绘制线段
             val startx = textLine.lineStart.first
             val starty = textLine.lineStart.second + relativeOffset
             val endx  =textLine.lineEnd.first
@@ -213,7 +214,7 @@ class ContentTextView(context: Context, attrs: AttributeSet?) : View(context, at
             linePaint.strokeWidth = if (textLine.lineBorder > 0) textLine.lineBorder else 1f
 
             canvas.drawLine(startx, starty, endx, endy, linePaint)
-        } else {
+        } else {                                            //绘制一行文字
             drawChars(
                 canvas, textLine, tags, textCssInfo, lineTop, lineBase, lineBottom,
                 isTitle = textLine.isTitle,

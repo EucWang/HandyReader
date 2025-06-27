@@ -94,7 +94,7 @@ void epub_util::epub_release() {
 
 
 std::string epub_util::cover_to_zip_entity(const std::string &spine_name) {
-    LOGD("%s invoke", __func__);
+//    LOGD("%s invoke", __func__);
     std::string ret = spine_name;
     if (spine_name.empty()) {
         return ret;
@@ -109,7 +109,7 @@ std::string epub_util::cover_to_zip_entity(const std::string &spine_name) {
     if (it != zipEntities.end()) {
         ret = (*it);
     }
-    LOGD("%s invoke done", __func__);
+//    LOGD("%s invoke done", __func__);
     return ret;
 }
 

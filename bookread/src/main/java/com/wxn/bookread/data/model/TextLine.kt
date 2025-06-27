@@ -52,11 +52,18 @@ data class TextLine(
     var charStartOffset: Int = 0,   //当前行在所在段落中的起始位置 the start index (inclusive).
     var charEndOffset: Int = 0,        //当前行在所在段落中的结束位置  the end index (exclusive),
 
-    var isLine : Boolean = false,       //是否是线段
-    var lineStart: Pair<Float, Float> = Pair(0f, 0f), //线的起点
-    var lineEnd: Pair<Float, Float> = Pair(0f, 0f),      //线的终点
-    var lineBorder: Float = 1f,                            //线段的粗细
-    var lineColor: String? = null,
+
+    var isLine : Boolean = false,                           // 是否是线段
+    var lineStart: Pair<Float, Float> = Pair(0f, 0f),       // 线的起点
+    var lineEnd: Pair<Float, Float> = Pair(0f, 0f),         // 线的终点
+    var lineBorder: Float = 1f,                             // 线段的粗细
+    var lineColor: String? = null,                          // 线段颜色
+
+    //表格中的每一个单元格也是一个TextLine,
+    var isTableCell: Boolean = false,
+    var rowIndex: Int = 0, //单元格行索引
+    var colIndex: Int = 0,  //单元格列索引
+    var rowLineOffset : Int = 0   //单元格所在的行文字在一个tr行中的偏移量
 ) {
 
     fun upTopBottom(durY: Float, textPaint: TextPaint) {
