@@ -577,7 +577,6 @@ int epub_util::parseOpfData(std::vector<NavPoint> &points) {
     return 1;
 }
 
-
 int epub_util::getChapters(/*out*/std::vector<NavPoint> &points) {
     LOGI("%s:invoke", __func__);
     auto start_time = std::chrono::high_resolution_clock::now();

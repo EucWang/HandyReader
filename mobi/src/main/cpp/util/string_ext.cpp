@@ -191,6 +191,8 @@ void replace_all(std::string &input, std::string &old_str, std::string &new_str)
 
 std::string &cleanStr(const std::string &str) {
     std::string ret = str;
+//    trim(ret);
+    ret = std::regex_replace(ret, regex, my_empty_str);
     replace_all(ret, emptyStr1, my_blank_str); //不换行空格
     replace_all(ret, emptyStr2, my_blank_str);         //半角空格
     replace_all(ret, emptyStr3, my_blank_str);         //全角空格
@@ -205,8 +207,7 @@ std::string &cleanStr(const std::string &str) {
     replace_all(ret, emptyStr9, my_empty_str);       //换行
     replace_all(ret, emptyStr10, my_empty_str);        //回车
     replace_all(ret, emptyStr11, my_empty_str);        //
-    ret = std::regex_replace(ret, regex, my_empty_str);
-    trim(ret);
+
     return ret;
 }
 

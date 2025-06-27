@@ -1207,10 +1207,9 @@ int xml_ext::parse(
             if (domText != nullptr) {  //是文本节点, 文本节点的标签都在stack中
                 const char *text = domText->Value();
                 if (text != nullptr && strlen(text) > 0) {
-                    std::string str(text);
-                    str = cleanStr(str);
-                    ss << str;
-                    offset += utf8Count(str);
+                    std::string filtered_str = cleanStr(text);
+                    ss << filtered_str;
+                    offset += utf8Count(filtered_str);
 
                     //文本必然位于其上一层的html标签中，找到这个html标签
                     if (!stack.empty() && !tags.empty()) {
