@@ -166,7 +166,7 @@ sealed class ReaderText {
                             val families = arrayListOf<String>()
                             ruleData.value.trim().split(",").forEach { family ->
                                 val item = family.trim()
-                                if (item != null) {
+                                if (item.isNotEmpty()) {
                                     families.add(item)
                                 }
                             }

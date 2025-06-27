@@ -29,7 +29,7 @@ std::string xml_ext::ele_name(const tinyxml2::XMLElement *elem) {
     std::string ret;
     if (elem != nullptr) {
         const char *name = elem->Name();
-        if (name != nullptr && strlen(name) > 0) {
+        if (name != NULL && name != nullptr && strlen(name) > 0) {
             ret = name;
         }
     }
@@ -49,9 +49,11 @@ std::string xml_ext::getEleText(const tinyxml2::XMLElement *elem) {
 
 std::string xml_ext::getEleAttr(const tinyxml2::XMLNode *node, const char *attr_name) {
     std::string attr_value;
-    if (node != nullptr) {
+    if (node != nullptr && attr_name != nullptr) {
         auto ele = node->ToElement();
-        attr_value = getEleAttr(ele, attr_name);
+        if (ele != nullptr) {
+            attr_value = getEleAttr(ele, attr_name);
+        }
     }
 
     return attr_value;
@@ -59,7 +61,7 @@ std::string xml_ext::getEleAttr(const tinyxml2::XMLNode *node, const char *attr_
 
 std::string xml_ext::getEleAttr(const tinyxml2::XMLElement *elem, const char *attr_name) {
     std::string attr_value;
-    if (elem != nullptr) {
+    if (elem != nullptr && attr_name != nullptr) {
         const char *attr = elem->Attribute(attr_name);
         if (attr != nullptr && strlen(attr) > 0) {
             attr_value = attr;
@@ -269,6 +271,11 @@ void xml_ext::parseNavData(tinyxml2::XMLElement *firstNavPoint, std::vector<NavP
         nav.text = label;
         nav.src = src;
         nav.parentId = parentId;
+        if (startWith(nav.src, "../")) {
+            nav.src = nav.src.substr(3);
+        } else if (startWith(nav.src, "./")) {
+            nav.src = nav.src.substr(2);
+        }
         vectors.push_back(nav);
 
         if (navPoint->ChildElementCount("navPoint") > 0) {

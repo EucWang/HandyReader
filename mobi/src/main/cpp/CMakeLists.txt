@@ -85,6 +85,10 @@ add_library(${CMAKE_PROJECT_NAME} SHARED
         util/crc_util.cpp
 )
 
+# tinyxml2 的debug开关
+#add_definitions(-DTINYXML2_DEBUG)
+add_definitions(-DANDROID_NDK)
+
 target_include_directories(${CMAKE_PROJECT_NAME} PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/tidy-html5/include)
 target_include_directories(${CMAKE_PROJECT_NAME} PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/utfcpp/source)
 

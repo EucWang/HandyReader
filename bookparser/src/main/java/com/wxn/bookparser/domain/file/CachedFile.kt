@@ -45,20 +45,34 @@ class CachedFile(
     val isDirectory: Boolean get() = builder?.isDirectory ?: queryParams.isDirectory
 
     fun canAccess(): Boolean {
-        return try {
-            context.contentResolver.query(uri, null, null, null, null)?.let {
-                it.close()
-                return true
+        return if (uri.scheme == "file") {
+            val path = uri.path
+            if (!path.isNullOrEmpty()) {
+                val file = File(path)
+                file.exists() && file.canRead()
+            } else {
+                false
             }
-            throw Exception("Could not access URI: $uri")
-        } catch (e: Exception) {
-            false
+        } else {
+            try {
+                context.contentResolver.query(uri, null, null, null, null)?.let {
+                    it.close()
+                    return true
+                }
+                throw Exception("Could not access URI: $uri")
+            } catch (e: Exception) {
+                false
+            }
         }
     }
 
     val extension: String
         get() {
-            return name.substringAfterLast(".").lowercase().trim()
+            return if (uri.scheme == "file") {
+                uri.path?.substringAfterLast(".")?.lowercase()?.trim().orEmpty()
+            } else {
+                name.substringAfterLast(".").lowercase().trim()
+            }
         }
 
     fun openInputStream(): InputStream? {

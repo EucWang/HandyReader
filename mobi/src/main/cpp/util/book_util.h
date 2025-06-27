@@ -35,7 +35,7 @@ public:
     }
 
     virtual ~book_util() {
-
+        run_flag = false;
     }
 
     virtual int getChapters(/*out*/std::vector<NavPoint> &points) = 0;

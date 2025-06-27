@@ -73,7 +73,6 @@ public:
      * 析构函数
      */
     virtual ~mobi_util() {
-        run_flag = false;
         book_id = 0;
         mobi_data_free();
         allChapters.clear();

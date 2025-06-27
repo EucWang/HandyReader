@@ -1458,7 +1458,7 @@ int32_t mobi_util::getWordCount(std::vector<ChapterCount> &wordCounts) {
             auto count = counts[i];
             int playOrder = chapters[i].playOrder;
             wordCounts.emplace_back(ChapterCount{playOrder, count.first, count.second});
-            LOGD("%s:playOrder[%d],anchor=[%s],count=[%ld]", __func__, playOrder, anchor.c_str(), count);
+            LOGD("%s:playOrder[%d],anchor=[%s],count=[%ld, %ld]", __func__, playOrder, anchor.c_str(), count.first, count.second);
         }
         LOGD("%s:total=%ld", __func__, total);
     }

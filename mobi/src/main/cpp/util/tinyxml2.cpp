@@ -853,6 +853,9 @@ namespace tinyxml2
         // Edge case: XMLDocuments don't have a Value. Return null.
         if ( this->ToDocument() )
             return 0;
+        if(_value.Empty()) {
+            return 0;
+        }
         return _value.GetStr();
     }
 

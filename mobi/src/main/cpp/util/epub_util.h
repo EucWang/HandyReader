@@ -77,7 +77,6 @@ public:
     }
 
     virtual ~epub_util() {
-        run_flag = false;
         book_id = 0;
         allChapters.clear();
         doc.ClearError();
@@ -145,6 +144,7 @@ private:
     mutable std::mutex m_Mutex;
     mutable std::mutex m_Mutex2;
     mutable std::mutex m_Mutex3;
+    mutable std::mutex m_Mutex4;
     unzFile bookzip;
     std::string currentSrc;
     bool isEmptyCss;
@@ -156,11 +156,8 @@ private:
     std::string opf_path;
     std::string ncx_path;
 
-//    int parseCssSrcList();
-
     int epub_init();
 
-    void epub_release();
 
     int parseOpfData(std::vector<NavPoint> &points);
 
@@ -194,6 +191,13 @@ private:
 
     std::string cover_to_zip_entity(const std::string &spine_name);
 
+    int open_zip_and_entities();
+
+    int load_zip_entity_data(const std::string &entity_name, std::string &output_data);
+
+    int write_zip_entity_to_file(const std::string &entity_name, const std::string output_path);
+
+    void epub_release();
 protected:
 };
 

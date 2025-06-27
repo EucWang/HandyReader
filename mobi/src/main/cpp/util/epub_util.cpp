@@ -9,6 +9,89 @@ const std::string epub_zfile_mimetype = "mimetype";
 const std::string epub_zfile_toc_ncx = "toc.ncx";
 const std::string epub_zfile_nav_xhtml = "nav.xhtml";   //epub3 中 可能会用这个文件代替toc.ncx
 
+int epub_util::open_zip_and_entities() {
+    if (!run_flag) {
+        return 0;
+    }
+    std::lock_guard<std::mutex> lock(m_Mutex4);
+    int ret = 0;
+    do {
+        bookzip = unzOpen(book_path.c_str());
+        if (bookzip == nullptr) {
+            LOGE("%s cannot open file[%s]", __func__, book_path.c_str());
+            ret = 0;
+            break;
+        }
+
+        unz_global_info gi; //获取zip文件中的条目数
+        int err = unzGetGlobalInfo(bookzip, &gi);
+        if (err != UNZ_OK || gi.number_entry <= 0) {
+            LOGE("%s cannot get zip file info", __func__);
+            unzClose(bookzip);
+            ret = 0;
+            break;
+        }
+
+        std::vector<std::string> zipfilenames = zip_ext::inner_zip_files(bookzip);
+        if (!zipfilenames.empty()) {
+            zipEntities.clear();
+            zipEntities.insert(zipEntities.end(), zipfilenames.begin(), zipfilenames.end());
+        }
+        ret = 1;
+    } while(false);
+    return ret;
+}
+
+int epub_util::write_zip_entity_to_file(const std::string &entity_name, const std::string output_path) {
+    if (!initStatus || !run_flag) {
+        return 0;
+    }
+    std::lock_guard<std::mutex> lock(m_Mutex4);
+    return zip_ext::write_zip_item_to_file(bookzip, entity_name, output_path);
+}
+
+int epub_util::load_zip_entity_data(const std::string &entity_name, std::string &output_data) {
+    if (!run_flag) {
+        return 0;
+    }
+    std::lock_guard<std::mutex> lock(m_Mutex4);
+    int retry = 3;
+    bool flag = false;
+    do {
+        if (!run_flag) {
+            retry = 0;
+            flag = false;
+            break;
+        }
+        if (retry != 3) {
+            LOGD("%s retry[%d] and await 100ms", __func__, retry);
+            std::this_thread::sleep_for(std::chrono::milliseconds(50));
+        }
+        if (1 != zip_ext::read_zip_file(bookzip, entity_name, output_data)) {
+            LOGE("%s read [%s] failed", __func__, entity_name.c_str());
+            flag = false;
+            retry--;
+        } else {
+            flag = true;
+        }
+    } while(retry > 0 && !flag);
+    if (flag) {
+        return 1;
+    } else {
+        return 0;
+    }
+}
+
+void epub_util::epub_release() {
+    LOGI("%s:invoke", __func__);
+    std::lock_guard<std::mutex> lock(m_Mutex4);
+    if (initStatus) {
+        unzClose(bookzip);
+        initStatus = false;
+    }
+    LOGI("%s:invoke done", __func__);
+}
+
 
 std::string epub_util::cover_to_zip_entity(const std::string &spine_name) {
     LOGD("%s invoke", __func__);
@@ -36,29 +119,13 @@ int epub_util::epub_init() {
         return 0;
     }
 
-    bookzip = unzOpen(book_path.c_str());
-    if (bookzip == nullptr) {
-        LOGE("%s cannot open file[%s]", __func__, book_path.c_str());
+    if (1 != open_zip_and_entities()) {
         return 0;
-    }
-
-    unz_global_info gi; //获取zip文件中的条目数
-    int err = unzGetGlobalInfo(bookzip, &gi);
-    if (err != UNZ_OK || gi.number_entry <= 0) {
-        LOGE("%s cannot get zip file info", __func__);
-        unzClose(bookzip);
-        return 0;
-    }
-
-    std::vector<std::string> zipfilenames = zip_ext::inner_zip_files(bookzip);
-    if (!zipfilenames.empty()) {
-        zipEntities.clear();
-        zipEntities.insert(zipEntities.end(), zipfilenames.begin(), zipfilenames.end());
     }
 
     //解析"META-INF/container.xml" ，获得opf路径
     std::string container_data;
-    if (1 != zip_ext::read_zip_file(bookzip, epub_zfile_container, container_data)) {
+    if (1 != load_zip_entity_data(epub_zfile_container, container_data)) {
         return 0;
     }
     if (1 != tidyh5_ext::tidy_html(container_data)) {
@@ -95,7 +162,7 @@ int epub_util::epub_init() {
 
     LOGD("%s:content.opf path is [%s]", __func__, opf_path.c_str());
     std::string opf_content_data;
-    if (1 != zip_ext::read_zip_file(bookzip, opf_path, opf_content_data)) {
+    if (1 != load_zip_entity_data(opf_path, opf_content_data)) {
         return 0;
     }
     if (1 != tidyh5_ext::tidy_html(opf_content_data)) {
@@ -172,15 +239,6 @@ int epub_util::epub_init() {
     return 1;
 }
 
-void epub_util::epub_release() {
-    LOGI("%s:invoke", __func__);
-    std::lock_guard<std::mutex> lock(m_Mutex2);
-    if (initStatus) {
-        unzClose(bookzip);
-        initStatus = false;
-    }
-    LOGI("%s:invoke done", __func__);
-}
 
 int epub_util::parseSrcName(std::string &inputSrc/*in*/,
                             std::string &spineSrc/*out*/,
@@ -539,7 +597,7 @@ int epub_util::getChapters(/*out*/std::vector<NavPoint> &points) {
     // 然而，许多出版商为了向前兼容 EPUB 2 的阅读器，仍然会保留 toc.ncx 文件
     std::string ncx_data;
     ncx_path = cover_to_zip_entity(ncx_path);
-    if (1 != zip_ext::read_zip_file(bookzip, ncx_path, ncx_data)) {
+    if (1 != load_zip_entity_data(ncx_path, ncx_data)) {
         LOGE("%s failed get0 [%s] ncx data failed", __func__, ncx_path.c_str());
         return 0;
     }
@@ -634,7 +692,7 @@ int epub_util::getChapter(JNIEnv *env, long book_id,
         }
 
         LOGD("%s::transform to zip entity src is %s", __func__, spineSrc.c_str());
-        if (1 != zip_ext::read_zip_file(bookzip, spineSrc, chapter_data)) {
+        if (1 != load_zip_entity_data(spineSrc, chapter_data)) {
             LOGE("%s read [%s] failed", __func__, spineSrc.c_str());
             return 0;
         }
@@ -810,7 +868,7 @@ int epub_util::getCss(std::vector<std::string> &cssClasses, std::vector<std::str
             LOGI("%s:invoke failed, run_flag false", __func__);
             return 0;
         }
-        if (1 != zip_ext::read_zip_file(bookzip, zipfile, cssData)) {
+        if (1 != load_zip_entity_data(zipfile, cssData)) {
             LOGE("%s read css[%s] failed", __func__, zipfile.c_str());
             return 0;
         }
@@ -842,6 +900,7 @@ int32_t epub_util::getWordCount(std::vector<ChapterCount> &wordCounts) {
     }
 
     size_t total = 0;
+    tinyxml2::XMLDocument doc2;
     if (!isSingleSrc) {
         std::string lastSpineSrc;
         for (auto item = chapters.begin(); item != chapters.end(); item++) {
@@ -885,7 +944,7 @@ int32_t epub_util::getWordCount(std::vector<ChapterCount> &wordCounts) {
                         LOGD("%s retry[%d] and await 100ms", __func__, retry);
                         std::this_thread::sleep_for(std::chrono::milliseconds(100));
                     }
-                    if (1 != zip_ext::read_zip_file(bookzip, spineSrc, chapter_data)) {
+                    if (1 != load_zip_entity_data(spineSrc, chapter_data)) {
                         LOGE("%s read [%s] failed", __func__, spineSrc.c_str());
                         flag = false;
                         retry--;
@@ -898,13 +957,13 @@ int32_t epub_util::getWordCount(std::vector<ChapterCount> &wordCounts) {
                     return 0;
                 }
 
-                doc.ClearError();
-                doc.Clear();
+                doc2.ClearError();
+                doc2.Clear();
                 if (!run_flag) {
                     LOGI("%s:invoke failed, run_flag false", __func__);
                     return 0;
                 }
-                if (doc.Parse(chapter_data.c_str(), chapter_data.size()) != tinyxml2::XML_SUCCESS) {
+                if (doc2.Parse(chapter_data.c_str(), chapter_data.size()) != tinyxml2::XML_SUCCESS) {
                     LOGE("%s failed to parse %s", __func__, spineSrc.c_str());
                     return 0;
                 }
@@ -913,7 +972,7 @@ int32_t epub_util::getWordCount(std::vector<ChapterCount> &wordCounts) {
             }
 
             int flagAdd = 0;
-            tinyxml2::XMLElement *childEle = xml_ext::getStartElement(doc.RootElement(), &flagAdd, anchorId);
+            tinyxml2::XMLElement *childEle = xml_ext::getStartElement(doc2.RootElement(), &flagAdd, anchorId);
 
             size_t wordCount = 0;
             size_t picCount = 0;
@@ -948,7 +1007,7 @@ int32_t epub_util::getWordCount(std::vector<ChapterCount> &wordCounts) {
                 LOGI("%s:invoke failed, run_flag false", __func__);
                 return 0;
             }
-            if (1 != zip_ext::read_zip_file(bookzip, spineSrc, chapter_data)) {
+            if (1 != load_zip_entity_data(spineSrc, chapter_data)) {
                 LOGE("%s read [%s] failed", __func__, spineSrc.c_str());
                 return 0;
             }
@@ -957,20 +1016,20 @@ int32_t epub_util::getWordCount(std::vector<ChapterCount> &wordCounts) {
                 return 0;
             }
 
-            doc.ClearError();
-            doc.Clear();
+            doc2.ClearError();
+            doc2.Clear();
             if (!run_flag) {
                 LOGI("%s:invoke failed, run_flag false", __func__);
                 return 0;
             }
-            if (doc.Parse(chapter_data.c_str(), chapter_data.size()) != tinyxml2::XML_SUCCESS) {
+            if (doc2.Parse(chapter_data.c_str(), chapter_data.size()) != tinyxml2::XML_SUCCESS) {
                 LOGE("%s failed to parse %s", __func__, spineSrc.c_str());
                 return 0;
             }
 
             currentSrc = spineSrc;
         }
-        tinyxml2::XMLElement *root = doc.RootElement();
+        tinyxml2::XMLElement *root = doc2.RootElement();
         if (!root) {
             LOGE("%s failed parse ncx, no root element", __func__);
             return 0;
@@ -993,7 +1052,7 @@ int32_t epub_util::getWordCount(std::vector<ChapterCount> &wordCounts) {
             auto count = counts[i];
             int playOrder = chapters[i].playOrder;
             wordCounts.emplace_back(ChapterCount{playOrder, count.first, count.second});
-            LOGD("%s:playOrder[%d],anchor=[%s],count=[%ld]", __func__, playOrder, anchor.c_str(), count);
+            LOGD("%s:playOrder[%d],anchor=[%s],count=[%ld, %ld]", __func__, playOrder, anchor.c_str(), count.first, count.second);
         }
         LOGD("%s:total=%ld", __func__, total);
     }
@@ -1003,7 +1062,6 @@ int32_t epub_util::getWordCount(std::vector<ChapterCount> &wordCounts) {
     LOGD("%s: done duration = %lld ms", __func__, duration);
     return total;
 }
-
 
 /***
  * 第一章没有内容，由于合并ncx 和opf可能导致的首页没有内容，则需要填充一个默认的内容
@@ -1105,7 +1163,7 @@ int epub_util::cache_image(JNIEnv *env,
             LOGI("%s:invoke failed, run_flag false", __func__);
             return 0;
         }
-        if (1 != zip_ext::write_zip_item_to_file(bookzip, imgzip, fullpath)) {
+        if (1 != write_zip_entity_to_file(imgzip, fullpath)) {
             LOGE("%s write image[%s] to path[%s] failed", __func__, imgzip.c_str(), fullpath.c_str());
             return 0;
         }
