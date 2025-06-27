@@ -22,54 +22,65 @@ extern "C" {
 #include <regex>
 #include <jni.h>
 
-std::vector<std::string> split(const std::string &s, char delimiter);
 
-void ltrim(std::string &s);
+class string_ext {
 
-void rtrim(std::string &s);
+public:
+    static std::vector<std::string> split(const std::string &s, char delimiter);
 
-void trim(std::string &s);
+    static void ltrim(std::string &s);
 
-std::string trim_copy(std::string s);
+    static void rtrim(std::string &s);
 
-bool endsWith(const std::string &str, const std::string &suffix);
+    static void trim(std::string &s);
 
-bool endsWithIgnoreCase(std::string str, std::string suffix);
+    static std::string trim_copy(std::string s);
 
-bool startWith(const std::string& str, const std::string& prefix);
+    static bool endsWith(const std::string &str, const std::string &suffix);
 
-/***
- * 统计utf8的字符数， 常规的std::string的size，lenght字符有问题
- * @param utf8_str
- * @return
- */
-size_t utf8Count(const std::string& utf8_str);
+    static bool endsWithIgnoreCase(std::string str, std::string suffix);
 
-/****
- * 创建随机的UUID
- * @return
- */
-std::string generate_uuid();
+    static bool startWith(const std::string& str, const std::string& prefix);
+    
+    /***
+     * 统计utf8的字符数， 常规的std::string的size，lenght字符有问题
+     * @param utf8_str
+     * @return
+     */
+    static size_t utf8Count(const std::string& utf8_str);
+    
+    /****
+     * 创建随机的UUID
+     * @return
+     */
+    static std::string generate_uuid();
 
-int toInt(std::string value);
+    static int toInt(std::string value);
+    
+    /***
+     * 判断是不是纯数字
+     * @param value
+     * @return
+     */
+    static bool is_number(std::string &value);
+    
+    /****
+     * 替换文件的后缀名
+     * @param filePath
+     * @param newExt
+     * @return
+     */
+    static std::string replaceExtension(const std::string &filePath, const std::string &newExt);
 
-/***
- * 判断是不是纯数字
- * @param value
- * @return
- */
-bool is_number(std::string &value);
+    static void replace_all(std::string &input, std::string &old_str, std::string &new_str);
 
-/****
- * 替换文件的后缀名
- * @param filePath
- * @param newExt
- * @return
- */
-std::string replaceExtension(const std::string &filePath, const std::string &newExt);
+    static std::string& cleanStr(const std::string &str);
 
-void replace_all(std::string &input, std::string &old_str, std::string &new_str);
-
-std::string& cleanStr(const std::string &str);
-
+    /****
+     * 基础的URL解码，支持ASCII 和空格
+     * @param str
+     * @return
+     */
+    static std::string base_url_decode(const std::string &str);
+};
 #endif //SIMPLEREADER2_STRING_EXT_H

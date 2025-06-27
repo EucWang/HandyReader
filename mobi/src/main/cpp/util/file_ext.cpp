@@ -15,11 +15,11 @@ std::string file_ext::handle_filename(const std::string &filename) {
     std::string predir = "..";
     std::string name;
     name.append(filename);
-    if (startWith(name, predir)) {
+    if (string_ext::startWith(name, predir)) {
         name = name.substr(predir.length());
     }
     if (name.find(separator) != std::string::npos) {
-        replace_all(name, separator, underscore);
+        string_ext::replace_all(name, separator, underscore);
     }
     return name;
 }

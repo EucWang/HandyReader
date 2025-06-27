@@ -6,19 +6,19 @@
 
 CssInfo parse_to_css_info(future::Selector *selector, std::string &identifier, int type) {
     std::string ruleData = selector->getRuleData();
-    std::vector<std::string> datas = split(ruleData, ';');
+    std::vector<std::string> datas = string_ext::split(ruleData, ';');
     std::vector<RuleData> params;
     if (!datas.empty()) {
         for (auto &data: datas) {
-            trim(data);
-            if (endsWith(data, "}")) {
+            string_ext::trim(data);
+            if (string_ext::endsWith(data, "}")) {
                 data = data.substr(0, data.size() - 1);
             }
-            trim(data);
-            std::vector<std::string> kv = split(data, ':');
+            string_ext::trim(data);
+            std::vector<std::string> kv = string_ext::split(data, ':');
             if (kv.size() == 2) {
-                std::string k = trim_copy(kv[0]);
-                std::string v = trim_copy(kv[1]);
+                std::string k = string_ext::trim_copy(kv[0]);
+                std::string v = string_ext::trim_copy(kv[1]);
                 if (!k.empty() && !v.empty()) {
                     params.emplace_back(RuleData{k, v});
                 }

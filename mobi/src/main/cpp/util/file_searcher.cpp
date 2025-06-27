@@ -81,7 +81,7 @@ void workerThread() {
                 dirQueue.push(fullPath);
             } else {
                 for(const auto& pattern : patterns) {
-                    if (endsWithIgnoreCase(name, pattern)) {
+                    if (string_ext::endsWithIgnoreCase(name, pattern)) {
                         if (pattern == ".txt") {
                             struct stat file_info;
                             if (lstat(fullPath.c_str(), &file_info) == 0) {

@@ -32,7 +32,7 @@ static std::string my_joiner = "-";
 
 namespace fs = std::filesystem;
 
-bool startWith(const std::string &str, const std::string &prefix) {
+bool string_ext::startWith(const std::string &str, const std::string &prefix) {
     if (prefix.empty()) return true;
     if (str.size() < prefix.size()) return false;
     return str.substr(0, prefix.size()) == prefix;
@@ -43,7 +43,7 @@ bool startWith(const std::string &str, const std::string &prefix) {
  * @param utf8_str
  * @return
  */
-size_t utf8Count(const std::string &utf8_str) {
+size_t string_ext::utf8Count(const std::string &utf8_str) {
     try {
         return utf8::distance(utf8_str.begin(), utf8_str.end());
     } catch (utf8::invalid_utf8 &e) {
@@ -59,7 +59,7 @@ size_t utf8Count(const std::string &utf8_str) {
  * 创建随机的UUID
  * @return
  */
-std::string generate_uuid() {
+std::string string_ext::generate_uuid() {
     std::random_device rd;
     std::mt19937 gen(rd());
     std::uniform_int_distribution<> dis(0, 15);
@@ -92,7 +92,7 @@ std::string generate_uuid() {
     return ss.str();
 }
 
-int toInt(std::string value) {
+int string_ext::toInt(std::string value) {
     try {
         return std::stoi(value);
     } catch (const std::invalid_argument &e) {
@@ -109,7 +109,7 @@ int toInt(std::string value) {
  * @param newExt
  * @return
  */
-std::string replaceExtension(const std::string &filePath, const std::string &newExt) {
+std::string string_ext::replaceExtension(const std::string &filePath, const std::string &newExt) {
     fs::path path(filePath);
 
     // 替换后缀名
@@ -123,7 +123,7 @@ std::string replaceExtension(const std::string &filePath, const std::string &new
     return path.string();
 }
 
-std::vector<std::string> split(const std::string &s, char delimiter) {
+std::vector<std::string> string_ext::split(const std::string &s, char delimiter) {
     std::vector<std::string> tokens;
     std::string token;
 
@@ -143,44 +143,44 @@ std::vector<std::string> split(const std::string &s, char delimiter) {
 
 
 //std://trim from start(in-place)
-void ltrim(std::string &s) {
+void string_ext::ltrim(std::string &s) {
     s.erase(s.begin(), std::find_if(s.begin(), s.end(), [](unsigned char ch) {
         return !std::isspace(ch);
     }));
 }
 
 //trim from end(in-place)
-void rtrim(std::string &s) {
+void string_ext::rtrim(std::string &s) {
     s.erase(std::find_if(s.rbegin(), s.rend(), [](unsigned char ch) {
         return !std::isspace(ch);
     }).base(), s.end());
 }
 
 //trim from both ends(in-place)
-void trim(std::string &s) {
+void string_ext::trim(std::string &s) {
     ltrim(s);
     rtrim(s);
 }
 
 //返回新字符串的版本(非原地修改)
-std::string trim_copy(std::string s) {
+std::string string_ext::trim_copy(std::string s) {
     trim(s);
     return s;
 }
 
-bool endsWith(const std::string &str, const std::string &suffix) {
+bool string_ext::endsWith(const std::string &str, const std::string &suffix) {
     return str.size() >= suffix.size() &&
            std::equal(suffix.rbegin(), suffix.rend(), str.rbegin());
 }
 
-bool endsWithIgnoreCase(std::string str, std::string suffix) {
+bool string_ext::endsWithIgnoreCase(std::string str, std::string suffix) {
     if (suffix.size() > str.size())return false;
     std::transform(str.begin(), str.end(), str.begin(), tolower);
     std::transform(suffix.begin(), suffix.end(), suffix.begin(), tolower);
     return str.compare(str.size() - suffix.size(), suffix.size(), suffix) == 0;
 }
 
-void replace_all(std::string &input, std::string &old_str, std::string &new_str) {
+void string_ext::replace_all(std::string &input, std::string &old_str, std::string &new_str) {
     size_t pos = 0;
     while ((pos = input.find(old_str, pos)) != std::string::npos) {
         input.replace(pos, old_str.length(), new_str);
@@ -189,7 +189,7 @@ void replace_all(std::string &input, std::string &old_str, std::string &new_str)
 }
 
 
-std::string &cleanStr(const std::string &str) {
+std::string &string_ext::cleanStr(const std::string &str) {
     std::string ret = str;
 //    trim(ret);
     ret = std::regex_replace(ret, regex, my_empty_str);
@@ -216,7 +216,7 @@ std::string &cleanStr(const std::string &str) {
  * @param value
  * @return
  */
-bool is_number(std::string &str) {
+bool string_ext::is_number(std::string &str) {
     bool hasDot = false;
     bool hastive = false;   //是否有正负符号
     bool ret = true;
@@ -239,4 +239,32 @@ bool is_number(std::string &str) {
         }
     }
     return ret;
+}
+
+std::string string_ext::base_url_decode(const std::string &encoded) {
+    if (encoded.empty()) {
+        return encoded;
+    }
+    std::ostringstream decoded;
+    for (size_t i = 0; i < encoded.length(); ++i) {
+        if (encoded[i] == '%' && i + 2 < encoded.length()) {
+            // 十六进制转字节：%20 → 0x20
+            const char high = std::isxdigit(encoded[i+1]) ?
+                              (encoded[i+1] >= 'A' ? (encoded[i+1] & 0xDF) - 'A' + 10 : encoded[i+1] - '0') : -1;
+            const char low = std::isxdigit(encoded[i+2]) ?
+                             (encoded[i+2] >= 'A' ? (encoded[i+2] & 0xDF) - 'A' + 10 : encoded[i+2] - '0') : -1;
+
+            if (high != -1 && low != -1) {
+                decoded << static_cast<char>((high << 4) | low);
+                i += 2;  // 跳过已处理的 %XX
+            } else {
+                decoded << encoded[i];  // 非法编码保留 %
+            }
+        } else if (encoded[i] == '+') {
+            decoded << ' ';  // + 替换为空格 [[3]][[8]]
+        } else {
+            decoded << encoded[i];  // 普通字符直接保留
+        }
+    }
+    return decoded.str();
 }

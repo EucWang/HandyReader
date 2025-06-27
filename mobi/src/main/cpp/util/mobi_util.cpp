@@ -60,7 +60,7 @@ void parseNavPoints(tinyxml2::XMLElement *firstNavPoint, std::vector<NavPoint> &
         const char *src = navPoint->FirstChildElement("content")->Attribute("src");
         NavPoint nav;
         nav.id = id;
-        nav.playOrder = toInt(playOrder);
+        nav.playOrder = string_ext::toInt(playOrder);
         nav.text = label;
         nav.src = src;
         nav.parentId = parentId;
@@ -193,7 +193,7 @@ int mobi_util::parseOpfData(const char *opf_data, size_t opf_data_size, std::vec
                         newpoint.src = orderedItemSrc[i];
                         newpoint.text = "";
                         newpoint.parentId = "";
-                        newpoint.id = generate_uuid();
+                        newpoint.id = string_ext::generate_uuid();
                         newPoints.push_back(newpoint);
                     }
                     startOpfIndex = opfIndex + 1;
@@ -220,7 +220,7 @@ int mobi_util::parseOpfData(const char *opf_data, size_t opf_data_size, std::vec
                 NavPoint point;
                 point.src = opf;
                 point.text = "";
-                point.id = generate_uuid();
+                point.id = string_ext::generate_uuid();
                 point.parentId = "";
                 newPoints.push_back(point);
             }
@@ -252,7 +252,7 @@ int mobi_util::parseOpfData(const char *opf_data, size_t opf_data_size, std::vec
             NavPoint point;
             point.src = orderedItemSrc[0];
             point.text = "";
-            point.id = generate_uuid();
+            point.id = string_ext::generate_uuid();
             point.parentId = "";
             newPoints.insert(newPoints.begin(), point);
         }
@@ -607,19 +607,19 @@ int mobi_util::parseSrcName(std::string &src,
         return 0;
     }
 
-    if (startWith(srcTypeName, flow)) {
+    if (string_ext::startWith(srcTypeName, flow)) {
         type = 1;
         if (flow.size() + 1 < srcTypeName.size()) {
             uid = srcTypeName.substr(flow.size() + 1);
         }
         prefix = flow;
-    } else if (startWith(srcTypeName, part)) {
+    } else if (string_ext::startWith(srcTypeName, part)) {
         type = 2;
         if (part.size() + 1 < srcTypeName.size()) {
             uid = srcTypeName.substr(part.size() + 1);
         }
         prefix = part;
-    } else if (startWith(srcTypeName, resource)) {
+    } else if (string_ext::startWith(srcTypeName, resource)) {
         type = 3;
         if (resource.size() + 1 < srcTypeName.size()) {
             uid = srcTypeName.substr(resource.size() + 1);
@@ -736,7 +736,7 @@ int mobi_util::parseHtmlDoc(JNIEnv *env,
                     if (!params.empty()) {
                         TagInfo tag;
                         tag.name = name;;
-                        tag.uuid = generate_uuid();
+                        tag.uuid = string_ext::generate_uuid();
                         tag.startPos = 0;
                         tag.endPos = 0;
                         tag.params = params;
@@ -773,9 +773,9 @@ int mobi_util::parseHtmlDoc(JNIEnv *env,
                 if (!params.empty()) {
                     TagInfo tag;
                     tag.name = name;;
-                    tag.uuid = generate_uuid();
+                    tag.uuid = string_ext::generate_uuid();
                     tag.startPos = 0;
-                    tag.endPos = utf8Count(text);
+                    tag.endPos = string_ext::utf8Count(text);
                     tag.params = params;
                     docText.tagInfos.emplace_back(tag);
                 }
@@ -783,7 +783,7 @@ int mobi_util::parseHtmlDoc(JNIEnv *env,
                 if (!parentTags.empty()) {
                     for (auto &tag: parentTags) {
                         if (tag.endPos == 0) {
-                            tag.endPos = utf8Count(text);
+                            tag.endPos = string_ext::utf8Count(text);
                         }
                         docText.tagInfos.push_back(tag);
                     }
@@ -822,9 +822,9 @@ int mobi_util::parseHtmlDoc(JNIEnv *env,
                 if (!params.empty()) {
                     TagInfo tag;
                     tag.name = name;;
-                    tag.uuid = generate_uuid();
+                    tag.uuid = string_ext::generate_uuid();
                     tag.startPos = 0;
-                    tag.endPos = utf8Count(text);
+                    tag.endPos = string_ext::utf8Count(text);
                     tag.params = params;
                     docText.tagInfos.emplace_back(tag);
                 }
@@ -832,7 +832,7 @@ int mobi_util::parseHtmlDoc(JNIEnv *env,
                 if (!parentTags.empty()) {
                     for (auto &tag: parentTags) {
                         if (tag.endPos == 0) {
-                            tag.endPos = utf8Count(text);
+                            tag.endPos = string_ext::utf8Count(text);
                         }
                         docText.tagInfos.push_back(tag);
                     }
@@ -849,7 +849,7 @@ int mobi_util::parseHtmlDoc(JNIEnv *env,
                     if (!params.empty()) {
                         TagInfo tag;
                         tag.name = name;;
-                        tag.uuid = generate_uuid();
+                        tag.uuid = string_ext::generate_uuid();
                         tag.startPos = 0;
                         tag.endPos = 0;
                         tag.params = params;
@@ -873,18 +873,18 @@ int mobi_util::parseHtmlDoc(JNIEnv *env,
                 break;
             }
 
-            if (elemText != nullptr && utf8Count(elemText) > 0) {
+            if (elemText != nullptr && string_ext::utf8Count(elemText) > 0) {
                 std::vector<TagInfo> tagInfos;
                 std::string elemTextStr(elemText, elemText + strlen(elemText));
-                elemTextStr = cleanStr(elemTextStr);
+                elemTextStr = string_ext::cleanStr(elemTextStr);
                 DocText docText{elemTextStr, tagInfos};
 
-                auto tag = TagInfo{generate_uuid(), aid, name, 0, utf8Count(docText.text), "", xml_ext::ele_params(elem, spineSrcName)};
+                auto tag = TagInfo{string_ext::generate_uuid(), aid, name, 0, string_ext::utf8Count(docText.text), "", xml_ext::ele_params(elem, spineSrcName)};
                 docText.tagInfos.push_back(tag);
                 if (!parentTags.empty()) {
                     for (auto &tag: parentTags) {
                         if (tag.endPos == 0) {
-                            tag.endPos = utf8Count(docText.text);
+                            tag.endPos = string_ext::utf8Count(docText.text);
                         }
                         docText.tagInfos.push_back(tag);
                     }
@@ -899,7 +899,7 @@ int mobi_util::parseHtmlDoc(JNIEnv *env,
                 std::string text = xml_ext::parse_paragraph(elem, tagInfos, startAnchorId, endAnchorId, flagAdd, spineSrcName);
                 if (!text.empty() || !tagInfos.empty()) {
                     docText.text = text;
-                    docText.tagInfos.push_back(TagInfo{generate_uuid(), aid, name, 0, utf8Count(docText.text), "", xml_ext::ele_params(elem, spineSrcName)});
+                    docText.tagInfos.push_back(TagInfo{string_ext::generate_uuid(), aid, name, 0, string_ext::utf8Count(docText.text), "", xml_ext::ele_params(elem, spineSrcName)});
                     if (!tagInfos.empty()) {
                         for (auto &tag: tagInfos) {
                             docText.tagInfos.push_back(tag);
@@ -908,7 +908,7 @@ int mobi_util::parseHtmlDoc(JNIEnv *env,
                     if (!parentTags.empty()) {
                         for (auto &tag: parentTags) {
                             if (tag.endPos == 0) {
-                                tag.endPos = utf8Count(docText.text);
+                                tag.endPos = string_ext::utf8Count(docText.text);
                             }
                             docText.tagInfos.push_back(tag);
                         }
@@ -929,16 +929,16 @@ int mobi_util::parseHtmlDoc(JNIEnv *env,
                 *flagAdd = 2;
                 break;
             }
-            if (elemText != nullptr && utf8Count(elemText) > 0) {
+            if (elemText != nullptr && string_ext::utf8Count(elemText) > 0) {
                 std::string elemTextStr(elemText, elemText + strlen(elemText));
-                elemTextStr = cleanStr(elemTextStr);
+                elemTextStr = string_ext::cleanStr(elemTextStr);
                 std::vector<TagInfo> tagInfos;
                 DocText docText{elemTextStr, tagInfos};
-                docText.tagInfos.push_back(TagInfo{generate_uuid(), aid, name, 0, utf8Count(docText.text), "", xml_ext::ele_params(elem, spineSrcName)});
+                docText.tagInfos.push_back(TagInfo{string_ext::generate_uuid(), aid, name, 0, string_ext::utf8Count(docText.text), "", xml_ext::ele_params(elem, spineSrcName)});
                 if (!parentTags.empty()) {
                     for (auto &tag: parentTags) {
                         if (tag.endPos == 0) {
-                            tag.endPos = utf8Count(docText.text);
+                            tag.endPos = string_ext::utf8Count(docText.text);
                         }
                         docText.tagInfos.push_back(tag);
                     }
@@ -976,11 +976,11 @@ int mobi_util::parseHtmlDoc(JNIEnv *env,
             }
 
             std::string params = xml_ext::ele_params(elem, spineSrcName);
-            docText.tagInfos.push_back(TagInfo{generate_uuid(), aid, name, 0, utf8Count(docText.text), "", params});
+            docText.tagInfos.push_back(TagInfo{string_ext::generate_uuid(), aid, name, 0, string_ext::utf8Count(docText.text), "", params});
             if (!parentTags.empty()) {
                 for (auto &tag: parentTags) {
                     if (tag.endPos == 0) {
-                        tag.endPos = utf8Count(docText.text);
+                        tag.endPos = string_ext::utf8Count(docText.text);
                     }
                     docText.tagInfos.push_back(tag);
                 }
@@ -991,7 +991,7 @@ int mobi_util::parseHtmlDoc(JNIEnv *env,
             }
         } else if (name == "img") {
             const char *imgSrc = elem->Attribute("src");
-            if (imgSrc != nullptr && utf8Count(imgSrc) > 0) {
+            if (imgSrc != nullptr && string_ext::utf8Count(imgSrc) > 0) {
                 std::string imgSrcStr = imgSrc;
                 std::string prefix;
                 std::string spineSrc;
@@ -1009,11 +1009,11 @@ int mobi_util::parseHtmlDoc(JNIEnv *env,
                         std::vector<TagInfo> tags;
                         DocText docText{"", tags};
                         std::string params = "src=" + fullpath + "&width=" + std::to_string(width) + "&height=" + std::to_string(height);
-                        docText.tagInfos.emplace_back(TagInfo{generate_uuid(), "", "img", 0, 0, "", params});
+                        docText.tagInfos.emplace_back(TagInfo{string_ext::generate_uuid(), "", "img", 0, 0, "", params});
                         if (!parentTags.empty()) {
                             for (auto &tag: parentTags) {
                                 if (tag.endPos == 0) {
-                                    tag.endPos = utf8Count(docText.text);
+                                    tag.endPos = string_ext::utf8Count(docText.text);
                                 }
                                 docText.tagInfos.push_back(tag);
                             }
@@ -1275,7 +1275,7 @@ void mobi_util::mockFirstPage(NavPoint &chapter, std::vector<DocText> &docTexts)
         if (title != nullptr) {
             std::vector<TagInfo> tagInfos;
             tagInfos.push_back(TagInfo{
-                    generate_uuid(),
+                    string_ext::generate_uuid(),
                     "",
                     "h1",
                     0,
@@ -1288,7 +1288,7 @@ void mobi_util::mockFirstPage(NavPoint &chapter, std::vector<DocText> &docTexts)
         if (author != nullptr) {
             std::vector<TagInfo> tagInfos;
             tagInfos.push_back(TagInfo{
-                    generate_uuid(),
+                    string_ext::generate_uuid(),
                     "",
                     "p",
                     0,
@@ -1301,7 +1301,7 @@ void mobi_util::mockFirstPage(NavPoint &chapter, std::vector<DocText> &docTexts)
         if (publisher != nullptr) {
             std::vector<TagInfo> tagInfos;
             tagInfos.push_back(TagInfo{
-                    generate_uuid(),
+                    string_ext::generate_uuid(),
                     "",
                     "p",
                     0,
@@ -1585,8 +1585,8 @@ int mobi_util::countHtmlDoc2(
         } else if (name == "h1" || name == "h2" || name == "h3" || name == "h4" || name == "h5" || name == "h6" || name == "h7") {
             std::string eleText = xml_ext::getEleText(elem);
             if (!eleText.empty()) {
-                eleText = cleanStr(eleText);
-                *chapterWordCount += utf8Count(eleText);
+                eleText = string_ext::cleanStr(eleText);
+                *chapterWordCount += string_ext::utf8Count(eleText);
             } else {
                 size_t count = countParagraph(elem, anchors, wordCount, chapterIndex, chapterWordCount, spineSrcName);
                 *chapterWordCount += count;
@@ -1594,8 +1594,8 @@ int mobi_util::countHtmlDoc2(
         } else if (name == "strong" || name == "em" || name == "b" || name == "i") {
             std::string eleText = xml_ext::getEleText(elem);
             if (!eleText.empty()) {
-                eleText = cleanStr(eleText);
-                *chapterWordCount += utf8Count(eleText);
+                eleText = string_ext::cleanStr(eleText);
+                *chapterWordCount += string_ext::utf8Count(eleText);
             }
         } else if (name == "a") {
             size_t count = countParagraph(elem, anchors, wordCount, chapterIndex, chapterWordCount, spineSrcName);
@@ -1650,7 +1650,7 @@ int mobi_util::countHtmlDoc(tinyxml2::XMLElement *element,
                 std::vector<TagInfo> tagInfos;
                 std::string text = xml_ext::parse_paragraph(elem, tagInfos, startAnchorId, endAnchorId, flagAdd, spineSrcName);
                 if (*flagAdd == 1) {
-                    *wordCount += utf8Count(text);
+                    *wordCount += string_ext::utf8Count(text);
                 }
             }
         } else if (name == "div" || name == "ul" || name == "ol" || name == "li" || name == "span" || name == "font" || name == "blockquote") {
@@ -1671,7 +1671,7 @@ int mobi_util::countHtmlDoc(tinyxml2::XMLElement *element,
                 std::string text = xml_ext::parse_paragraph(elem, tagInfos, startAnchorId, endAnchorId, flagAdd, spineSrcName);
 
                 if (*flagAdd == 1) {
-                    *wordCount += utf8Count(text);
+                    *wordCount += string_ext::utf8Count(text);
                 }
             } else {
                 auto count = elem->ChildElementCount();
@@ -1694,19 +1694,19 @@ int mobi_util::countHtmlDoc(tinyxml2::XMLElement *element,
                 break;
             }
 
-            if (elemText != nullptr && utf8Count(elemText) > 0) {
+            if (elemText != nullptr && string_ext::utf8Count(elemText) > 0) {
                 std::vector<TagInfo> tagInfos;
                 std::string elemTextStr(elemText, elemText + strlen(elemText));
-                elemTextStr = cleanStr(elemTextStr);
+                elemTextStr = string_ext::cleanStr(elemTextStr);
 
                 if (1 == *flagAdd) {
-                    *wordCount += utf8Count(elemTextStr);
+                    *wordCount += string_ext::utf8Count(elemTextStr);
                 }
             } else {
                 std::vector<TagInfo> tagInfos;
                 std::string text = xml_ext::parse_paragraph(elem, tagInfos, startAnchorId, endAnchorId, flagAdd, spineSrcName);
                 if (1 == *flagAdd) {
-                    *wordCount += utf8Count(text);
+                    *wordCount += string_ext::utf8Count(text);
                 }
             }
         } else if (name == "strong" || name == "em" || name == "b" || name == "i") {
@@ -1722,11 +1722,11 @@ int mobi_util::countHtmlDoc(tinyxml2::XMLElement *element,
                 *flagAdd = 2;
                 break;
             }
-            if (elemText != nullptr && utf8Count(elemText) > 0) {
+            if (elemText != nullptr && string_ext::utf8Count(elemText) > 0) {
                 std::string elemTextStr(elemText, elemText + strlen(elemText));
-                elemTextStr = cleanStr(elemTextStr);
+                elemTextStr = string_ext::cleanStr(elemTextStr);
                 if (1 == *flagAdd) {
-                    *wordCount += utf8Count(elemTextStr);
+                    *wordCount += string_ext::utf8Count(elemTextStr);
                 }
             }
         } else if (name == "a") {
@@ -1742,7 +1742,7 @@ int mobi_util::countHtmlDoc(tinyxml2::XMLElement *element,
             std::string text = xml_ext::parse_paragraph(elem, tagInfos, startAnchorId, endAnchorId, flagAdd, spineSrcName);
 
             if (1 == *flagAdd) {
-                *wordCount += utf8Count(text);
+                *wordCount += string_ext::utf8Count(text);
             }
         }
         elem = elem->NextSiblingElement();
@@ -1764,7 +1764,7 @@ mobi_util::countParagraph(const tinyxml2::XMLElement *pElem,
     for (const tinyxml2::XMLNode *child = pElem->FirstChild(); child != nullptr; child = child->NextSibling()) {
         if (child->ToText()) {
             const char *text = child->Value();
-            if (text != nullptr && utf8Count(text) > 0) {
+            if (text != nullptr && string_ext::utf8Count(text) > 0) {
                 fullText += text;
 //                offset += utf8Count(text);
             }
@@ -1782,8 +1782,8 @@ mobi_util::countParagraph(const tinyxml2::XMLElement *pElem,
             countElement(elem, fullText, anchors, wordCount, chapterIndex, chapterWordCount, spineSrcName);
         }
     }
-    fullText = cleanStr(fullText);
-    return utf8Count(fullText);
+    fullText = string_ext::cleanStr(fullText);
+    return string_ext::utf8Count(fullText);
 }
 
 void

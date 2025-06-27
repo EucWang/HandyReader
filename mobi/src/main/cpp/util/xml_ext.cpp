@@ -40,7 +40,7 @@ std::string xml_ext::getEleText(const tinyxml2::XMLElement *elem) {
     std::string text;
     if (elem != nullptr) {
         const char *elemText = elem->GetText();
-        if (elemText != nullptr && utf8Count(elemText) > 0) {
+        if (elemText != nullptr && string_ext::utf8Count(elemText) > 0) {
             text = elemText;
         }
     }
@@ -267,13 +267,13 @@ void xml_ext::parseNavData(tinyxml2::XMLElement *firstNavPoint, std::vector<NavP
         const char *src = navPoint->FirstChildElement("content")->Attribute("src");
         NavPoint nav;
         nav.id = id;
-        nav.playOrder = toInt(playOrder);
+        nav.playOrder = string_ext::toInt(playOrder);
         nav.text = label;
         nav.src = src;
         nav.parentId = parentId;
-        if (startWith(nav.src, "../")) {
+        if (string_ext::startWith(nav.src, "../")) {
             nav.src = nav.src.substr(3);
-        } else if (startWith(nav.src, "./")) {
+        } else if (string_ext::startWith(nav.src, "./")) {
             nav.src = nav.src.substr(2);
         }
         vectors.push_back(nav);
@@ -360,18 +360,22 @@ std::string xml_ext::ele_params(const tinyxml2::XMLElement *elem, std::string &s
                 if (name == "src" || name == "xlink:href" ||
                     name == "href" || name == "l:href") {
                     name = "src";
+                    if (string_ext::startWith(value, "../")) {
+                        value = value.substr(3);
+                    }
+                    //防止路径中，存在url编码，用简单的url解码处理下
+                    std::string decoded_value = string_ext::base_url_decode(value);
+                    value = decoded_value;
                 }
-            } else if (tagname == "table") {     //表格, 需要计算表格的 行数列数，作为参数保存到params中
-                //TODO
             }
 
             if (name == "href") {
                 if (!value.empty()) {
-                    if (!startWith(value, "http")) {
+                    if (!string_ext::startWith(value, "http")) {
                         bool isSrcName = true;
                         if (value.find('#') != std::string::npos) { //完整的链接
                         } else { //只包含一部分
-                            if (is_number(value) || startWith(value, "#")) { // 只是anchor部分
+                            if (string_ext::is_number(value) || string_ext::startWith(value, "#")) { // 只是anchor部分
                                 isSrcName = false;
                             }
                         }
@@ -379,7 +383,7 @@ std::string xml_ext::ele_params(const tinyxml2::XMLElement *elem, std::string &s
                         std::string href;
                         if (!isSrcName) {
                             href.append(spineSrcName);
-                            if (!startWith(value, "#")) {
+                            if (!string_ext::startWith(value, "#")) {
                                 href.append("#");
                             }
                         }
@@ -446,7 +450,7 @@ size_t xml_ext::parse_elem(const tinyxml2::XMLElement *elem,
                 const char *text = child->Value();
                 if (text != nullptr) {
                     fullText += text;
-                    currentOffset += utf8Count(text);
+                    currentOffset += string_ext::utf8Count(text);
                 }
             } else if (child->ToElement()) {
                 auto item = child->ToElement();
@@ -462,7 +466,7 @@ size_t xml_ext::parse_elem(const tinyxml2::XMLElement *elem,
                     }
 
                     std::string params = xml_ext::ele_params(item, spineSrcName);
-                    auto newTag = TagInfo{generate_uuid(), tagId, item->Name(), currentOffset, currentOffset, parent_uuid, params};
+                    auto newTag = TagInfo{string_ext::generate_uuid(), tagId, item->Name(), currentOffset, currentOffset, parent_uuid, params};
 
                     size_t endOffset = parse_elem(item, fullText, newTag.uuid, childStart, subTags, startAnchorId, endAnchorId, flagAdd, spineSrcName);
 
@@ -501,9 +505,9 @@ std::string xml_ext::parse_paragraph(const tinyxml2::XMLElement *pElem,
         for (const tinyxml2::XMLNode *child = pElem->FirstChild(); child != nullptr; child = child->NextSibling()) {
             if (child->ToText()) {
                 const char *text = child->Value();
-                if (text != nullptr && utf8Count(text) > 0) {
+                if (text != nullptr && string_ext::utf8Count(text) > 0) {
                     fullText += text;
-                    offset += utf8Count(text);
+                    offset += string_ext::utf8Count(text);
                 }
             } else if (child->ToElement()) {
                 size_t childStart = offset;
@@ -523,7 +527,7 @@ std::string xml_ext::parse_paragraph(const tinyxml2::XMLElement *pElem,
 
                 std::string params = xml_ext::ele_params(elem, spineSrcName);
 
-                auto newTag = TagInfo{generate_uuid(), aid, elem->Name(), childStart, childStart, "", params};
+                auto newTag = TagInfo{string_ext::generate_uuid(), aid, elem->Name(), childStart, childStart, "", params};
                 offset = xml_ext::parse_elem(child->ToElement(), fullText, newTag.uuid, childStart, subTags, startAnchorId, endAnchorId, flagAdd, spineSrcName);
 
                 if (offset > childStart) {
@@ -533,7 +537,7 @@ std::string xml_ext::parse_paragraph(const tinyxml2::XMLElement *pElem,
             }
         }
     }
-    fullText = cleanStr(fullText);
+    fullText = string_ext::cleanStr(fullText);
     return fullText;
 }
 
@@ -706,8 +710,8 @@ size_t xml_ext::count_ele_words(tinyxml2::XMLElement *element, size_t *wordcount
             const char *text = domText->Value();
             if (text != nullptr && strlen(text) > 0) {
                 std::string str(text);
-                str = cleanStr(str);
-                *wordcount += utf8Count(str);
+                str = string_ext::cleanStr(str);
+                *wordcount += string_ext::utf8Count(str);
             }
         } else if (domElem != nullptr) {
             std::string name = xml_ext::ele_name(domElem);
@@ -989,8 +993,8 @@ size_t xml_ext::count_words(
                 const char *text = domText->Value();
                 if (text != nullptr && strlen(text) > 0) {
                     std::string str(text);
-                    str = cleanStr(str);
-                    *wordcount += utf8Count(str);
+                    str = string_ext::cleanStr(str);
+                    *wordcount += string_ext::utf8Count(str);
                 }
             } else if (domElem != nullptr) {
                 std::string name = xml_ext::ele_name(domElem);
@@ -1094,8 +1098,8 @@ size_t xml_ext::count_words(
             const char *text = domText->Value();
             if (text != nullptr && strlen(text) > 0) {
                 std::string str(text);
-                str = cleanStr(str);
-                size_t count = utf8Count(str);
+                str = string_ext::cleanStr(str);
+                size_t count = string_ext::utf8Count(str);
                 chapterWordCount += count;
                 total += count;
             }
@@ -1207,9 +1211,9 @@ int xml_ext::parse(
             if (domText != nullptr) {  //是文本节点, 文本节点的标签都在stack中
                 const char *text = domText->Value();
                 if (text != nullptr && strlen(text) > 0) {
-                    std::string filtered_str = cleanStr(text);
+                    std::string filtered_str = string_ext::cleanStr(text);
                     ss << filtered_str;
-                    offset += utf8Count(filtered_str);
+                    offset += string_ext::utf8Count(filtered_str);
 
                     //文本必然位于其上一层的html标签中，找到这个html标签
                     if (!stack.empty() && !tags.empty()) {
@@ -1280,7 +1284,7 @@ int xml_ext::parse(
                     }
 
                     if(tag_name != "br") {  //br 换行标签不需要插入记录了，已经分段了
-                        auto tag = TagInfo{generate_uuid(),
+                        auto tag = TagInfo{string_ext::generate_uuid(),
                                            xml_ext::getEleAttr(domElem, "id"),
                                            tag_name,
                                            offset,
@@ -1310,7 +1314,7 @@ int xml_ext::parse(
                 //body的直接子标签全部都是自然段落
                 if (stack.empty()) {
                     std::string line = ss.str();
-                    if (!tags.empty() || utf8Count(line) > 0) {
+                    if (!tags.empty() || string_ext::utf8Count(line) > 0) {
                         docTexts.emplace_back(DocText{line, tags});
                     }
                     ss.str("");
@@ -1390,7 +1394,7 @@ int xml_ext::parse(
         if (!nodeTagUUIds.empty()) {
             if (stack.empty()) { //栈空，则全部内容作为一个段落
                 std::string line = ss.str();
-                if (!tags.empty() || utf8Count(line) > 0) {
+                if (!tags.empty() || string_ext::utf8Count(line) > 0) {
                     docTexts.emplace_back(DocText{line, tags});
                 }
                 ss.str("");
@@ -1463,7 +1467,7 @@ int xml_ext::parse(
                         }
                     } else {    //不需要分段
                         std::string line = ss.str();
-                        if (!tags.empty() || utf8Count(line) > 0) {
+                        if (!tags.empty() || string_ext::utf8Count(line) > 0) {
                             docTexts.emplace_back(DocText{line, tags});
                         }
                         ss.str("");
@@ -1503,15 +1507,15 @@ int xml_ext::parse(
 std::vector<std::pair<std::string, std::string>> xml_ext::parse_str_params(std::string &params) {
     std::vector<std::pair<std::string, std::string>> ret;
     if (!params.empty()) {
-        std::vector<std::string> kvs = split(params, '&');
+        std::vector<std::string> kvs = string_ext::split(params, '&');
         if (!kvs.empty()) {
             for (auto &kv: kvs) {
-                std::vector<std::string> item = split(kv, '=');
+                std::vector<std::string> item = string_ext::split(kv, '=');
                 if (item.size() == 2) {
                     std::string key = item[0];
                     std::string value = item[1];
-                    trim(key);
-                    trim(value);
+                    string_ext::trim(key);
+                    string_ext::trim(value);
                     if (key == "xlink:href" || key == "href" || key == "l:href") {
                         key = "src";
                     }

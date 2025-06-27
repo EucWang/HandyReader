@@ -245,7 +245,7 @@ int epub_util::parseSrcName(std::string &inputSrc/*in*/,
                             std::string &anchorId/*out*/) {
 //    LOGI("%s:invoke", __func__);
     if (inputSrc.find('#') != std::string::npos) {
-        std::vector<std::string> parts = split(inputSrc, '#');
+        std::vector<std::string> parts = string_ext::split(inputSrc, '#');
         if (parts.size() == 2) {
             spineSrc = parts[0];
             anchorId = parts[1];
@@ -500,7 +500,7 @@ int epub_util::parseOpfData(std::vector<NavPoint> &points) {
                         newpoint.src = orderedItemSrc[i];
                         newpoint.text = "";
                         newpoint.parentId = "";
-                        newpoint.id = generate_uuid();
+                        newpoint.id = string_ext::generate_uuid();
                         newPoints.push_back(newpoint);
                     }
                     startOpfIndex = opfIndex + 1;
@@ -527,7 +527,7 @@ int epub_util::parseOpfData(std::vector<NavPoint> &points) {
                 NavPoint point;
                 point.src = opf;
                 point.text = "";
-                point.id = generate_uuid();
+                point.id = string_ext::generate_uuid();
                 point.parentId = "";
                 newPoints.push_back(point);
             }
@@ -550,7 +550,7 @@ int epub_util::parseOpfData(std::vector<NavPoint> &points) {
         std::string &src = points[0].src;
         std::string anchorId;
         if (src.find("#") != std::string::npos) {
-            std::vector<std::string> parts = split(src, '#');
+            std::vector<std::string> parts = string_ext::split(src, '#');
             if (parts.size() == 2) {
                 anchorId = parts[1];
             }
@@ -560,7 +560,7 @@ int epub_util::parseOpfData(std::vector<NavPoint> &points) {
             NavPoint point;
             point.src = orderedItemSrc[0];
             point.text = "";
-            point.id = generate_uuid();
+            point.id = string_ext::generate_uuid();
             point.parentId = "";
             newPoints.insert(newPoints.begin(), point);
         }
@@ -768,9 +768,9 @@ void epub_util::handle_tags(JNIEnv *env, std::vector<DocText> &docTexts) {
                         if (kv.first == "src") {
                             imgSrc = kv.second;
                         } else if (kv.first == "width") {
-                            width = toInt(kv.second);
+                            width = string_ext::toInt(kv.second);
                         } else if (kv.first == "height") {
-                            width = toInt(kv.second);
+                            width = string_ext::toInt(kv.second);
                         }
                     }
                     if (!imgSrc.empty()) {
@@ -1076,7 +1076,7 @@ void epub_util::mockFirstPage(NavPoint &chapter, std::vector<DocText> &docTexts)
         if (!title.empty()) {
             std::vector<TagInfo> tagInfos;
             tagInfos.push_back(TagInfo{
-                    generate_uuid(),
+                    string_ext::generate_uuid(),
                     "",
                     "h1",
                     0,
@@ -1089,7 +1089,7 @@ void epub_util::mockFirstPage(NavPoint &chapter, std::vector<DocText> &docTexts)
         if (!author.empty()) {
             std::vector<TagInfo> tagInfos;
             tagInfos.push_back(TagInfo{
-                    generate_uuid(),
+                    string_ext::generate_uuid(),
                     "",
                     "p",
                     0,
@@ -1102,7 +1102,7 @@ void epub_util::mockFirstPage(NavPoint &chapter, std::vector<DocText> &docTexts)
         if (!publisher.empty()) {
             std::vector<TagInfo> tagInfos;
             tagInfos.push_back(TagInfo{
-                    generate_uuid(),
+                    string_ext::generate_uuid(),
                     "",
                     "p",
                     0,
