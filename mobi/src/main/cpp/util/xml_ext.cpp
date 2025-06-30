@@ -1177,8 +1177,9 @@ bool xml_ext::empty_node(const tinyxml2::XMLElement *elem) {
     }
     std::string noSpineSrcName = "";
     bool nochild = elem->NoChildren();
+    std::string name = xml_ext::ele_name(elem);
     bool noAttr = xml_ext::ele_params(elem, noSpineSrcName).empty();
-    return nochild && noAttr;
+    return nochild && noAttr && name != "br";
 }
 
 int xml_ext::parse(

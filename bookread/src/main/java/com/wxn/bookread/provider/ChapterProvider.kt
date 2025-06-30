@@ -1201,7 +1201,7 @@ object ChapterProvider {
                     var isLastLine = (lineIndex == layout.lineCount - 1)
 
                     when (textAlign) {
-                        CssTextAlign.CssTextAlignLeft -> addCharsToLineLeft(
+                        CssTextAlign.CssTextAlignLeft, CssTextAlign.CssTextAlignJustify -> addCharsToLineLeft(
                             textLine,
                             words.toStringArray(),
                             textPaint,
@@ -1210,17 +1210,17 @@ object ChapterProvider {
 
                         CssTextAlign.CssTextAlignRight -> addCharsToLineRight(textLine, words.toStringArray(), textPaint, desiredWidth, marginRight)
                         CssTextAlign.CssTextAlignCenter -> addCharsToLineCenter(textLine, words.toStringArray(), textPaint, desiredWidth)
-                        CssTextAlign.CssTextAlignJustify -> {
-                            if (layout.lineCount == 1) {
-                                addCharsToLineLeft(textLine, words.toStringArray(), textPaint, marginLeft)
-                            } else {
-                                if (isLastLine) {    //两端对齐，除了最后一行
-                                    addCharsToLineLeft(textLine, words.toStringArray(), textPaint, marginLeft)
-                                } else {
-                                    addCharsToLineMiddle(textLine, words.toStringArray(), textPaint, desiredWidth, marginLeft)
-                                }
-                            }
-                        }
+//                        CssTextAlign.CssTextAlignJustify -> {
+//                            if (layout.lineCount == 1) {
+//                                addCharsToLineLeft(textLine, words.toStringArray(), textPaint, marginLeft)
+//                            } else {
+//                                if (isLastLine) {    //两端对齐，除了最后一行
+//                                    addCharsToLineLeft(textLine, words.toStringArray(), textPaint, marginLeft)
+//                                } else {
+//                                    addCharsToLineMiddle(textLine, words.toStringArray(), textPaint, desiredWidth, marginLeft)
+//                                }
+//                            }
+//                        }
                     }
 
                     //新增加的行，超过了一页的显示高度, 则创建新页
