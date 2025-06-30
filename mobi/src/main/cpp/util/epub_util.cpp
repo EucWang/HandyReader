@@ -544,25 +544,41 @@ int epub_util::parseOpfData(std::vector<NavPoint> &points) {
         isSingleSrc = false;
     }
 
-    //全部都在一个资源文件中,这种情况下
-    //如果第一个章节的路径中，包含有锚点，则需要手动增加一个从页面0页，防止漏掉内容
-    if (orderedItemSrc.size() == 1 && points.size() > 1) {
-        std::string &src = points[0].src;
-        std::string anchorId;
-        if (src.find("#") != std::string::npos) {
-            std::vector<std::string> parts = string_ext::split(src, '#');
+    //遍历的路径，如果某几个章节对应同一个资源，但是这些章节都不包含这个资源的开头部分
+    for(int i = 0; i< newPoints.size(); ++i) {
+        auto &point = newPoints[i];
+        if (point.src.find("#") != std::string::npos) { //章节链接中有锚点
+            //当前章节对应的资源和锚点
+            std::string cur_src;
+            std::string cur_anchor;
+            std::vector<std::string> parts = string_ext::split(point.src, '#');
             if (parts.size() == 2) {
-                anchorId = parts[1];
+                cur_src = parts[0];
+                cur_anchor = parts[1];
             }
-        }
-
-        if (!anchorId.empty()) { //第一章，不是从资源最开始位置开始的
-            NavPoint point;
-            point.src = orderedItemSrc[0];
-            point.text = "";
-            point.id = string_ext::generate_uuid();
-            point.parentId = "";
-            newPoints.insert(newPoints.begin(), point);
+            //上一个章节对应的资源和锚点
+            std::string pre_src;
+            std::string pre_anchor;
+            if (i > 0) {
+                auto &pre_point = newPoints[i - 1];
+                if (pre_point.src.find("#") != std::string::npos) {
+                    std::vector<std::string> pre_parts = string_ext::split(pre_point.src, '#');
+                    if (pre_parts.size() == 2) {
+                        pre_src = pre_parts[0];
+                        pre_anchor = pre_parts[1];
+                    }
+                } else {
+                    pre_src = pre_point.src;
+                }
+            }
+            //当前章节对应的资源是否是一个新的资源
+            bool new_src = false;
+            if (pre_src != cur_src) {
+                new_src = true;
+            }
+            if (new_src) {
+                point.src = cur_src;
+            }
         }
     }
 

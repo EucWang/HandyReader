@@ -264,6 +264,23 @@ class ContentTextView(context: Context, attrs: AttributeSet?) : View(context, at
             defaultTextPaint?.color = "#FFAD1457".toColorInt()
         }
 
+        if (textLine.withLineDot > 0) { //绘制html列表前面的 圆点/方块
+            val lineTop = textLine.lineTop
+            val lineBottom = textLine.lineBottom
+            val start =  textLine.textChars.firstOrNull()?.start ?: 0f
+            val end = start - 60
+            val centerX = (start + end) / 2;
+            val centerY = (lineBottom + lineTop) / 2;
+            val dotPaint = Paint()
+            dotPaint.color =  "#FF333333".toColorInt()
+            dotPaint.strokeWidth = 15f
+            if (textLine.withLineDot % 2 == 1) {
+                canvas.drawCircle(centerX, centerY, 8.0f, dotPaint)
+            } else {
+                canvas.drawRect(centerX - 10f, centerY - 10f, centerX + 10f, centerY + 10f, dotPaint)
+            }
+        }
+
         textLine.textChars.forEachIndexed { index, ch ->
             val charIndex = textLine.charStartOffset + index
 
@@ -310,6 +327,7 @@ class ContentTextView(context: Context, attrs: AttributeSet?) : View(context, at
                     paint.color = color
                 }
             }
+
 
             if (ch.isImage) {
                 val lineTop = textLine.lineTop

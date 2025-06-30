@@ -798,6 +798,27 @@ object ChapterProvider {
             } != null
         } else false
 
+        //是否是列表，嵌套列表
+        var isListRow: Boolean = false
+        var listLevel: Int = 0
+        isListRow = if (paragraph is ReaderText.Text) {
+            paragraph.annotations.firstOrNull { tag ->
+                tag.name == "li"
+            } != null
+        } else false
+        if(isListRow) {
+            if (paragraph is ReaderText.Text) {
+                listLevel = paragraph.annotations.filter { tag ->
+                    tag.name == "ul" || tag.name == "ol"
+                }.size
+                if (listLevel > 0) {
+                    val lineHeight = textPaint.textHeight * lineSpacingExtra
+                    marginLeft += listLevel * lineHeight
+                    Logger.d("ChapterProvider::list::level=$listLevel")
+                }
+            }
+        }
+
         //是否是表格行
         val isTableRow: Boolean = if (paragraph is ReaderText.Text) {
             paragraph.annotations.firstOrNull { tag ->
@@ -805,11 +826,11 @@ object ChapterProvider {
             } != null
         } else false
 
-        if (marginTop > 0f && !isTableRow) {
+        if (marginTop > 0f && !isTableRow && !isListRow) {
             durY += marginTop
         }
 
-        if (isTableRow) {   //是表格行
+        if (isTableRow) {               //是表格行
             durY = setTextTable(
                 paragraph,
                 textPaint,
@@ -824,24 +845,7 @@ object ChapterProvider {
                 stringBuilder,
                 durY
             )
-        } else if (!hasInlineImg) {    //没有段落内的图片
-            durY = setNormalText(
-                text,
-                textPaint,
-                marginLeft,
-                marginRight,
-                firstLineIndent,
-                isTitle,
-                paragraphIndex,
-                textAlign,
-                lineHeightParam,
-                textPages,
-                pageLines,
-                pageLengths,
-                stringBuilder,
-                durY
-            )
-        } else {    //有段落内的图片
+        } else if (hasInlineImg) {     //有段落内的图片
             durY = setTextWithInnerImg(
                 paragraph,
                 textPaint,
@@ -857,9 +861,28 @@ object ChapterProvider {
                 stringBuilder,
                 durY
             )
+        } else {                    //没有段落内的图片
+            durY = setNormalText(
+                text,
+                textPaint,
+                marginLeft,
+                marginRight,
+                firstLineIndent,
+                isTitle,
+                isListRow,
+                listLevel,
+                paragraphIndex,
+                textAlign,
+                lineHeightParam,
+                textPages,
+                pageLines,
+                pageLengths,
+                stringBuilder,
+                durY
+            )
         }
 
-        if (!isTableRow) {
+        if (!isTableRow && !isListRow) {
             //一个自然段落遍历完
             if (isTitle) {
                 durY += titleBottomSpacing                          //是标题行，则加上标题的底部间距
@@ -1269,6 +1292,8 @@ object ChapterProvider {
         marginRight: Float,
         firstLineIndent: Float,
         isTitle: Boolean,
+        isListRow : Boolean,
+        listLevel : Int,
         paragraphIndex: Int,
         textAlign: CssTextAlign,
         lineHeightParam: Float,
@@ -1345,6 +1370,10 @@ object ChapterProvider {
                 textPages.add(TextPage())
                 stringBuilder.clear()
                 durY = 0f
+            }
+
+            if (lineIndex == 0 && isListRow && listLevel > 0) { //第一行，并且是列表
+                textLine.withLineDot = listLevel
             }
 
             stringBuilder.append(words)

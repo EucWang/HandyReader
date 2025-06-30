@@ -218,6 +218,8 @@ public:
      * @return
      */
     static bool empty_node(const tinyxml2::XMLElement *elem);
+
+    static bool is_paragraph_tag(const std::string &name);
 };
 
 #endif //UREAD_XML_EXT_H

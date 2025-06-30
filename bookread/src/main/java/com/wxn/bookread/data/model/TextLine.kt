@@ -63,7 +63,9 @@ data class TextLine(
     var isTableCell: Boolean = false,
     var rowIndex: Int = 0, //单元格行索引
     var colIndex: Int = 0,  //单元格列索引
-    var rowLineOffset : Int = 0   //单元格所在的行文字在一个tr行中的偏移量
+    var rowLineOffset : Int = 0,   //单元格所在的行文字在一个tr行中的偏移量
+
+    var withLineDot: Int = 0    //行是否前面显示列表符号， 圆点/方块/空心圆.. 大于0即有符号，1 标识1级列表； 2表现2级列表...
 ) {
 
     fun upTopBottom(durY: Float, textPaint: TextPaint) {

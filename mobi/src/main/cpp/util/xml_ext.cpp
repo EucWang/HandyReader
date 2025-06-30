@@ -171,23 +171,29 @@ tinyxml2::XMLElement *xml_ext::findEleById(tinyxml2::XMLElement *elem, const cha
     if (target == nullptr) {
         return nullptr;
     }
-    tinyxml2::XMLElement *child = target;
-    while (child != nullptr) {
-        auto parent = child->Parent();
-        if (parent == nullptr) {
+    if (!xml_ext::is_paragraph_tag(ele_name(target))) {
+        tinyxml2::XMLElement *child = target;
+        while (child != nullptr) {
+            if (xml_ext::is_paragraph_tag(ele_name(child))) {
+                target = child;
+                break;
+            }
+            auto parent = child->Parent();
+            if (parent == nullptr) {
+                break;
+            }
+            auto parentItem = parent->ToElement();
+            if (parentItem == nullptr) {
+                break;
+            }
+            std::string parentName = parentItem->Name();
+            if (parentName != "body") {
+                child = parentItem;
+                continue;
+            }
+            target = child;
             break;
         }
-        auto parentItem = parent->ToElement();
-        if (parentItem == nullptr) {
-            break;
-        }
-        std::string parentName = parentItem->Name();
-        if (parentName != "body") {
-            child = parentItem;
-            continue;
-        }
-        target = child;
-        break;
     }
     auto end_time = std::chrono::high_resolution_clock::now();
     //输出结果统计信息(性能分析)
@@ -304,6 +310,7 @@ int xml_ext::parseNcxData(std::string &ncx_data, std::vector<NavPoint> &points) 
     }
     tinyxml2::XMLElement *firstNavPoint = navMapElem->FirstChildElement("navPoint");
     parseNavData(firstNavPoint, points, "");
+    std::sort(points.begin(), points.end());
     return 1;
 }
 
@@ -546,7 +553,7 @@ std::string xml_ext::parse_paragraph(const tinyxml2::XMLElement *pElem,
  * @param tag_name
  * @return
  */
-bool is_paragraph_tag(const std::string &name) {
+bool xml_ext::is_paragraph_tag(const std::string &name) {
     if (name == "p" || name == "div" || name == "ol" || name == "li" ||
         name == "blockquote" || name == "h1" || name == "h2" || name == "h3" ||
         name == "h4" || name == "h5" || name == "h6" || name == "h7" ||
@@ -1371,7 +1378,6 @@ int xml_ext::parse(
         std::vector<std::string> nodeTagUUIds;
         while (true) {
             if (stack.empty()) {
-                flag = false;
                 break;
             }
             NodeTag lastNode = stack.back();
@@ -1391,7 +1397,7 @@ int xml_ext::parse(
             }
         }
 
-        if (!nodeTagUUIds.empty()) {
+        if (!nodeTagUUIds.empty() && *flagAdd == 1) {
             if (stack.empty()) { //栈空，则全部内容作为一个段落
                 std::string line = ss.str();
                 if (!tags.empty() || string_ext::utf8Count(line) > 0) {
@@ -1495,8 +1501,27 @@ int xml_ext::parse(
         }
 
         //遍历上/上上级的兄弟节点
-        if (flag && bro != nullptr) {
-            item = bro;
+        if (flag) {
+            if (bro != nullptr) {
+                item = bro;
+            } else { //上层也没有bro了，则尝试获取上上层的兄弟节点
+                tinyxml2::XMLNode *parent = item->Parent();
+                if (parent == nullptr) {
+                    flag = false;
+                    break;
+                }
+                tinyxml2::XMLElement *ele_parent = parent->ToElement();
+                if (ele_parent == nullptr) {
+                    flag = false;
+                    break;
+                }
+                std::string ele_name = xml_ext::ele_name(ele_parent);
+                if (!ele_name.empty() || ele_name == "body") {
+                    flag = false;
+                    break;
+                }
+                item = ele_parent->NextSibling();
+            }
         }
     }
 
