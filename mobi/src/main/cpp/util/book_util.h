@@ -68,6 +68,24 @@ protected:
 
     bool isSingleSrc;
     volatile bool run_flag;
+
+    int parseSrcName(std::string &inputSrc/*in*/,
+                     std::string &spineSrc/*out*/,
+                     std::string &anchorId/*out*/) {
+//    LOGI("%s:invoke", __func__);
+        if (inputSrc.find('#') != std::string::npos) {
+            std::vector<std::string> parts = string_ext::split(inputSrc, '#');
+            if (parts.size() == 2) {
+                spineSrc = parts[0];
+                anchorId = parts[1];
+            }
+        } else {
+            spineSrc = inputSrc;
+        }
+
+//    LOGI("%s:invoke done", __func__);
+        return 1;
+    }
 };
 
 #endif //U_READER2_BOOK_UTIL_H

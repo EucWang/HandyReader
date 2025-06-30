@@ -239,26 +239,6 @@ int epub_util::epub_init() {
     return 1;
 }
 
-
-int epub_util::parseSrcName(std::string &inputSrc/*in*/,
-                            std::string &spineSrc/*out*/,
-                            std::string &anchorId/*out*/) {
-//    LOGI("%s:invoke", __func__);
-    if (inputSrc.find('#') != std::string::npos) {
-        std::vector<std::string> parts = string_ext::split(inputSrc, '#');
-        if (parts.size() == 2) {
-            spineSrc = parts[0];
-            anchorId = parts[1];
-        }
-    } else {
-        spineSrc = inputSrc;
-    }
-
-//    LOGI("%s:invoke done", __func__);
-    return 1;
-}
-
-
 int epub_util::load_epub(std::string fullpath,  //文件路径
                          std::string &book_coverPath,    //封面路径
 
@@ -813,23 +793,6 @@ void epub_util::handle_tags(JNIEnv *env, std::vector<DocText> &docTexts) {
                     }
                 }
             }
-
-            //没有href属性也没有id属性的的a标签，需要移除
-//            doctext.tagInfos.erase(std::remove_if(doctext.tagInfos.begin(), doctext.tagInfos.end(), [](TagInfo &tag){
-//                if (tag.name == "a") {
-//                    auto kvs = xml_ext::parse_str_params(tag.params);
-//                    if (kvs.empty()) {
-//                        return true;
-//                    } else {
-//                        auto it = std::find_if(kvs.begin(), kvs.end(), [](auto &kv){
-//                            return kv.first == "href" || kv.first == "id";
-//                        });
-//                        return it == kvs.end();
-//                    }
-//                } else {
-//                    return false;
-//                }
-//            }), doctext.tagInfos.end());
         }
     }
 

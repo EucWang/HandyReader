@@ -161,9 +161,6 @@ private:
 
     int parseOpfData(std::vector<NavPoint> &points);
 
-    int parseSrcName(std::string &input, std::string &spineSrc, std::string &anchorId);
-
-
     /***
      * 第一章没有内容，由于合并ncx 和opf可能导致的首页没有内容，则需要填充一个默认的内容
      * @param chapter

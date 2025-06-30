@@ -107,7 +107,7 @@ sealed class ReaderText {
 //            val width = imgTag?.paramsPairs()?.firstOrNull { it.first == "width" }?.second?.toIntOrNull() ?: 0
 //            val height = imgTag?.paramsPairs()?.firstOrNull { it.first == "height" }?.second?.toIntOrNull() ?: 0
 
-            if (line.isEmpty() && imgTag != null) {
+            if (line.trim().isEmpty() && imgTag != null) {
                 val paramItems = imgTag.paramsPairs()
                 var src = ""
                 var width = 0

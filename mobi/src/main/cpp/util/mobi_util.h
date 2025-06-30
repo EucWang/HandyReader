@@ -47,6 +47,7 @@ extern "C" {
 #include "nav_point.h"
 #include "tag_info.h"
 #include "xml_ext.h"
+#include "tidyh5_ext.h"
 
 class mobi_util : public book_util {
 public:
@@ -117,6 +118,7 @@ private:
     mutable std::mutex m_Mutex;
     mutable std::mutex m_Mutex2;
     mutable std::mutex m_Mutex3;
+    mutable std::mutex m_Mutex4;
     MOBIRawml *mobi_rawml;
     MOBIData *mobi_data;
 
@@ -141,37 +143,13 @@ private:
  * @param suffix  [out] 对应文件类型，取值如果是文档则是 html/htm, 如果是图片则是 png,jpg,gif,jpeg
  * @return 0 失败， 1成功
  */
-    static int parseSrcName(std::string &src,
+    static int innerParseSrcName(std::string &src,
                             std::string &prefix,
                             std::string &spineSrc,
                             int *prefixType,
                             int *srcId,
                             std::string &anchorId,
                             std::string &suffix);
-
-    /****
-     * 解析html文档得到中间数据DocText的集合
-     * @param env       jni环境变量
-     * @param book_id   书籍id
-     * @param mobi_rawml   mobilib解析得到的数据
-     * @param element       遍历xml的根元素
-     * @param docTexts      最终输出的结果
-     * @param startAnchorId 遍历开始的锚点id
-     * @param endAnchorId   遍历结束的锚点id
-     * @param flagAdd       遍历标识
-     * @param spineSrcName  资源名
-     * @return
-     */
-    static int parseHtmlDoc(JNIEnv *env,
-                            long book_id,
-                            MOBIRawml *mobi_rawml,
-                            tinyxml2::XMLElement *element,
-                            std::vector<DocText> &docTexts,
-                            std::string &startAnchorId,
-                            std::string &endAnchorId,
-                            int *flagAdd,
-                            std::string &spineSrcName,
-                            std::vector<TagInfo> parentTags);
 
     /****
      * 图片资源如果没有写入到缓存文件中，则创建图片缓存文件， 并返回图片的宽高，
@@ -183,60 +161,16 @@ private:
      * @param height [out]
      * @return 成功返回1， 失败返回0
      */
-    static int cacheImage(JNIEnv *env, long book_id, MOBIRawml *mobi_rawml, std::string &imgSRc, int prefixType, int srcUid, int *width, int *height);
+    int cache_image(JNIEnv *env, std::string &imgSRc, int prefixType, int srcUid, int *width, int *height);
 
     int parseOpfData(const char *opf_data, size_t opf_data_size, std::vector<NavPoint> &points);
 
-//    static std::string
-//    processParagraph(const tinyxml2::XMLElement *pElem, std::vector<TagInfo> &subTags, std::string &startAnchorId, std::string &endAnchorId, int *flagAdd,
-//                     std::string &spineSrcName);
-
-//    static std::string getEleParams(const tinyxml2::XMLElement *elem, std::string &spineSrcName);
-
-//    static size_t parseElement(const tinyxml2::XMLElement *elem,
-//                               std::string &fullText,
-//                               std::string &parent_uuid,
-//                               size_t initialOffset,
-//                               std::vector<TagInfo> &subTags,
-//                               std::string &startAnchorId,
-//                               std::string &endAnchorId,
-//                               int *flagAdd,
-//                               std::string &spineSrcName);
-
-    int countHtmlDoc(tinyxml2::XMLElement *element,
-                     int32_t *wordCount,
-                     std::string &startAnchorId,
-                     std::string &endAnchorId,
-                     int *flagAdd,
-                     std::string &spineSrcName
-//                                std::vector<TagInfo> fatherTags
-    );
-
     int parseDocDom(int prefixType, int srcUid);
 
-    int countHtmlDoc2(
-            tinyxml2::XMLElement *element,
-            std::vector<std::string> &anchors,
-            std::vector<size_t> &wordCount,
-            int *chapterIndex,
-            size_t *chapterWordCount,
-            std::string &spineSrcName
-    );
+    void handle_tags(JNIEnv *env, std::vector<DocText> &docTexts);
 
-    size_t countParagraph(const tinyxml2::XMLElement *pElem,
-                               std::vector<std::string> &anchors,
-                               std::vector<size_t> &wordCount,
-                               int *chapterIndex,
-                               size_t *chapterWordCount,
-                               std::string &spineSrcName);
+    int load_entity_data(const std::string &src_name, std::string &output_data);
 
-    void countElement(const tinyxml2::XMLElement *elem,
-                            std::string &fullText,
-                            std::vector<std::string> &anchors,
-                            std::vector<size_t> &wordCount,
-                            int *chapterIndex,
-                            size_t *chapterWordCount,
-                            std::string &spineSrcName);
 };
 
 #endif //SIMPLEREADER2_MOBI_UTIL_H

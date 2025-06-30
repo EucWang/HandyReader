@@ -9,6 +9,10 @@
  * @return 1 成功，0 失败
  */
 int tidyh5_ext::tidy_html(std::string &format_str) {
+    if (format_str.empty()) {
+        return 1;
+    }
+
     std::string output_str;
     unsigned char *normalizedHtml = nullptr;
     size_t normalizedHtmlSize = 0;

@@ -142,7 +142,7 @@ object ChapterProvider {
     lateinit var h4Paint: TextPaint
     lateinit var aPaint: TextPaint
 
-    private var oneWordWidth = 0f
+//    private var oneWordWidth = 0f
 
     fun getTypeface(fontWeight: CssFontWeight, cssFontStyle: CssFontStyle) =
         when (fontWeight) {
@@ -264,6 +264,7 @@ object ChapterProvider {
      * 更新样式
      */
     fun upStyle(context: Context) {
+//        oneWordWidth = 0f
         Logger.i("ChapterProvider::upStyle")
         Coroutines.mainScope().launch {
             tryCreatePreference(context)
@@ -416,7 +417,6 @@ object ChapterProvider {
             titleBottomSpacing = readerPreferences?.titleBottomSpacing?.dp?.toInt() ?: 0                           //标题底部间距
             Logger.d("ChapterProvider::upStyle::titleBottomSpacing=${titleBottomSpacing}")
 
-            oneWordWidth = 0f
 
             //更新屏幕参数
             upVisibleSize(context)
@@ -705,6 +705,7 @@ object ChapterProvider {
                 CssTextAlign.CssTextAlignLeft
             }
         var lineHeightParam = 1f    //行高系数
+        var oneWordWidth = 0f
         if (paragraph is ReaderText.Text) {
             //文字大小
             if (paragraph.textCssInfo.fontSize.isEm()) {
@@ -728,17 +729,18 @@ object ChapterProvider {
             ) {
 
                 if (oneWordWidth <= 0f) {
-                    for (index in 0..2) {
-                        val oneCh: String = (text.getOrNull(index)?.toString() ?: " ")
+//                    for (index in 0..2) {
+//                        val oneCh: String = (text.getOrNull(index)?.toString() ?: "\u3000")
+                        val oneCh: String = "\u3000"
                         val width = StaticLayout.getDesiredWidth(oneCh, textPaint)
                         if (width > oneWordWidth) {
                             oneWordWidth = width
                         }
-                    }
+//                    }
                 }
                 //首行缩进
                 firstLineIndent = textIndent * oneWordWidth
-//                Logger.d("ChapterProvider::firstLineIndent[$firstLineIndent],oneEmWidth=$oneWordWidth")
+                Logger.d("ChapterProvider::textIndent[$textIndent],firstLineIndent[$firstLineIndent],oneEmWidth=$oneWordWidth")
                 //左边距
                 marginLeft = (if (paragraph.textCssInfo.marginLeft.isEm()) {
                     oneWordWidth * paragraph.textCssInfo.marginLeft.value
