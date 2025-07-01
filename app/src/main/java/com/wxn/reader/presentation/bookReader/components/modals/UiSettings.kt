@@ -50,12 +50,12 @@ import com.wxn.reader.R
 import com.wxn.reader.data.model.AppPreferences
 import com.wxn.bookread.data.model.preference.ReaderPreferences
 import com.wxn.reader.navigation.Screens
-import com.wxn.reader.presentation.bookReader.BookReaderViewModel
+//import com.wxn.reader.presentation.bookReader.BookReaderViewModel
 import com.wxn.reader.presentation.mainReader.MainReadViewModel
 //import com.ricsdev.uread.presentation.sharedComponents.PremiumModal
 import com.wxn.reader.util.ColorPicker
 import com.wxn.reader.util.PurchaseHelper
-import org.readium.r2.shared.ExperimentalReadiumApi
+//import org.readium.r2.shared.ExperimentalReadiumApi
 
 
 enum class ColorType(val displayName: String) {
@@ -63,186 +63,185 @@ enum class ColorType(val displayName: String) {
     TEXT("Text"),
 }
 
-
-@OptIn(ExperimentalMaterial3Api::class, ExperimentalReadiumApi::class)
-@Composable
-fun UiSettings(
-    navController: NavHostController,
-//    purchaseHelper: PurchaseHelper,
-    appPreferences: AppPreferences,
-    viewModel: BookReaderViewModel,
-    readerPreferences: ReaderPreferences,
-    onDismiss: () -> Unit,
-) {
-    var isPaletteVisible by remember { mutableStateOf(false) }
-    var editingColorType by remember { mutableStateOf(ColorType.BACKGROUND) }
-
-    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
-//    var showPremiumModal by remember { mutableStateOf(false) }
-
-
-    val predefinedColors = remember {
-        mapOf(
-            "White" to Color.White,
-            "Black" to Color.Black,
-            "Gray" to Color(0xFFD8D3D6),
-            "Blue Gray" to Color(0xFFDBE1F1),
-        )
-    }
-
-    LaunchedEffect(isPaletteVisible) {
-        if (isPaletteVisible && appPreferences.isPremium) sheetState.expand()
-    }
-
-    ModalBottomSheet(
-        onDismissRequest = onDismiss,
-        sheetState = sheetState,
-    ) {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 16.dp),
-            horizontalAlignment = Alignment.CenterHorizontally
-        ) {
-
-            Box(
-                modifier = Modifier.fillMaxWidth(),
-                contentAlignment = Alignment.CenterEnd
-            ) {
-                Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
-                    Text(
-                        text = stringResource(R.string.color_settings),
-                        style = MaterialTheme.typography.titleMedium,
-                    )
-                }
-                TextButton(
-                    onClick = {
-                        viewModel.resetUiPreferences()
-                    },
-                    colors = ButtonDefaults.textButtonColors(
-                        containerColor = MaterialTheme.colorScheme.surfaceVariant,
-                    ),
-                    contentPadding = PaddingValues(horizontal = 8.dp, vertical = 2.dp)
-                ) {
-                    Text(
-                        text = stringResource(R.string.reset),
-                        style = MaterialTheme.typography.labelSmall
-                    )
-                }
-            }
-
-            Spacer(modifier = Modifier.height(16.dp))
-
-            ColorSection(
-                title = stringResource(R.string.background_color),
-                currentColor = readerPreferences.backgroundColor.toComposeColor(),
-                predefinedColors = predefinedColors,
-                onColorSelected = { color ->
-                    viewModel.updateReaderPreferences(
-                        readerPreferences.copy(
-                            backgroundColor = color.toArgb(),
-                            textColor = if (color == Color.Black) Color.White.toArgb() else Color.Black.toArgb()
-                        )
-                    )
-                },
-                onCustomColorClicked = {
-                    if (appPreferences.isPremium) {
-                        editingColorType = ColorType.BACKGROUND
-                        isPaletteVisible = true
-                    } else {
-                        navController.navigate(Screens.PremiumScreen.route);
-//                        viewModel.purchasePremium(purchaseHelper)
-//                        showPremiumModal = true
-                    }
-
-                },
-            )
-
-            Spacer(modifier = Modifier.height(20.dp))
-            HorizontalDivider()
-            Spacer(modifier = Modifier.height(20.dp))
-
-            ColorSection(
-                title = stringResource(R.string.text_color),
-                currentColor = readerPreferences.textColor.toComposeColor(),
-                predefinedColors = predefinedColors,
-                onColorSelected = { color ->
-                    viewModel.updateReaderPreferences(readerPreferences.copy(textColor = color.toArgb()))
-                },
-                onCustomColorClicked = {
-                    if (appPreferences.isPremium) {
-                        editingColorType = ColorType.TEXT
-                        isPaletteVisible = true
-                    } else {
-                        navController.navigate(Screens.PremiumScreen.route);
-//                        viewModel.purchasePremium(purchaseHelper)
-//                        showPremiumModal = true
-                    }
-
-                },
-            )
-
-            Spacer(modifier = Modifier.height(20.dp))
-            HorizontalDivider()
-            Spacer(modifier = Modifier.height(20.dp))
-
-
-            AnimatedVisibility(
-                visible = isPaletteVisible && appPreferences.isPremium
-            ) {
-                Column(
-                    horizontalAlignment = Alignment.CenterHorizontally
-                ) {
-                    Spacer(modifier = Modifier.height(0.dp))
-                    Text(
-                        stringResource(R.string.select_color, editingColorType.displayName),
-                        style = MaterialTheme.typography.titleMedium,
-                        textAlign = TextAlign.Center
-                    )
-                    ColorPicker(
-                        isVisible = isPaletteVisible,
-                        defaultColor = when (editingColorType) {
-                            ColorType.BACKGROUND -> readerPreferences.backgroundColor.toComposeColor()
-                            ColorType.TEXT -> readerPreferences.textColor.toComposeColor()
-                        },
-                        buttonSize = 70.dp,
-                        swatches = Presets.material(),
-                        innerRadius = 200f,
-                        strokeWidth = 80f,
-                        spacerRotation = 0f,
-                        spacerOutward = 3f,
-                        verticalAlignment = VerticalAlignment.Bottom,
-                        horizontalAlignment = HorizontalAlignment.Center,
-                        onColorSelected = { color ->
-                            isPaletteVisible = false
-                            viewModel.updateReaderPreferences(
-                                when (editingColorType) {
-                                    ColorType.BACKGROUND -> readerPreferences.copy(
-                                        backgroundColor = color.toArgb(),
-                                        textColor = if (color == Color.Black) Color.White.toArgb() else Color.Black.toArgb()
-                                    )
-
-                                    ColorType.TEXT -> readerPreferences.copy(textColor = color.toArgb())
-                                }
-                            )
-                        }
-                    )
-                }
-            }
-        }
-    }
-
-//    if (showPremiumModal) {
-//        PremiumModal(
-//            purchaseHelper = purchaseHelper,
-//            hidePremiumModal = { showPremiumModal = false }
+//
+//@OptIn(ExperimentalMaterial3Api::class, ExperimentalReadiumApi::class)
+//@Composable
+//fun UiSettings(
+//    navController: NavHostController,
+////    purchaseHelper: PurchaseHelper,
+//    appPreferences: AppPreferences,
+//    viewModel: BookReaderViewModel,
+//    readerPreferences: ReaderPreferences,
+//    onDismiss: () -> Unit,
+//) {
+//    var isPaletteVisible by remember { mutableStateOf(false) }
+//    var editingColorType by remember { mutableStateOf(ColorType.BACKGROUND) }
+//
+//    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+////    var showPremiumModal by remember { mutableStateOf(false) }
+//
+//
+//    val predefinedColors = remember {
+//        mapOf(
+//            "White" to Color.White,
+//            "Black" to Color.Black,
+//            "Gray" to Color(0xFFD8D3D6),
+//            "Blue Gray" to Color(0xFFDBE1F1),
 //        )
 //    }
+//
+//    LaunchedEffect(isPaletteVisible) {
+//        if (isPaletteVisible && appPreferences.isPremium) sheetState.expand()
+//    }
+//
+//    ModalBottomSheet(
+//        onDismissRequest = onDismiss,
+//        sheetState = sheetState,
+//    ) {
+//        Column(
+//            modifier = Modifier
+//                .fillMaxWidth()
+//                .padding(horizontal = 16.dp),
+//            horizontalAlignment = Alignment.CenterHorizontally
+//        ) {
+//
+//            Box(
+//                modifier = Modifier.fillMaxWidth(),
+//                contentAlignment = Alignment.CenterEnd
+//            ) {
+//                Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
+//                    Text(
+//                        text = stringResource(R.string.color_settings),
+//                        style = MaterialTheme.typography.titleMedium,
+//                    )
+//                }
+//                TextButton(
+//                    onClick = {
+//                        viewModel.resetUiPreferences()
+//                    },
+//                    colors = ButtonDefaults.textButtonColors(
+//                        containerColor = MaterialTheme.colorScheme.surfaceVariant,
+//                    ),
+//                    contentPadding = PaddingValues(horizontal = 8.dp, vertical = 2.dp)
+//                ) {
+//                    Text(
+//                        text = stringResource(R.string.reset),
+//                        style = MaterialTheme.typography.labelSmall
+//                    )
+//                }
+//            }
+//
+//            Spacer(modifier = Modifier.height(16.dp))
+//
+//            ColorSection(
+//                title = stringResource(R.string.background_color),
+//                currentColor = readerPreferences.backgroundColor.toComposeColor(),
+//                predefinedColors = predefinedColors,
+//                onColorSelected = { color ->
+//                    viewModel.updateReaderPreferences(
+//                        readerPreferences.copy(
+//                            backgroundColor = color.toArgb(),
+//                            textColor = if (color == Color.Black) Color.White.toArgb() else Color.Black.toArgb()
+//                        )
+//                    )
+//                },
+//                onCustomColorClicked = {
+//                    if (appPreferences.isPremium) {
+//                        editingColorType = ColorType.BACKGROUND
+//                        isPaletteVisible = true
+//                    } else {
+//                        navController.navigate(Screens.PremiumScreen.route);
+////                        viewModel.purchasePremium(purchaseHelper)
+////                        showPremiumModal = true
+//                    }
+//
+//                },
+//            )
+//
+//            Spacer(modifier = Modifier.height(20.dp))
+//            HorizontalDivider()
+//            Spacer(modifier = Modifier.height(20.dp))
+//
+//            ColorSection(
+//                title = stringResource(R.string.text_color),
+//                currentColor = readerPreferences.textColor.toComposeColor(),
+//                predefinedColors = predefinedColors,
+//                onColorSelected = { color ->
+//                    viewModel.updateReaderPreferences(readerPreferences.copy(textColor = color.toArgb()))
+//                },
+//                onCustomColorClicked = {
+//                    if (appPreferences.isPremium) {
+//                        editingColorType = ColorType.TEXT
+//                        isPaletteVisible = true
+//                    } else {
+//                        navController.navigate(Screens.PremiumScreen.route);
+////                        viewModel.purchasePremium(purchaseHelper)
+////                        showPremiumModal = true
+//                    }
+//
+//                },
+//            )
+//
+//            Spacer(modifier = Modifier.height(20.dp))
+//            HorizontalDivider()
+//            Spacer(modifier = Modifier.height(20.dp))
+//
+//
+//            AnimatedVisibility(
+//                visible = isPaletteVisible && appPreferences.isPremium
+//            ) {
+//                Column(
+//                    horizontalAlignment = Alignment.CenterHorizontally
+//                ) {
+//                    Spacer(modifier = Modifier.height(0.dp))
+//                    Text(
+//                        stringResource(R.string.select_color, editingColorType.displayName),
+//                        style = MaterialTheme.typography.titleMedium,
+//                        textAlign = TextAlign.Center
+//                    )
+//                    ColorPicker(
+//                        isVisible = isPaletteVisible,
+//                        defaultColor = when (editingColorType) {
+//                            ColorType.BACKGROUND -> readerPreferences.backgroundColor.toComposeColor()
+//                            ColorType.TEXT -> readerPreferences.textColor.toComposeColor()
+//                        },
+//                        buttonSize = 70.dp,
+//                        swatches = Presets.material(),
+//                        innerRadius = 200f,
+//                        strokeWidth = 80f,
+//                        spacerRotation = 0f,
+//                        spacerOutward = 3f,
+//                        verticalAlignment = VerticalAlignment.Bottom,
+//                        horizontalAlignment = HorizontalAlignment.Center,
+//                        onColorSelected = { color ->
+//                            isPaletteVisible = false
+//                            viewModel.updateReaderPreferences(
+//                                when (editingColorType) {
+//                                    ColorType.BACKGROUND -> readerPreferences.copy(
+//                                        backgroundColor = color.toArgb(),
+//                                        textColor = if (color == Color.Black) Color.White.toArgb() else Color.Black.toArgb()
+//                                    )
+//
+//                                    ColorType.TEXT -> readerPreferences.copy(textColor = color.toArgb())
+//                                }
+//                            )
+//                        }
+//                    )
+//                }
+//            }
+//        }
+//    }
+//
+////    if (showPremiumModal) {
+////        PremiumModal(
+////            purchaseHelper = purchaseHelper,
+////            hidePremiumModal = { showPremiumModal = false }
+////        )
+////    }
+//
+//}
 
-}
-
-
-@OptIn(ExperimentalMaterial3Api::class, ExperimentalReadiumApi::class)
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun UiSettings(
     navController: NavHostController,

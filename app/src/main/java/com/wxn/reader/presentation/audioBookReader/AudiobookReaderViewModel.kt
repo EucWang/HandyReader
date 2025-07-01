@@ -20,20 +20,20 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-import org.readium.r2.shared.publication.Publication
-import org.readium.r2.shared.util.AbsoluteUrl
-import org.readium.r2.shared.util.ErrorException
-import org.readium.r2.shared.util.asset.AssetRetriever
-import org.readium.r2.shared.util.getOrElse
-import org.readium.r2.streamer.PublicationOpener
+//import org.readium.r2.shared.publication.Publication
+//import org.readium.r2.shared.util.AbsoluteUrl
+//import org.readium.r2.shared.util.ErrorException
+//import org.readium.r2.shared.util.asset.AssetRetriever
+//import org.readium.r2.shared.util.getOrElse
+//import org.readium.r2.streamer.PublicationOpener
 import javax.inject.Inject
 
 @HiltViewModel
 class AudiobookReaderViewModel @Inject constructor(
     private val getBookByIdUseCase: GetBookByIdUseCase,
     private val updateBookUseCase: UpdateBookUseCase,
-    private val assetRetriever: AssetRetriever,
-    private val publicationOpener: PublicationOpener,
+//    private val assetRetriever: AssetRetriever,
+//    private val publicationOpener: PublicationOpener,
     savedStateHandle: SavedStateHandle,
     context: Application,
 ) : AndroidViewModel(context) {
@@ -106,7 +106,7 @@ class AudiobookReaderViewModel @Inject constructor(
 
 
 
-    private var publication: Publication? = null
+//    private var publication: Publication? = null
 
     init {
         val audiobookId = savedStateHandle.get<String>("bookId")?.toLongOrNull()
@@ -144,9 +144,9 @@ class AudiobookReaderViewModel @Inject constructor(
             try {
                 _loadingState.value = LoadingState.InitializingPlayer
 
-                val asset = assetRetriever.retrieve(AbsoluteUrl(audiobookUri)!!).getOrElse { throw ErrorException(it) }
-                publication = publicationOpener.open(asset, allowUserInteraction = true)
-                    .getOrElse { throw ErrorException(it) }
+//                val asset = assetRetriever.retrieve(AbsoluteUrl(audiobookUri)!!).getOrElse { throw ErrorException(it) }
+//                publication = publicationOpener.open(asset, allowUserInteraction = true)
+//                    .getOrElse { throw ErrorException(it) }
 
                 initializeExoPlayer(audiobookUri)
             } catch (e: Exception) {

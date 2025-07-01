@@ -32,13 +32,13 @@ import com.wxn.reader.R
 import com.wxn.reader.data.model.AppPreferences
 import com.wxn.reader.domain.model.BookAnnotation
 import com.wxn.reader.navigation.Screens
-import com.wxn.reader.presentation.bookReader.BookReaderViewModel
+//import com.wxn.reader.presentation.bookReader.BookReaderViewModel
 //import com.ricsdev.uread.presentation.sharedComponents.PremiumModal
 import com.wxn.reader.util.PurchaseHelper
 import kotlinx.coroutines.launch
 import org.json.JSONObject
-import org.readium.r2.navigator.epub.EpubNavigatorFragment
-import org.readium.r2.shared.publication.Locator
+//import org.readium.r2.navigator.epub.EpubNavigatorFragment
+//import org.readium.r2.shared.publication.Locator
 
 @Composable
 fun AnnotationsDrawer(
@@ -224,7 +224,7 @@ fun AnnotationItem(
             )
             Spacer(modifier = Modifier.height(8.dp))
             Text(
-                text = Locator.fromJSON(JSONObject(annotation.locator))?.title ?: "Unknown",
+                text = "", //TODO //Locator.fromJSON(JSONObject(annotation.locator))?.title ?: "Unknown",
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )

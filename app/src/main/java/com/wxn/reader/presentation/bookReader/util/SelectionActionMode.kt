@@ -10,7 +10,6 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 
 
-
 class SelectionActionModeCallback(
     private val showCustomMenu: (Rect, String) -> Unit,
     private val hideCustomMenu: () -> Unit,

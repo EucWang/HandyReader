@@ -50,11 +50,11 @@ import dagger.Provides
 import dagger.hilt.InstallIn
 import dagger.hilt.android.qualifiers.ApplicationContext
 import dagger.hilt.components.SingletonComponent
-import org.readium.r2.shared.util.asset.AssetRetriever
-import org.readium.r2.shared.util.http.DefaultHttpClient
-import org.readium.r2.shared.util.http.HttpClient
-import org.readium.r2.streamer.PublicationOpener
-import org.readium.r2.streamer.parser.DefaultPublicationParser
+//import org.readium.r2.shared.util.asset.AssetRetriever
+//import org.readium.r2.shared.util.http.DefaultHttpClient
+//import org.readium.r2.shared.util.http.HttpClient
+//import org.readium.r2.streamer.PublicationOpener
+//import org.readium.r2.streamer.parser.DefaultPublicationParser
 import javax.inject.Singleton
 
 
@@ -283,36 +283,36 @@ object AppModule {
         )
     }
 
-    @Provides
-    @Singleton
-    fun provideHttpClient(): HttpClient {
-        return DefaultHttpClient()
-    }
-
-    @Provides
-    @Singleton
-    fun provideAssetRetriever(
-        @ApplicationContext context: Context,
-        httpClient: HttpClient
-    ): AssetRetriever {
-        return AssetRetriever(context.contentResolver, httpClient)
-    }
-
-    @Provides
-    @Singleton
-    fun providePublicationParser(
-        @ApplicationContext context: Context,
-        httpClient: HttpClient,
-        assetRetriever: AssetRetriever
-    ): DefaultPublicationParser {
-        return DefaultPublicationParser(context, httpClient, assetRetriever, null)
-    }
-
-    @Provides
-    @Singleton
-    fun providePublicationOpener(publicationParser: DefaultPublicationParser): PublicationOpener {
-        return PublicationOpener(publicationParser)
-    }
+//    @Provides
+//    @Singleton
+//    fun provideHttpClient(): HttpClient {
+//        return DefaultHttpClient()
+//    }
+//
+//    @Provides
+//    @Singleton
+//    fun provideAssetRetriever(
+//        @ApplicationContext context: Context,
+//        httpClient: HttpClient
+//    ): AssetRetriever {
+//        return AssetRetriever(context.contentResolver, httpClient)
+//    }
+//
+//    @Provides
+//    @Singleton
+//    fun providePublicationParser(
+//        @ApplicationContext context: Context,
+//        httpClient: HttpClient,
+//        assetRetriever: AssetRetriever
+//    ): DefaultPublicationParser {
+//        return DefaultPublicationParser(context, httpClient, assetRetriever, null)
+//    }
+//
+//    @Provides
+//    @Singleton
+//    fun providePublicationOpener(publicationParser: DefaultPublicationParser): PublicationOpener {
+//        return PublicationOpener(publicationParser)
+//    }
 
 
     @Provides

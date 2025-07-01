@@ -59,7 +59,6 @@ import com.wxn.base.bean.Book
 import com.wxn.reader.domain.model.BookAnnotation
 import kotlinx.coroutines.launch
 import org.json.JSONObject
-import org.readium.r2.shared.publication.Locator
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Search
@@ -394,7 +393,7 @@ fun AnnotationItem(
 
             Spacer(modifier = Modifier.height(8.dp))
             Text(
-                text = Locator.fromJSON(JSONObject(annotation.locator))?.title ?: stringResource(R.string.unknown),
+                text = "", //TODO Locator.fromJSON(JSONObject(annotation.locator))?.title ?: stringResource(R.string.unknown),
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
                 maxLines = 3,

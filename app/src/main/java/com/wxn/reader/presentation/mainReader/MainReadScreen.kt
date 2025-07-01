@@ -24,9 +24,7 @@ import com.wxn.reader.presentation.bookReader.BookReaderUiState
 import com.wxn.reader.util.ImagePanel
 import com.wxn.reader.util.KeepScreenOn
 import com.wxn.reader.util.SetFullScreen
-import org.readium.r2.shared.ExperimentalReadiumApi
 
-@OptIn(ExperimentalReadiumApi::class)
 @Composable
 fun MainReadScreen(
     viewModel: MainReadViewModel = hiltViewModel()

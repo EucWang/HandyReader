@@ -45,11 +45,11 @@ import com.wxn.reader.R
 import com.wxn.reader.data.model.AppPreferences
 import com.wxn.reader.domain.model.Bookmark
 import com.wxn.reader.navigation.Screens
-import com.wxn.reader.presentation.bookReader.BookReaderViewModel
+//import com.wxn.reader.presentation.bookReader.BookReaderViewModel
 //import com.ricsdev.uread.presentation.sharedComponents.PremiumModal
 import com.wxn.reader.util.PurchaseHelper
 import org.json.JSONObject
-import org.readium.r2.shared.publication.Locator
+//import org.readium.r2.shared.publication.Locator
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -204,7 +204,7 @@ fun BookmarkItem(
                 modifier = Modifier.fillMaxWidth()
             ) {
                 Text(
-                    text = Locator.fromJSON(JSONObject(bookmark.locator))?.title ?: "",
+                    text = "", //TODO // Locator.fromJSON(JSONObject(bookmark.locator))?.title ?: "",
                     style = MaterialTheme.typography.bodyMedium,
                     maxLines = 2,
                     overflow = TextOverflow.Ellipsis,
@@ -219,7 +219,7 @@ fun BookmarkItem(
             }
 
             Spacer(modifier = Modifier.height(8.dp))
-            val progression = Locator.fromJSON(JSONObject(bookmark.locator))?.locations?.totalProgression ?: 0.0
+            val progression = 0.0 //TODO Locator.fromJSON(JSONObject(bookmark.locator))?.locations?.totalProgression ?: 0.0
             val progressionPercentage = String.format(Locale.getDefault(),"%.1f%%", progression * 100)
             Text(
                 text = "Progression: $progressionPercentage",

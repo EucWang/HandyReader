@@ -59,7 +59,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.wxn.reader.R
 import com.wxn.reader.data.model.AppLanguage
-import org.readium.r2.shared.util.Language
+//import org.readium.r2.shared.util.Language
 
 
 @Composable
@@ -69,13 +69,13 @@ fun TtsPlayer(
     isTtsPlaying: Boolean,
     speed: Double,
     pitch: Double,
-    language: Language,
+    language: AppLanguage,
     onPlay: () -> Unit,
     onPause: () -> Unit,
     onEnd: () -> Unit,
     onSpeedChange: (Float) -> Unit,
     onPitchChange: (Float) -> Unit,
-    onLanguageChange: (Language) -> Unit,
+    onLanguageChange: (AppLanguage) -> Unit,
     onSkipToNextUtterance: () -> Unit,
     onSkipToPreviousUtterance: () -> Unit
 ) {
@@ -408,8 +408,8 @@ fun TtsSettings(
 @Composable
 fun LanguageSettings(
     heightAnimation: Float,
-    currentLanguage: Language,
-    onLanguageChange: (Language) -> Unit,
+    currentLanguage: AppLanguage,
+    onLanguageChange: (AppLanguage) -> Unit,
     onClose: () -> Unit
 ) {
     val languages = AppLanguage.entries.filter { it != AppLanguage.SYSTEM }
@@ -461,7 +461,7 @@ fun LanguageSettings(
                     val isSelected = lang.code == currentLanguage.code
                     ElevatedButton(
                         onClick = {
-                            onLanguageChange(Language(lang.code))
+                            onLanguageChange(AppLanguage.fromCode(lang.code))
                             onClose()
                         },
                         modifier = Modifier

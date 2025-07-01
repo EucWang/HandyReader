@@ -160,29 +160,17 @@ dependencies {
     debugImplementation(libs.androidx.ui.tooling)
     debugImplementation(libs.androidx.ui.test.manifest)
 
-    //readium
-    implementation(libs.readium.shared)
-    implementation(libs.readium.streamer)
-    implementation(libs.readium.navigator)
-    implementation(libs.readium.navigator.media.tts)
-    implementation(libs.readium.navigator.media.audio)
-//    implementation(libs.readium.adapter.exoplayer)
-//    implementation(libs.readium.opds)
-//    implementation(libs.readium.lcp)
-
     implementation(libs.androidx.media3.exoplayer)
     implementation(libs.androidx.media3.exoplayer.dash)
     implementation(libs.androidx.media3.ui)
     implementation(libs.androidx.media3.common)
     implementation(libs.androidx.media3.session)
 
-
     coreLibraryDesugaring(libs.desugar.jdk.libs)
     implementation(libs.coil.compose)       // for images
     implementation(libs.room.runtime)
     implementation(libs.androidx.room.ktx)
     ksp(libs.androidx.room.compiler)
-
 
     implementation(libs.androidx.room.paging)
     implementation(libs.androidx.paging.compose)
@@ -208,7 +196,7 @@ dependencies {
     implementation(libs.play.review.ktx)
 
     // for in app purchases
-    implementation(libs.billing.ktx)
+//    implementation(libs.billing.ktx)
 
     implementation(libs.aboutlibraries.core)
     implementation(libs.aboutlibraries.compose)
@@ -218,10 +206,8 @@ dependencies {
     implementation("io.github.jan-tennert.supabase:auth-kt")
     implementation("io.github.jan-tennert.supabase:realtime-kt")
 
-
 //    implementation(libs.ketch)
 //    implementation(libs.retrofit)
-
 
 //    implementation("com.google.android.gms:play-services-auth:21.3F.0")
 //    implementation("com.google.apis:google-api-services-drive:v3-rev197-1.25.0")

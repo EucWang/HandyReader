@@ -53,7 +53,7 @@ import com.wxn.reader.R
 import com.wxn.reader.data.model.AppPreferences
 import com.wxn.reader.domain.model.Note
 import com.wxn.reader.navigation.Screens
-import com.wxn.reader.presentation.bookReader.BookReaderViewModel
+//import com.wxn.reader.presentation.bookReader.BookReaderViewModel
 //import com.ricsdev.uread.presentation.sharedComponents.PremiumModal
 import com.wxn.reader.util.PurchaseHelper
 

@@ -22,7 +22,6 @@ import com.wxn.bookread.provider.ChapterProvider
 import com.wxn.reader.R
 import com.wxn.reader.data.dto.ReadingStatus
 import com.wxn.reader.data.model.AppPreferences
-import com.wxn.reader.data.model.toRediumEpubPreferences
 import com.wxn.reader.data.source.local.AppPreferencesUtil
 import com.wxn.reader.domain.model.BookAnnotation
 import com.wxn.reader.domain.model.Bookmark
@@ -64,15 +63,9 @@ import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
-import org.readium.r2.navigator.epub.EpubPreferences
-import org.readium.r2.shared.ExperimentalReadiumApi
-import org.readium.r2.shared.publication.Locator
-import org.readium.r2.shared.util.asset.AssetRetriever
-import org.readium.r2.streamer.PublicationOpener
 import java.util.Calendar
 import javax.inject.Inject
 
-@OptIn(ExperimentalReadiumApi::class)
 @HiltViewModel
 @Stable
 class MainReadViewModel @Inject constructor(
@@ -105,8 +98,6 @@ class MainReadViewModel @Inject constructor(
     private val addOrUpdateReadingActivityUseCase: AddReadingActivityUseCase,
     private val getReadingActivityByDateUseCase: GetReadingActivityByDateUseCase,
     private val readerPreferencesUtil: ReaderPreferencesUtil,
-    private val assetRetriever: AssetRetriever,
-    private val publicationOpener: PublicationOpener,
 
     private val textParser: TextParser,
     val pageController: PageViewController,
@@ -120,9 +111,9 @@ class MainReadViewModel @Inject constructor(
     private val _readerPreferences = MutableStateFlow(ReaderPreferencesUtil.defaultPreferences)
     val readerPreferences: StateFlow<ReaderPreferences> = _readerPreferences.asStateFlow()
 
-    private val _epubPreferences =
-        MutableStateFlow(ReaderPreferencesUtil.defaultPreferences.toRediumEpubPreferences())
-    val epubPreferences: StateFlow<EpubPreferences> = _epubPreferences.asStateFlow()
+//    private val _epubPreferences =
+//        MutableStateFlow(ReaderPreferencesUtil.defaultPreferences.toRediumEpubPreferences())
+//    val epubPreferences: StateFlow<EpubPreferences> = _epubPreferences.asStateFlow()
 
     private val _uiState = MutableStateFlow<BookReaderUiState>(BookReaderUiState.Loading)
     val uiState: StateFlow<BookReaderUiState> = _uiState.asStateFlow()
@@ -136,8 +127,8 @@ class MainReadViewModel @Inject constructor(
     private val _currentBookId = MutableStateFlow<Long?>(null)
     val currentBookId: StateFlow<Long?> = _currentBookId.asStateFlow()
 
-    private val _initialLocator = MutableStateFlow<Locator?>(null)
-    val initialLocator: StateFlow<Locator?> = _initialLocator.asStateFlow()
+//    private val _initialLocator = MutableStateFlow<Locator?>(null)
+//    val initialLocator: StateFlow<Locator?> = _initialLocator.asStateFlow()
 
     //显示总的菜单弹窗
     private val _showMenu = MutableStateFlow<Boolean>(false)
@@ -280,7 +271,7 @@ class MainReadViewModel @Inject constructor(
 
             readerPreferencesUtil.readerPreferencesFlow.stateIn(viewModelScope).collect { preferences ->
                 _readerPreferences.value = preferences
-                _epubPreferences.value = preferences.toRediumEpubPreferences()
+//                _epubPreferences.value = preferences.toRediumEpubPreferences()
             }
         }
 
@@ -338,7 +329,7 @@ class MainReadViewModel @Inject constructor(
     override fun onCleared() {
         pageController.clear()
         currentDayStartTime = 0
-        _initialLocator.value = null
+//        _initialLocator.value = null
         _currentBookId.value = null
         _uiState.value = BookReaderUiState.Loading
         _book.value = null

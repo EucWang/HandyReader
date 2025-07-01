@@ -15,108 +15,108 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.wxn.reader.R
 import com.wxn.bookread.data.model.preference.ReaderPreferences
-import com.wxn.reader.presentation.bookReader.BookReaderViewModel
+//import com.wxn.reader.presentation.bookReader.BookReaderViewModel
 import com.wxn.reader.presentation.mainReader.MainReadViewModel
-import org.readium.r2.shared.ExperimentalReadiumApi
+//import org.readium.r2.shared.ExperimentalReadiumApi
 import java.util.Locale
 
-@OptIn(ExperimentalMaterial3Api::class, ExperimentalReadiumApi::class)
-@Composable
-fun FontSettings(
-    viewModel: BookReaderViewModel,
-    readerPreferences: ReaderPreferences,
-    onDismiss: () -> Unit,
-) {
-    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
-
-
-    val minFontSize = 0.5
-    val maxFontSize = 2.0
-
-    ModalBottomSheet(
-        onDismissRequest = onDismiss,
-        sheetState = sheetState,
-    ) {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 16.dp),
-            horizontalAlignment = Alignment.CenterHorizontally
-        ) {
-
-
-            Box(
-                modifier = Modifier.fillMaxWidth(),
-                contentAlignment = Alignment.CenterEnd
-            ) {
-                Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
-                    Text(
-                        text = stringResource(R.string.font_settings),
-                        style = MaterialTheme.typography.titleMedium,
-                    )
-                }
-                TextButton(
-                    onClick = {
-                        viewModel.resetFontPreferences()
-                    },
-                    colors = ButtonDefaults.textButtonColors(
-                        containerColor = MaterialTheme.colorScheme.surfaceVariant,
-                    ),
-                    contentPadding = PaddingValues(horizontal = 8.dp, vertical = 2.dp)
-
-                ) {
-                    Text(
-                        text = stringResource(R.string.reset),
-                        style = MaterialTheme.typography.labelSmall
-                    )
-                }
-            }
-
-            Spacer(modifier = Modifier.height(16.dp))
-
-
-            //can be changed on publisher styles
-            SettingsRange(
-                title = stringResource(R.string.font_size),
-                value = readerPreferences.fontSize,
-                onValueChange = { viewModel.updateReaderPreferences( readerPreferences.copy(fontSize = it) ) },
-                valueRange = minFontSize..maxFontSize,
-                valueDisplay = { "${String.format(Locale.getDefault(), "%.0f", it * 100)}%" }
-            )
-
-            //cannot be changed on publisher styles
-            SettingsRange(
-                title = stringResource(R.string.line_height),
-                value = readerPreferences.lineHeight,
-                onValueChange = { viewModel.updateReaderPreferences( readerPreferences.copy(lineHeight = it) ) },
-                valueRange = 1.0..3.0,
-                valueDisplay = { String.format(Locale.getDefault(), "%.1f", it) },
-                enabled = !readerPreferences.publisherStyles
-            )
-
-
-            //cannot be changed on publisher styles
-            SettingsRange(
-                title = stringResource(R.string.letter_spacing),
-                value = readerPreferences.letterSpacing,
-                onValueChange = { viewModel.updateReaderPreferences( readerPreferences.copy(letterSpacing = it) ) },
-                valueRange = 0.0..1.0,
-                valueDisplay = { String.format(Locale.getDefault(), "%.1f", it) },
-                enabled = !readerPreferences.publisherStyles
-            )
-
-            //cannot be changed on publisher styles
-            SettingsRange(
-                title = stringResource(R.string.word_spacing),
-                value = readerPreferences.wordSpacing,
-                onValueChange = { viewModel.updateReaderPreferences( readerPreferences.copy(wordSpacing = it) ) },
-                valueRange = 0.0..3.0,
-                valueDisplay = { String.format(Locale.getDefault(), "%.1f", it) },
-                enabled = !readerPreferences.publisherStyles
-            )
-        }
-    }
-}
+//@OptIn(ExperimentalMaterial3Api::class)
+//@Composable
+//fun FontSettings(
+//    viewModel: BookReaderViewModel,
+//    readerPreferences: ReaderPreferences,
+//    onDismiss: () -> Unit,
+//) {
+//    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+//
+//
+//    val minFontSize = 0.5
+//    val maxFontSize = 2.0
+//
+//    ModalBottomSheet(
+//        onDismissRequest = onDismiss,
+//        sheetState = sheetState,
+//    ) {
+//        Column(
+//            modifier = Modifier
+//                .fillMaxWidth()
+//                .padding(horizontal = 16.dp),
+//            horizontalAlignment = Alignment.CenterHorizontally
+//        ) {
+//
+//
+//            Box(
+//                modifier = Modifier.fillMaxWidth(),
+//                contentAlignment = Alignment.CenterEnd
+//            ) {
+//                Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
+//                    Text(
+//                        text = stringResource(R.string.font_settings),
+//                        style = MaterialTheme.typography.titleMedium,
+//                    )
+//                }
+//                TextButton(
+//                    onClick = {
+//                        viewModel.resetFontPreferences()
+//                    },
+//                    colors = ButtonDefaults.textButtonColors(
+//                        containerColor = MaterialTheme.colorScheme.surfaceVariant,
+//                    ),
+//                    contentPadding = PaddingValues(horizontal = 8.dp, vertical = 2.dp)
+//
+//                ) {
+//                    Text(
+//                        text = stringResource(R.string.reset),
+//                        style = MaterialTheme.typography.labelSmall
+//                    )
+//                }
+//            }
+//
+//            Spacer(modifier = Modifier.height(16.dp))
+//
+//
+//            //can be changed on publisher styles
+//            SettingsRange(
+//                title = stringResource(R.string.font_size),
+//                value = readerPreferences.fontSize,
+//                onValueChange = { viewModel.updateReaderPreferences( readerPreferences.copy(fontSize = it) ) },
+//                valueRange = minFontSize..maxFontSize,
+//                valueDisplay = { "${String.format(Locale.getDefault(), "%.0f", it * 100)}%" }
+//            )
+//
+//            //cannot be changed on publisher styles
+//            SettingsRange(
+//                title = stringResource(R.string.line_height),
+//                value = readerPreferences.lineHeight,
+//                onValueChange = { viewModel.updateReaderPreferences( readerPreferences.copy(lineHeight = it) ) },
+//                valueRange = 1.0..3.0,
+//                valueDisplay = { String.format(Locale.getDefault(), "%.1f", it) },
+//                enabled = !readerPreferences.publisherStyles
+//            )
+//
+//
+//            //cannot be changed on publisher styles
+//            SettingsRange(
+//                title = stringResource(R.string.letter_spacing),
+//                value = readerPreferences.letterSpacing,
+//                onValueChange = { viewModel.updateReaderPreferences( readerPreferences.copy(letterSpacing = it) ) },
+//                valueRange = 0.0..1.0,
+//                valueDisplay = { String.format(Locale.getDefault(), "%.1f", it) },
+//                enabled = !readerPreferences.publisherStyles
+//            )
+//
+//            //cannot be changed on publisher styles
+//            SettingsRange(
+//                title = stringResource(R.string.word_spacing),
+//                value = readerPreferences.wordSpacing,
+//                onValueChange = { viewModel.updateReaderPreferences( readerPreferences.copy(wordSpacing = it) ) },
+//                valueRange = 0.0..3.0,
+//                valueDisplay = { String.format(Locale.getDefault(), "%.1f", it) },
+//                enabled = !readerPreferences.publisherStyles
+//            )
+//        }
+//    }
+//}
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable

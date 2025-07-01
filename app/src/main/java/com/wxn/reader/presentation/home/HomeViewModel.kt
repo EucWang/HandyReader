@@ -61,14 +61,14 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-import org.readium.r2.shared.publication.Publication
-import org.readium.r2.shared.publication.services.cover
-import org.readium.r2.shared.util.AbsoluteUrl
-import org.readium.r2.shared.util.ErrorException
-import org.readium.r2.shared.util.asset.AssetRetriever
-import org.readium.r2.shared.util.getOrElse
-import org.readium.r2.shared.util.toAbsoluteUrl
-import org.readium.r2.streamer.PublicationOpener
+//import org.readium.r2.shared.publication.Publication
+//import org.readium.r2.shared.publication.services.cover
+//import org.readium.r2.shared.util.AbsoluteUrl
+//import org.readium.r2.shared.util.ErrorException
+//import org.readium.r2.shared.util.asset.AssetRetriever
+//import org.readium.r2.shared.util.getOrElse
+//import org.readium.r2.shared.util.toAbsoluteUrl
+//import org.readium.r2.streamer.PublicationOpener
 import java.io.File
 import java.io.FileOutputStream
 import javax.inject.Inject
@@ -90,8 +90,8 @@ class HomeViewModel
     private val addBookToShelfUseCase: AddBookToShelfUseCase,
     private val removeBooksFromShelfUseCase: RemoveBooksFromShelfUseCase,
     private val getBooksForShelfUseCase: GetBooksForShelfUseCase,
-    private val assetRetriever: AssetRetriever,
-    private val publicationOpener: PublicationOpener,
+//    private val assetRetriever: AssetRetriever,
+//    private val publicationOpener: PublicationOpener,
     private val appPreferencesUtil: AppPreferencesUtil,
     private val fileParser: FileParser,
     application: Application,
@@ -723,51 +723,51 @@ class HomeViewModel
         throw lastException ?: IllegalStateException("Retry failed")
     }
 
-    private suspend fun getBookInfo(documentFile: DocumentFile): Book {
-        var retVal:Book =
-            try {
-                val url = documentFile.uri.toAbsoluteUrl()
-                val fileType: FileType = when {
-                    documentFile.name?.endsWith(".pdf", ignoreCase = true) == true -> FileType.PDF
-                    documentFile.name?.let {
-                        it.endsWith(".mp3", ignoreCase = true) ||
-                                it.endsWith(".m4a", ignoreCase = true) ||
-                                it.endsWith(".m4b", ignoreCase = true) ||
-                                it.endsWith(".aac", ignoreCase = true)
-                    } == true -> FileType.AUDIOBOOK
-
-                    else -> FileType.EPUB
-                }
-
-               getBookFromType(fileType, url, documentFile)
-            } catch (e: Exception) {
-                defaultBook(documentFile)
-            }
-        return retVal
-    }
+//    private suspend fun getBookInfo(documentFile: DocumentFile): Book {
+//        var retVal:Book =
+//            try {
+//                val url = documentFile.uri.toAbsoluteUrl()
+//                val fileType: FileType = when {
+//                    documentFile.name?.endsWith(".pdf", ignoreCase = true) == true -> FileType.PDF
+//                    documentFile.name?.let {
+//                        it.endsWith(".mp3", ignoreCase = true) ||
+//                                it.endsWith(".m4a", ignoreCase = true) ||
+//                                it.endsWith(".m4b", ignoreCase = true) ||
+//                                it.endsWith(".aac", ignoreCase = true)
+//                    } == true -> FileType.AUDIOBOOK
+//
+//                    else -> FileType.EPUB
+//                }
+//
+//               getBookFromType(fileType, url, documentFile)
+//            } catch (e: Exception) {
+//                defaultBook(documentFile)
+//            }
+//        return retVal
+//    }
 
     public class UnknownFileTypeException(val fileType:String) : Exception() {
 
     }
 
-    private suspend fun getBookFromType(type: FileType, url: AbsoluteUrl?, documentFile: DocumentFile):Book {
-        return when (type) {
-            FileType.EPUB -> {
-                val asset = url?.let { it ->
-                    assetRetriever.retrieve(it).getOrElse { throw ErrorException(it) }
-                }
-                val publication = asset?.let { it ->
-                    publicationOpener.open(it, allowUserInteraction = false)
-                        .getOrElse { throw ErrorException(it) }
-                }
-                extractEpubBookInfo(publication, documentFile)
-            }
-
-            FileType.PDF -> extractPdfBookInfo(documentFile)
-            FileType.AUDIOBOOK -> extractAudioBookInfo(documentFile)
-            else -> throw UnknownFileTypeException(type.typeName())
-        }
-    }
+//    private suspend fun getBookFromType(type: FileType, url: AbsoluteUrl?, documentFile: DocumentFile):Book {
+//        return when (type) {
+//            FileType.EPUB -> {
+//                val asset = url?.let { it ->
+//                    assetRetriever.retrieve(it).getOrElse { throw ErrorException(it) }
+//                }
+//                val publication = asset?.let { it ->
+//                    publicationOpener.open(it, allowUserInteraction = false)
+//                        .getOrElse { throw ErrorException(it) }
+//                }
+//                extractEpubBookInfo(publication, documentFile)
+//            }
+//
+//            FileType.PDF -> extractPdfBookInfo(documentFile)
+//            FileType.AUDIOBOOK -> extractAudioBookInfo(documentFile)
+//            else -> throw UnknownFileTypeException(type.typeName())
+//        }
+//    }
 
     private fun defaultBook(documentFile: DocumentFile) : Book{
         return Book(
@@ -955,32 +955,32 @@ class HomeViewModel
         }
 
 
-    private suspend fun extractEpubBookInfo(
-        publication: Publication?,
-        documentFile: DocumentFile
-    ): Book {
-        val coverBitmap = publication?.cover()
-        val coverPath = coverBitmap?.let { ImageUtils.saveCoverImage( it, documentFile.uri.toString(), context) }
-
-        return Book(
-            filePath = documentFile.uri.toString(),
-            fileType = FileType.EPUB.typeName(),
-            title = publication?.metadata?.title ?: documentFile.name ?: "Unknown",
-            author = publication?.metadata?.authors?.joinToString(", ") { it.name } ?: "",
-            description = publication?.metadata?.description,
-            publishDate = publication?.metadata?.published?.toString(),
-            publisher = publication?.metadata?.publishers?.firstOrNull()?.name,
-            language = publication?.metadata?.languages?.firstOrNull(),
-            numberOfPages = publication?.metadata?.numberOfPages,
-            category = (publication?.metadata?.subjects?.joinToString(", ") { it.name }.orEmpty()),
-            coverImage = coverPath,
-            locator = "",
-            scrollIndex = 0,
-            scrollOffset = 0,
-            progress = 0f,
-            lastOpened = 0,
-        )
-    }
+//    private suspend fun extractEpubBookInfo(
+//        publication: Publication?,
+//        documentFile: DocumentFile
+//    ): Book {
+//        val coverBitmap = publication?.cover()
+//        val coverPath = coverBitmap?.let { ImageUtils.saveCoverImage( it, documentFile.uri.toString(), context) }
+//
+//        return Book(
+//            filePath = documentFile.uri.toString(),
+//            fileType = FileType.EPUB.typeName(),
+//            title = publication?.metadata?.title ?: documentFile.name ?: "Unknown",
+//            author = publication?.metadata?.authors?.joinToString(", ") { it.name } ?: "",
+//            description = publication?.metadata?.description,
+//            publishDate = publication?.metadata?.published?.toString(),
+//            publisher = publication?.metadata?.publishers?.firstOrNull()?.name,
+//            language = publication?.metadata?.languages?.firstOrNull(),
+//            numberOfPages = publication?.metadata?.numberOfPages,
+//            category = (publication?.metadata?.subjects?.joinToString(", ") { it.name }.orEmpty()),
+//            coverImage = coverPath,
+//            locator = "",
+//            scrollIndex = 0,
+//            scrollOffset = 0,
+//            progress = 0f,
+//            lastOpened = 0,
+//        )
+//    }
 
 
 

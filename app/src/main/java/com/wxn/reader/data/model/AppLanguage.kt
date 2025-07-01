@@ -1,5 +1,8 @@
 package com.wxn.reader.data.model
 
+import java.util.Locale
+
+
 enum class AppLanguage(val code: String, val displayName: String) {
     SYSTEM("system", "System Default"),
     ENGLISH("en", "English"),           //英语
@@ -20,8 +23,24 @@ enum class AppLanguage(val code: String, val displayName: String) {
 //    TURKISH("tr", "Türkçe"),            //土耳其语
 //    KOREAN("ko", "한국어"),               //韩语
 
+    val locale: Locale by lazy {
+        java.util.Locale.forLanguageTag(code)
+    }
+
+    val isRegional:Boolean by lazy {
+        locale.country.isNotEmpty()
+    }
+
+    fun removeRegion(): AppLanguage {
+        return AppLanguage.fromCode(code.split("-", limit = 2).first())
+    }
+
     companion object {
         fun fromCode(code: String): AppLanguage =
             entries.find { it.code == code } ?: SYSTEM
+
+        fun fromLocale(locale: Locale) : AppLanguage {
+            return fromCode(locale.toLanguageTag())
+        }
     }
 }

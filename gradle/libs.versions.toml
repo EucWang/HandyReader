@@ -1,12 +1,12 @@
 [versions]
 aboutlibrariesCore = "11.2.3"
-billingKtx = "7.1.1"
+#billingKtx = "7.1.1"
 coreSplashscreen = "1.0.1"
 ketch = "2.0.1"
 media3Exoplayer = "1.5.1"
 multiplatformMarkdownRenderer = "0.25.0"
 playServicesAds = "23.6.0"
-readium = "3.0.3"
+#readium = "3.0.3"
 agp = "8.9.2"
 coilCompose = "2.7.0"
 colorpickerCompose = "1.1.2"
@@ -51,20 +51,11 @@ androidx-media3-exoplayer = { module = "androidx.media3:media3-exoplayer", versi
 androidx-media3-exoplayer-dash = { module = "androidx.media3:media3-exoplayer-dash", version.ref = "media3Exoplayer" }
 androidx-media3-session = { module = "androidx.media3:media3-session", version.ref = "media3Exoplayer" }
 androidx-media3-ui = { module = "androidx.media3:media3-ui", version.ref = "media3Exoplayer" }
-billing-ktx = { module = "com.android.billingclient:billing-ktx", version.ref = "billingKtx" }
+#billing-ktx = { module = "com.android.billingclient:billing-ktx", version.ref = "billingKtx" }
 ketch = { module = "com.github.khushpanchal:Ketch", version.ref = "ketch" }
 multiplatform-markdown-renderer-m3 = { module = "com.mikepenz:multiplatform-markdown-renderer-m3", version.ref = "multiplatformMarkdownRenderer" }
 play-review-ktx = { module = "com.google.android.play:review-ktx", version.ref = "reviewKtxVersion" }
 play-services-ads = { module = "com.google.android.gms:play-services-ads", version.ref = "playServicesAds" }
-readium-shared = { module = "org.readium.kotlin-toolkit:readium-shared", version.ref = "readium" }
-readium-streamer = { module = "org.readium.kotlin-toolkit:readium-streamer", version.ref = "readium" }
-readium-navigator = { module = "org.readium.kotlin-toolkit:readium-navigator", version.ref = "readium" }
-readium-opds = { module = "org.readium.kotlin-toolkit:readium-opds", version.ref = "readium" }
-readium-lcp = { module = "org.readium.kotlin-toolkit:readium-lcp", version.ref = "readium" }
-readium-navigator-media-tts = { module = "org.readium.kotlin-toolkit:readium-navigator-media-tts", version.ref = "readium" }
-readium-navigator-media-audio = { module = "org.readium.kotlin-toolkit:readium-navigator-media-audio", version.ref = "readium" }
-readium-adapter-exoplayer = { module = "org.readium.kotlin-toolkit:readium-adapter-exoplayer", version.ref = "readium" }
-readium-adapter-pdfium = { module = "org.readium.kotlin-toolkit:readium-adapter-pdfium", version.ref = "readium" }
 timber = { module = "com.jakewharton.timber:timber", version.ref = "timber" }
 
 

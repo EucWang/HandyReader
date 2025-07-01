@@ -42,7 +42,7 @@ import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
 import com.wxn.base.bean.Book
 import com.wxn.reader.navigation.Screens
-import org.readium.r2.shared.publication.Publication
+//import org.readium.r2.shared.publication.Publication
 
 @Composable
 fun TopToolbar(

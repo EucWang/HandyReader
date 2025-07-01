@@ -46,7 +46,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
-import org.readium.r2.navigator.epub.EpubNavigatorFragment
+//import org.readium.r2.navigator.epub.EpubNavigatorFragment
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.wxn.base.util.Logger
@@ -56,169 +56,168 @@ import com.wxn.reader.util.LogCompositions
 import com.wxn.reader.util.OnLaunchFlow
 import com.wxn.reader.util.format
 
-
-@Composable
-fun BottomToolbar(
-    navigatorFragment: EpubNavigatorFragment?,
-    showToolbar: Boolean,
-    progression: Double,
-    onPageChange: (Double) -> Unit,  // Add this parameter
-    onToggleFontSettings: () -> Unit,
-    onTogglePageSettings: () -> Unit,
-    onToggleUISettings: () -> Unit,
-    onToggleReaderSettings: () -> Unit
-) {
-
-    var sliderPosition by remember(progression) { mutableDoubleStateOf(progression) }
-
-
-    AnimatedVisibility(
-        visible = showToolbar,
-        enter = fadeIn() + slideInVertically(initialOffsetY = { it }),
-        exit = fadeOut() + slideOutVertically(targetOffsetY = { it }),
-        modifier = Modifier
-            .fillMaxWidth()
-    ) {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .background(Color.Transparent)
-
-        ) {
-            Row(
-                modifier = Modifier
-                    .padding(horizontal = 10.dp)
-                    .fillMaxWidth(),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(10.dp)
-            ) {
-                IconButton(
-                    onClick = { navigatorFragment?.goBackward() },
-                    modifier = Modifier
-                        .size(40.dp)
-                        .shadow(elevation = 8.dp, shape = RoundedCornerShape(50.dp))
-                        .background(Color.White.copy(alpha = 1f), RoundedCornerShape(50.dp))
-                        .padding(0.dp)
-                ) {
-                    Icon(
-                        Icons.AutoMirrored.Sharp.ArrowBack,
-                        contentDescription = "Back",
-                    )
-                }
-
-                Box(
-                    modifier = Modifier
-                        .height(46.dp)
-                        .shadow(elevation = 8.dp, shape = RoundedCornerShape(50.dp))
-                        .background(Color.White.copy(alpha = 0.95f), RoundedCornerShape(50.dp))
-                        .border(
-                            width = 1.dp,
-                            color = Color.Transparent,
-                            shape = RoundedCornerShape(50.dp)
-                        )
-                        .padding(horizontal = 10.dp, vertical = 0.dp)
-                        .weight(1f)
-                ) {
-                    Row(
-                        modifier = Modifier
-                            .fillMaxSize(),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.SpaceBetween
-                    ) {
-                        Text(
-                            text = "${(sliderPosition * 100).toInt()}%",
-                            style = MaterialTheme.typography.labelMedium
-                        )
-                        Slider(
-                            value = sliderPosition.toFloat(),
-                            onValueChange = { newValue ->
-                                sliderPosition = newValue.toDouble()
-                            },
-                            onValueChangeFinished = {
-                                onPageChange(sliderPosition)
-                            },
-                            valueRange = 0f..1f,
-                            colors = SliderDefaults.colors(
-                                thumbColor = Color.DarkGray,
-                                activeTrackColor = Color.DarkGray,
-                                inactiveTrackColor = Color.LightGray
-                            ),
-                            modifier = Modifier
-                                .weight(1f)
-                                .padding(horizontal = 8.dp)
-                        )
-                        Text(
-                            text = "100%",
-                            style = MaterialTheme.typography.labelMedium
-                        )
-                    }
-                }
-
-                IconButton(
-                    onClick = { navigatorFragment?.goForward() },
-                    modifier = Modifier
-                        .size(40.dp)
-                        .shadow(elevation = 8.dp, shape = RoundedCornerShape(50.dp))
-                        .background(Color.White.copy(alpha = 1f), RoundedCornerShape(50.dp))
-                        .padding(0.dp)
-
-                ) {
-                    Icon(Icons.AutoMirrored.Sharp.ArrowForward, contentDescription = "Forward")
-                }
-            }
-
-
-            // Buttons Row
-            Row(
-                modifier = Modifier
-                    .padding(top = 5.dp)
-                    .shadow(
-                        elevation = 8.dp,
-                        clip = true
-                    )
-                    .offset(y = (15).dp)
-                    .padding(bottom = 8.dp)
-                    .background(Color.White.copy(alpha = 1f))
-                    .fillMaxWidth()
-                    .windowInsetsPadding(WindowInsets.navigationBars)
-                    .padding(vertical = 10.dp),
-                horizontalArrangement = Arrangement.SpaceAround,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                IconButton(onClick = { onToggleReaderSettings() }) {
-                    Icon(
-                        Icons.AutoMirrored.Outlined.ChromeReaderMode,
-                        contentDescription = "Reader Settings",
-                        modifier = Modifier.size(28.dp)
-                    )
-                }
-                IconButton(onClick = { onToggleUISettings() }) {
-                    Icon(
-                        Icons.Filled.SettingsBrightness,
-                        contentDescription = "UI Settings",
-                        modifier = Modifier.size(28.dp)
-                    )
-                }
-                IconButton(onClick = { onTogglePageSettings() }) {
-                    Icon(
-                        Icons.Filled.FormatSize,
-                        contentDescription = "Page Settings",
-                        modifier = Modifier.size(28.dp)
-                    )
-                }
-                IconButton(onClick = { onToggleFontSettings() }) {
-                    Icon(
-                        Icons.Filled.TextFormat,
-                        contentDescription = "Font Settings",
-                        modifier = Modifier.size(28.dp)
-                    )
-                }
-            }
-
-        }
-    }
-}
-
+//
+//@Composable
+//fun BottomToolbar(
+//    navigatorFragment: EpubNavigatorFragment?,
+//    showToolbar: Boolean,
+//    progression: Double,
+//    onPageChange: (Double) -> Unit,  // Add this parameter
+//    onToggleFontSettings: () -> Unit,
+//    onTogglePageSettings: () -> Unit,
+//    onToggleUISettings: () -> Unit,
+//    onToggleReaderSettings: () -> Unit
+//) {
+//
+//    var sliderPosition by remember(progression) { mutableDoubleStateOf(progression) }
+//
+//
+//    AnimatedVisibility(
+//        visible = showToolbar,
+//        enter = fadeIn() + slideInVertically(initialOffsetY = { it }),
+//        exit = fadeOut() + slideOutVertically(targetOffsetY = { it }),
+//        modifier = Modifier
+//            .fillMaxWidth()
+//    ) {
+//        Column(
+//            modifier = Modifier
+//                .fillMaxWidth()
+//                .background(Color.Transparent)
+//
+//        ) {
+//            Row(
+//                modifier = Modifier
+//                    .padding(horizontal = 10.dp)
+//                    .fillMaxWidth(),
+//                verticalAlignment = Alignment.CenterVertically,
+//                horizontalArrangement = Arrangement.spacedBy(10.dp)
+//            ) {
+//                IconButton(
+//                    onClick = { navigatorFragment?.goBackward() },
+//                    modifier = Modifier
+//                        .size(40.dp)
+//                        .shadow(elevation = 8.dp, shape = RoundedCornerShape(50.dp))
+//                        .background(Color.White.copy(alpha = 1f), RoundedCornerShape(50.dp))
+//                        .padding(0.dp)
+//                ) {
+//                    Icon(
+//                        Icons.AutoMirrored.Sharp.ArrowBack,
+//                        contentDescription = "Back",
+//                    )
+//                }
+//
+//                Box(
+//                    modifier = Modifier
+//                        .height(46.dp)
+//                        .shadow(elevation = 8.dp, shape = RoundedCornerShape(50.dp))
+//                        .background(Color.White.copy(alpha = 0.95f), RoundedCornerShape(50.dp))
+//                        .border(
+//                            width = 1.dp,
+//                            color = Color.Transparent,
+//                            shape = RoundedCornerShape(50.dp)
+//                        )
+//                        .padding(horizontal = 10.dp, vertical = 0.dp)
+//                        .weight(1f)
+//                ) {
+//                    Row(
+//                        modifier = Modifier
+//                            .fillMaxSize(),
+//                        verticalAlignment = Alignment.CenterVertically,
+//                        horizontalArrangement = Arrangement.SpaceBetween
+//                    ) {
+//                        Text(
+//                            text = "${(sliderPosition * 100).toInt()}%",
+//                            style = MaterialTheme.typography.labelMedium
+//                        )
+//                        Slider(
+//                            value = sliderPosition.toFloat(),
+//                            onValueChange = { newValue ->
+//                                sliderPosition = newValue.toDouble()
+//                            },
+//                            onValueChangeFinished = {
+//                                onPageChange(sliderPosition)
+//                            },
+//                            valueRange = 0f..1f,
+//                            colors = SliderDefaults.colors(
+//                                thumbColor = Color.DarkGray,
+//                                activeTrackColor = Color.DarkGray,
+//                                inactiveTrackColor = Color.LightGray
+//                            ),
+//                            modifier = Modifier
+//                                .weight(1f)
+//                                .padding(horizontal = 8.dp)
+//                        )
+//                        Text(
+//                            text = "100%",
+//                            style = MaterialTheme.typography.labelMedium
+//                        )
+//                    }
+//                }
+//
+//                IconButton(
+//                    onClick = { navigatorFragment?.goForward() },
+//                    modifier = Modifier
+//                        .size(40.dp)
+//                        .shadow(elevation = 8.dp, shape = RoundedCornerShape(50.dp))
+//                        .background(Color.White.copy(alpha = 1f), RoundedCornerShape(50.dp))
+//                        .padding(0.dp)
+//
+//                ) {
+//                    Icon(Icons.AutoMirrored.Sharp.ArrowForward, contentDescription = "Forward")
+//                }
+//            }
+//
+//
+//            // Buttons Row
+//            Row(
+//                modifier = Modifier
+//                    .padding(top = 5.dp)
+//                    .shadow(
+//                        elevation = 8.dp,
+//                        clip = true
+//                    )
+//                    .offset(y = (15).dp)
+//                    .padding(bottom = 8.dp)
+//                    .background(Color.White.copy(alpha = 1f))
+//                    .fillMaxWidth()
+//                    .windowInsetsPadding(WindowInsets.navigationBars)
+//                    .padding(vertical = 10.dp),
+//                horizontalArrangement = Arrangement.SpaceAround,
+//                verticalAlignment = Alignment.CenterVertically
+//            ) {
+//                IconButton(onClick = { onToggleReaderSettings() }) {
+//                    Icon(
+//                        Icons.AutoMirrored.Outlined.ChromeReaderMode,
+//                        contentDescription = "Reader Settings",
+//                        modifier = Modifier.size(28.dp)
+//                    )
+//                }
+//                IconButton(onClick = { onToggleUISettings() }) {
+//                    Icon(
+//                        Icons.Filled.SettingsBrightness,
+//                        contentDescription = "UI Settings",
+//                        modifier = Modifier.size(28.dp)
+//                    )
+//                }
+//                IconButton(onClick = { onTogglePageSettings() }) {
+//                    Icon(
+//                        Icons.Filled.FormatSize,
+//                        contentDescription = "Page Settings",
+//                        modifier = Modifier.size(28.dp)
+//                    )
+//                }
+//                IconButton(onClick = { onToggleFontSettings() }) {
+//                    Icon(
+//                        Icons.Filled.TextFormat,
+//                        contentDescription = "Font Settings",
+//                        modifier = Modifier.size(28.dp)
+//                    )
+//                }
+//            }
+//
+//        }
+//    }
+//}
 
 
 @Composable

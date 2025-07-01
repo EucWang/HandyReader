@@ -74,225 +74,225 @@ import com.wxn.reader.data.dto.AnnotationType
 import com.wxn.reader.data.model.AppPreferences
 import com.wxn.reader.domain.model.BookAnnotation
 import com.wxn.reader.navigation.Screens
-import com.wxn.reader.presentation.bookReader.BookReaderViewModel
+//import com.wxn.reader.presentation.bookReader.BookReaderViewModel
 import com.wxn.reader.presentation.mainReader.MainReadViewModel
-
-@Composable
-fun TextToolbar(
-    navController: NavHostController,
-    viewModel: BookReaderViewModel,
-    selectedText: String?,
-    rect: Rect,
-    onHighlight: (Color) -> Unit,
-    onUnderline: (Color) -> Unit,
-    onNote: () -> Unit,
-    onDismiss: () -> Unit,
-    appPreferences: AppPreferences,
-    selectedAnnotation: BookAnnotation?,
-    onRemoveAnnotation: (BookAnnotation) -> Unit,
-    colorHistory: List<Color>,
-    onColorHistoryUpdated: (List<Color>) -> Unit,
-    showColorSelectionPanel: Boolean
-) {
-    val context = LocalContext.current
-    var showHighlightAction by remember { mutableStateOf(false) }
-    var showUnderlineAction by remember { mutableStateOf(false) }
-    var isPaletteVisible by remember { mutableStateOf(false) }
-    var selectedColor by remember { mutableStateOf<Color?>(null) }
-    var showTranslationDialog by remember { mutableStateOf(false) }
-    var showDefinitionDialog by remember { mutableStateOf(false) }
-
-    val configuration = LocalConfiguration.current
-    val screenWidthDp = configuration.screenWidthDp.dp
-    val screenHeightDp = configuration.screenHeightDp.dp
-    val density = LocalDensity.current
-    val screenWidthPx = with(density) { screenWidthDp.toPx() }
-    val screenHeightPx = with(density) { screenHeightDp.toPx() }
-
-    val toolbarWidth = 250.dp
-    val toolbarWidthPx = with(density) { toolbarWidth.toPx() }
-
-    val toolbarHeight =
-        if (showHighlightAction || showUnderlineAction || showColorSelectionPanel) 260f else 160f
-
-    val offsetX = calculateOffsetX(rect, screenWidthPx, toolbarWidthPx)
-    val isNearTop = rect.top < toolbarHeight
-    val targetOffsetY = if (isNearTop) {
-        minOf(rect.bottom + 10f, screenHeightPx - toolbarHeight)
-    } else {
-        maxOf(rect.top - toolbarHeight - 10f, 0f)
-    }
-
-    val animatedOffsetY by animateFloatAsState(
-        targetValue = targetOffsetY,
-        animationSpec = tween(durationMillis = 300, easing = FastOutSlowInEasing),
-        label = ""
-    )
-
-    val controller = rememberColorPickerController()
-
-    fun openGoogleSearch(word: String) {
-        val searchUrl = "https://www.google.com/search?q=define:$word"
-        val intent = Intent(Intent.ACTION_VIEW, Uri.parse(searchUrl))
-        context.startActivity(Intent.createChooser(intent, "Search with"))
-    }
-
-    fun openGoogleTranslate(selectedText: String) {
-        val translateUrl =
-            "https://translate.google.com/?hl=fr&sl=auto&tl=fr&text=$selectedText&op=translate"
-        val intent = Intent(Intent.ACTION_VIEW, Uri.parse(translateUrl))
-        context.startActivity(Intent.createChooser(intent, "search with"))
-    }
-
-
-
-
-    Box(
-        modifier = Modifier.offset {
-            IntOffset(
-                offsetX.toInt(),
-                animatedOffsetY.toInt()
-            )
-        }
-    ) {
-        Card(modifier = Modifier.width(toolbarWidth)) {
-            Column {
-                AnimatedVisibility(visible = !showHighlightAction && !showUnderlineAction && !showColorSelectionPanel) {
-                    ActionButtons(
-                        selectedText = selectedText,
-                        onHighlight = { showHighlightAction = true },
-                        onUnderline = { showUnderlineAction = true },
-                        onNote = onNote,
-                        onTranslate = {
-//                            showTranslationDialog = true
-                            if (selectedText != null) {
-                                openGoogleTranslate(selectedText)
-                            }
-                        },
-                        onDefinition = {
-//                            showDefinitionDialog = true
-                            val firstWord = selectedText?.split("\\s+".toRegex())?.firstOrNull()
-                            if (firstWord != null) {
-                                openGoogleSearch(firstWord)
-                            }
-                        }
-                    )
-                }
-
-                AnimatedVisibility(visible = showHighlightAction || showUnderlineAction || showColorSelectionPanel) {
-                    ColorSelectionPanel(
-                        selectedAnnotation = selectedAnnotation,
-                        onRemoveAnnotation = onRemoveAnnotation,
-                        onCustomColorClick = {
-                            if (appPreferences.isPremium) isPaletteVisible = true
-                            else {
-                                navController.navigate(Screens.PremiumScreen.route)
-                            }
-                        },
-                        onColorSelected = { color ->
-                            selectedColor = color
-                            handleColorSelection(
-                                color,
-                                showHighlightAction = showHighlightAction || (showColorSelectionPanel && selectedAnnotation?.type == AnnotationType.HIGHLIGHT),
-                                showUnderlineAction = showUnderlineAction || (showColorSelectionPanel && selectedAnnotation?.type == AnnotationType.UNDERLINE),
-                                onHighlight = {
-                                    if (showColorSelectionPanel) {
-                                        viewModel.updateAnnotation(
-                                            selectedAnnotation!!.copy(
-                                                color = color.toArgb().toString()
-                                            )
-                                        )
-                                    } else {
-                                        onHighlight(color)
-                                    }
-                                },
-                                onUnderline = {
-                                    if (showColorSelectionPanel) {
-                                        viewModel.updateAnnotation(
-                                            selectedAnnotation!!.copy(
-                                                color = color.toArgb().toString()
-                                            )
-                                        )
-                                    } else {
-                                        onUnderline(color)
-                                    }
-                                },
-                                colorHistory,
-                                onColorHistoryUpdated
-                            )
-                        },
-                        onBackClick = {
-                            showHighlightAction = false
-                            showUnderlineAction = false
-                            if (showColorSelectionPanel) {
-                                onDismiss()
-                            }
-                        },
-                        colorHistory = colorHistory
-                    )
-                }
-            }
-        }
-    }
-
-    if (isPaletteVisible && appPreferences.isPremium) {
-        ColorPickerOverlay(
-            selectedColor = selectedColor,
-            controller = controller,
-            onColorChanged = { selectedColor = it },
-            onColorSelected = { color ->
-                handleColorSelection(
-                    color,
-                    showHighlightAction = showHighlightAction || (showColorSelectionPanel && selectedAnnotation?.type == AnnotationType.HIGHLIGHT),
-                    showUnderlineAction = showUnderlineAction || (showColorSelectionPanel && selectedAnnotation?.type == AnnotationType.UNDERLINE),
-                    onHighlight = {
-                        if (showColorSelectionPanel) {
-                            viewModel.updateAnnotation(
-                                selectedAnnotation!!.copy(
-                                    color = color.toArgb().toString()
-                                )
-                            )
-                        } else {
-                            onHighlight(color)
-                        }
-                    },
-                    onUnderline = {
-                        if (showColorSelectionPanel) {
-                            viewModel.updateAnnotation(
-                                selectedAnnotation!!.copy(
-                                    color = color.toArgb().toString()
-                                )
-                            )
-                        } else {
-                            onUnderline(color)
-                        }
-                    },
-                    colorHistory,
-                    onColorHistoryUpdated
-                )
-                isPaletteVisible = false
-            }
-        )
-    }
-
-    if (showTranslationDialog && selectedText != null) {
-        TranslationDialog(
-            text = selectedText,
-            onDismiss = { showTranslationDialog = false }
-        )
-    }
-
-    if (showDefinitionDialog && selectedText != null) {
-        val firstWord = selectedText.split("\\s+".toRegex()).firstOrNull()
-        if (firstWord != null) {
-            DefinitionDialog(
-                word = firstWord,
-                onDismiss = { showDefinitionDialog = false }
-            )
-        }
-    }
-
-}
+//
+//@Composable
+//fun TextToolbar(
+//    navController: NavHostController,
+//    viewModel: BookReaderViewModel,
+//    selectedText: String?,
+//    rect: Rect,
+//    onHighlight: (Color) -> Unit,
+//    onUnderline: (Color) -> Unit,
+//    onNote: () -> Unit,
+//    onDismiss: () -> Unit,
+//    appPreferences: AppPreferences,
+//    selectedAnnotation: BookAnnotation?,
+//    onRemoveAnnotation: (BookAnnotation) -> Unit,
+//    colorHistory: List<Color>,
+//    onColorHistoryUpdated: (List<Color>) -> Unit,
+//    showColorSelectionPanel: Boolean
+//) {
+//    val context = LocalContext.current
+//    var showHighlightAction by remember { mutableStateOf(false) }
+//    var showUnderlineAction by remember { mutableStateOf(false) }
+//    var isPaletteVisible by remember { mutableStateOf(false) }
+//    var selectedColor by remember { mutableStateOf<Color?>(null) }
+//    var showTranslationDialog by remember { mutableStateOf(false) }
+//    var showDefinitionDialog by remember { mutableStateOf(false) }
+//
+//    val configuration = LocalConfiguration.current
+//    val screenWidthDp = configuration.screenWidthDp.dp
+//    val screenHeightDp = configuration.screenHeightDp.dp
+//    val density = LocalDensity.current
+//    val screenWidthPx = with(density) { screenWidthDp.toPx() }
+//    val screenHeightPx = with(density) { screenHeightDp.toPx() }
+//
+//    val toolbarWidth = 250.dp
+//    val toolbarWidthPx = with(density) { toolbarWidth.toPx() }
+//
+//    val toolbarHeight =
+//        if (showHighlightAction || showUnderlineAction || showColorSelectionPanel) 260f else 160f
+//
+//    val offsetX = calculateOffsetX(rect, screenWidthPx, toolbarWidthPx)
+//    val isNearTop = rect.top < toolbarHeight
+//    val targetOffsetY = if (isNearTop) {
+//        minOf(rect.bottom + 10f, screenHeightPx - toolbarHeight)
+//    } else {
+//        maxOf(rect.top - toolbarHeight - 10f, 0f)
+//    }
+//
+//    val animatedOffsetY by animateFloatAsState(
+//        targetValue = targetOffsetY,
+//        animationSpec = tween(durationMillis = 300, easing = FastOutSlowInEasing),
+//        label = ""
+//    )
+//
+//    val controller = rememberColorPickerController()
+//
+//    fun openGoogleSearch(word: String) {
+//        val searchUrl = "https://www.google.com/search?q=define:$word"
+//        val intent = Intent(Intent.ACTION_VIEW, Uri.parse(searchUrl))
+//        context.startActivity(Intent.createChooser(intent, "Search with"))
+//    }
+//
+//    fun openGoogleTranslate(selectedText: String) {
+//        val translateUrl =
+//            "https://translate.google.com/?hl=fr&sl=auto&tl=fr&text=$selectedText&op=translate"
+//        val intent = Intent(Intent.ACTION_VIEW, Uri.parse(translateUrl))
+//        context.startActivity(Intent.createChooser(intent, "search with"))
+//    }
+//
+//
+//
+//
+//    Box(
+//        modifier = Modifier.offset {
+//            IntOffset(
+//                offsetX.toInt(),
+//                animatedOffsetY.toInt()
+//            )
+//        }
+//    ) {
+//        Card(modifier = Modifier.width(toolbarWidth)) {
+//            Column {
+//                AnimatedVisibility(visible = !showHighlightAction && !showUnderlineAction && !showColorSelectionPanel) {
+//                    ActionButtons(
+//                        selectedText = selectedText,
+//                        onHighlight = { showHighlightAction = true },
+//                        onUnderline = { showUnderlineAction = true },
+//                        onNote = onNote,
+//                        onTranslate = {
+////                            showTranslationDialog = true
+//                            if (selectedText != null) {
+//                                openGoogleTranslate(selectedText)
+//                            }
+//                        },
+//                        onDefinition = {
+////                            showDefinitionDialog = true
+//                            val firstWord = selectedText?.split("\\s+".toRegex())?.firstOrNull()
+//                            if (firstWord != null) {
+//                                openGoogleSearch(firstWord)
+//                            }
+//                        }
+//                    )
+//                }
+//
+//                AnimatedVisibility(visible = showHighlightAction || showUnderlineAction || showColorSelectionPanel) {
+//                    ColorSelectionPanel(
+//                        selectedAnnotation = selectedAnnotation,
+//                        onRemoveAnnotation = onRemoveAnnotation,
+//                        onCustomColorClick = {
+//                            if (appPreferences.isPremium) isPaletteVisible = true
+//                            else {
+//                                navController.navigate(Screens.PremiumScreen.route)
+//                            }
+//                        },
+//                        onColorSelected = { color ->
+//                            selectedColor = color
+//                            handleColorSelection(
+//                                color,
+//                                showHighlightAction = showHighlightAction || (showColorSelectionPanel && selectedAnnotation?.type == AnnotationType.HIGHLIGHT),
+//                                showUnderlineAction = showUnderlineAction || (showColorSelectionPanel && selectedAnnotation?.type == AnnotationType.UNDERLINE),
+//                                onHighlight = {
+//                                    if (showColorSelectionPanel) {
+//                                        viewModel.updateAnnotation(
+//                                            selectedAnnotation!!.copy(
+//                                                color = color.toArgb().toString()
+//                                            )
+//                                        )
+//                                    } else {
+//                                        onHighlight(color)
+//                                    }
+//                                },
+//                                onUnderline = {
+//                                    if (showColorSelectionPanel) {
+//                                        viewModel.updateAnnotation(
+//                                            selectedAnnotation!!.copy(
+//                                                color = color.toArgb().toString()
+//                                            )
+//                                        )
+//                                    } else {
+//                                        onUnderline(color)
+//                                    }
+//                                },
+//                                colorHistory,
+//                                onColorHistoryUpdated
+//                            )
+//                        },
+//                        onBackClick = {
+//                            showHighlightAction = false
+//                            showUnderlineAction = false
+//                            if (showColorSelectionPanel) {
+//                                onDismiss()
+//                            }
+//                        },
+//                        colorHistory = colorHistory
+//                    )
+//                }
+//            }
+//        }
+//    }
+//
+//    if (isPaletteVisible && appPreferences.isPremium) {
+//        ColorPickerOverlay(
+//            selectedColor = selectedColor,
+//            controller = controller,
+//            onColorChanged = { selectedColor = it },
+//            onColorSelected = { color ->
+//                handleColorSelection(
+//                    color,
+//                    showHighlightAction = showHighlightAction || (showColorSelectionPanel && selectedAnnotation?.type == AnnotationType.HIGHLIGHT),
+//                    showUnderlineAction = showUnderlineAction || (showColorSelectionPanel && selectedAnnotation?.type == AnnotationType.UNDERLINE),
+//                    onHighlight = {
+//                        if (showColorSelectionPanel) {
+//                            viewModel.updateAnnotation(
+//                                selectedAnnotation!!.copy(
+//                                    color = color.toArgb().toString()
+//                                )
+//                            )
+//                        } else {
+//                            onHighlight(color)
+//                        }
+//                    },
+//                    onUnderline = {
+//                        if (showColorSelectionPanel) {
+//                            viewModel.updateAnnotation(
+//                                selectedAnnotation!!.copy(
+//                                    color = color.toArgb().toString()
+//                                )
+//                            )
+//                        } else {
+//                            onUnderline(color)
+//                        }
+//                    },
+//                    colorHistory,
+//                    onColorHistoryUpdated
+//                )
+//                isPaletteVisible = false
+//            }
+//        )
+//    }
+//
+//    if (showTranslationDialog && selectedText != null) {
+//        TranslationDialog(
+//            text = selectedText,
+//            onDismiss = { showTranslationDialog = false }
+//        )
+//    }
+//
+//    if (showDefinitionDialog && selectedText != null) {
+//        val firstWord = selectedText.split("\\s+".toRegex()).firstOrNull()
+//        if (firstWord != null) {
+//            DefinitionDialog(
+//                word = firstWord,
+//                onDismiss = { showDefinitionDialog = false }
+//            )
+//        }
+//    }
+//
+//}
 
 
 @Composable

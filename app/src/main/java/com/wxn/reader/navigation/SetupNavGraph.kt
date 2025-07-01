@@ -7,7 +7,7 @@ import androidx.navigation.compose.composable
 import com.wxn.reader.presentation.annotations.AnnotationsScreen
 import com.wxn.reader.presentation.audioBookReader.AudiobookReaderScreen
 import com.wxn.reader.presentation.bookDetails.BookDetailsScreen
-import com.wxn.reader.presentation.bookReader.BookReaderScreen
+//import com.wxn.reader.presentation.bookReader.BookReaderScreen
 import com.wxn.reader.presentation.gettingStarted.GettingStartedScreen
 import com.wxn.reader.presentation.home.HomeScreen
 import com.wxn.reader.presentation.mainReader.MainReadScreen
@@ -39,11 +39,11 @@ fun SetupNavGraph(startDestination: String) {
         ) {
             HomeScreen()
         }
-        composable(
-            route = Screens.BookReaderScreen.route + "/{bookId}/{bookUri}",
-        ) {
-            BookReaderScreen()
-        }
+//        composable(
+//            route = Screens.BookReaderScreen.route + "/{bookId}/{bookUri}",
+//        ) {
+//            BookReaderScreen()
+//        }
         composable(
             route = Screens.MainReaderScreen.route + "/{bookId}/{bookUri}",
         ) {
