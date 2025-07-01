@@ -964,7 +964,7 @@ int32_t epub_util::getWordCount(std::vector<ChapterCount> &wordCounts) {
             wordCounts.emplace_back(ChapterCount{chapter.playOrder, wordCount, picCount});
             total += wordCount;
             total += picCount;
-            LOGD("%s: chapter.playOrder[%d], count[%d]", __func__, chapter.playOrder, wordCount);
+            LOGD("%s: chapter.playOrder[%d], count[%zu]", __func__, chapter.playOrder, wordCount);
         }
     } else {
         std::vector<std::string> anchors;

@@ -86,7 +86,10 @@ fun ReaderView(
     val isBookmarksDrawerOpen by viewModel.isBookmarksDrawerOpen.collectAsStateWithLifecycle()
     val isHighlightsDrawerOpen by viewModel.isHighlightsDrawerOpen.collectAsStateWithLifecycle()
     val isTtsOn by viewModel.isTtsOn.collectAsStateWithLifecycle()
+
     val showTextToolbar by viewModel.showTextToolbar.collectAsStateWithLifecycle()
+    val textToolbarRect by viewModel.textToolbarRect.collectAsStateWithLifecycle()
+
     val showColorSelectionPanel by viewModel.showColorSelectionPanel.collectAsStateWithLifecycle()
 
     val showUISettings by viewModel.showUISettings.collectAsStateWithLifecycle()
@@ -339,6 +342,7 @@ fun ReaderView(
             )
         }
 
+        //选中的笔记
         selectedNote?.let { note ->
             NoteContent(
                 appPreferences = appPreferences,
@@ -360,6 +364,7 @@ fun ReaderView(
             )
         }
 
+        //字体设置
         if (showFontSettings) {
             FontSettings(
                 viewModel = viewModel,
@@ -368,6 +373,7 @@ fun ReaderView(
             )
         }
 
+        //页面设置
         if (showPageSettings) {
             PageSettings(
                 viewModel = viewModel,
@@ -376,6 +382,7 @@ fun ReaderView(
             )
         }
 
+        //UI 设置
         if (showUISettings) {
             UiSettings(
                 navController = navController,
@@ -387,6 +394,7 @@ fun ReaderView(
             )
         }
 
+        //阅读设置
         if (showReaderSettings) {
             ReaderSettings(
                 viewModel = viewModel,
@@ -434,14 +442,13 @@ fun ReaderView(
         }
     }
 
-    var textToolbarRect by remember { mutableStateOf<Rect?>(null) }
 
     if (showTextToolbar) {
         TextToolbar(
             navController = navController,
             viewModel = viewModel,
             selectedText = "", // actionSelectedText,
-            rect = textToolbarRect!!,
+            rect = textToolbarRect,
             onHighlight = { color ->
 //                handleHighlight(color)
             },

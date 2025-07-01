@@ -1,7 +1,12 @@
 package com.wxn.reader.presentation.mainReader
 
 import android.app.Application
+import android.graphics.Rect
 import androidx.compose.runtime.Stable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.viewModelScope
@@ -160,6 +165,9 @@ class MainReadViewModel @Inject constructor(
 
     private val _isShowTextToolbar = MutableStateFlow<Boolean>(false)
     val showTextToolbar: StateFlow<Boolean> = _isShowTextToolbar.asStateFlow()
+
+    private val _textToolbarRect = MutableStateFlow<Rect>(Rect(0,0,0,0))
+    val textToolbarRect : StateFlow<Rect> = _textToolbarRect.asStateFlow()
 
     private val _isShowColorSelectionPanel = MutableStateFlow<Boolean>(false)
     val showColorSelectionPanel: StateFlow<Boolean> = _isShowColorSelectionPanel.asStateFlow()
@@ -423,6 +431,18 @@ class MainReadViewModel @Inject constructor(
         }
     }
 
+    override fun onSelectedText(startX: Float, startY: Float, endX: Float, endY: Float) {
+        var rect = Rect(startX.toInt(), startY.toInt(), endX.toInt(), endY.toInt())
+//        rect.apply { offset(0, 100) }
+        _textToolbarRect.value = rect
+        textToolbarOpen(true)
+    }
+
+    override fun onSelectedCancel() {
+        textToolbarOpen(false)
+        _textToolbarRect.value = Rect(0,0,0,0)
+    }
+
     private suspend fun updateReadingTime() {
         val currentTime = System.currentTimeMillis()
         if (lastLocatorChangeTime != 0L) {
@@ -432,6 +452,7 @@ class MainReadViewModel @Inject constructor(
         }
         lastLocatorChangeTime = currentTime
     }
+
     private suspend fun updateStartReadingDate() {
         currentBookId.value?.let { bookId ->
             val book = getBookByIdUseCase(bookId)

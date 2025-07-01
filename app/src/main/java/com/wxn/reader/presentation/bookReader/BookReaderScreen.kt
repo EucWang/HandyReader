@@ -303,7 +303,6 @@ fun EpubReaderView(
 
 //    var mInterstitialAd by remember { mutableStateOf<InterstitialAd?>(null) }
 
-
     var showTextToolbar by remember { mutableStateOf(false) }
     var showColorSelectionPanel by remember { mutableStateOf(false) }
     var textToolbarRect by remember { mutableStateOf<Rect?>(null) }
@@ -330,7 +329,6 @@ fun EpubReaderView(
 //                    override fun onAdLoaded(interstitialAd: InterstitialAd) {
 //                        mInterstitialAd = interstitialAd
 //                    }
-//
 //                    override fun onAdFailedToLoad(loadAdError: LoadAdError) {
 //                        mInterstitialAd = null
 //                    }

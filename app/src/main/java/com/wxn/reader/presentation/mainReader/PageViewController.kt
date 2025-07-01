@@ -58,10 +58,11 @@ open class PageViewController @Inject constructor(
         fun onCenterClick()
         fun onLinkClick(href: String?, clickX: Float, clickY: Float)
         fun onPageChange()
+        fun onSelectedText(startX: Float, startY : Float, endX : Float, endY : Float)
+        fun onSelectedCancel()
     }
 
     var clickListener: OnClickListener? = null
-
 
     /***
      * 当前显示的章节索引
@@ -522,22 +523,37 @@ open class PageViewController @Inject constructor(
 
     override fun showTextActionMenu() {
         Logger.i("PageViewController::showTextActionMenu")
-//        TODO("Not yet implemented")
+        clickListener?.onSelectedText(selectedStartX, selectedStartTop + ChapterProvider.paddingTop, selectedEndX, selectedEndY + ChapterProvider.paddingTop)
     }
 
+    //选中的位置
+    private var selectedStartX: Float = 0.0f
+    private var selectedStartY: Float = 0.0f
+    private var selectedStartTop: Float = 0.0f
+    private var selectedEndX : Float = 0f
+    private var selectedEndY : Float = 0f
+
     override fun upSelectedStart(x: Float, y: Float, top: Float) {
-        Logger.i("PageViewController::upSelectedStart")
-//        TODO("Not yet implemented")
+        selectedStartX = x
+        selectedStartY = y
+        selectedStartTop = top
+        Logger.i("PageViewController::upSelectedStart:x=$x,y=$y,top=$top")
     }
 
     override fun upSelectedEnd(x: Float, y: Float) {
-        Logger.i("PageViewController::upSelectedEnd")
-//        TODO("Not yet implemented")
+        Logger.i("PageViewController::upSelectedEnd:x=$x,y=$y")
+        selectedEndX = x
+        selectedEndY = y
     }
 
     override fun onCancelSelect() {
         Logger.i("PageViewController::onCancelSelect")
-//        TODO("Not yet implemented")
+        clickListener?.onSelectedCancel()
+        selectedStartX = 0f
+        selectedStartY = 0f
+        selectedStartTop = 0f
+        selectedEndX = 0f
+        selectedEndY = 0f
     }
 
     override fun clickLink(tag: TextTag, clickX: Float, clickY: Float) {
