@@ -976,7 +976,10 @@ int mobi_util::getChapter(JNIEnv *env,
             LOGI("%s:invoke failed, run_flag false", __func__);
             return 0;
         }
-        mockFirstPage(chapter, docTexts);
+        char *title = mobi_meta_get_title(mobi_data);
+        char *author = mobi_meta_get_author(mobi_data);
+        char *publisher = mobi_meta_get_publisher(mobi_data);
+        mockFirstPage(chapter, docTexts, title, author, publisher);
         handle_tags(env, docTexts);
     }
     auto end_time = std::chrono::high_resolution_clock::now();
@@ -1048,58 +1051,6 @@ void mobi_util::handle_tags(JNIEnv *env, std::vector<DocText> &docTexts) {
     //    //输出结果统计信息(性能分析)
     auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(end_time - start_time).count();
     LOGI("%s:invoke done duration = %lld ms", __func__, duration);
-}
-
-/***
- * 第一章没有内容，由于合并ncx 和opf可能导致的首页没有内容，则需要填充一个默认的内容
- * @param chapter
- * @param docTexts
- */
-void mobi_util::mockFirstPage(NavPoint &chapter, std::vector<DocText> &docTexts) {
-    if (docTexts.empty() && chapter.playOrder == 1) {
-        char *title = mobi_meta_get_title(mobi_data);
-        char *author = mobi_meta_get_author(mobi_data);
-        char *publisher = mobi_meta_get_publisher(mobi_data);
-        if (title != nullptr) {
-            std::vector<TagInfo> tagInfos;
-            tagInfos.push_back(TagInfo{
-                    string_ext::generate_uuid(),
-                    "",
-                    "h1",
-                    0,
-                    strlen(title),
-                    "",
-                    ""
-            });
-            docTexts.emplace_back(DocText{std::string(title, title + strlen(title)), tagInfos});
-        }
-        if (author != nullptr) {
-            std::vector<TagInfo> tagInfos;
-            tagInfos.push_back(TagInfo{
-                    string_ext::generate_uuid(),
-                    "",
-                    "p",
-                    0,
-                    strlen(author),
-                    "",
-                    "align=center"
-            });
-            docTexts.emplace_back(DocText{std::string(author, author + strlen(author)), tagInfos});
-        }
-        if (publisher != nullptr) {
-            std::vector<TagInfo> tagInfos;
-            tagInfos.push_back(TagInfo{
-                    string_ext::generate_uuid(),
-                    "",
-                    "p",
-                    0,
-                    strlen(publisher),
-                    "",
-                    "align=center"
-            });
-            docTexts.emplace_back(DocText{std::string(publisher, publisher + strlen(publisher)), tagInfos});
-        }
-    }
 }
 
 int32_t mobi_util::getWordCount(std::vector<ChapterCount> &wordCounts) {

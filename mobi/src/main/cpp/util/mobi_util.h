@@ -130,8 +130,6 @@ private:
 
     int parseCssSrcList();
 
-    void mockFirstPage(NavPoint &chapter, std::vector<DocText> &docTexts);
-
     /****
  * 从资源索引路径中解析出 prefix， srcId, anchorId, suffix
  * @param src [in]

@@ -86,6 +86,64 @@ protected:
 //    LOGI("%s:invoke done", __func__);
         return 1;
     }
+
+
+    /***
+     * 第一章没有内容，由于合并ncx 和opf可能导致的首页没有内容，则需要填充一个默认的内容
+     * @param chapter
+     * @param docTexts
+     * @param title
+     * @param author
+     * @param publisher
+     */
+    void mockFirstPage(NavPoint &chapter, std::vector<DocText> &docTexts, const std::string &title, const std::string &author, const std::string &publisher) {
+        if (docTexts.empty() && chapter.playOrder == 1) {
+            LOGI("%s:invoke", __func__);
+//            std::string &title = meta_info.title;
+//            std::string &author = meta_info.author;
+//            std::string &publisher = meta_info.publisher;
+            if (!title.empty()) {
+                std::vector<TagInfo> tagInfos;
+                tagInfos.push_back(TagInfo{
+                        string_ext::generate_uuid(),
+                        "",
+                        "h1",
+                        0,
+                        title.length(),
+                        "",
+                        ""
+                });
+                docTexts.emplace_back(DocText{title, tagInfos});
+            }
+            if (!author.empty()) {
+                std::vector<TagInfo> tagInfos;
+                tagInfos.push_back(TagInfo{
+                        string_ext::generate_uuid(),
+                        "",
+                        "p",
+                        0,
+                        author.length(),
+                        "",
+                        "align=center"
+                });
+                docTexts.emplace_back(DocText{author, tagInfos});
+            }
+            if (!publisher.empty()) {
+                std::vector<TagInfo> tagInfos;
+                tagInfos.push_back(TagInfo{
+                        string_ext::generate_uuid(),
+                        "",
+                        "p",
+                        0,
+                        publisher.length(),
+                        "",
+                        "align=center"
+                });
+                docTexts.emplace_back(DocText{publisher, tagInfos});
+            }
+            LOGI("%s:invoke done", __func__);
+        }
+    }
 };
 
 #endif //U_READER2_BOOK_UTIL_H

@@ -734,7 +734,7 @@ int epub_util::getChapter(JNIEnv *env, long book_id,
             LOGI("%s:invoke failed, run_flag false", __func__);
             return 0;
         }
-        mockFirstPage(chapter, docTexts);
+        mockFirstPage(chapter, docTexts, meta_info.title, meta_info.author, meta_info.publisher);
         handle_tags(env, docTexts);
     } else {
         LOGE("%s: invoke failed, childEle is null", __func__);
@@ -1039,60 +1039,6 @@ int32_t epub_util::getWordCount(std::vector<ChapterCount> &wordCounts) {
     auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(end_time - start_time).count();
     LOGD("%s: done duration = %lld ms", __func__, duration);
     return total;
-}
-
-/***
- * 第一章没有内容，由于合并ncx 和opf可能导致的首页没有内容，则需要填充一个默认的内容
- * @param chapter
- * @param docTexts
- */
-void epub_util::mockFirstPage(NavPoint &chapter, std::vector<DocText> &docTexts) {
-    if (docTexts.empty() && chapter.playOrder == 1) {
-        LOGI("%s:invoke", __func__);
-        std::string &title = meta_info.title;
-        std::string &author = meta_info.author;
-        std::string &publisher = meta_info.publisher;
-        if (!title.empty()) {
-            std::vector<TagInfo> tagInfos;
-            tagInfos.push_back(TagInfo{
-                    string_ext::generate_uuid(),
-                    "",
-                    "h1",
-                    0,
-                    title.length(),
-                    "",
-                    ""
-            });
-            docTexts.emplace_back(DocText{title, tagInfos});
-        }
-        if (!author.empty()) {
-            std::vector<TagInfo> tagInfos;
-            tagInfos.push_back(TagInfo{
-                    string_ext::generate_uuid(),
-                    "",
-                    "p",
-                    0,
-                    author.length(),
-                    "",
-                    "align=center"
-            });
-            docTexts.emplace_back(DocText{author, tagInfos});
-        }
-        if (!publisher.empty()) {
-            std::vector<TagInfo> tagInfos;
-            tagInfos.push_back(TagInfo{
-                    string_ext::generate_uuid(),
-                    "",
-                    "p",
-                    0,
-                    publisher.length(),
-                    "",
-                    "align=center"
-            });
-            docTexts.emplace_back(DocText{publisher, tagInfos});
-        }
-        LOGI("%s:invoke done", __func__);
-    }
 }
 
 /***

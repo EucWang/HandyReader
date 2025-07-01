@@ -103,9 +103,6 @@ sealed class ReaderText {
 
         fun tryParseToImage(): Image? {
             val imgTag = annotations.firstOrNull { it.name == "img" || it.name == "image" }
-//            val src = imgTag?.paramsPairs()?.firstOrNull { it.first == "src" }?.second.orEmpty()
-//            val width = imgTag?.paramsPairs()?.firstOrNull { it.first == "width" }?.second?.toIntOrNull() ?: 0
-//            val height = imgTag?.paramsPairs()?.firstOrNull { it.first == "height" }?.second?.toIntOrNull() ?: 0
 
             if (line.trim().isEmpty() && imgTag != null) {
                 val paramItems = imgTag.paramsPairs()

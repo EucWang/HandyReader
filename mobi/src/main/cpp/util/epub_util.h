@@ -161,14 +161,6 @@ private:
 
     int parseOpfData(std::vector<NavPoint> &points);
 
-    /***
-     * 第一章没有内容，由于合并ncx 和opf可能导致的首页没有内容，则需要填充一个默认的内容
-     * @param chapter
-     * @param docTexts
-     */
-    void mockFirstPage(NavPoint &chapter, std::vector<DocText> &docTexts);
-
-
     void handle_tags(JNIEnv *env, std::vector<DocText> &docTexts);
 
     /***
