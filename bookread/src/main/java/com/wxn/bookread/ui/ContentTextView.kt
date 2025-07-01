@@ -54,6 +54,16 @@ class ContentTextView(context: Context, attrs: AttributeSet?) : View(context, at
         }
     }
 
+    /***
+     * 选中文字的画笔
+     */
+    private val highlightPaint by lazy {
+        Paint().apply {
+            color = context.getCompatColor(R.color.highlight)
+            style = Paint.Style.FILL
+        }
+    }
+
     var callback: SelectTextCallback? = null
 
     /**
@@ -283,12 +293,29 @@ class ContentTextView(context: Context, attrs: AttributeSet?) : View(context, at
 
         textLine.textChars.forEachIndexed { index, ch ->
             val charIndex = textLine.charStartOffset + index
+            var isHighlight = false     //是否高亮
+            var hightlightColor : String = "0xFFFFFF00"
 
             val parentPaint = if (defaultTextPaint != null) defaultTextPaint else {
                 val texttag = if (textTags.size == 1) {
                     if (textTags[0].start <= charIndex && charIndex < textTags[0].end) textTags[0] else null
                 } else {
-                    filterTags(charIndex, textTags)
+//                    filterTags(charIndex, textTags)
+                    val tags = arrayListOf<TextTag>()
+                    for (tag in textTags) {
+                        if (tag.start <= charIndex && charIndex < tag.end) {
+                            if (tag.name in arrayOf("h1", "h2", "h3", "h4", "a", "underline")) {
+                                tags.add(tag)
+                            } else if (tag.name == "highlight") {
+                                tag.paramsPairs().firstOrNull { it.first == "color" }?.second?.let {
+                                    hightlightColor = it
+                                    highlightPaint.color = hightlightColor.toColorInt()
+                                }
+                                isHighlight = true
+                            }
+                        }
+                    }
+                    tags.firstOrNull()
                 }
                 ChapterProvider.getPaintByTagName(texttag)
             }
@@ -328,6 +355,9 @@ class ContentTextView(context: Context, attrs: AttributeSet?) : View(context, at
                 }
             }
 
+            if (isHighlight) {
+                canvas.drawRect(ch.start, lineTop, ch.end, lineBottom, highlightPaint) //绘制高亮文字时的背景框
+            }
 
             if (ch.isImage) {
                 val lineTop = textLine.lineTop
@@ -347,7 +377,7 @@ class ContentTextView(context: Context, attrs: AttributeSet?) : View(context, at
         val tags = arrayListOf<TextTag>()
         for (tag in textTags) {
             if (tag.start <= charIndex && charIndex < tag.end) {
-                if (tag.name in arrayOf("h1", "h2", "h3", "h4", "a")) {
+                if (tag.name in arrayOf("h1", "h2", "h3", "h4", "a", "underline")) {
                     tags.add(tag)
                 }
             }

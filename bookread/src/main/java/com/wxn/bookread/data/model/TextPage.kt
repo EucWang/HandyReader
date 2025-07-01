@@ -27,7 +27,7 @@ data class TextPage(
      */
     val textLines: ArrayList<TextLine> = arrayListOf(),
     /***
-     * 页面数
+     * 当前所在章节包含的页面数
      */
     var pageSize: Int = 0,
     /***

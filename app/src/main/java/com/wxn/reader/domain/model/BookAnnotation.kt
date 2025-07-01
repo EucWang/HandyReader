@@ -8,11 +8,11 @@ import kotlinx.parcelize.Parcelize
 @Parcelize
 @Immutable
 data class BookAnnotation(
-    val id: Long = 0,
-    val bookId: Long,
-    val locator: String,
-    val color: String,
-    val note: String?,
-    val type: AnnotationType
+    val id: Long = 0,           //id
+    val bookId: Long,           //书id
+    val locator: String,        //位置
+    val color: String,          //颜色
+    val note: String?,          //笔记
+    val type: AnnotationType    //类型：高亮/下划线
 ) : Parcelable {
 }

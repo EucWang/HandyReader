@@ -3,15 +3,14 @@ package com.wxn.reader.presentation.mainReader
 import android.app.Application
 import android.graphics.Rect
 import androidx.compose.runtime.Stable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
+import androidx.compose.ui.graphics.Color
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.viewModelScope
 import com.wxn.base.bean.Book
 import com.wxn.base.bean.BookChapter
+import com.wxn.base.bean.Locator
+import com.wxn.base.ext.toStringColor
 import com.wxn.base.util.Logger
 import com.wxn.base.util.ToastUtil
 import com.wxn.base.util.launchIO
@@ -20,6 +19,7 @@ import com.wxn.bookread.data.model.preference.ReaderPreferences
 import com.wxn.bookread.data.source.local.ReaderPreferencesUtil
 import com.wxn.bookread.provider.ChapterProvider
 import com.wxn.reader.R
+import com.wxn.reader.data.dto.AnnotationType
 import com.wxn.reader.data.dto.ReadingStatus
 import com.wxn.reader.data.model.AppPreferences
 import com.wxn.reader.data.source.local.AppPreferencesUtil
@@ -111,10 +111,6 @@ class MainReadViewModel @Inject constructor(
     private val _readerPreferences = MutableStateFlow(ReaderPreferencesUtil.defaultPreferences)
     val readerPreferences: StateFlow<ReaderPreferences> = _readerPreferences.asStateFlow()
 
-//    private val _epubPreferences =
-//        MutableStateFlow(ReaderPreferencesUtil.defaultPreferences.toRediumEpubPreferences())
-//    val epubPreferences: StateFlow<EpubPreferences> = _epubPreferences.asStateFlow()
-
     private val _uiState = MutableStateFlow<BookReaderUiState>(BookReaderUiState.Loading)
     val uiState: StateFlow<BookReaderUiState> = _uiState.asStateFlow()
 
@@ -126,9 +122,6 @@ class MainReadViewModel @Inject constructor(
 
     private val _currentBookId = MutableStateFlow<Long?>(null)
     val currentBookId: StateFlow<Long?> = _currentBookId.asStateFlow()
-
-//    private val _initialLocator = MutableStateFlow<Locator?>(null)
-//    val initialLocator: StateFlow<Locator?> = _initialLocator.asStateFlow()
 
     //显示总的菜单弹窗
     private val _showMenu = MutableStateFlow<Boolean>(false)
@@ -422,11 +415,64 @@ class MainReadViewModel @Inject constructor(
         }
     }
 
+    private var selectedLocator: Locator? = null
+
     override fun onSelectedText(startX: Float, startY: Float, endX: Float, endY: Float) {
+
         var rect = Rect(startX.toInt(), startY.toInt(), endX.toInt(), endY.toInt())
-//        rect.apply { offset(0, 100) }
         _textToolbarRect.value = rect
-        textToolbarOpen(true)
+
+        selectedLocator = null
+        selectedLocator = this.pageController.getSelectedLocator()
+        Logger.d("MainReadViewModel:onSelectedText:[$selectedLocator]")
+        if (selectedLocator != null) {
+            textToolbarOpen(true)
+        }
+    }
+
+
+    fun handleHighlight(color: Color) {
+        Logger.d("MainReadViewModel:handleHighlight")
+        val bookid = _currentBookId.value ?: return
+        Logger.d("MainReadViewModel:handleHighlight,bookid=$bookid")
+        val locator = selectedLocator ?: return
+        Logger.d("MainReadViewModel:handleHighlight,locator=$locator")
+        val colorStr : String = color.toStringColor()
+        Logger.d("MainReadViewModel:handleHighlight:color=$colorStr")
+        val newAnnotation = BookAnnotation(
+            bookId = bookid,
+            locator = locator.toJsonString(),
+            color = colorStr,
+            note = null,
+            type = AnnotationType.HIGHLIGHT
+        )
+        addAnnotation(newAnnotation)
+    }
+
+    fun handleUnderline(color: Color) {
+        Logger.d("MainReadViewModel:handleUnderline")
+        val bookid = _currentBookId.value ?: return
+        val locator = selectedLocator ?: return
+        val colorStr : String = color.toStringColor()
+        Logger.d("MainReadViewModel:handleUnderline:bookid=$bookid, locator=${locator}, color=$colorStr")
+        val newAnnotation = BookAnnotation(
+            bookId = bookid,
+            locator = locator.toJsonString(),
+            color = colorStr,
+            note = null,
+            type = AnnotationType.UNDERLINE
+        )
+        addAnnotation(newAnnotation)
+    }
+
+    fun addAnnotation(annotation: BookAnnotation) {
+        viewModelScope.launch {
+            val annotationId = addAnnotationUseCase(annotation)
+            val newAnnotation = annotation.copy(id = annotationId)
+            _annotations.value += newAnnotation
+            _selectedAnnotation.value = newAnnotation
+            currentBookId.value?.let { loadAnnotations(it) }
+        }
     }
 
     override fun onSelectedCancel() {
@@ -650,6 +696,10 @@ class MainReadViewModel @Inject constructor(
         }
     }
 
+    fun getLatestAnnotations(): List<BookAnnotation> {
+        return annotations.value
+    }
+
     /***
      * 移除书签
      */
@@ -683,7 +733,6 @@ class MainReadViewModel @Inject constructor(
             _annotations.value += annotation
             _selectedAnnotation.value = annotation
             currentBookId.value?.let { loadAnnotations(it) }
-
         }
     }
 
@@ -720,4 +769,5 @@ class MainReadViewModel @Inject constructor(
     fun clearClickedLinkContent() {
         _clickedLinkContent.value = null
     }
+
 }

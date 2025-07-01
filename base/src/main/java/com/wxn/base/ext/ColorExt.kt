@@ -48,7 +48,7 @@ fun Int.toColor(): AndroidColor? {
     val g = ((argb shr 8) and 0xFF) / 255f // Green [0..1]
     val b = (argb and 0xFF) / 255f          // Blue [0..1]
 
-    return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+    val ret = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
         // API ≥26直接调用原生方法
         Color.valueOf(r, g, b, a)
     } else {
@@ -63,6 +63,7 @@ fun Int.toColor(): AndroidColor? {
             null
         }
     }
+    return ret
 }
 
 fun Int.toComposeColor(): ComposeColor {
@@ -71,3 +72,12 @@ fun Int.toComposeColor(): ComposeColor {
 
 fun ComposeColor.toAndroidColor(): AndroidColor? = this.toArgb().toColor()
 
+fun ComposeColor.toStringColor(): String {
+//    val alpha = (this.alpha * 256).toInt() and 0xFF
+    val red  = (this.red * 256).toInt() and 0xFF
+    val green = (this.green * 256).toInt() and 0xFF
+    val blue = (this.blue * 256).toInt() and 0xFF
+
+//    return String.format("#%02X%02X%02X%02X", alpha, red, green, blue)
+    return String.format("#%02X%02X%02X", red, green, blue)
+}

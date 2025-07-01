@@ -1,6 +1,5 @@
 package com.wxn.base.bean
 
-import android.R
 import androidx.compose.runtime.Immutable
 import com.wxn.base.unit.CssUnit
 import com.wxn.base.unit.CssUnit.Companion.Em
@@ -10,7 +9,7 @@ import com.wxn.base.util.Logger
 data class TextTag(
     val uuid: String,                //标签的唯一uuid值
     val anchorId: String = "",     //如果是锚点，则有值
-    val name: String,               //标签名
+    val name: String,               //标签名               //underline/highlight
     var start: Int = 0,             //标签影响的开始位置
     var end: Int = 0,                //标签影响的结束位置
     val parentUuid: String = "",    //父级标签uuid

@@ -442,20 +442,19 @@ fun ReaderView(
         }
     }
 
-
     if (showTextToolbar) {
         TextToolbar(
             navController = navController,
             viewModel = viewModel,
             selectedText = "", // actionSelectedText,
             rect = textToolbarRect,
-            onHighlight = { color ->
-//                handleHighlight(color)
+            onHighlight = { color ->    //高亮
+                viewModel.handleHighlight(color)
             },
-            onUnderline = { color ->
-//                handleUnderline(color)
+            onUnderline = { color ->    //下划线
+                viewModel.handleUnderline(color)
             },
-            onNote = {
+            onNote = {                  //新增笔记
 //                handleNote()
                 viewModel.textToolbarOpen(false)
 //                showTextToolbar = false
@@ -477,6 +476,4 @@ fun ReaderView(
             showColorSelectionPanel = showColorSelectionPanel
         )
     }
-
-
 }

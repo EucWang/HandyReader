@@ -17,8 +17,8 @@ data class TextChapter(
     val pageLines: List<Int>,       //章节中每一页显示的行数
     val pageLengths: List<Int>,     //章节中每一页显示的字符数
     val chaptersSize: Int,          //总章节数,
-    var annotations: Map<Int, List<TextTag>> = emptyMap<Int, List<TextTag>>(),   //每个自然段包含的文本标记
-    var textCssInfos: Map<Int, TextCssInfo> = emptyMap<Int, TextCssInfo>(),
+    var annotations: Map<Int, List<TextTag>> = emptyMap<Int, List<TextTag>>(),    //每个自然段包含的文本标记
+    var textCssInfos: Map<Int, TextCssInfo> = emptyMap<Int, TextCssInfo>(),       //每个自然段包含的css标记
     var readerTexts: List<ReaderText> = emptyList<ReaderText>(),                  //按自然段分布的文本内容，
     var wordCount: Long = 0L,       //字数
     var picCount: Long = 0L,       //图片数

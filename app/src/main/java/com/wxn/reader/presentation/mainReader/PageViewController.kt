@@ -3,6 +3,7 @@ package com.wxn.reader.presentation.mainReader
 import android.content.Context
 import com.wxn.base.bean.Book
 import com.wxn.base.bean.BookChapter
+import com.wxn.base.bean.Locator
 import com.wxn.base.bean.ReaderText
 import com.wxn.base.bean.TextCssInfo
 import com.wxn.base.bean.TextTag
@@ -17,7 +18,10 @@ import com.wxn.bookread.ui.PageViewCallback
 import com.wxn.bookread.ui.PageViewDataProvider
 import com.wxn.bookread.ui.SelectTextCallback
 import com.wxn.bookread.ui.TextPageFactory
+import com.wxn.reader.data.dto.AnnotationType
 import com.wxn.reader.data.source.local.AppPreferencesUtil
+import com.wxn.reader.domain.model.BookAnnotation
+import com.wxn.reader.domain.use_case.annotations.GetAnnotationsUseCase
 import com.wxn.reader.domain.use_case.books.UpdateBookUseCase
 import com.wxn.reader.domain.use_case.chapters.BookHelper
 import com.wxn.reader.domain.use_case.chapters.GetChapterByIdUserCase
@@ -32,6 +36,8 @@ open class PageViewController @Inject constructor(
     val context: Context,
     val getChapterByIdUserCase: GetChapterByIdUserCase,
     val getChapterCountByBookIdUserCase: GetChapterCountByBookIdUserCase,
+    val getAnnotationsUseCase: GetAnnotationsUseCase,
+
     val updateChapterWordCountUserCase: UpdateChapterWordCountUserCase,
     val updateBookUseCase: UpdateBookUseCase,
     val appPreferencesUtil: AppPreferencesUtil,
@@ -42,6 +48,7 @@ open class PageViewController @Inject constructor(
 //    var titleDate = MutableLiveData<String>()
 
     override var book: Book? = null
+    var userAnnotations : ArrayList<BookAnnotation>? = null
 
     var inBookshelf = false
     var durPageIndex = 0
@@ -190,6 +197,19 @@ open class PageViewController @Inject constructor(
             Logger.e("PageViewController::resetBook:${ex.message}, failed")
             return
         }
+
+        userAnnotations?.clear()
+        userAnnotations = arrayListOf()
+        try {
+            val annotations : List<BookAnnotation> = getAnnotationsUseCase(book.id).first()
+            if (annotations.isNotEmpty()) {
+                userAnnotations?.addAll(annotations)
+            }
+        } catch(ex: NoSuchElementException) {
+            Logger.e("PageViewController::resetBook2:${ex.message}, failed")
+            return
+        }
+
         this.chapterSize = count
         durChapterIndex = book.scrollIndex
         durPageIndex = book.scrollOffset
@@ -316,15 +336,15 @@ open class PageViewController @Inject constructor(
         }
     }
 
-    private suspend fun loadContent(index: Int, upContent: Boolean = true, resetPageOffset: Boolean) {
+    private suspend fun loadContent(chapterIndex: Int, upContent: Boolean = true, resetPageOffset: Boolean) {
 //        Logger.i("PageViewController::loadContent:index=$index,upContent=$upContent,resetPageOffset=$resetPageOffset,bookid=${book?.id},bookname=${book?.title}")
-        if (index < 0) return
+        if (chapterIndex < 0) return
         val curBook = book ?: return
         val bookId = curBook.id
-        Logger.i("PageViewController::loadContent:index=$index,bookId=$bookId")
+        Logger.i("PageViewController::loadContent:index=$chapterIndex,bookId=$bookId")
 
         val chapter = try {
-            getChapterByIdUserCase(bookId, index).first()
+            getChapterByIdUserCase(bookId, chapterIndex).first()
         } catch (ex: NoSuchElementException) {
             Logger.e("PageViewController::${ex.message}, failed")
             if (isInitFinish) {
@@ -334,7 +354,7 @@ open class PageViewController @Inject constructor(
             return
         }
         BookHelper.loadChapterContent(context, curBook, chapter, textParser).let { contents ->
-            Logger.i("PageViewController::loadContent:index=$index, contents.size=${contents.size}")
+            Logger.i("PageViewController::loadContent:index=$chapterIndex, contents.size=${contents.size}")
 
             val tags = hashMapOf<Int, List<TextTag>>()  //章节全部标签信息
             contents.forEachIndexed { index, content ->
@@ -344,6 +364,82 @@ open class PageViewController @Inject constructor(
                     }
                 }
             }
+            //将BookAnnotation转换成TextTag,控制界面的显示
+            userAnnotations?.forEach { anno ->
+                if (anno.locator.isNotEmpty()) {
+                    val locator = Locator.fromJsonString(anno.locator)
+                    if ((locator?.chapterIndex ?: -1) == chapterIndex) {   //相同章节
+                        val startParagraphIndex = locator?.startParagraphIndex ?: -1
+                        val endParagraphIndex = locator?.endParagraphIndex ?: -1
+                        val startTextOffset = locator?.startTextOffset ?: -1
+                        val endTextOffset = locator?.endTextOffset ?: -1
+                        if (startParagraphIndex >= 0 && endParagraphIndex >= 0 &&
+                            startParagraphIndex < contents.size && endParagraphIndex < contents.size &&
+                            startTextOffset >= 0 && endTextOffset >= 0) {
+                            if (startParagraphIndex == endParagraphIndex) { //起点终点位于同一个自然段中
+                                var annos = tags.get(startParagraphIndex)?.toMutableList()
+                                if (annos == null) {
+                                    annos = arrayListOf<TextTag>()
+                                }
+                                annos.add(
+                                    TextTag(
+                                        uuid = anno.id.toString(),
+                                        name = if (anno.type == AnnotationType.UNDERLINE) "underline" else "highlight",
+                                        start = startTextOffset,
+                                        end = endTextOffset,
+                                        params = "color=${anno.color}"
+                                    )
+                                )
+                                tags[startParagraphIndex] = annos
+                            } else { //起点和终点位于不同的自然段中
+                                for(i in startParagraphIndex..endParagraphIndex) {
+                                    val content = contents[i]
+                                    var start = 0
+                                    var end = 0
+                                    if (i == startParagraphIndex) { //起始自然段，终点需要确认
+                                        start = startTextOffset
+                                        end = if (content is ReaderText.Text) {
+                                            content.line.length
+                                        } else if (content is ReaderText.Chapter) {
+                                            content.title.length
+                                        } else {
+                                            startTextOffset
+                                        }
+                                    } else if (i == endParagraphIndex) {
+                                        start = 0
+                                        end = endTextOffset
+                                    } else {
+                                        start = 0
+                                        end = if (content is ReaderText.Text) {
+                                            content.line.length
+                                        } else if (content is ReaderText.Chapter) {
+                                            content.title.length
+                                        } else {
+                                            0
+                                        }
+                                    }
+
+                                    var annos = tags.get(i)?.toMutableList()
+                                    if (annos == null) {
+                                        annos = arrayListOf<TextTag>()
+                                    }
+                                    annos.add(
+                                    TextTag(
+                                        uuid = anno.id.toString(),
+                                        name = if (anno.type == AnnotationType.UNDERLINE) "underline" else "highlight",
+                                        start = start,
+                                        end = end,
+                                        params = "color=${anno.color}"
+                                    ))
+                                    tags[i] = annos
+                                }
+                            }
+                        }
+
+                    }
+                }
+            }
+
             val cssInfos = BookHelper.loadChpaterCsses(context, curBook, tags, textParser)      //章节全部的css信息
 
             val contents = BookHelper.disposeContent(appPreferencesUtil, chapter, contents, cssInfos)
@@ -512,6 +608,10 @@ open class PageViewController @Inject constructor(
 
     fun getSelectedText(): String {
         return callBack?.getSelectedText().orEmpty()
+    }
+
+    fun getSelectedLocator(): Locator? {
+        return callBack?.getSelectedLocator()
     }
 
     /****
