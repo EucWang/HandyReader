@@ -223,6 +223,10 @@ int epub_util::epub_init() {
             std::string media_type = xml_ext::getEleAttr(item, "media-type");
             this->manifests.emplace_back(BookManifest{href, id, media_type});
 
+            if (media_type == xml_ext::MediaTypeTtf || media_type == xml_ext::MediaTypeOtf) {
+                LOGD("%s:font assets:id[%s],href[%s],media_type[%s]", __func__, id.c_str(), href.c_str(), media_type.c_str());
+            }
+
             if (!spine_toc_id.empty() && id == spine_toc_id && media_type == xml_ext::MediaTypeNcx) {
                 ncx_path = href;
             }
@@ -366,6 +370,7 @@ int epub_util::load_epub(std::string fullpath,  //文件路径
             std::string cover_href = xml_ext::getEleAttr(coverItemEle, "href");
             std::string cover_type = xml_ext::getEleAttr(coverItemEle, "media-type");
             std::string ext = file_ext::get_media_type_ext(cover_type);
+
 
             if (!cover_href.empty() && !ext.empty()) {
                 std::string output_cover_path = file_ext::get_cover_path(book_title, ext);

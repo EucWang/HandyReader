@@ -33,8 +33,8 @@ public:
     static const std::string &MediaTypePng;               //png
     static const std::string &MediaTypeBmp;               //bmp
 
-    static const std::string &MediaTypeOtf;  //font
-    static const std::string &MediaTypeTtf; //字体
+    static const std::string &MediaTypeOtf;               //font
+    static const std::string &MediaTypeTtf;               //字体
 
     static const std::string &MediaTypeMp3;             //mp3
     static const std::string &MediaTypeMpg;             //mp4

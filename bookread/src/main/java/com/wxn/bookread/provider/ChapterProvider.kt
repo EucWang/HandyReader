@@ -263,6 +263,22 @@ object ChapterProvider {
      * 更新样式
      */
     fun upStyle(context: Context) {
+        //https://hyperos.mi.com/font 字体下载
+        //https://hyperos.mi.com/font/download
+        //https://hyperos.mi.com/font-download/MiSans_Latin.zip
+        //https://hyperos.mi.com/font-download/MiSans.zip
+        //https://hyperos.mi.com/font-download/MiSans_TC.zip
+        //https://hyperos.mi.com/font-download/MiSans_Tibetan.zip
+        //https://hyperos.mi.com/font-download/MiSans_Tibetan.zip
+        //https://hyperos.mi.com/font-download/MiSans_Arabic.zip
+        //https://hyperos.mi.com/font-download/MiSans_Devanagari.zip
+        //https://hyperos.mi.com/font-download/MiSans_Gurmukhi.zip
+        //https://hyperos.mi.com/font-download/MiSans_Thai.zip      //泰国
+        //https://hyperos.mi.com/font-download/MiSans_Lao.zip       // 老挝
+        //https://hyperos.mi.com/font-download/MiSans_Myanmar.zip   //Myanmar" 是一个国家的名称，位于东南亚，其官方全称为 "Republic of the Union of Myanmar"（缅甸联邦共和国）
+        //https://hyperos.mi.com/font-download/MiSans_Khmer.zip     //“Khmer”指的是柬埔寨的民族群体，即高棉人
+
+
 //        oneWordWidth = 0f
         Logger.i("ChapterProvider::upStyle")
         Coroutines.mainScope().launch {
