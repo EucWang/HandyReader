@@ -146,7 +146,6 @@ class TextPageFactory(dataSource: IDataSource, val provider: PageViewDataProvide
             return TextPage().format()
         }
 
-
     /***
      * 根据chapterIndex, paragraphIndex, lineStartOffset, lineEndOffset
      * 得到当前行可能会使用到的TextTag, TextCssInfo

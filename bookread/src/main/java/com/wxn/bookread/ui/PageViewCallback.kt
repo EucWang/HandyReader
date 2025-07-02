@@ -39,5 +39,13 @@ interface PageViewCallback  : TextPageFactoryCallback {
      */
     fun durChapterPos(): Int
 
+    /***
+     * click href link
+     */
     fun clickLink(tag: TextTag, clickX: Float, clickY: Float)
+
+    /****
+     * click annotation like underline/highlight/note..
+     */
+    fun clickedAnnotation(annotationId: String)
 }

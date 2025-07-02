@@ -12,6 +12,8 @@ import com.wxn.base.util.Logger
 import com.wxn.base.util.launchIO
 import com.wxn.bookparser.TextParser
 import com.wxn.bookread.data.model.TextChapter
+import com.wxn.bookread.data.model.TextChar
+import com.wxn.bookread.data.model.TextLine
 import com.wxn.bookread.provider.ChapterProvider
 import com.wxn.bookread.ui.PageCallback
 import com.wxn.bookread.ui.PageViewCallback
@@ -31,6 +33,7 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.first
 import java.util.UUID
 import javax.inject.Inject
+import kotlin.collections.iterator
 import kotlin.collections.orEmpty
 import kotlin.collections.set
 import kotlin.math.roundToInt
@@ -339,8 +342,20 @@ open class PageViewController @Inject constructor(
         }
     }
 
-    suspend fun updateChapter(annotation: BookAnnotation) {
+    suspend fun updateChapter(annotation: BookAnnotation, conflictAnnotations: List<BookAnnotation>) {
         val tags = curTextChapter?.annotations?.toMutableMap() ?: return
+        if (conflictAnnotations.isNotEmpty()) {
+            for(entry in tags) {
+                val lists = entry.value.toMutableList()
+                lists.removeIf { item ->
+                    conflictAnnotations.firstOrNull {
+                        it.id.toString() == item.uuid
+                    } != null
+                }
+                entry.setValue(lists)
+            }
+        }
+
         val readerTexts = curTextChapter?.readerTexts ?: return
         val texttags = annotation.toTextTags(durChapterIndex, readerTexts)
         if (texttags.isNotEmpty()) {
@@ -481,7 +496,6 @@ open class PageViewController @Inject constructor(
         Logger.i("PageViewController::durChapterPos::durPageIndex=$durPageIndex")
         return durPageIndex
     }
-
 
     fun moveToNextPage() {
         durPageIndex++
@@ -646,6 +660,64 @@ open class PageViewController @Inject constructor(
         Logger.d("PageViewController::clickLink::${tag}, href=${href}")
         if (href.isNotEmpty()) {
             clickListener?.onLinkClick(href, clickX, clickY)
+        }
+    }
+
+    override fun clickedAnnotation(annotationId: String) {
+        val curChapter = curTextChapter ?: return
+        val pendingRange = arrayListOf<Triple<Int, Int, Int>>()
+        curChapter.annotations.let { tagMap ->
+            for(entity in tagMap) {
+                val paragraphIndex = entity.key
+                val annoTag = entity.value.firstOrNull { it.uuid == annotationId }?.let { annoTag ->
+                    val startOffset = annoTag.start
+                    val endOffset = annoTag.end
+                    pendingRange.add(Triple(paragraphIndex, startOffset, endOffset))
+                }
+            }
+        }
+        val curPage = pageFactory?.currentPage ?: return
+        if(pendingRange.isNotEmpty()) {
+            var startX = -1f
+            var startY = -1f
+            var endX = -1f
+            var endY = -1f
+            var lastCh : TextChar? = null
+            var lastLine : TextLine? = null
+            curPage.textLines.forEach { line ->
+                //当前行包含在给定的标注范围内
+                val range = pendingRange.firstOrNull {
+                    line.paragraphIndex == it.first
+                }
+                if (range != null) {
+                    val startOffset = range.second
+                    val endOffset = range.third
+
+                    for ((index, ch) in line.textChars.withIndex()) {
+                        if (!ch.isImage && ch.charData.isNotEmpty() && ch.charData.length == 1) {
+                            val charIndexInParagraph = line.charStartOffset + index
+                            if (charIndexInParagraph >= startOffset && charIndexInParagraph < endOffset) {
+                                ch.selected = true
+                                if (startX < 0f && startY < 0f) {
+                                    startX = ch.start
+                                    startY = line.lineTop
+                                }
+                                lastCh = ch
+                                lastLine = line
+                            }
+                        }
+                    }
+                }
+            }
+            if (lastCh != null && lastLine != null) {
+                endX = lastCh.end
+                endY = lastLine.lineBottom
+            }
+            if (startX > 0f && startY > 0f && endX > 0f && endY > 0f) {
+                Logger.d("PageViewController::clickedAnnotation::startX=$startX,startY=$startX,endX=$startX,endY=$endY")
+                callBack?.upSelectedRange(startX, startY, endX, endY)
+                callBack?.upContent(resetPageOffset = false)
+            }
         }
     }
 

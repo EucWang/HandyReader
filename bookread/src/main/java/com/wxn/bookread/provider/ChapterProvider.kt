@@ -37,7 +37,6 @@ import java.util.regex.Pattern
 import kotlin.collections.firstOrNull
 import kotlin.math.roundToInt
 
-
 object ChapterProvider {
 
     val paragraphIndent: String = "　　" //段落缩进
@@ -415,8 +414,6 @@ object ChapterProvider {
             Logger.d("ChapterProvider::upStyle::titleTopSpacing=${titleTopSpacing}")
             titleBottomSpacing = readerPreferences?.titleBottomSpacing?.dp?.toInt() ?: 0                           //标题底部间距
             Logger.d("ChapterProvider::upStyle::titleBottomSpacing=${titleBottomSpacing}")
-
-
             //更新屏幕参数
             upVisibleSize(context)
             Logger.d("ChapterProvider::upStyle done")

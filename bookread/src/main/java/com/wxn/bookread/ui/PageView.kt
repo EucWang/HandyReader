@@ -26,6 +26,7 @@ import com.wxn.bookread.ui.delegate.NoAnimPageDelegate
 import com.wxn.bookread.ui.delegate.ScrollPageDelegate
 import com.wxn.bookread.ui.delegate.SimulationPageDelegate
 import com.wxn.bookread.ui.delegate.SlidePageDelegate
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.launch
 import java.util.UUID
@@ -169,11 +170,19 @@ class PageView : FrameLayout, IDataSource, PageCallback {
     //是否按下文本选中
     private var pressOnTextSelected = false
 
-    //
+    /***
+     * 选中的开始的页
+     */
     private var firstRelativePage = 0
 
+    /***
+     * 选中的开始的行索引
+     */
     private var firstLineIndex: Int = 0
 
+    /****
+     * 选中的开始的行内字符索引
+     */
     private var firstCharIndex: Int = 0
 
     val slopSquare by lazy { ViewConfiguration.get(context).scaledTouchSlop }                       //用户手势滑动的最小距离
@@ -412,6 +421,7 @@ class PageView : FrameLayout, IDataSource, PageCallback {
             }
         }
         if (curPage != null && clickLine != null) {
+            Logger.d("PageView::onSingleTapUp::curPage.index=[${curPage.index}],clickLine.paragraphIndex=[${clickLine.paragraphIndex}]")
             val chapterIndex = curPage.chapterIndex
             val paragraphIndex = clickLine.paragraphIndex
             dataProvider?.pageFactory?.let { factory ->
@@ -419,9 +429,11 @@ class PageView : FrameLayout, IDataSource, PageCallback {
                     clickLine.charStartOffset + if (clickLine.isTableCell) clickLine.rowLineOffset else 0,
                     clickLine.charEndOffset + if(clickLine.isTableCell) clickLine.rowLineOffset else 0 )
                 val tag = tags.firstOrNull { item ->
-                    item.name == "a" && item.params.isNotEmpty() && item.params.contains("href")
+                    (item.name == "a" && item.params.isNotEmpty() && item.params.contains("href")) ||
+                        ((item.name == "underline" || item.name == "highlight") && item.params.isNotEmpty() && item.params.contains("color"))
                 }
                 if (tag != null) {
+                    Logger.d("PageView::onSingleTapUp::click.tag[${tag}]")
                     val tagStart = tag.start
                     val tagEnd = tag.end
                     var clickChar: TextChar? = null
@@ -435,7 +447,12 @@ class PageView : FrameLayout, IDataSource, PageCallback {
                     }
                     if (clickChar != null) {
                         Logger.d("PageView::onSingleTapUp::clickChar=${clickChar},event=(${startX}, ${startY})")
-                        dataProvider?.clickLink(tag, startX, startY)
+                        if (tag.name == "a") {
+                            dataProvider?.clickLink(tag, startX, startY)
+                        } else if (tag.name == "underline" || tag.name == "highlight") {
+                            dataProvider?.clickedAnnotation(tag.uuid)
+                            isTextSelected = true
+                        }
                         return true
                     }
                 }
@@ -455,7 +472,6 @@ class PageView : FrameLayout, IDataSource, PageCallback {
         }
         return true
     }
-
 
     /**
      * 选择文本
@@ -605,6 +621,28 @@ class PageView : FrameLayout, IDataSource, PageCallback {
         }
         dataProvider?.screenOffTimerStart()
     }
+
+    /***
+     * 如果是点选标注区域，需要设置一些内部参数，所有还是得传递进来
+     */
+    override fun upSelectedRange(startCharX: Float, startCharY: Float, endCharX: Float, endCharY: Float) {
+        startX  = startCharX
+        startY = startCharY
+        curPage.selectText(startX, startY) { relativePage, lineIndex, charIndex ->
+            isTextSelected = true
+            firstRelativePage = relativePage
+            firstLineIndex = lineIndex
+            firstCharIndex = charIndex
+            curPage.selectStartMoveIndex(firstRelativePage, firstLineIndex, firstCharIndex)
+            curPage.selectEndMoveIndex(firstRelativePage, firstLineIndex, firstCharIndex)
+
+            Coroutines.mainScope().launch {
+                delay(50)
+                selectText(endCharX, endCharY)
+            }
+        }
+    }
+
 
     /***
      * 更新提示样式

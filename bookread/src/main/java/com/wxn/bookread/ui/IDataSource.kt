@@ -22,5 +22,7 @@ interface IDataSource : PageChangeCallback {
 
 interface PageChangeCallback {
 
+    fun upSelectedRange(startCharX: Float, startCharY: Float, endCharX: Float, endCharY: Float)
+
     fun upContent(relativePosition: Int = 0, resetPageOffset: Boolean = true)
 }

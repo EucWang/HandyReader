@@ -430,6 +430,69 @@ class MainReadViewModel @Inject constructor(
         }
     }
 
+    /***
+     * 判断是否有交叉的文本标注（下划线/高亮/笔记
+     * 。）
+     */
+    suspend fun filterConflictAnnotations(type: AnnotationType, locator: Locator) : List<BookAnnotation> {
+        val conflictAnnotations = arrayListOf<BookAnnotation>()
+        val curAnnotations = _annotations.firstOrNull() ?: return emptyList()
+        for(anno in curAnnotations) {
+            val annoLocator = anno.locatorInfo ?: continue
+            if (anno.type == type && annoLocator.chapterIndex == pageController.durChapterIndex) {
+                if (annoLocator.startParagraphIndex == annoLocator.endParagraphIndex &&
+                    locator.startParagraphIndex == locator.endParagraphIndex) { //都只有一个自然段
+                    if ( annoLocator.startParagraphIndex == locator.startParagraphIndex) {  //都在同一个自然段内
+                        if (annoLocator.endTextOffset > locator.startTextOffset ||
+                            locator.endTextOffset > annoLocator.startTextOffset) {
+                            conflictAnnotations.add(anno)
+                        }
+                    }
+                } else if (annoLocator.startParagraphIndex < annoLocator.endParagraphIndex &&
+                    locator.startParagraphIndex == locator.endParagraphIndex) {  //annoLocator 有多个自然段，locator只有一个自然段
+                    if (locator.startParagraphIndex == annoLocator.startParagraphIndex &&
+                        locator.endTextOffset > annoLocator.startTextOffset) {
+                        conflictAnnotations.add(anno)
+                    } else if (locator.startParagraphIndex == annoLocator.endParagraphIndex &&
+                        locator.startTextOffset < annoLocator.endTextOffset) {
+                        conflictAnnotations.add(anno)
+                    } else if (locator.startParagraphIndex > annoLocator.startParagraphIndex &&
+                        locator.startParagraphIndex < annoLocator.endParagraphIndex) {
+                        conflictAnnotations.add(anno)
+                    }
+                } else if (locator.startParagraphIndex < locator.endParagraphIndex &&
+                    annoLocator.startParagraphIndex == annoLocator.endParagraphIndex) {  //locator 有多个自然段，annoLocator只有一个自然段
+                    if (annoLocator.startParagraphIndex == locator.startParagraphIndex &&
+                        annoLocator.endTextOffset > locator.startTextOffset) {
+                        conflictAnnotations.add(anno)
+                    } else if (annoLocator.startParagraphIndex == locator.endParagraphIndex &&
+                        annoLocator.startTextOffset < locator.endTextOffset) {
+                        conflictAnnotations.add(anno)
+                    } else if (annoLocator.startParagraphIndex > locator.startParagraphIndex &&
+                        annoLocator.startParagraphIndex < locator.endParagraphIndex) {
+                        conflictAnnotations.add(anno)
+                    }
+                } else if (locator.startParagraphIndex < locator.endParagraphIndex &&
+                    annoLocator.startParagraphIndex < annoLocator.endParagraphIndex) { //locator 有多个自然段，annoLocator也有多个自然段
+                    if (locator.endParagraphIndex == annoLocator.startParagraphIndex &&
+                        locator.endTextOffset > annoLocator.startTextOffset) {
+                        conflictAnnotations.add(anno)
+                    } else if (locator.startParagraphIndex == annoLocator.endParagraphIndex &&
+                        locator.startTextOffset < annoLocator.endTextOffset) {
+                        conflictAnnotations.add(anno)
+                    } else if (locator.startParagraphIndex in annoLocator.startParagraphIndex until annoLocator.endParagraphIndex ||
+                        locator.endParagraphIndex in (annoLocator.startParagraphIndex+1) .. annoLocator.endParagraphIndex) {
+                        conflictAnnotations.add(anno)
+                    } else if ((annoLocator.startParagraphIndex in locator.startParagraphIndex until locator.endParagraphIndex) ||
+                        (annoLocator.endParagraphIndex in (locator.startParagraphIndex + 1) .. locator.endParagraphIndex)) {
+                        conflictAnnotations.add(anno)
+                    }
+                }
+            }
+        }
+        return conflictAnnotations
+    }
+
     fun handleHighlight(color: Color) {
         Logger.d("MainReadViewModel:handleHighlight")
         val bookid = _currentBookId.value ?: return
@@ -438,16 +501,21 @@ class MainReadViewModel @Inject constructor(
         Logger.d("MainReadViewModel:handleHighlight,locator=$locator")
         val colorStr : String = color.toStringColor()
         Logger.d("MainReadViewModel:handleHighlight:color=$colorStr")
-        val newAnnotation = BookAnnotation(
-            bookId = bookid,
-            locator = locator.toJsonString(),
-            color = colorStr,
-            note = null,
-            type = AnnotationType.HIGHLIGHT
-        )
-        addAnnotation(newAnnotation)
+
         viewModelScope.launch {
-            pageController.updateChapter(newAnnotation)
+            val conflictAnnotations = filterConflictAnnotations(AnnotationType.HIGHLIGHT, locator)
+            if (conflictAnnotations.isNotEmpty()) {
+                deleteAnnotations(conflictAnnotations)
+            }
+            val newAnnotation = BookAnnotation(
+                bookId = bookid,
+                locator = locator.toJsonString(),
+                color = colorStr,
+                note = null,
+                type = AnnotationType.HIGHLIGHT
+            )
+            addAnnotation(newAnnotation)
+            pageController.updateChapter(newAnnotation, conflictAnnotations)
         }
     }
 
@@ -457,16 +525,17 @@ class MainReadViewModel @Inject constructor(
         val locator = selectedLocator ?: return
         val colorStr : String = color.toStringColor()
         Logger.d("MainReadViewModel:handleUnderline:bookid=$bookid, locator=${locator}, color=$colorStr")
-        val newAnnotation = BookAnnotation(
-            bookId = bookid,
-            locator = locator.toJsonString(),
-            color = colorStr,
-            note = null,
-            type = AnnotationType.UNDERLINE
-        )
-        addAnnotation(newAnnotation)
         viewModelScope.launch {
-            pageController.updateChapter(newAnnotation)
+            val conflictAnnotations = filterConflictAnnotations(AnnotationType.UNDERLINE, locator)
+            val newAnnotation = BookAnnotation(
+                bookId = bookid,
+                locator = locator.toJsonString(),
+                color = colorStr,
+                note = null,
+                type = AnnotationType.UNDERLINE
+            )
+            addAnnotation(newAnnotation)
+            pageController.updateChapter(newAnnotation, conflictAnnotations)
         }
     }
 
@@ -726,6 +795,23 @@ class MainReadViewModel @Inject constructor(
             deleteAnnotationUseCase(annotation)
             _annotations.update { currentAnnotations ->
                 currentAnnotations.filter { it.id != annotation.id }
+            }
+            _selectedAnnotation.value = null
+            currentBookId.value?.let { loadAnnotations(it) }
+        }
+    }
+
+    fun deleteAnnotations(conflictAnnotations: List<BookAnnotation>) {
+        viewModelScope.launch {
+            for(anno in conflictAnnotations) {
+                deleteAnnotationUseCase(anno)
+            }
+            _annotations.update { currentAnnotations ->
+                currentAnnotations.filter { cur ->
+                    conflictAnnotations.firstOrNull { item ->
+                        cur.id == item.id
+                    } == null
+                }
             }
             _selectedAnnotation.value = null
             currentBookId.value?.let { loadAnnotations(it) }
