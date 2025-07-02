@@ -352,7 +352,9 @@ open class PageViewController @Inject constructor(
                         it.id.toString() == item.uuid
                     } != null
                 }
-                entry.setValue(lists)
+                if (lists.size != entry.value.size) {
+                    entry.setValue(lists)
+                }
             }
         }
 

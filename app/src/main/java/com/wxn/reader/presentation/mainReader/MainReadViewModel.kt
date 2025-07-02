@@ -504,8 +504,18 @@ class MainReadViewModel @Inject constructor(
 
         viewModelScope.launch {
             val conflictAnnotations = filterConflictAnnotations(AnnotationType.HIGHLIGHT, locator)
+
             if (conflictAnnotations.isNotEmpty()) {
-                deleteAnnotations(conflictAnnotations)
+                for(anno in conflictAnnotations) {
+                    deleteAnnotationUseCase(anno)
+                }
+                _annotations.update { currentAnnotations ->
+                    currentAnnotations.filter { cur ->
+                        conflictAnnotations.firstOrNull { item ->
+                            cur.id == item.id
+                        } == null
+                    }
+                }
             }
             val newAnnotation = BookAnnotation(
                 bookId = bookid,
@@ -514,8 +524,12 @@ class MainReadViewModel @Inject constructor(
                 note = null,
                 type = AnnotationType.HIGHLIGHT
             )
-            addAnnotation(newAnnotation)
-            pageController.updateChapter(newAnnotation, conflictAnnotations)
+            val annotationId = addAnnotationUseCase(newAnnotation)
+            val newAnnotation2 = newAnnotation.copy(id = annotationId)
+            _annotations.value += newAnnotation2
+            _selectedAnnotation.value = newAnnotation2
+            currentBookId.value?.let { loadAnnotations(it) }
+            pageController.updateChapter(newAnnotation2, conflictAnnotations)
         }
     }
 
@@ -527,6 +541,19 @@ class MainReadViewModel @Inject constructor(
         Logger.d("MainReadViewModel:handleUnderline:bookid=$bookid, locator=${locator}, color=$colorStr")
         viewModelScope.launch {
             val conflictAnnotations = filterConflictAnnotations(AnnotationType.UNDERLINE, locator)
+
+            if (conflictAnnotations.isNotEmpty()) {
+                for(anno in conflictAnnotations) {
+                    deleteAnnotationUseCase(anno)
+                }
+                _annotations.update { currentAnnotations ->
+                    currentAnnotations.filter { cur ->
+                        conflictAnnotations.firstOrNull { item ->
+                            cur.id == item.id
+                        } == null
+                    }
+                }
+            }
             val newAnnotation = BookAnnotation(
                 bookId = bookid,
                 locator = locator.toJsonString(),
@@ -534,8 +561,12 @@ class MainReadViewModel @Inject constructor(
                 note = null,
                 type = AnnotationType.UNDERLINE
             )
-            addAnnotation(newAnnotation)
-            pageController.updateChapter(newAnnotation, conflictAnnotations)
+            val annotationId = addAnnotationUseCase(newAnnotation)
+            val newAnnotation2 = newAnnotation.copy(id = annotationId)
+            _annotations.value += newAnnotation2
+            _selectedAnnotation.value = newAnnotation2
+            currentBookId.value?.let { loadAnnotations(it) }
+            pageController.updateChapter(newAnnotation2, conflictAnnotations)
         }
     }
 
@@ -801,8 +832,8 @@ class MainReadViewModel @Inject constructor(
         }
     }
 
-    fun deleteAnnotations(conflictAnnotations: List<BookAnnotation>) {
-        viewModelScope.launch {
+    suspend fun deleteAnnotations(conflictAnnotations: List<BookAnnotation>) {
+//        viewModelScope.launch {
             for(anno in conflictAnnotations) {
                 deleteAnnotationUseCase(anno)
             }
@@ -815,7 +846,7 @@ class MainReadViewModel @Inject constructor(
             }
             _selectedAnnotation.value = null
             currentBookId.value?.let { loadAnnotations(it) }
-        }
+//        }
     }
 
     /***
