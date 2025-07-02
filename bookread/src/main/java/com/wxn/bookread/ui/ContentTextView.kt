@@ -374,7 +374,10 @@ class ContentTextView(context: Context, attrs: AttributeSet?) : View(context, at
             }
 
             if (isHighlight) {
-                canvas.drawRect(ch.start, lineTop, ch.end, lineBottom, highlightPaint) //绘制高亮文字时的背景
+                val verticalpadding = 10f
+                val horizontalpadding = 1f
+                //绘制高亮文字时的背景
+                canvas.drawRoundRect(RectF(ch.start - horizontalpadding, lineTop - verticalpadding, ch.end + horizontalpadding, lineBottom + verticalpadding), 1f, 1f, highlightPaint)
             }
             if (isUnderline) {                                                   //设置画笔绘制下划线
                 ColorUtil.toColor(underlineColor)?.let { color ->
@@ -394,7 +397,8 @@ class ContentTextView(context: Context, attrs: AttributeSet?) : View(context, at
                 canvas.drawText(ch.charData, ch.start, lineBase, paint) //绘制每一个字
             }
             if (ch.selected) {
-                canvas.drawRect(ch.start, lineTop, ch.end, lineBottom, selectedPaint) //绘制选择文字时的背景框
+                //绘制选择文字时的背景框
+                canvas.drawRect(ch.start , lineTop, ch.end, lineBottom, selectedPaint)
             }
         }
     }

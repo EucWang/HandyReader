@@ -406,16 +406,18 @@ class PageView : FrameLayout, IDataSource, PageCallback {
             isTextSelected = false
             return true
         }
-
+        val padding  = 10f
         //判断是否点击在了链接上
         val curPage = dataProvider?.pageFactory?.currentPage
         val textLines = curPage?.textLines.orEmpty()
         var clickLine: TextLine? = null
+        val clickY = startY - ChapterProvider.paddingTop.toFloat()
+        val clickX = startX
         for (line in textLines) {
-            val clickY = startY - ChapterProvider.paddingTop.toFloat()
             val lineStartX = line.textChars.getOrNull(0)?.start ?: -1f
             val lineEndX = line.textChars.lastOrNull()?.end ?: -1f
-            if (line.lineTop <= clickY && clickY <= line.lineBottom && lineStartX <= startX && startX <= lineEndX ) {
+            val lineRect = RectF(lineStartX - padding, line.lineTop - padding, lineEndX + padding, line.lineBottom + padding)
+            if (lineRect.contains(clickX, clickY)) {
                 clickLine = line
                 break
             }
@@ -433,22 +435,39 @@ class PageView : FrameLayout, IDataSource, PageCallback {
                         ((item.name == "underline" || item.name == "highlight") && item.params.isNotEmpty() && item.params.contains("color"))
                 }
                 if (tag != null) {
-                    Logger.d("PageView::onSingleTapUp::click.tag[${tag}]")
-                    val tagStart = tag.start
-                    val tagEnd = tag.end
-                    var clickChar: TextChar? = null
-                    for((index, textChar) in clickLine.textChars.withIndex()) {
-                        val charIndex = clickLine.charStartOffset + index
-                        if (tagStart <= charIndex && charIndex < tagEnd &&
-                            textChar.start <= startX && startX <= textChar.end) { //is a link character
-                            clickChar = textChar
-                            break
-                        }
+                    var startTagCharInLineIndex = -1
+                    var endTagCharInLineIndex = -1
+                    if (tag.start >= clickLine.charStartOffset && tag.start <= clickLine.charEndOffset) {
+                        startTagCharInLineIndex = tag.start - clickLine.charStartOffset
+                    } else if (tag.start < clickLine.charStartOffset) {
+                        startTagCharInLineIndex = 0
                     }
-                    if (clickChar != null) {
-                        Logger.d("PageView::onSingleTapUp::clickChar=${clickChar},event=(${startX}, ${startY})")
+
+                    if (tag.end >= clickLine.charStartOffset && tag.end <= clickLine.charEndOffset) {
+                        endTagCharInLineIndex = tag.end - clickLine.charStartOffset
+                    } else if (tag.end > clickLine.charEndOffset) {
+                        endTagCharInLineIndex = clickLine.textChars.size - 1
+                    }
+
+                    //tag在这一行的可点击区域
+                    val tagInLineRect : RectF? =
+                    if (startTagCharInLineIndex in 0 until clickLine.textChars.size && endTagCharInLineIndex in 0 until clickLine.textChars.size) {
+                        val startChar = clickLine.textChars[startTagCharInLineIndex]
+                        val endChar = clickLine.textChars[endTagCharInLineIndex]
+                        RectF(
+                            startChar.start - padding,
+                            clickLine.lineTop - padding,
+                            endChar.end + padding,
+                            clickLine.lineBottom + padding
+                        )
+                    } else {
+                        null
+                    }
+
+                    if(tagInLineRect?.contains(clickX, clickY) == true) {
+                        Logger.d("PageView::onSingleTapUp::clickRect=${tagInLineRect},event=(${clickX}, ${clickY})")
                         if (tag.name == "a") {
-                            dataProvider?.clickLink(tag, startX, startY)
+                            dataProvider?.clickLink(tag, clickX, clickY)
                         } else if (tag.name == "underline" || tag.name == "highlight") {
                             dataProvider?.clickedAnnotation(tag.uuid)
                             isTextSelected = true
@@ -459,12 +478,12 @@ class PageView : FrameLayout, IDataSource, PageCallback {
             }
         }
 
-        if (centerRectF.contains(startX, startY)) {
+        if (centerRectF.contains(clickX, clickY)) {
             if (!isAbortAnim) {
                 dataProvider?.clickCenter()
             }
         } else if (clickTurnPage) {
-            if (startX > width / 2 || clickAllNext) {
+            if (clickX > width / 2 || clickAllNext) {
                 pageDelegate?.nextPageByAnim(defaultAnimationSpeed)
             } else {
                 pageDelegate?.prevPageByAnim(defaultAnimationSpeed)

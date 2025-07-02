@@ -43,7 +43,6 @@ class TextPageFactory(dataSource: IDataSource, val provider: PageViewDataProvide
         } ?: provider.setPageIndex(0)
     }
 
-
     /***
      * 移动到下一页
      */
