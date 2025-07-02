@@ -64,6 +64,13 @@ class ContentTextView(context: Context, attrs: AttributeSet?) : View(context, at
         }
     }
 
+    private val linePaint by lazy {
+        Paint().apply {
+            color = context.getCompatColor(R.color.divider)
+            style = Paint.Style.FILL
+        }
+    }
+
     var callback: SelectTextCallback? = null
 
     /**
@@ -295,6 +302,8 @@ class ContentTextView(context: Context, attrs: AttributeSet?) : View(context, at
             val charIndex = textLine.charStartOffset + index
             var isHighlight = false     //是否高亮
             var hightlightColor : String = "0xFFFFFF00"
+            var underlineColor : String = "0xFF575757"
+            var isUnderline = false
 
             val parentPaint = if (defaultTextPaint != null) defaultTextPaint else {
                 val texttag = if (textTags.size == 1) {
@@ -304,8 +313,13 @@ class ContentTextView(context: Context, attrs: AttributeSet?) : View(context, at
                     val tags = arrayListOf<TextTag>()
                     for (tag in textTags) {
                         if (tag.start <= charIndex && charIndex < tag.end) {
-                            if (tag.name in arrayOf("h1", "h2", "h3", "h4", "a", "underline")) {
+                            if (tag.name in arrayOf("h1", "h2", "h3", "h4", "a", )) {
                                 tags.add(tag)
+                            } else if (tag.name == "underline") {
+                                tag.paramsPairs().firstOrNull { it.first == "color" }?.second?.let {
+                                    underlineColor = it
+                                }
+                                isUnderline = true
                             } else if (tag.name == "highlight") {
                                 tag.paramsPairs().firstOrNull { it.first == "color" }?.second?.let {
                                     hightlightColor = it
@@ -317,7 +331,11 @@ class ContentTextView(context: Context, attrs: AttributeSet?) : View(context, at
                     }
                     tags.firstOrNull()
                 }
-                ChapterProvider.getPaintByTagName(texttag)
+                if (isHighlight) {
+                    ChapterProvider.contentPaint //高亮是文字使用默认的画笔
+                } else {
+                    ChapterProvider.getPaintByTagName(texttag)
+                }
             }
             val paint = TextPaint()
             paint.set(parentPaint)
@@ -356,7 +374,15 @@ class ContentTextView(context: Context, attrs: AttributeSet?) : View(context, at
             }
 
             if (isHighlight) {
-                canvas.drawRect(ch.start, lineTop, ch.end, lineBottom, highlightPaint) //绘制高亮文字时的背景框
+                canvas.drawRect(ch.start, lineTop, ch.end, lineBottom, highlightPaint) //绘制高亮文字时的背景
+            }
+            if (isUnderline) {                                                   //设置画笔绘制下划线
+                ColorUtil.toColor(underlineColor)?.let { color ->
+                    linePaint.color = color
+                }
+                linePaint.strokeWidth = 3f
+
+                canvas.drawLine(ch.start, textLine.lineBottom, ch.end,  textLine.lineBottom, linePaint)
             }
 
             if (ch.isImage) {
@@ -538,7 +564,9 @@ class ContentTextView(context: Context, attrs: AttributeSet?) : View(context, at
                                     upSelectedStart(
                                         textChar.start,
                                         textLine.lineBottom + relativeOffset,
-                                        textLine.lineTop + relativeOffset
+                                        textLine.lineTop + relativeOffset,
+                                        textLine.paragraphIndex,
+                                        textLine.charStartOffset + charIndex
                                     )
                                     upSelectChars()
                                 }
@@ -591,7 +619,9 @@ class ContentTextView(context: Context, attrs: AttributeSet?) : View(context, at
                                     selectEnd[0] = relativePos
                                     selectEnd[1] = lineIndex
                                     selectEnd[2] = charIndex
-                                    upSelectedEnd(textChar.end, textLine.lineBottom + relativeOffset)
+                                    upSelectedEnd(textChar.end, textLine.lineBottom + relativeOffset,
+                                        textLine.paragraphIndex,
+                                        textLine.charStartOffset + charIndex)
                                     upSelectChars()
                                 }
                                 return
@@ -618,7 +648,9 @@ class ContentTextView(context: Context, attrs: AttributeSet?) : View(context, at
             upSelectedStart(
                 textChar.start,
                 textLine.lineBottom + relativeOffset(relativePage),
-                textLine.lineTop + relativeOffset(relativePage)
+                textLine.lineTop + relativeOffset(relativePage),
+                textLine.paragraphIndex,
+                textLine.charStartOffset + charIndex
             )
         }
     }
@@ -633,7 +665,8 @@ class ContentTextView(context: Context, attrs: AttributeSet?) : View(context, at
 
         relativePage(relativePage)?.textLines[lineIndex]?.let { textLine ->
             val textChar = textLine.textChars[charIndex]
-            upSelectedEnd(textChar.end, textLine.lineBottom + relativeOffset(relativePage))
+            upSelectedEnd(textChar.end, textLine.lineBottom + relativeOffset(relativePage),
+                textLine.paragraphIndex, textLine.charStartOffset + charIndex)
             upSelectChars()
         }
     }
@@ -715,15 +748,15 @@ class ContentTextView(context: Context, attrs: AttributeSet?) : View(context, at
         }
 
 
-    private fun upSelectedStart(x: Float, y: Float, top: Float) {
+    private fun upSelectedStart(x: Float, y: Float, top: Float, paragraphIndex: Int, textOffset: Int) {
         callback?.apply {
-            upSelectedStart(x, y + headerHeight, top + headerHeight)
+            upSelectedStart(x, y + headerHeight, top + headerHeight, paragraphIndex, textOffset)
         }
     }
 
-    private fun upSelectedEnd(x: Float, y: Float) {
+    private fun upSelectedEnd(x: Float, y: Float, paragraphIndex: Int, textOffset: Int) {
         callback?.apply {
-            upSelectedEnd(x, y + headerHeight)
+            upSelectedEnd(x, y + headerHeight, paragraphIndex, textOffset)
         }
     }
 

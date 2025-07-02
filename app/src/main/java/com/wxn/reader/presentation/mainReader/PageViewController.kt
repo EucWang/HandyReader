@@ -18,9 +18,9 @@ import com.wxn.bookread.ui.PageViewCallback
 import com.wxn.bookread.ui.PageViewDataProvider
 import com.wxn.bookread.ui.SelectTextCallback
 import com.wxn.bookread.ui.TextPageFactory
-import com.wxn.reader.data.dto.AnnotationType
 import com.wxn.reader.data.source.local.AppPreferencesUtil
 import com.wxn.reader.domain.model.BookAnnotation
+import com.wxn.reader.domain.model.toTextTags
 import com.wxn.reader.domain.use_case.annotations.GetAnnotationsUseCase
 import com.wxn.reader.domain.use_case.books.UpdateBookUseCase
 import com.wxn.reader.domain.use_case.chapters.BookHelper
@@ -29,7 +29,10 @@ import com.wxn.reader.domain.use_case.chapters.GetChapterCountByBookIdUserCase
 import com.wxn.reader.domain.use_case.chapters.UpdateChapterWordCountUserCase
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.first
+import java.util.UUID
 import javax.inject.Inject
+import kotlin.collections.orEmpty
+import kotlin.collections.set
 import kotlin.math.roundToInt
 
 open class PageViewController @Inject constructor(
@@ -336,6 +339,20 @@ open class PageViewController @Inject constructor(
         }
     }
 
+    suspend fun updateChapter(annotation: BookAnnotation) {
+        val tags = curTextChapter?.annotations?.toMutableMap() ?: return
+        val readerTexts = curTextChapter?.readerTexts ?: return
+        val texttags = annotation.toTextTags(durChapterIndex, readerTexts)
+        if (texttags.isNotEmpty()) {
+            val keys = tags.keys.plus(texttags.keys)
+            for(key in keys) {
+                tags[key] = (tags[key].orEmpty()).toMutableList().plus(texttags[key].orEmpty())
+            }
+        }
+        curTextChapter?.annotations = tags
+        callBack?.upContent(resetPageOffset = false)
+    }
+
     private suspend fun loadContent(chapterIndex: Int, upContent: Boolean = true, resetPageOffset: Boolean) {
 //        Logger.i("PageViewController::loadContent:index=$index,upContent=$upContent,resetPageOffset=$resetPageOffset,bookid=${book?.id},bookname=${book?.title}")
         if (chapterIndex < 0) return
@@ -356,7 +373,7 @@ open class PageViewController @Inject constructor(
         BookHelper.loadChapterContent(context, curBook, chapter, textParser).let { contents ->
             Logger.i("PageViewController::loadContent:index=$chapterIndex, contents.size=${contents.size}")
 
-            val tags = hashMapOf<Int, List<TextTag>>()  //章节全部标签信息
+            var tags = hashMapOf<Int, List<TextTag>>()  //章节全部标签信息
             contents.forEachIndexed { index, content ->
                 if (content is ReaderText.Text) {
                     if (content.annotations.isNotEmpty()) {
@@ -366,76 +383,11 @@ open class PageViewController @Inject constructor(
             }
             //将BookAnnotation转换成TextTag,控制界面的显示
             userAnnotations?.forEach { anno ->
-                if (anno.locator.isNotEmpty()) {
-                    val locator = Locator.fromJsonString(anno.locator)
-                    if ((locator?.chapterIndex ?: -1) == chapterIndex) {   //相同章节
-                        val startParagraphIndex = locator?.startParagraphIndex ?: -1
-                        val endParagraphIndex = locator?.endParagraphIndex ?: -1
-                        val startTextOffset = locator?.startTextOffset ?: -1
-                        val endTextOffset = locator?.endTextOffset ?: -1
-                        if (startParagraphIndex >= 0 && endParagraphIndex >= 0 &&
-                            startParagraphIndex < contents.size && endParagraphIndex < contents.size &&
-                            startTextOffset >= 0 && endTextOffset >= 0) {
-                            if (startParagraphIndex == endParagraphIndex) { //起点终点位于同一个自然段中
-                                var annos = tags.get(startParagraphIndex)?.toMutableList()
-                                if (annos == null) {
-                                    annos = arrayListOf<TextTag>()
-                                }
-                                annos.add(
-                                    TextTag(
-                                        uuid = anno.id.toString(),
-                                        name = if (anno.type == AnnotationType.UNDERLINE) "underline" else "highlight",
-                                        start = startTextOffset,
-                                        end = endTextOffset,
-                                        params = "color=${anno.color}"
-                                    )
-                                )
-                                tags[startParagraphIndex] = annos
-                            } else { //起点和终点位于不同的自然段中
-                                for(i in startParagraphIndex..endParagraphIndex) {
-                                    val content = contents[i]
-                                    var start = 0
-                                    var end = 0
-                                    if (i == startParagraphIndex) { //起始自然段，终点需要确认
-                                        start = startTextOffset
-                                        end = if (content is ReaderText.Text) {
-                                            content.line.length
-                                        } else if (content is ReaderText.Chapter) {
-                                            content.title.length
-                                        } else {
-                                            startTextOffset
-                                        }
-                                    } else if (i == endParagraphIndex) {
-                                        start = 0
-                                        end = endTextOffset
-                                    } else {
-                                        start = 0
-                                        end = if (content is ReaderText.Text) {
-                                            content.line.length
-                                        } else if (content is ReaderText.Chapter) {
-                                            content.title.length
-                                        } else {
-                                            0
-                                        }
-                                    }
-
-                                    var annos = tags.get(i)?.toMutableList()
-                                    if (annos == null) {
-                                        annos = arrayListOf<TextTag>()
-                                    }
-                                    annos.add(
-                                    TextTag(
-                                        uuid = anno.id.toString(),
-                                        name = if (anno.type == AnnotationType.UNDERLINE) "underline" else "highlight",
-                                        start = start,
-                                        end = end,
-                                        params = "color=${anno.color}"
-                                    ))
-                                    tags[i] = annos
-                                }
-                            }
-                        }
-
+                val texttags = anno.toTextTags(chapterIndex, contents)
+                if (texttags.isNotEmpty()) {
+                    val keys = tags.keys.plus(texttags.keys)
+                    for(key in keys) {
+                        tags[key] = (tags[key].orEmpty()).toMutableList().plus(texttags[key].orEmpty())
                     }
                 }
             }
@@ -611,7 +563,24 @@ open class PageViewController @Inject constructor(
     }
 
     fun getSelectedLocator(): Locator? {
-        return callBack?.getSelectedLocator()
+        return if (durChapterIndex >= 0 &&
+            startParagraphIndex >= 0 &&
+            endParagraphIndex >= 0 &&
+            startInnerTextOffset >= 0 &&
+            endInnerTextOffset >= 0
+        ) {
+            Locator(
+                UUID.randomUUID().toString(),
+                durChapterIndex,
+                startParagraphIndex = startParagraphIndex,
+                startTextOffset = startInnerTextOffset,
+                endParagraphIndex = endParagraphIndex,
+                endTextOffset = endInnerTextOffset,
+                text = getSelectedText()
+            )
+        } else {
+            null
+        }
     }
 
     /****
@@ -633,17 +602,26 @@ open class PageViewController @Inject constructor(
     private var selectedEndX : Float = 0f
     private var selectedEndY : Float = 0f
 
-    override fun upSelectedStart(x: Float, y: Float, top: Float) {
+    private var startParagraphIndex: Int = -1
+    private var startInnerTextOffset : Int =-1
+    private var endParagraphIndex : Int = -1
+    private var endInnerTextOffset: Int = -1
+
+    override fun upSelectedStart(x: Float, y: Float, top: Float, paragraphIndex: Int, innerTextOffset: Int) {
         selectedStartX = x
         selectedStartY = y
         selectedStartTop = top
+        startParagraphIndex = paragraphIndex
+        startInnerTextOffset = innerTextOffset
         Logger.i("PageViewController::upSelectedStart:x=$x,y=$y,top=$top")
     }
 
-    override fun upSelectedEnd(x: Float, y: Float) {
+    override fun upSelectedEnd(x: Float, y: Float, paragraphIndex: Int, innerTextOffset: Int) {
         Logger.i("PageViewController::upSelectedEnd:x=$x,y=$y")
         selectedEndX = x
         selectedEndY = y
+        endParagraphIndex = paragraphIndex
+        endInnerTextOffset = innerTextOffset
     }
 
     override fun onCancelSelect() {
@@ -654,6 +632,10 @@ open class PageViewController @Inject constructor(
         selectedStartTop = 0f
         selectedEndX = 0f
         selectedEndY = 0f
+        startParagraphIndex = -1
+        startInnerTextOffset = -1
+        endParagraphIndex = -1
+        endInnerTextOffset = -1
     }
 
     override fun clickLink(tag: TextTag, clickX: Float, clickY: Float) {

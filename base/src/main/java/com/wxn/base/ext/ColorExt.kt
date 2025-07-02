@@ -73,11 +73,11 @@ fun Int.toComposeColor(): ComposeColor {
 fun ComposeColor.toAndroidColor(): AndroidColor? = this.toArgb().toColor()
 
 fun ComposeColor.toStringColor(): String {
-//    val alpha = (this.alpha * 256).toInt() and 0xFF
-    val red  = (this.red * 256).toInt() and 0xFF
-    val green = (this.green * 256).toInt() and 0xFF
-    val blue = (this.blue * 256).toInt() and 0xFF
+    val argb = this.toArgb()
+    val a  = ((argb shr 24) and 0xFF).toInt()
+    val r = ((argb shr 16) and 0xFF).toInt()
+    val g = ((argb shr 8) and 0xFF).toInt()
+    val b = (argb and 0xFF).toInt()
 
-//    return String.format("#%02X%02X%02X%02X", alpha, red, green, blue)
-    return String.format("#%02X%02X%02X", red, green, blue)
+    return String.format("#%02X%02X%02X%02X", a, r, g, b)
 }

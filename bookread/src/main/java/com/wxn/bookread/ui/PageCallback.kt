@@ -18,6 +18,4 @@ interface PageCallback  : PageChangeCallback{
     fun upPageAnim()
 
     fun getSelectedText() : String
-
-    fun getSelectedLocator(): Locator?
 }

@@ -45,7 +45,32 @@ bool string_ext::startWith(const std::string &str, const std::string &prefix) {
  */
 size_t string_ext::utf8Count(const std::string &utf8_str) {
     try {
-        return utf8::distance(utf8_str.begin(), utf8_str.end());
+        std::list<std::string> strlist;
+        strlist.push_front(utf8_str);
+        size_t count = 0;
+        do {
+            std::string &item = strlist.back();
+            strlist.pop_back();
+            if (utf8::is_valid(item)) {
+                count += utf8::distance(item.begin(), item.end());
+            } else {
+                count += 1;
+                size_t index = utf8::find_invalid(item);
+                if (index != std::string::npos && index < item.length()) {
+                    std::string part1 = item.substr(0, index);
+                    if (!part1.empty()) {
+                        strlist.push_front(part1);
+                    }
+                    if (index + 1 < item.length()) {
+                        std::string part2 = item.substr(index + 1);
+                        if (!part2.empty()) {
+                            strlist.push_front(part2);
+                        }
+                    }
+                }
+            }
+        } while (!strlist.empty());
+        return count;
     } catch (utf8::invalid_utf8 &e) {
         LOGE("%s:failed invalid utf8[%s], %s", __func__, utf8_str.c_str(), e.what());
         return 0;

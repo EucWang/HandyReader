@@ -430,7 +430,6 @@ class MainReadViewModel @Inject constructor(
         }
     }
 
-
     fun handleHighlight(color: Color) {
         Logger.d("MainReadViewModel:handleHighlight")
         val bookid = _currentBookId.value ?: return
@@ -447,6 +446,9 @@ class MainReadViewModel @Inject constructor(
             type = AnnotationType.HIGHLIGHT
         )
         addAnnotation(newAnnotation)
+        viewModelScope.launch {
+            pageController.updateChapter(newAnnotation)
+        }
     }
 
     fun handleUnderline(color: Color) {
@@ -463,8 +465,14 @@ class MainReadViewModel @Inject constructor(
             type = AnnotationType.UNDERLINE
         )
         addAnnotation(newAnnotation)
+        viewModelScope.launch {
+            pageController.updateChapter(newAnnotation)
+        }
     }
 
+    /****
+     * 添加新的标注到数据库中, 并更新当前的_annotations数据集
+     */
     fun addAnnotation(annotation: BookAnnotation) {
         viewModelScope.launch {
             val annotationId = addAnnotationUseCase(annotation)

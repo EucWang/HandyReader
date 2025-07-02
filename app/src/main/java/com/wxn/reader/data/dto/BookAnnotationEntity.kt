@@ -27,6 +27,17 @@ data class BookAnnotationEntity(
 
 enum class AnnotationType {
     HIGHLIGHT,
-    UNDERLINE
+    UNDERLINE;
+
+    override fun toString(): String {
+        return when(this) {
+            HIGHLIGHT -> {
+                "highlight"
+            }
+            UNDERLINE -> {
+                "underline"
+            }
+        }
+    }
 }
 

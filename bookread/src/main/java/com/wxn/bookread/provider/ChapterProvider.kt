@@ -141,7 +141,6 @@ object ChapterProvider {
     lateinit var h3Paint: TextPaint
     lateinit var h4Paint: TextPaint
     lateinit var aPaint: TextPaint
-    lateinit var underlinePaint: TextPaint
 
 //    private var oneWordWidth = 0f
 
@@ -222,7 +221,6 @@ object ChapterProvider {
             "h3" -> h3Paint
             "h4" -> h4Paint
             "a" -> aPaint
-            "underline" -> underlinePaint
             else -> default ?: contentPaint
         }
     }
@@ -407,21 +405,6 @@ object ChapterProvider {
             aPaint.textSize = (readerPreferences?.fontSize?.toFloat() ?: 1.0f) * BASE_FONT_SIZE                   //设置字体大小
             Logger.d("ChapterProvider::upStyle::contentPaint.textSize=${aPaint.textSize}")
             aPaint.isAntiAlias = true                                                     //设置抗锯齿
-
-            //<underline>标签的Paint
-            underlinePaint = TextPaint()
-            underlinePaint.color = Color.GRAY
-            if (Build.VERSION.SDK_INT > Build.VERSION_CODES.Q) {
-                underlinePaint.underlineColor = Color.LTGRAY
-            }
-            underlinePaint.isUnderlineText = true
-            underlinePaint.letterSpacing = readerPreferences?.letterSpacing?.toFloat() ?: 0.0f               //设置正文文字间距
-            Logger.d("ChapterProvider::upStyle::contentPaint.letterSpacing=${underlinePaint.letterSpacing}")
-            underlinePaint.typeface = textFont                                                    //设置正文字体
-            underlinePaint.textSize = (readerPreferences?.fontSize?.toFloat() ?: 1.0f) * BASE_FONT_SIZE                   //设置字体大小
-            Logger.d("ChapterProvider::upStyle::contentPaint.textSize=${underlinePaint.textSize}")
-            underlinePaint.isAntiAlias = true                                                     //设置抗锯齿
-
 
             //间距
             lineSpacingExtra = readerPreferences?.lineHeight?.toFloat() ?: 1.2f                //行间距系数，除上10 再和lineHeight相乘

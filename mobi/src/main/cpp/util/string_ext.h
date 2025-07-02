@@ -21,6 +21,7 @@ extern "C" {
 #include "utf8.h"
 #include <regex>
 #include <jni.h>
+#include <list>
 
 
 class string_ext {

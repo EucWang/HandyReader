@@ -580,59 +580,7 @@ class PageView : FrameLayout, IDataSource, PageCallback {
     }
 
     override fun getSelectedText(): String {
-//        return prevPage.selectedText +
-//                curPage.selectedText +
-//                nextPage.selectedText
         return curPage.selectedText
-    }
-
-    override fun getSelectedLocator(): Locator? {
-        val chapterIndex = dataProvider?.pageFactory?.currentPage?.chapterIndex ?: return null
-        val lines = dataProvider?.pageFactory?.currentPage?.textLines ?: return null
-        var startParagraph: Int  = -1
-        var startTextOffset : Int = -1
-        var endParagraph: Int = -1
-        var endTextOffset: Int = -1
-        var flag = false
-        for((row, line) in lines.withIndex()) {
-            for((col, ch) in line.textChars.withIndex()) {
-                if (ch.selected && !flag) {
-                    startParagraph = line.paragraphIndex
-                    startTextOffset = line.charStartOffset + col
-                    flag = true
-                } else if (flag && !ch.selected) {
-                    if (col == 0 && line.charStartOffset == 0) { //到了一个新的章节
-                        var preRow = row - 1
-                        while(preRow >= 0) {
-                            val preLine = lines[preRow];
-                            if (preLine.textChars.isNotEmpty()) {
-                                val lastChar = preLine.textChars.last()
-                                if (lastChar.selected) {
-                                    endParagraph = preLine.paragraphIndex
-                                    endTextOffset = preLine.charEndOffset + preLine.textChars.size
-                                } else {
-                                    preRow--
-                                }
-                            } else {
-                                preRow--
-                            }
-                        }
-                    } else {
-                        endParagraph = line.paragraphIndex
-                        endTextOffset = line.charStartOffset + col
-                    }
-                }
-            }
-        }
-        return Locator(
-            UUID.randomUUID().toString(),
-            chapterIndex,
-            startParagraphIndex = startParagraph,
-            startTextOffset = startTextOffset,
-            endParagraphIndex = endParagraph,
-            endTextOffset = endTextOffset,
-            text = getSelectedText()
-        )
     }
 
     /***

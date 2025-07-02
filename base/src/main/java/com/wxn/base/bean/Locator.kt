@@ -47,9 +47,7 @@ data class Locator(
                 val text = obj.optString("text", "")
                 ret = Locator(id, chapterIndex, startParagraphIndex, startTextOffset, endParagraphIndex, endTextOffset, text)
             } catch (ex: JSONException) {
-
             }
-
             return ret
         }
     }
