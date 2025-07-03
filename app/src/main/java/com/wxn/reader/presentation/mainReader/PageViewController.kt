@@ -363,15 +363,27 @@ open class PageViewController @Inject constructor(
      * @param annotation add to TextChapter
      * @param conflictAnnotations delete from TextChapter
      */
-    suspend fun updateChapter(annotation: BookAnnotation?, note: Note?, conflictAnnotations: List<BookAnnotation>) {
+    suspend fun updateChapter(annotation: BookAnnotation?, addNote: Note?, deleteNote: Note?, conflictAnnotations: List<BookAnnotation>) {
         val tags = curTextChapter?.annotations?.toMutableMap() ?: return
         if (conflictAnnotations.isNotEmpty()) {
             for(entry in tags) {
                 val lists = entry.value.toMutableList()
                 lists.removeIf { item ->
                     conflictAnnotations.firstOrNull {
-                        it.id.toString() == item.uuid
+                        it.id.toString() == item.uuid && it.type.toString() == item.name
                     } != null
+                }
+                if (lists.size != entry.value.size) {
+                    entry.setValue(lists)
+                }
+            }
+        }
+
+        if (deleteNote != null) {
+            for(entry in tags) {
+                val lists = entry.value.toMutableList()
+                lists.removeIf { item ->
+                    deleteNote.id.toString() == item.uuid && item.name == "note"
                 }
                 if (lists.size != entry.value.size) {
                     entry.setValue(lists)
@@ -392,10 +404,10 @@ open class PageViewController @Inject constructor(
             }
         }
 
-        val noteTextTags = note?.locatorInfo?.toTextTags(
-            note.id.toString(),
+        val noteTextTags = addNote?.locatorInfo?.toTextTags(
+            addNote.id.toString(),
             "note",
-            note.color,
+            addNote.color,
             durChapterIndex,
             readerTexts
         ).orEmpty()

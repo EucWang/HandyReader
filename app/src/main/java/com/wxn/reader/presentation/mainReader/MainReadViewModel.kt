@@ -591,7 +591,7 @@ class MainReadViewModel @Inject constructor(
             _annotations.value += newAnnotation2
             _selectedAnnotation.value = newAnnotation2
             currentBookId.value?.let { loadAnnotations(it) }
-            pageController.updateChapter(newAnnotation2, null, conflictAnnotations)
+            pageController.updateChapter(newAnnotation2, null, null, conflictAnnotations)
         }
     }
 
@@ -634,7 +634,7 @@ class MainReadViewModel @Inject constructor(
             _annotations.value += newAnnotation2
             _selectedAnnotation.value = newAnnotation2
             currentBookId.value?.let { loadAnnotations(it) }
-            pageController.updateChapter(newAnnotation2, null, conflictAnnotations)
+            pageController.updateChapter(newAnnotation2, null, null, conflictAnnotations)
         }
     }
 
@@ -859,6 +859,7 @@ class MainReadViewModel @Inject constructor(
         viewModelScope.launch {
             deleteNoteUseCase(note)
             currentBookId.value?.let { loadNotes(it) }
+            pageController.updateChapter(null, null, note, emptyList())
         }
     }
 
@@ -878,7 +879,7 @@ class MainReadViewModel @Inject constructor(
                 loadNotes(it)
             }
             val newNote2 = newNote.copy(id = newNoteId)
-            pageController.updateChapter(null, newNote2, emptyList())
+            pageController.updateChapter(null, newNote2, null, emptyList())
         }
     }
 
@@ -919,7 +920,7 @@ class MainReadViewModel @Inject constructor(
             }
             _selectedAnnotation.value = null
             currentBookId.value?.let { loadAnnotations(it) }
-            pageController.updateChapter(null, null, arrayListOf(annotation))
+            pageController.updateChapter(null, null, null, arrayListOf(annotation))
         }
     }
 
