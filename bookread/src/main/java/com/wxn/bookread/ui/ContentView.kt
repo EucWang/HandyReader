@@ -421,6 +421,7 @@ class ContentView(context: Context) : FrameLayout(context) {
      * 取消选中文字
      */
     fun cancelSelect() {
+        Logger.i("ContentView::cancelSelect")
         binding.contentTextView.cancelSelect()
     }
 

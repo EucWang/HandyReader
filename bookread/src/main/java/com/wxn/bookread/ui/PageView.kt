@@ -430,48 +430,55 @@ class PageView : FrameLayout, IDataSource, PageCallback {
                 val (tags, textCssInfo) = factory.getPagesAnnotation(chapterIndex, paragraphIndex,
                     clickLine.charStartOffset + if (clickLine.isTableCell) clickLine.rowLineOffset else 0,
                     clickLine.charEndOffset + if(clickLine.isTableCell) clickLine.rowLineOffset else 0 )
-                val tag = tags.firstOrNull { item ->
+                val filterTags = tags.filter { item ->
                     (item.name == "a" && item.params.isNotEmpty() && item.params.contains("href")) ||
                         ((item.name == "underline" || item.name == "highlight") && item.params.isNotEmpty() && item.params.contains("color"))
                 }
-                if (tag != null) {
-                    var startTagCharInLineIndex = -1
-                    var endTagCharInLineIndex = -1
-                    if (tag.start >= clickLine.charStartOffset && tag.start <= clickLine.charEndOffset) {
-                        startTagCharInLineIndex = tag.start - clickLine.charStartOffset
-                    } else if (tag.start < clickLine.charStartOffset) {
-                        startTagCharInLineIndex = 0
-                    }
-
-                    if (tag.end >= clickLine.charStartOffset && tag.end <= clickLine.charEndOffset) {
-                        endTagCharInLineIndex = tag.end - clickLine.charStartOffset
-                    } else if (tag.end > clickLine.charEndOffset) {
-                        endTagCharInLineIndex = clickLine.textChars.size - 1
-                    }
-
-                    //tag在这一行的可点击区域
-                    val tagInLineRect : RectF? =
-                    if (startTagCharInLineIndex in 0 until clickLine.textChars.size && endTagCharInLineIndex in 0 until clickLine.textChars.size) {
-                        val startChar = clickLine.textChars[startTagCharInLineIndex]
-                        val endChar = clickLine.textChars[endTagCharInLineIndex]
-                        RectF(
-                            startChar.start - padding,
-                            clickLine.lineTop - padding,
-                            endChar.end + padding,
-                            clickLine.lineBottom + padding
-                        )
-                    } else {
-                        null
-                    }
-
-                    if(tagInLineRect?.contains(clickX, clickY) == true) {
-                        Logger.d("PageView::onSingleTapUp::clickRect=${tagInLineRect},event=(${clickX}, ${clickY})")
-                        if (tag.name == "a") {
-                            dataProvider?.clickLink(tag, clickX, clickY)
-                        } else if (tag.name == "underline" || tag.name == "highlight") {
-                            dataProvider?.clickedAnnotation(tag.uuid)
-                            isTextSelected = true
+                if (filterTags.isNotEmpty()) {
+                    val annoIds = arrayListOf<String>()
+                    for(itemTag in filterTags) {
+                        var startTagCharInLineIndex = -1
+                        var endTagCharInLineIndex = -1
+                        if (itemTag.start >= clickLine.charStartOffset && itemTag.start <= clickLine.charEndOffset) {
+                            startTagCharInLineIndex = itemTag.start - clickLine.charStartOffset
+                        } else if (itemTag.start < clickLine.charStartOffset) {
+                            startTagCharInLineIndex = 0
                         }
+
+                        if (itemTag.end >= clickLine.charStartOffset && itemTag.end <= clickLine.charEndOffset) {
+                            endTagCharInLineIndex = itemTag.end - clickLine.charStartOffset
+                        } else if (itemTag.end > clickLine.charEndOffset) {
+                            endTagCharInLineIndex = clickLine.textChars.size - 1
+                        }
+
+                        //itemTag在这一行的可点击区域
+                        val tagInLineRect : RectF? =
+                        if (startTagCharInLineIndex in 0 until clickLine.textChars.size && endTagCharInLineIndex in 0 until clickLine.textChars.size) {
+                            val startChar = clickLine.textChars[startTagCharInLineIndex]
+                            val endChar = clickLine.textChars[endTagCharInLineIndex]
+                            RectF(
+                                startChar.start - padding,
+                                clickLine.lineTop - padding,
+                                endChar.end + padding,
+                                clickLine.lineBottom + padding
+                            )
+                        } else {
+                            null
+                        }
+
+                        if(tagInLineRect?.contains(clickX, clickY) == true) {
+                            Logger.d("PageView::onSingleTapUp::clickRect=${tagInLineRect},event=(${clickX}, ${clickY})")
+                            if (itemTag.name == "a") {
+                                dataProvider?.clickLink(itemTag, clickX, clickY)
+                                return true
+                            } else if (itemTag.name == "underline" || itemTag.name == "highlight") {
+                                annoIds.add(itemTag.uuid)
+                            }
+                        }
+                    }
+                    if (annoIds.isNotEmpty()) {
+                        dataProvider?.clickedAnnotation(annoIds)
+                        isTextSelected = true
                         return true
                     }
                 }
@@ -639,6 +646,14 @@ class PageView : FrameLayout, IDataSource, PageCallback {
             }
         }
         dataProvider?.screenOffTimerStart()
+    }
+
+    override fun cancelTextSelected() {
+        Logger.i("PageView::cancelTextSelected::isTextSelected=$isTextSelected")
+        if (isTextSelected) {
+            curPage.cancelSelect()
+            isTextSelected = false
+        }
     }
 
     /***

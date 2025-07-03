@@ -679,6 +679,7 @@ class ContentTextView(context: Context, attrs: AttributeSet?) : View(context, at
      * 取消选中
      */
     fun cancelSelect() {
+        Logger.i("ContentTextView::cancelSelect::invalidate")
         val last = if (true == callback?.isScroll) 2 else 0
         for (relativePos in 0..last) {
             relativePage(relativePos)?.textLines?.forEach { textLine ->

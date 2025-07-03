@@ -4,6 +4,7 @@ import androidx.room.Entity
 import androidx.room.ForeignKey
 import androidx.room.Index
 import androidx.room.PrimaryKey
+import com.wxn.reader.domain.model.AnnotationType
 
 @Entity(
     tableName = "annotations",
@@ -25,19 +26,4 @@ data class BookAnnotationEntity(
     val type: AnnotationType
 )
 
-enum class AnnotationType {
-    HIGHLIGHT,
-    UNDERLINE;
-
-    override fun toString(): String {
-        return when(this) {
-            HIGHLIGHT -> {
-                "highlight"
-            }
-            UNDERLINE -> {
-                "underline"
-            }
-        }
-    }
-}
 

@@ -1,6 +1,5 @@
 package com.wxn.reader.presentation.bookReader.components.drawers
 
-import android.widget.Toast
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.slideInHorizontally
 import androidx.compose.animation.slideOutHorizontally
@@ -25,20 +24,13 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavHostController
-import com.wxn.reader.data.dto.AnnotationType
 import com.github.skydoves.colorpicker.compose.HsvColorPicker
 import com.github.skydoves.colorpicker.compose.rememberColorPickerController
 import com.wxn.reader.R
 import com.wxn.reader.data.model.AppPreferences
+import com.wxn.reader.domain.model.AnnotationType
 import com.wxn.reader.domain.model.BookAnnotation
 import com.wxn.reader.navigation.Screens
-//import com.wxn.reader.presentation.bookReader.BookReaderViewModel
-//import com.ricsdev.uread.presentation.sharedComponents.PremiumModal
-import com.wxn.reader.util.PurchaseHelper
-import kotlinx.coroutines.launch
-import org.json.JSONObject
-//import org.readium.r2.navigator.epub.EpubNavigatorFragment
-//import org.readium.r2.shared.publication.Locator
 
 @Composable
 fun AnnotationsDrawer(

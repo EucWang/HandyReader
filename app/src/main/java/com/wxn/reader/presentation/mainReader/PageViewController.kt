@@ -73,6 +73,7 @@ open class PageViewController @Inject constructor(
         fun onPageChange()
         fun onSelectedText(startX: Float, startY : Float, endX : Float, endY : Float)
         fun onSelectedCancel()
+        fun onCheckedAnnotation(annotationIds: List<String>, startX: Float, startY: Float, endX: Float, endY: Float)
     }
 
     var clickListener: OnClickListener? = null
@@ -342,7 +343,12 @@ open class PageViewController @Inject constructor(
         }
     }
 
-    suspend fun updateChapter(annotation: BookAnnotation, conflictAnnotations: List<BookAnnotation>) {
+    /****
+     * refresh view of chapter
+     * @param annotation add to TextChapter
+     * @param conflictAnnotations delete from TextChapter
+     */
+    suspend fun updateChapter(annotation: BookAnnotation?, conflictAnnotations: List<BookAnnotation>) {
         val tags = curTextChapter?.annotations?.toMutableMap() ?: return
         if (conflictAnnotations.isNotEmpty()) {
             for(entry in tags) {
@@ -359,7 +365,7 @@ open class PageViewController @Inject constructor(
         }
 
         val readerTexts = curTextChapter?.readerTexts ?: return
-        val texttags = annotation.toTextTags(durChapterIndex, readerTexts)
+        val texttags = annotation?.toTextTags(durChapterIndex, readerTexts).orEmpty()
         if (texttags.isNotEmpty()) {
             val keys = tags.keys.plus(texttags.keys)
             for(key in keys) {
@@ -586,7 +592,7 @@ open class PageViewController @Inject constructor(
             endInnerTextOffset >= 0
         ) {
             Locator(
-                UUID.randomUUID().toString(),
+                "",
                 durChapterIndex,
                 startParagraphIndex = startParagraphIndex,
                 startTextOffset = startInnerTextOffset,
@@ -640,6 +646,11 @@ open class PageViewController @Inject constructor(
         endInnerTextOffset = innerTextOffset
     }
 
+    fun cancelTextSelected() {
+        Logger.i("PageViewController::cancelTextSelected")
+        callBack?.cancelTextSelected()
+    }
+
     override fun onCancelSelect() {
         Logger.i("PageViewController::onCancelSelect")
         clickListener?.onSelectedCancel()
@@ -665,27 +676,32 @@ open class PageViewController @Inject constructor(
         }
     }
 
-    override fun clickedAnnotation(annotationId: String) {
+    override fun clickedAnnotation(annotationIds: List<String>) {
         val curChapter = curTextChapter ?: return
+        val curPage = pageFactory?.currentPage ?: return
         val pendingRange = arrayListOf<Triple<Int, Int, Int>>()
+
+        //找到相应的标注所对应的段落和文字开始结束偏移位置，保存成集合
         curChapter.annotations.let { tagMap ->
             for(entity in tagMap) {
                 val paragraphIndex = entity.key
-                val annoTag = entity.value.firstOrNull { it.uuid == annotationId }?.let { annoTag ->
+                entity.value.filter { annotationIds.contains(it.uuid) }.forEach { annoTag ->
                     val startOffset = annoTag.start
                     val endOffset = annoTag.end
                     pendingRange.add(Triple(paragraphIndex, startOffset, endOffset))
                 }
             }
         }
-        val curPage = pageFactory?.currentPage ?: return
+
         if(pendingRange.isNotEmpty()) {
+            //遍历得到tag对应的选中文本的开始字符屏幕位置和结束位置屏幕位置
             var startX = -1f
             var startY = -1f
             var endX = -1f
             var endY = -1f
             var lastCh : TextChar? = null
             var lastLine : TextLine? = null
+            //遍历当前页中的每一行，找到对应标注的开始字符和结束字符
             curPage.textLines.forEach { line ->
                 //当前行包含在给定的标注范围内
                 val range = pendingRange.firstOrNull {
@@ -719,6 +735,7 @@ open class PageViewController @Inject constructor(
                 Logger.d("PageViewController::clickedAnnotation::startX=$startX,startY=$startX,endX=$startX,endY=$endY")
                 callBack?.upSelectedRange(startX, startY, endX, endY)
                 callBack?.upContent(resetPageOffset = false)
+                clickListener?.onCheckedAnnotation(annotationIds, startX, startY, endX, endY)
             }
         }
     }

@@ -47,5 +47,5 @@ interface PageViewCallback  : TextPageFactoryCallback {
     /****
      * click annotation like underline/highlight/note..
      */
-    fun clickedAnnotation(annotationId: String)
+    fun clickedAnnotation(annotationIds: List<String>)
 }

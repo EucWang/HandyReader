@@ -3,7 +3,6 @@ package com.wxn.reader.presentation.statistics
 import android.app.Application
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
-import com.wxn.reader.data.dto.AnnotationType
 import com.wxn.reader.data.model.AppPreferences
 import com.wxn.base.bean.Book
 import com.wxn.reader.domain.model.BookAnnotation
@@ -11,6 +10,7 @@ import com.wxn.reader.domain.model.Note
 import com.wxn.reader.domain.model.ReadingActive
 import com.wxn.reader.data.dto.ReadingStatus
 import com.wxn.reader.data.source.local.AppPreferencesUtil
+import com.wxn.reader.domain.model.AnnotationType
 import com.wxn.reader.domain.model.Author
 import com.wxn.reader.domain.model.Genre
 import com.wxn.reader.domain.model.Statistics

@@ -265,19 +265,17 @@ object ChapterProvider {
     fun upStyle(context: Context) {
         //https://hyperos.mi.com/font 字体下载
         //https://hyperos.mi.com/font/download
-        //https://hyperos.mi.com/font-download/MiSans_Latin.zip
-        //https://hyperos.mi.com/font-download/MiSans.zip
-        //https://hyperos.mi.com/font-download/MiSans_TC.zip
-        //https://hyperos.mi.com/font-download/MiSans_Tibetan.zip
-        //https://hyperos.mi.com/font-download/MiSans_Tibetan.zip
-        //https://hyperos.mi.com/font-download/MiSans_Arabic.zip
-        //https://hyperos.mi.com/font-download/MiSans_Devanagari.zip
-        //https://hyperos.mi.com/font-download/MiSans_Gurmukhi.zip
-        //https://hyperos.mi.com/font-download/MiSans_Thai.zip      //泰国
-        //https://hyperos.mi.com/font-download/MiSans_Lao.zip       // 老挝
-        //https://hyperos.mi.com/font-download/MiSans_Myanmar.zip   //Myanmar" 是一个国家的名称，位于东南亚，其官方全称为 "Republic of the Union of Myanmar"（缅甸联邦共和国）
-        //https://hyperos.mi.com/font-download/MiSans_Khmer.zip     //“Khmer”指的是柬埔寨的民族群体，即高棉人
-
+        //https://hyperos.mi.com/font-download/MiSans.zip               // 简体中文
+        //https://hyperos.mi.com/font-download/MiSans_Latin.zip         // 拉丁语
+        //https://hyperos.mi.com/font-download/MiSans_TC.zip            // 繁体中文
+        //https://hyperos.mi.com/font-download/MiSans_Tibetan.zip       // 汉藏语系的语言，主要在西藏地区
+        //https://hyperos.mi.com/font-download/MiSans_Arabic.zip        // 阿拉伯语
+        //https://hyperos.mi.com/font-download/MiSans_Devanagari.zip    // 梵语、印地语、马拉地语、尼泊尔语
+        //https://hyperos.mi.com/font-download/MiSans_Gurmukhi.zip      // 旁遮普语
+        //https://hyperos.mi.com/font-download/MiSans_Thai.zip          // 泰国
+        //https://hyperos.mi.com/font-download/MiSans_Lao.zip           // 老挝
+        //https://hyperos.mi.com/font-download/MiSans_Myanmar.zip       // Myanmar" 是一个国家的名称，位于东南亚，其官方全称为 "Republic of the Union of Myanmar"（缅甸联邦共和国）
+        //https://hyperos.mi.com/font-download/MiSans_Khmer.zip         // “Khmer”指的是柬埔寨的民族群体，即高棉人
 
 //        oneWordWidth = 0f
         Logger.i("ChapterProvider::upStyle")

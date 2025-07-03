@@ -54,11 +54,9 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavHostController
 import com.github.skydoves.colorpicker.compose.HsvColorPicker
 import com.github.skydoves.colorpicker.compose.rememberColorPickerController
-import com.wxn.reader.data.dto.AnnotationType
 import com.wxn.base.bean.Book
 import com.wxn.reader.domain.model.BookAnnotation
 import kotlinx.coroutines.launch
-import org.json.JSONObject
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Search
@@ -69,6 +67,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.wxn.reader.R
 import com.wxn.reader.data.model.AppPreferences
+import com.wxn.reader.domain.model.AnnotationType
 import com.wxn.reader.navigation.LocalNavController
 import com.wxn.reader.navigation.PurchaseHelperController
 import com.wxn.reader.navigation.Screens

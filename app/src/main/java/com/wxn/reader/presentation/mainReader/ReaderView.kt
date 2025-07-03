@@ -208,11 +208,16 @@ fun ReaderView(
                         interactionSource = remember { MutableInteractionSource() },
                         indication = null
                     ) {
+
                         viewModel.notesDrawerOpen(false)
                         viewModel.bookmarksDrawerOpen(false)
                         viewModel.highlightsDrawerOpen(false)
                         viewModel.chaptersDrawerOpen(false)
-                        viewModel.textToolbarOpen(false)
+
+                        if (showTextToolbar) {
+                            viewModel.textToolbarOpen(false)
+                            viewModel.cancelTextSelected()
+                        }
                         viewModel.showColorSelectionPanel(false)
                     }
             )
@@ -459,7 +464,10 @@ fun ReaderView(
                 viewModel.textToolbarOpen(false)
 //                showTextToolbar = false
             },
-            onDismiss = { viewModel.textToolbarOpen(false) },
+            onDismiss = {
+                viewModel.textToolbarOpen(false)
+                viewModel.cancelTextSelected()
+            },
             appPreferences = appPreferences,
             selectedAnnotation = selectedAnnotation,
             onRemoveAnnotation = {

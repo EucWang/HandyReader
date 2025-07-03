@@ -70,11 +70,10 @@ import com.github.skydoves.colorpicker.compose.ColorPickerController
 import com.github.skydoves.colorpicker.compose.HsvColorPicker
 import com.github.skydoves.colorpicker.compose.rememberColorPickerController
 import com.wxn.reader.R
-import com.wxn.reader.data.dto.AnnotationType
 import com.wxn.reader.data.model.AppPreferences
+import com.wxn.reader.domain.model.AnnotationType
 import com.wxn.reader.domain.model.BookAnnotation
 import com.wxn.reader.navigation.Screens
-//import com.wxn.reader.presentation.bookReader.BookReaderViewModel
 import com.wxn.reader.presentation.mainReader.MainReadViewModel
 //
 //@Composable
@@ -378,8 +377,14 @@ fun TextToolbar(
                 AnimatedVisibility(visible = !showHighlightAction && !showUnderlineAction && !showColorSelectionPanel) {
                     ActionButtons(
                         selectedText = selectedText,
-                        onHighlight = { showHighlightAction = true },
-                        onUnderline = { showUnderlineAction = true },
+                        onHighlight = {
+                            showHighlightAction = true
+                            viewModel.onShowTextAnnotationAction(AnnotationType.HIGHLIGHT)
+                      },
+                        onUnderline = {
+                            showUnderlineAction = true
+                            viewModel.onShowTextAnnotationAction(AnnotationType.UNDERLINE)
+                                      },
                         onNote = onNote,
                         onTranslate = {
 //                            showTranslationDialog = true
