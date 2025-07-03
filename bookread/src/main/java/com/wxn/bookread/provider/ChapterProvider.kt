@@ -63,12 +63,12 @@ object ChapterProvider {
     /**
      * 页面显示宽度
      */
-    private var viewWidth = 0
+    var viewWidth = 0
 
     /***
      * 页面显示高度
      */
-    private var viewHeight = 0
+    var viewHeight = 0
 
     /***
      * 左边距

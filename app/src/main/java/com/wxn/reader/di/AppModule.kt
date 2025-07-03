@@ -43,6 +43,8 @@ import com.wxn.reader.domain.use_case.books.UpdateBookUseCase
 import com.wxn.reader.domain.use_case.chapters.GetChapterByIdUserCase
 import com.wxn.reader.domain.use_case.chapters.GetChapterCountByBookIdUserCase
 import com.wxn.reader.domain.use_case.chapters.UpdateChapterWordCountUserCase
+import com.wxn.reader.domain.use_case.notes.GetAllNotesUseCase
+import com.wxn.reader.domain.use_case.notes.GetNotesForBookUseCase
 import com.wxn.reader.presentation.mainReader.PageViewController
 import com.wxn.reader.util.LanguageHelper
 import com.wxn.reader.util.PdfBitmapConverter
@@ -51,11 +53,6 @@ import dagger.Provides
 import dagger.hilt.InstallIn
 import dagger.hilt.android.qualifiers.ApplicationContext
 import dagger.hilt.components.SingletonComponent
-//import org.readium.r2.shared.util.asset.AssetRetriever
-//import org.readium.r2.shared.util.http.DefaultHttpClient
-//import org.readium.r2.shared.util.http.HttpClient
-//import org.readium.r2.streamer.PublicationOpener
-//import org.readium.r2.streamer.parser.DefaultPublicationParser
 import javax.inject.Singleton
 
 
@@ -203,6 +200,7 @@ object AppModule {
         getChapterByIdUserCase: GetChapterByIdUserCase,
         getChapterCountByBookIdUserCase: GetChapterCountByBookIdUserCase,
         getAnnotationsUseCase: GetAnnotationsUseCase,
+        getNotesForBookUseCase: GetNotesForBookUseCase,
         updateChapterWordCountUserCase: UpdateChapterWordCountUserCase,
         updateBookUseCase: UpdateBookUseCase,
         appPreferencesUtil: AppPreferencesUtil,
@@ -213,6 +211,7 @@ object AppModule {
             getChapterByIdUserCase,
             getChapterCountByBookIdUserCase,
             getAnnotationsUseCase,
+            getNotesForBookUseCase,
             updateChapterWordCountUserCase,
             updateBookUseCase,
             appPreferencesUtil,

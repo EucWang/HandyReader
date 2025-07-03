@@ -1,9 +1,11 @@
 package com.wxn.bookread.ui
 
 import android.content.Context
+import android.graphics.Bitmap
 import android.graphics.Canvas
 import android.graphics.Color
 import android.graphics.Paint
+import android.graphics.Point
 import android.graphics.RectF
 import android.graphics.Typeface
 import android.os.Build
@@ -11,23 +13,27 @@ import android.text.TextPaint
 import android.util.AttributeSet
 import android.view.View
 import androidx.core.graphics.toColorInt
+import androidx.core.graphics.withClip
 import com.wxn.base.bean.CssFontWeight
 import com.wxn.base.bean.TextCssInfo
 import com.wxn.base.bean.TextTag
+import com.wxn.base.ext.DpExt
 import com.wxn.base.ext.getCompatColor
-import com.wxn.base.util.ColorUtil
+import com.wxn.base.ext.toColor
 import com.wxn.base.util.Coroutines
 import com.wxn.base.util.Logger
 import com.wxn.bookread.R
 import com.wxn.bookread.data.model.TextChar
 import com.wxn.bookread.data.model.TextLine
 import com.wxn.bookread.data.model.TextPage
+import com.wxn.bookread.ext.BitmapExt
 import com.wxn.bookread.provider.ChapterProvider
 import com.wxn.bookread.provider.ChapterProvider.contentPaint
 import com.wxn.bookread.provider.ChapterProvider.typeface
 import com.wxn.bookread.provider.ImageProvider
 import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.launch
+import kotlin.collections.firstOrNull
 import kotlin.math.min
 
 /**
@@ -52,6 +58,10 @@ class ContentTextView(context: Context, attrs: AttributeSet?) : View(context, at
             color = context.getCompatColor(R.color.btn_bg_press_2)
             style = Paint.Style.FILL
         }
+    }
+
+    private val noteIconBmp : Bitmap? by lazy {
+        BitmapExt.bitmapFromResource(context, R.drawable.ic_note)
     }
 
     /***
@@ -142,10 +152,31 @@ class ContentTextView(context: Context, attrs: AttributeSet?) : View(context, at
 
     override fun onDraw(canvas: Canvas) {
         super.onDraw(canvas)
-        canvas.clipRect(visibleRect)
         drawPage(canvas)
     }
 
+    @Deprecated("没有起作用，得删掉")
+    private fun getLineMargin(index: Int, textLine:TextLine, calcTextPage: TextPage): Pair<Int,Int> {
+        val prevline = if (index > 0) {
+            calcTextPage.textLines[index - 1]
+        } else {
+            null
+        }
+        val nextline = if(index < calcTextPage.textLines.size - 1) {
+            calcTextPage.textLines[index + 1]
+        } else {
+            null
+        }
+        var marginTop = 0
+        var marginBottom = 0
+        prevline?.let { prev ->
+            marginTop = (prev.lineBottom - textLine.lineTop).toInt().coerceAtLeast(0)
+        }
+        nextline?.let {next ->
+            marginBottom = (textLine.lineBottom - next.lineTop).toInt().coerceAtLeast(0)
+        }
+        return marginTop to marginBottom
+    }
 
     /***
      * 绘制页，或者滚动中的下一页或者下下一页
@@ -156,13 +187,17 @@ class ContentTextView(context: Context, attrs: AttributeSet?) : View(context, at
         val factory = pageFactory ?: return
 
         val chapterIndex = textPage.chapterIndex        //章节索引
+        val noteIds = mutableSetOf<String>()
 
-        textPage.textLines.forEach { textLine ->
+        textPage.textLines.forEachIndexed { index, textLine ->
+            val (marginTop, marginBottom) = getLineMargin(index, textLine, textPage)
+
             val paragraphIndex = textLine.paragraphIndex    //段落索引
             val startOffset = textLine.charStartOffset + if(textLine.isTableCell) textLine.rowLineOffset else 0   //当前行所在段落起始索引
             val endOffset = textLine.charEndOffset + if(textLine.isTableCell) textLine.rowLineOffset else 0         //当前行所在段落结束索引（不包含）
             val (tags, textCssInfo) = factory.getPagesAnnotation(chapterIndex, paragraphIndex, startOffset, endOffset)
 
+            tryDrawNote(canvas, textLine, tags, relativeOffset, noteIds, marginTop, marginBottom)
             drawLine(canvas, textLine, tags, textCssInfo, relativeOffset)
         }
 
@@ -174,13 +209,15 @@ class ContentTextView(context: Context, attrs: AttributeSet?) : View(context, at
 
             val chapterIdx = nextPage.chapterIndex        //章节索引
 
-            nextPage.textLines.forEach { textLine ->        //绘制下一页
+            nextPage.textLines.forEachIndexed { index, textLine ->        //绘制下一页
+                val (marginTop, marginBottom) = getLineMargin(index, textLine, nextPage)
 
                 val paragraphIndex = textLine.paragraphIndex    //段落索引
                 val startOffset = textLine.charStartOffset  + if(textLine.isTableCell) textLine.rowLineOffset else 0      //当前行所在段落起始索引
                 val endOffset = textLine.charEndOffset  + if(textLine.isTableCell) textLine.rowLineOffset else 0          //当前行所在段落结束索引（不包含）
                 val (tags, textCssInfo) = factory.getPagesAnnotation(chapterIdx, paragraphIndex, startOffset, endOffset)
 
+                tryDrawNote(canvas, textLine, tags, relativeOffset, noteIds, marginTop, marginBottom)
                 drawLine(canvas, textLine, tags, textCssInfo, relativeOffset)
             }
         }
@@ -192,14 +229,73 @@ class ContentTextView(context: Context, attrs: AttributeSet?) : View(context, at
 
                 val chapterIdx = nextNextPage.chapterIndex        //章节索引
 
-                nextNextPage.textLines.forEach { textLine ->
+                nextNextPage.textLines.forEachIndexed { index, textLine ->
+                    val (marginTop, marginBottom) = getLineMargin(index, textLine, nextNextPage)
 
                     val paragraphIndex = textLine.paragraphIndex    //段落索引
                     val startOffset = textLine.charStartOffset + if(textLine.isTableCell) textLine.rowLineOffset else 0      //当前行所在段落起始索引
                     val endOffset = textLine.charEndOffset  + if(textLine.isTableCell) textLine.rowLineOffset else 0          //当前行所在段落结束索引（不包含）
                     val (tags, textCssInfo) = factory.getPagesAnnotation(chapterIdx, paragraphIndex, startOffset, endOffset)
 
+                    tryDrawNote(canvas, textLine, tags, relativeOffset, noteIds, marginTop, marginBottom)
                     drawLine(canvas, textLine, tags, textCssInfo, relativeOffset)
+                }
+            }
+        }
+    }
+
+    private fun tryDrawNote(
+        canvas: Canvas,
+        textLine: TextLine,
+        tags: List<TextTag>,
+        relativeOffset: Float,
+        noteIds:MutableSet<String>,
+        marginTop : Int,
+        marginBottom : Int
+    ) {
+        val lineTop = textLine.lineTop + relativeOffset
+        val lineBottom = textLine.lineBottom + relativeOffset
+
+        val noteAtLine = tags.firstOrNull {
+            it.name == "note"
+        }
+        if (noteAtLine != null) {   //绘制笔记的背景色
+            var noteColor = noteAtLine.paramsPairs().firstOrNull{
+                it.first == "color"
+            }?.second.orEmpty()
+            if (noteColor.isEmpty()) {
+                noteColor = "#FFFF00"
+            }
+
+            val dp12px = DpExt.dp2px(context, 12f)
+            val dp6px = DpExt.dp2px(context, 6f)
+
+            val left = 0f
+            val top = lineTop - (marginTop / 2)
+            val right = ChapterProvider.viewWidth.toFloat()
+            val bottom = lineBottom + (marginBottom / 2)
+            canvas.drawRect(
+                RectF(left, top, right, bottom),
+                Paint().apply {
+                    noteColor.toColor()?.let { intColor ->
+                        color = intColor
+                        alpha = (0.4 * 256).toInt()
+                    }
+                    style = Paint.Style.FILL
+                })
+
+            if (!noteIds.contains(noteAtLine.uuid)) {
+                noteIconBmp?.let { noteIcon ->
+                    val left = 0f
+                    val top = lineTop - dp12px
+                    canvas.drawCircle(left + dp12px, top + dp12px, dp12px, Paint().apply {
+                        style = Paint.Style.FILL
+                        noteColor.toColor()?.let { intColor ->
+                            color = intColor
+                        }
+                    })
+                    canvas.drawBitmap(noteIcon, null, RectF(left + dp6px, top + dp6px, left + 3 * dp6px, top + 3 * dp6px), null)
+                    noteIds.add(noteAtLine.uuid)
                 }
             }
         }
@@ -208,35 +304,41 @@ class ContentTextView(context: Context, attrs: AttributeSet?) : View(context, at
     /***
      * 绘制行
      */
-    private fun drawLine(canvas: Canvas, textLine: TextLine, tags: List<TextTag>, textCssInfo: TextCssInfo?, relativeOffset: Float) {
+    private fun drawLine(canvas: Canvas,
+                         textLine: TextLine,
+                         tags: List<TextTag>,
+                         textCssInfo: TextCssInfo?,
+                         relativeOffset: Float) {
+
         val lineTop = textLine.lineTop + relativeOffset
         val lineBase = textLine.lineBase + relativeOffset
         val lineBottom = textLine.lineBottom + relativeOffset
 
+        canvas.withClip(visibleRect) {
+            if (textLine.isImage) {                              //绘制图片
+                Logger.d("ContentTextView::drawLine:drawImage:lineTop=${lineTop}, lineBottom=${lineBottom}")
+                drawImage(this, textLine, lineTop, lineBottom)
 
-        if (textLine.isImage) {                              //绘制图片
-            Logger.d("ContentTextView::drawLine:drawImage:lineTop=${lineTop}, lineBottom=${lineBottom}")
-            drawImage(canvas, textLine, lineTop, lineBottom)
+            } else if (textLine.isLine) {                        //绘制线段
+                val startx = textLine.lineStart.first
+                val starty = textLine.lineStart.second + relativeOffset
+                val endx = textLine.lineEnd.first
+                val endy = textLine.lineEnd.second + relativeOffset
 
-        } else if (textLine.isLine){                        //绘制线段
-            val startx = textLine.lineStart.first
-            val starty = textLine.lineStart.second + relativeOffset
-            val endx  =textLine.lineEnd.first
-            val endy = textLine.lineEnd.second + relativeOffset
+                val linePaint = Paint()
+                textLine.lineColor.orEmpty().toColor()?.let { color ->
+                    linePaint.color = color
+                }
+                linePaint.strokeWidth = if (textLine.lineBorder > 0) textLine.lineBorder else 1f
 
-            val linePaint = Paint()
-            ColorUtil.toColor(textLine.lineColor.orEmpty())?.let { color ->
-                linePaint.color = color
+                drawLine(startx, starty, endx, endy, linePaint)
+            } else {                                            //绘制一行文字
+                drawChars(
+                    this, textLine, tags, textCssInfo, lineTop, lineBase, lineBottom,
+                    isTitle = textLine.isTitle,
+                    isReadAloud = textLine.isReadAloud
+                )
             }
-            linePaint.strokeWidth = if (textLine.lineBorder > 0) textLine.lineBorder else 1f
-
-            canvas.drawLine(startx, starty, endx, endy, linePaint)
-        } else {                                            //绘制一行文字
-            drawChars(
-                canvas, textLine, tags, textCssInfo, lineTop, lineBase, lineBottom,
-                isTitle = textLine.isTitle,
-                isReadAloud = textLine.isReadAloud
-            )
         }
     }
 
@@ -312,8 +414,8 @@ class ContentTextView(context: Context, attrs: AttributeSet?) : View(context, at
 //                    filterTags(charIndex, textTags)
                     val tags = arrayListOf<TextTag>()
                     for (tag in textTags) {
-                        if (tag.start <= charIndex && charIndex < tag.end) {
-                            if (tag.name in arrayOf("h1", "h2", "h3", "h4", "a", )) {
+                        if (tag.start <= charIndex && charIndex <= tag.end) {
+                            if (tag.name in arrayOf("h1", "h2", "h3", "h4", "a")) {
                                 tags.add(tag)
                             } else if (tag.name == "underline") {
                                 tag.paramsPairs().firstOrNull { it.first == "color" }?.second?.let {
@@ -368,7 +470,7 @@ class ContentTextView(context: Context, attrs: AttributeSet?) : View(context, at
                         }
                     }
                 }
-                ColorUtil.toColor(textCssInfo.fontColor)?.let { color ->
+                textCssInfo.fontColor.toColor()?.let { color ->
                     paint.color = color
                 }
             }
@@ -380,12 +482,16 @@ class ContentTextView(context: Context, attrs: AttributeSet?) : View(context, at
                 canvas.drawRoundRect(RectF(ch.start - horizontalpadding, lineTop - verticalpadding, ch.end + horizontalpadding, lineBottom + verticalpadding), 1f, 1f, highlightPaint)
             }
             if (isUnderline) {                                                   //设置画笔绘制下划线
-                ColorUtil.toColor(underlineColor)?.let { color ->
+                underlineColor.toColor()?.let { color ->
                     linePaint.color = color
                 }
                 linePaint.strokeWidth = 3f
 
                 canvas.drawLine(ch.start, textLine.lineBottom, ch.end,  textLine.lineBottom, linePaint)
+            }
+            if (ch.selected) {
+                //绘制选择文字时的背景框
+                canvas.drawRect(ch.start , lineTop, ch.end, lineBottom, selectedPaint)
             }
 
             if (ch.isImage) {
@@ -395,10 +501,6 @@ class ContentTextView(context: Context, attrs: AttributeSet?) : View(context, at
                 drawImage(canvas, ch, lineTop, lineBottom) //绘制图片
             } else {
                 canvas.drawText(ch.charData, ch.start, lineBase, paint) //绘制每一个字
-            }
-            if (ch.selected) {
-                //绘制选择文字时的背景框
-                canvas.drawRect(ch.start , lineTop, ch.end, lineBottom, selectedPaint)
             }
         }
     }

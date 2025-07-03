@@ -211,8 +211,8 @@ class BooksRepositoryImpl @Inject constructor(
         }
     }
 
-    override suspend fun addNote(note: Note) {
-        noteDao.insert(noteMapper.toNoteEntity(note))
+    override suspend fun addNote(note: Note) :Long {
+        return noteDao.insert(noteMapper.toNoteEntity(note))
     }
 
     override suspend fun updateNote(note: Note) {

@@ -432,10 +432,21 @@ class PageView : FrameLayout, IDataSource, PageCallback {
                     clickLine.charEndOffset + if(clickLine.isTableCell) clickLine.rowLineOffset else 0 )
                 val filterTags = tags.filter { item ->
                     (item.name == "a" && item.params.isNotEmpty() && item.params.contains("href")) ||
-                        ((item.name == "underline" || item.name == "highlight") && item.params.isNotEmpty() && item.params.contains("color"))
+                        ((item.name == "underline" || item.name == "highlight") && item.params.isNotEmpty() && item.params.contains("color")) ||
+                            (item.name == "note" && item.params.isNotEmpty() && item.params.contains("color"))
                 }
                 if (filterTags.isNotEmpty()) {
                     val annoIds = arrayListOf<String>()
+
+                    val noteTag = filterTags.firstOrNull {
+                        it.name == "note"
+                    }
+                    if (noteTag != null) {
+                        dataProvider?.clickedNote(noteTag.uuid)
+                        isTextSelected = true
+                        return true
+                    }
+
                     for(itemTag in filterTags) {
                         var startTagCharInLineIndex = -1
                         var endTagCharInLineIndex = -1
@@ -656,26 +667,26 @@ class PageView : FrameLayout, IDataSource, PageCallback {
         }
     }
 
-    /***
-     * 如果是点选标注区域，需要设置一些内部参数，所有还是得传递进来
-     */
-    override fun upSelectedRange(startCharX: Float, startCharY: Float, endCharX: Float, endCharY: Float) {
-        startX  = startCharX
-        startY = startCharY
-        curPage.selectText(startX, startY) { relativePage, lineIndex, charIndex ->
-            isTextSelected = true
-            firstRelativePage = relativePage
-            firstLineIndex = lineIndex
-            firstCharIndex = charIndex
-            curPage.selectStartMoveIndex(firstRelativePage, firstLineIndex, firstCharIndex)
-            curPage.selectEndMoveIndex(firstRelativePage, firstLineIndex, firstCharIndex)
-
-            Coroutines.mainScope().launch {
-                delay(50)
-                selectText(endCharX, endCharY)
-            }
-        }
-    }
+//    /***
+//     * 如果是点选标注区域，需要设置一些内部参数，所有还是得传递进来
+//     */
+//    override fun upSelectedRange(startCharX: Float, startCharY: Float, endCharX: Float, endCharY: Float) {
+//        startX  = startCharX
+//        startY = startCharY
+//        curPage.selectText(startX, startY) { relativePage, lineIndex, charIndex ->
+//            isTextSelected = true
+//            firstRelativePage = relativePage
+//            firstLineIndex = lineIndex
+//            firstCharIndex = charIndex
+//            curPage.selectStartMoveIndex(firstRelativePage, firstLineIndex, firstCharIndex)
+//            curPage.selectEndMoveIndex(firstRelativePage, firstLineIndex, firstCharIndex)
+//
+//            Coroutines.mainScope().launch {
+//                delay(50)
+//                selectText(endCharX, endCharY)
+//            }
+//        }
+//    }
 
 
     /***

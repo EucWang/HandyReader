@@ -98,9 +98,6 @@ fun NotesScreen(
     var showNoteDialog by remember { mutableStateOf(false) }
 //    var showPremiumModal by remember { mutableStateOf(false) }
 
-
-
-
     var selectedNote by remember {
         mutableStateOf(
             Note(

@@ -2,8 +2,10 @@ package com.wxn.reader.presentation.mainReader
 
 import android.app.Application
 import android.graphics.Rect
+import android.graphics.RectF
 import androidx.compose.runtime.Stable
 import androidx.compose.ui.graphics.Color
+import androidx.core.graphics.toRect
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.viewModelScope
@@ -171,6 +173,9 @@ class MainReadViewModel @Inject constructor(
     //
     private val _showNoteDialog = MutableStateFlow<Boolean>(false)
     val showNoteDialog: StateFlow<Boolean> = _showNoteDialog.asStateFlow()
+
+    private val _noteDialogSelectedText = MutableStateFlow<String>("")
+    val noteDialogSelectedText : StateFlow<String> = _noteDialogSelectedText.asStateFlow()
 
     //选中的笔记
     private val _selectedNote = MutableStateFlow<Note?>(null)
@@ -422,7 +427,7 @@ class MainReadViewModel @Inject constructor(
     /***
      * click one annotation then show out TextToolbar
      */
-    override fun onCheckedAnnotation(annotationIds: List<String>, startX: Float, startY: Float, endX: Float, endY: Float) {
+    override fun onCheckedAnnotation(annotationIds: List<String>, rect: RectF) {
         viewModelScope.launch {
             val curAnnotations = _annotations.firstOrNull() ?: return@launch
             val targetAnnotations = curAnnotations.filter {
@@ -436,10 +441,22 @@ class MainReadViewModel @Inject constructor(
                 _selectedAnnotation.value = targetAnnotation
                 val locator = targetAnnotation?.locatorInfo ?: return@launch
                 selectedLocator = locator
-                var rect = Rect(startX.toInt(), startY.toInt(), endX.toInt(), endY.toInt())
-                _textToolbarRect.value = rect
+                _textToolbarRect.value = rect.toRect()
                 textToolbarOpen(true)
             }
+        }
+    }
+
+    override fun onCheckedNote(noteId: String, rect: RectF) {
+        viewModelScope.launch {
+            val curNotes = _notes.firstOrNull() ?: return@launch
+            val targetNote = curNotes.firstOrNull {
+                it.id == noteId.toLongOrNull()
+            }
+            if (targetNote != null) {
+                _selectedNote.value = targetNote
+            }
+            Logger.d("MainReadViewModel::onCheckedNote::noteId=$noteId,targetNote[$targetNote]")
         }
     }
 
@@ -456,7 +473,6 @@ class MainReadViewModel @Inject constructor(
             }
         }
     }
-
 
     override fun onSelectedText(startX: Float, startY: Float, endX: Float, endY: Float) {
 
@@ -575,8 +591,14 @@ class MainReadViewModel @Inject constructor(
             _annotations.value += newAnnotation2
             _selectedAnnotation.value = newAnnotation2
             currentBookId.value?.let { loadAnnotations(it) }
-            pageController.updateChapter(newAnnotation2, conflictAnnotations)
+            pageController.updateChapter(newAnnotation2, null, conflictAnnotations)
         }
+    }
+
+    fun handleNote() {
+        val locator = selectedLocator ?: return
+        val selectedText = locator.text
+        _showNoteDialog.value = true
     }
 
     fun handleUnderline(color: Color) {
@@ -612,7 +634,7 @@ class MainReadViewModel @Inject constructor(
             _annotations.value += newAnnotation2
             _selectedAnnotation.value = newAnnotation2
             currentBookId.value?.let { loadAnnotations(it) }
-            pageController.updateChapter(newAnnotation2, conflictAnnotations)
+            pageController.updateChapter(newAnnotation2, null, conflictAnnotations)
         }
     }
 
@@ -840,6 +862,26 @@ class MainReadViewModel @Inject constructor(
         }
     }
 
+    fun addNote(noteText: String, color: Color) {
+        val locator = selectedLocator ?: return
+        val bookId = _currentBookId.value ?: return
+        val newNote = Note(
+            bookId = bookId,
+            locator = locator.toJsonString(),
+            selectedText = locator.text,
+            note = noteText,
+            color = color.toStringColor(),
+        )
+        viewModelScope.launch {
+            val newNoteId = addNotesUseCase(newNote)
+            currentBookId.value?.let {
+                loadNotes(it)
+            }
+            val newNote2 = newNote.copy(id = newNoteId)
+            pageController.updateChapter(null, newNote2, emptyList())
+        }
+    }
+
     /***
      * 加载注释列表
      */
@@ -877,7 +919,7 @@ class MainReadViewModel @Inject constructor(
             }
             _selectedAnnotation.value = null
             currentBookId.value?.let { loadAnnotations(it) }
-            pageController.updateChapter(null, arrayListOf(annotation))
+            pageController.updateChapter(null, null, arrayListOf(annotation))
         }
     }
 

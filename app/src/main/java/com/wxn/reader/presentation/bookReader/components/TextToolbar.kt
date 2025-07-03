@@ -361,9 +361,6 @@ fun TextToolbar(
         context.startActivity(Intent.createChooser(intent, "search with"))
     }
 
-
-
-
     Box(
         modifier = Modifier.offset {
             IntOffset(

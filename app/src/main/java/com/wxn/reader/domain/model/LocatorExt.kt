@@ -1,12 +1,16 @@
 package com.wxn.reader.domain.model
 
+import com.wxn.base.bean.Locator
 import com.wxn.base.bean.ReaderText
 import com.wxn.base.bean.TextTag
 
 
-fun BookAnnotation.toTextTags(chapterIndex: Int, readerTexts: List<ReaderText>) : Map<Int, List<TextTag>>{
-    val anno = this
-    val locator = anno.locatorInfo ?: return emptyMap()
+fun Locator.toTextTags(tagid: String,
+                       tagtypename: String,
+                       tagcolor: String,
+                       chapterIndex: Int,
+                       readerTexts: List<ReaderText>) : Map<Int, List<TextTag>>{
+    val locator = this
     val tagMap = hashMapOf<Int, MutableList<TextTag>>()
     if (locator.chapterIndex == chapterIndex) {   //相同章节
         val startParagraphIndex = locator.startParagraphIndex
@@ -21,11 +25,11 @@ fun BookAnnotation.toTextTags(chapterIndex: Int, readerTexts: List<ReaderText>) 
                 val annos = arrayListOf<TextTag>()
                 annos.add(
                     TextTag(
-                        uuid = anno.id.toString(),
-                        name = anno.type.toString(),
+                        uuid = tagid,
+                        name = tagtypename,
                         start = startTextOffset,
                         end = endTextOffset,
-                        params = "color=${anno.color}"
+                        params = "color=${tagcolor}"
                     )
                 )
                 tagMap[startParagraphIndex] = annos
@@ -63,11 +67,11 @@ fun BookAnnotation.toTextTags(chapterIndex: Int, readerTexts: List<ReaderText>) 
                     }
                     annos.add(
                         TextTag(
-                            uuid = anno.id.toString(),
-                            name = anno.type.toString(),
+                            uuid = tagid,
+                            name = tagtypename,
                             start = start,
                             end = end,
-                            params = "color=${anno.color}"
+                            params = "color=${tagcolor}"
                         )
                     )
                     tagMap[i] = annos

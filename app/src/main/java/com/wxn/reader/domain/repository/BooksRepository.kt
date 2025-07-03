@@ -55,7 +55,7 @@ interface BooksRepository {
     // Notes
     suspend fun getAllNotes(): Flow<List<Note>>
     suspend fun getNotesForBook(bookId: Long): Flow<List<Note>>
-    suspend fun addNote(note: Note)
+    suspend fun addNote(note: Note): Long
     suspend fun updateNote(note: Note)
     suspend fun deleteNote(note: Note)
 

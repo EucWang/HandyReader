@@ -20,6 +20,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.wxn.base.ext.ColorA
 import com.wxn.reader.R
 import com.wxn.reader.ui.theme.stringResource
 

@@ -97,6 +97,8 @@ fun ReaderView(
     val showPageSettings by viewModel.showPageSettings.collectAsStateWithLifecycle()
     val showReaderSettings by viewModel.showReaderSettings.collectAsStateWithLifecycle()
     val showNoteDialog by viewModel.showNoteDialog.collectAsStateWithLifecycle()
+    val noteDialogSelectedText by viewModel.noteDialogSelectedText.collectAsStateWithLifecycle()
+
     val selectedNote by viewModel.selectedNote.collectAsStateWithLifecycle()
 
     val notes by viewModel.notes.collectAsStateWithLifecycle()
@@ -317,27 +319,17 @@ fun ReaderView(
         if (showNoteDialog) {
             NoteDialog(
                 appPreferences = appPreferences,
-                selectedText = viewModel.pageController.getSelectedText(),  //noteDialogSelectedText,
-                onSave = { noteText, selectedColor -> // Capture the selected color
-                    viewModel.viewModelScope.launch { //TODO
-//                        val selection = navigatorFragment?.currentSelection()
-//                        if (selection != null) {
-//                            val locator = selection.locator
-//                            val bookId = viewModel.currentBookId.value ?: return@launch
-//
-//                            val newNote = Note(
-//                                locator = locator.toJSON().toString(),
-//                                selectedText = noteDialogSelectedText,
-//                                note = noteText,
-//                                color = selectedColor.toArgb().toString(), // Use selected color
-//                                bookId = bookId
-//                            )
-//                            viewModel.addNote(newNote)
-//                        }
+                selectedText = noteDialogSelectedText,
+                onSave = { noteText, selectedColor ->
+                    viewModel.viewModelScope.launch {
+                        viewModel.addNote(noteText, selectedColor)
                     }
                     viewModel.noteDialogOpen(false)
                 },
-                onDismiss = { viewModel.noteDialogOpen(false) },
+                onDismiss = {
+                    viewModel.noteDialogOpen(false)
+                    viewModel.cancelTextSelected()
+                },
                 showPremiumModal = {
                     viewModel.noteDialogOpen(false)
                     navController.navigate(Screens.PremiumScreen.route)
@@ -352,7 +344,10 @@ fun ReaderView(
             NoteContent(
                 appPreferences = appPreferences,
                 note = note,
-                onDismiss = { viewModel.clearSelectedNote() },
+                onDismiss = {
+                    viewModel.clearSelectedNote()
+                    viewModel.cancelTextSelected()
+                },
                 onEdit = { editedNote ->
                     viewModel.updateNote(editedNote)
                     viewModel.clearSelectedNote()
@@ -362,9 +357,9 @@ fun ReaderView(
                     viewModel.clearSelectedNote()
                 },
                 showPremiumModal = {
-                    viewModel.clearSelectedNote()
+//                    viewModel.clearSelectedNote()
 //                    viewModel.purchasePremium(purchaseHelper)
-                    navController.navigate(Screens.PremiumScreen.route)
+//                    navController.navigate(Screens.PremiumScreen.route)
                 }
             )
         }
@@ -460,7 +455,7 @@ fun ReaderView(
                 viewModel.handleUnderline(color)
             },
             onNote = {                  //新增笔记
-//                handleNote()
+                viewModel.handleNote()
                 viewModel.textToolbarOpen(false)
 //                showTextToolbar = false
             },

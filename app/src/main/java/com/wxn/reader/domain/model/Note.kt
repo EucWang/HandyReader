@@ -2,6 +2,7 @@ package com.wxn.reader.domain.model
 
 import android.os.Parcelable
 import androidx.compose.runtime.Immutable
+import com.wxn.base.bean.Locator
 import kotlinx.parcelize.Parcelize
 
 
@@ -16,4 +17,8 @@ data class Note (
     var bookId : Long = 0
 ) : Parcelable {
 
+    val locatorInfo: Locator?
+        get() {
+            return Locator.fromJsonString(locator)
+        }
 }

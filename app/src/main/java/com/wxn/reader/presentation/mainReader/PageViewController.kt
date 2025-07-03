@@ -1,8 +1,8 @@
 package com.wxn.reader.presentation.mainReader
 
 import android.content.Context
+import android.graphics.RectF
 import com.wxn.base.bean.Book
-import com.wxn.base.bean.BookChapter
 import com.wxn.base.bean.Locator
 import com.wxn.base.bean.ReaderText
 import com.wxn.base.bean.TextCssInfo
@@ -14,6 +14,7 @@ import com.wxn.bookparser.TextParser
 import com.wxn.bookread.data.model.TextChapter
 import com.wxn.bookread.data.model.TextChar
 import com.wxn.bookread.data.model.TextLine
+import com.wxn.bookread.data.model.TextPage
 import com.wxn.bookread.provider.ChapterProvider
 import com.wxn.bookread.ui.PageCallback
 import com.wxn.bookread.ui.PageViewCallback
@@ -22,6 +23,7 @@ import com.wxn.bookread.ui.SelectTextCallback
 import com.wxn.bookread.ui.TextPageFactory
 import com.wxn.reader.data.source.local.AppPreferencesUtil
 import com.wxn.reader.domain.model.BookAnnotation
+import com.wxn.reader.domain.model.Note
 import com.wxn.reader.domain.model.toTextTags
 import com.wxn.reader.domain.use_case.annotations.GetAnnotationsUseCase
 import com.wxn.reader.domain.use_case.books.UpdateBookUseCase
@@ -29,10 +31,12 @@ import com.wxn.reader.domain.use_case.chapters.BookHelper
 import com.wxn.reader.domain.use_case.chapters.GetChapterByIdUserCase
 import com.wxn.reader.domain.use_case.chapters.GetChapterCountByBookIdUserCase
 import com.wxn.reader.domain.use_case.chapters.UpdateChapterWordCountUserCase
+import com.wxn.reader.domain.use_case.notes.GetNotesForBookUseCase
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.first
-import java.util.UUID
+import kotlinx.coroutines.flow.firstOrNull
 import javax.inject.Inject
+import kotlin.collections.firstOrNull
 import kotlin.collections.iterator
 import kotlin.collections.orEmpty
 import kotlin.collections.set
@@ -43,6 +47,7 @@ open class PageViewController @Inject constructor(
     val getChapterByIdUserCase: GetChapterByIdUserCase,
     val getChapterCountByBookIdUserCase: GetChapterCountByBookIdUserCase,
     val getAnnotationsUseCase: GetAnnotationsUseCase,
+    val getNotesForBookUseCase: GetNotesForBookUseCase,
 
     val updateChapterWordCountUserCase: UpdateChapterWordCountUserCase,
     val updateBookUseCase: UpdateBookUseCase,
@@ -55,6 +60,7 @@ open class PageViewController @Inject constructor(
 
     override var book: Book? = null
     var userAnnotations : ArrayList<BookAnnotation>? = null
+    var userNotes : ArrayList<Note>? = null
 
     var inBookshelf = false
     var durPageIndex = 0
@@ -73,7 +79,8 @@ open class PageViewController @Inject constructor(
         fun onPageChange()
         fun onSelectedText(startX: Float, startY : Float, endX : Float, endY : Float)
         fun onSelectedCancel()
-        fun onCheckedAnnotation(annotationIds: List<String>, startX: Float, startY: Float, endX: Float, endY: Float)
+        fun onCheckedAnnotation(annotationIds: List<String>, rect: RectF)
+        fun onCheckedNote(noteId: String, rect: RectF)
     }
 
     var clickListener: OnClickListener? = null
@@ -217,6 +224,14 @@ open class PageViewController @Inject constructor(
             return
         }
 
+
+        userNotes?.clear()
+        userNotes = arrayListOf()
+        val notes = getNotesForBookUseCase(book.id).firstOrNull()
+        if (!notes.isNullOrEmpty()) {
+            userNotes?.addAll(notes)
+        }
+
         this.chapterSize = count
         durChapterIndex = book.scrollIndex
         durPageIndex = book.scrollOffset
@@ -348,7 +363,7 @@ open class PageViewController @Inject constructor(
      * @param annotation add to TextChapter
      * @param conflictAnnotations delete from TextChapter
      */
-    suspend fun updateChapter(annotation: BookAnnotation?, conflictAnnotations: List<BookAnnotation>) {
+    suspend fun updateChapter(annotation: BookAnnotation?, note: Note?, conflictAnnotations: List<BookAnnotation>) {
         val tags = curTextChapter?.annotations?.toMutableMap() ?: return
         if (conflictAnnotations.isNotEmpty()) {
             for(entry in tags) {
@@ -365,13 +380,32 @@ open class PageViewController @Inject constructor(
         }
 
         val readerTexts = curTextChapter?.readerTexts ?: return
-        val texttags = annotation?.toTextTags(durChapterIndex, readerTexts).orEmpty()
+        val texttags = annotation?.locatorInfo?.toTextTags(
+            annotation.id.toString(),
+            annotation.type.toString(),
+            annotation.color,
+            durChapterIndex, readerTexts).orEmpty()
         if (texttags.isNotEmpty()) {
             val keys = tags.keys.plus(texttags.keys)
             for(key in keys) {
                 tags[key] = (tags[key].orEmpty()).toMutableList().plus(texttags[key].orEmpty())
             }
         }
+
+        val noteTextTags = note?.locatorInfo?.toTextTags(
+            note.id.toString(),
+            "note",
+            note.color,
+            durChapterIndex,
+            readerTexts
+        ).orEmpty()
+        if (noteTextTags.isNotEmpty()) {
+            val keys = tags.keys.plus(noteTextTags.keys)
+            for(key in keys) {
+                tags[key] = (tags[key].orEmpty()).toMutableList().plus(noteTextTags[key].orEmpty())
+            }
+        }
+
         curTextChapter?.annotations = tags
         callBack?.upContent(resetPageOffset = false)
     }
@@ -406,8 +440,26 @@ open class PageViewController @Inject constructor(
             }
             //将BookAnnotation转换成TextTag,控制界面的显示
             userAnnotations?.forEach { anno ->
-                val texttags = anno.toTextTags(chapterIndex, contents)
-                if (texttags.isNotEmpty()) {
+                val texttags = anno.locatorInfo?.toTextTags(
+                    anno.id.toString(),
+                    anno.type.toString(),
+                    anno.color,
+                    chapterIndex, contents)
+                if (!texttags.isNullOrEmpty()) {
+                    val keys = tags.keys.plus(texttags.keys)
+                    for(key in keys) {
+                        tags[key] = (tags[key].orEmpty()).toMutableList().plus(texttags[key].orEmpty())
+                    }
+                }
+            }
+            //将Note转换成TextTag，控制界面显示
+            userNotes?.forEach { note ->
+                val texttags = note.locatorInfo?.toTextTags(
+                    note.id.toString(),
+                    "note",
+                    note.color,
+                    chapterIndex, contents)
+                if (!texttags.isNullOrEmpty()) {
                     val keys = tags.keys.plus(texttags.keys)
                     for(key in keys) {
                         tags[key] = (tags[key].orEmpty()).toMutableList().plus(texttags[key].orEmpty())
@@ -676,6 +728,27 @@ open class PageViewController @Inject constructor(
         }
     }
 
+    override fun clickedNote(noteId: String) {
+        Logger.i("PageViewController::clickNote::noteId=$noteId")
+        val curChapter = curTextChapter ?: return
+        val curPage = pageFactory?.currentPage ?: return
+        val pendingRange = arrayListOf<Triple<Int, Int, Int>>()
+
+        curChapter.annotations.let { tagMap ->
+            for(entity in tagMap) {
+                val paragraphIndex = entity.key
+                entity.value.filter { noteId == it.uuid && it.name == "note" }.forEach { annoTag ->
+                    val startOffset = annoTag.start
+                    val endOffset = annoTag.end
+                    pendingRange.add(Triple(paragraphIndex, startOffset, endOffset))
+                }
+            }
+        }
+        innerSelectText(pendingRange, curPage) { rect ->
+            clickListener?.onCheckedNote(noteId, rect)
+        }
+    }
+
     override fun clickedAnnotation(annotationIds: List<String>) {
         val curChapter = curTextChapter ?: return
         val curPage = pageFactory?.currentPage ?: return
@@ -685,7 +758,9 @@ open class PageViewController @Inject constructor(
         curChapter.annotations.let { tagMap ->
             for(entity in tagMap) {
                 val paragraphIndex = entity.key
-                entity.value.filter { annotationIds.contains(it.uuid) }.forEach { annoTag ->
+                entity.value.filter {
+                    annotationIds.contains(it.uuid) && (it.name == "underline" || it.name == "highlight")
+                }.forEach { annoTag ->
                     val startOffset = annoTag.start
                     val endOffset = annoTag.end
                     pendingRange.add(Triple(paragraphIndex, startOffset, endOffset))
@@ -693,6 +768,12 @@ open class PageViewController @Inject constructor(
             }
         }
 
+        innerSelectText(pendingRange, curPage) { rect ->
+            clickListener?.onCheckedAnnotation(annotationIds, rect)
+        }
+    }
+
+    private fun innerSelectText(pendingRange: List<Triple<Int, Int, Int>>, curPage: TextPage, onFinished: (RectF)->Unit) {
         if(pendingRange.isNotEmpty()) {
             //遍历得到tag对应的选中文本的开始字符屏幕位置和结束位置屏幕位置
             var startX = -1f
@@ -714,11 +795,11 @@ open class PageViewController @Inject constructor(
                     for ((index, ch) in line.textChars.withIndex()) {
                         if (!ch.isImage && ch.charData.isNotEmpty() && ch.charData.length == 1) {
                             val charIndexInParagraph = line.charStartOffset + index
-                            if (charIndexInParagraph >= startOffset && charIndexInParagraph < endOffset) {
+                            if (charIndexInParagraph >= startOffset && charIndexInParagraph <= endOffset) {
                                 ch.selected = true
                                 if (startX < 0f && startY < 0f) {
                                     startX = ch.start
-                                    startY = line.lineTop
+                                    startY = line.lineTop + ChapterProvider.paddingTop
                                 }
                                 lastCh = ch
                                 lastLine = line
@@ -729,13 +810,14 @@ open class PageViewController @Inject constructor(
             }
             if (lastCh != null && lastLine != null) {
                 endX = lastCh.end
-                endY = lastLine.lineBottom
+                endY = lastLine.lineBottom + ChapterProvider.paddingTop
             }
             if (startX > 0f && startY > 0f && endX > 0f && endY > 0f) {
-                Logger.d("PageViewController::clickedAnnotation::startX=$startX,startY=$startX,endX=$startX,endY=$endY")
-                callBack?.upSelectedRange(startX, startY, endX, endY)
+                Logger.d("PageViewController::clickedAnnotation::startX=$startX,startY=$startY,endX=$endX,endY=$endY")
+//                callBack?.upSelectedRange(startX, startY, endX, endY)
                 callBack?.upContent(resetPageOffset = false)
-                clickListener?.onCheckedAnnotation(annotationIds, startX, startY, endX, endY)
+//                clickListener?.onCheckedAnnotation(annotationIds, startX, startY, endX, endY)
+                onFinished(RectF(startX, startY, endX, endY))
             }
         }
     }

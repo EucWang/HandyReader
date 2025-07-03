@@ -32,6 +32,8 @@ import androidx.compose.foundation.background
 import androidx.compose.ui.res.stringResource
 import com.github.skydoves.colorpicker.compose.HsvColorPicker
 import com.github.skydoves.colorpicker.compose.rememberColorPickerController
+import com.wxn.base.ext.toColor
+import com.wxn.base.ext.toComposeColor
 import com.wxn.reader.R
 import com.wxn.reader.data.model.AppPreferences
 import com.wxn.reader.domain.model.Note
@@ -47,7 +49,8 @@ fun NoteContent(
 ) {
     var isEditing by remember { mutableStateOf(false) }
     var editedNoteText by remember { mutableStateOf(note.note) }
-    var selectedColor by remember { mutableStateOf(Color(note.color.toLong())) }
+
+    var selectedColor by remember { mutableStateOf(note.color.toColor()?.toComposeColor() ?: Color(0xFFFFFF00)) }
     var isColorPickerVisible by remember { mutableStateOf(false) } // State to control color picker visibility
     val controller = rememberColorPickerController()
 
@@ -87,7 +90,6 @@ fun NoteContent(
                                     .clip(RoundedCornerShape(50.dp))
                                     .clickable(
                                         onClick = {
-
                                             selectedColor = color
                                             isColorPickerVisible =
                                                 false // Hide color picker if any default color is selected
