@@ -24,6 +24,7 @@ import com.wxn.bookread.ui.TextPageFactory
 import com.wxn.reader.data.source.local.AppPreferencesUtil
 import com.wxn.reader.domain.model.BookAnnotation
 import com.wxn.base.bean.Bookmark
+import com.wxn.bookread.ext.calcProgress
 import com.wxn.reader.domain.model.Note
 import com.wxn.reader.domain.model.toTextTags
 import com.wxn.reader.domain.use_case.annotations.GetAnnotationsUseCase
@@ -37,6 +38,7 @@ import com.wxn.reader.domain.use_case.notes.GetNotesForBookUseCase
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.firstOrNull
+import java.io.Reader
 import javax.inject.Inject
 import kotlin.collections.firstOrNull
 import kotlin.collections.iterator
@@ -368,6 +370,71 @@ open class PageViewController @Inject constructor(
             this.msg = msg
             callBack?.upContent()
         }
+    }
+
+    suspend fun updateChapterByAddBookmark(addedBookmark: Bookmark):Boolean {
+        if (userBookmakrs == null) {
+            userBookmakrs = arrayListOf()
+        }
+        userBookmakrs?.add(addedBookmark)
+        return innerUpdateChapterHandleBookmark()
+    }
+
+    suspend fun updateChapterByDelBookmark(deledBookmark: Bookmark) : Boolean {
+        if (userBookmakrs == null) {
+            userBookmakrs = arrayListOf()
+        }
+        userBookmakrs?.remove(deledBookmark)
+        return innerUpdateChapterHandleBookmark()
+    }
+
+    private suspend fun innerUpdateChapterHandleBookmark() : Boolean {
+        val textChapter = curTextChapter ?: return false
+        val chapterIndex = textChapter.position
+        //遍历当前章节的书签
+        val chapterBookmarks = userBookmakrs?.filter {
+            it.chapterIndex == chapterIndex
+        }
+        Logger.d("PageViewController::loadContent[$chapterIndex],chapterBookmarks[${chapterBookmarks?.size}]")
+
+        textChapter.pages.forEach { page ->
+            page.bookmarkId = getPageBookmark(page, textChapter, chapterBookmarks)?.id ?: -1
+        }
+        callBack?.upContent(resetPageOffset = false)
+        return true
+    }
+
+    /***
+     * update note then update chapter
+     */
+    suspend fun updateChapterByUpdateNote(note: Note) {
+        val tags = curTextChapter?.annotations?.toMutableMap() ?: return
+        val readerTexts = curTextChapter?.readerTexts ?: return
+        for(entry in tags) {
+            val lists = entry.value.toMutableList()
+            lists.removeIf { item ->
+                note.id.toString() == item.uuid && item.name == "note"
+            }
+            if (lists.size != entry.value.size) {
+                entry.setValue(lists)
+            }
+        }
+
+        val texttags = note.locatorInfo?.toTextTags(
+            note.id.toString(),
+            "note",
+            note.color,
+            durChapterIndex,
+            readerTexts
+        ).orEmpty()
+        if (texttags.isNotEmpty()) {
+            val keys = tags.keys.plus(texttags.keys)
+            for(key in keys) {
+                tags[key] = (tags[key].orEmpty()).toMutableList().plus(texttags[key].orEmpty())
+            }
+        }
+        curTextChapter?.annotations = tags
+        callBack?.upContent(resetPageOffset = false)
     }
 
     /****
@@ -727,6 +794,7 @@ open class PageViewController @Inject constructor(
         val pageIndex = durPageIndex
         val curPage = curChapter.pages.getOrNull(pageIndex) ?: return null
         val curLine = curPage.textLines.firstOrNull()
+        val curProgression  = progression
         return Locator(
             id = "",
             chapterIndex = chapterIndex,
@@ -734,7 +802,8 @@ open class PageViewController @Inject constructor(
             startTextOffset = curLine?.charStartOffset ?: 0,
             endParagraphIndex = curLine?.paragraphIndex ?: 0,
             endTextOffset = curLine?.charEndOffset ?: 0,
-            text = curLine?.text ?: ""
+            text = curLine?.text ?: "",
+            progression = curProgression
         )
     }
 
@@ -745,6 +814,7 @@ open class PageViewController @Inject constructor(
             startInnerTextOffset >= 0 &&
             endInnerTextOffset >= 0
         ) {
+            val progress = curTextChapter.calcProgress(startParagraphIndex, startInnerTextOffset)
             Locator(
                 "",
                 durChapterIndex,
@@ -752,7 +822,8 @@ open class PageViewController @Inject constructor(
                 startTextOffset = startInnerTextOffset,
                 endParagraphIndex = endParagraphIndex,
                 endTextOffset = endInnerTextOffset,
-                text = getSelectedText()
+                text = getSelectedText(),
+                progression = progress
             )
         } else {
             null

@@ -36,7 +36,6 @@ import com.wxn.reader.navigation.Screens
 fun AnnotationsDrawer(
     navController: NavHostController,
     appPreferences: AppPreferences,
-//    navigator: EpubNavigatorFragment?,
     annotations: List<BookAnnotation>,
     onRemoveAnnotation: (BookAnnotation) -> Unit,
     onUpdateAnnotation: (BookAnnotation) -> Unit,
@@ -47,7 +46,6 @@ fun AnnotationsDrawer(
     var selectedTabIndex by remember { mutableIntStateOf(0) }
     val tabTitles = listOf(stringResource(R.string.highlights), stringResource(R.string.underlines))
 //    var showPremiumModal by remember { mutableStateOf(false) }
-
 
     AnimatedVisibility(
         visible = isOpen,
@@ -208,15 +206,15 @@ fun AnnotationItem(
         Spacer(modifier = Modifier.width(16.dp))
 
         Column(modifier = Modifier.weight(1f)) {
+//            Text(
+//                text = annotation.note ?: stringResource(R.string.no_note_available),
+//                style = MaterialTheme.typography.bodyMedium,
+//                maxLines = 2,
+//                overflow = TextOverflow.Ellipsis,
+//            )
+//            Spacer(modifier = Modifier.height(8.dp))
             Text(
-                text = annotation.note ?: stringResource(R.string.no_note_available),
-                style = MaterialTheme.typography.bodyMedium,
-                maxLines = 2,
-                overflow = TextOverflow.Ellipsis,
-            )
-            Spacer(modifier = Modifier.height(8.dp))
-            Text(
-                text = "", //TODO //Locator.fromJSON(JSONObject(annotation.locator))?.title ?: "Unknown",
+                text = annotation.locatorInfo?.text.orEmpty(),
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )

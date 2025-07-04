@@ -37,7 +37,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
-import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavHostController
@@ -45,8 +44,7 @@ import com.wxn.reader.R
 import com.wxn.reader.data.model.AppPreferences
 import com.wxn.base.bean.Bookmark
 import com.wxn.reader.navigation.Screens
-import com.wxn.reader.util.PurchaseHelper
-import org.json.JSONObject
+import com.wxn.reader.ui.theme.stringResource
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -201,7 +199,7 @@ fun BookmarkItem(
                 modifier = Modifier.fillMaxWidth()
             ) {
                 Text(
-                    text = "", //TODO // Locator.fromJSON(JSONObject(bookmark.locator))?.title ?: "",
+                    text = bookmark.locatorInfo?.text.orEmpty(),
                     style = MaterialTheme.typography.bodyMedium,
                     maxLines = 2,
                     overflow = TextOverflow.Ellipsis,
@@ -216,10 +214,9 @@ fun BookmarkItem(
             }
 
             Spacer(modifier = Modifier.height(8.dp))
-            val progression = 0.0 //TODO Locator.fromJSON(JSONObject(bookmark.locator))?.locations?.totalProgression ?: 0.0
-            val progressionPercentage = String.format(Locale.getDefault(),"%.1f%%", progression * 100)
+
             Text(
-                text = "Progression: $progressionPercentage",
+                text = stringResource(R.string.progression_format, String.format(Locale.getDefault(),"%.1f%%", (bookmark.locatorInfo?.progression?:0.0) * 100)),
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
                 maxLines = 2,
@@ -228,7 +225,7 @@ fun BookmarkItem(
 
             Spacer(modifier = Modifier.height(8.dp))
             Text(
-                text = "Date: $formattedDate",
+                text = stringResource(R.string.date_format, formattedDate),
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
                 maxLines = 1,

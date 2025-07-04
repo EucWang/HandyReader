@@ -202,6 +202,9 @@ class MainReadViewModel @Inject constructor(
     private val _clickedLinkContent = MutableStateFlow<LinkedContent?>(null)
     val clickedLinkContent: StateFlow<LinkedContent?> = _clickedLinkContent.asStateFlow()
 
+    private val _isBookmarked = MutableStateFlow<Boolean>(false)
+    val isBookmarked: StateFlow<Boolean> = _isBookmarked.asStateFlow()
+
     private var currentDayStartTime = 0L
 
     private var isReadingSessionActive = false
@@ -400,12 +403,14 @@ class MainReadViewModel @Inject constructor(
      * 滑动切换界面，或者跳转切换界面时，通知进度刷新
      */
     override fun onPageChange() {
-        Logger.d("MainReadViewModel:onPageChange")
+        Logger.d("MainReadViewModel:onPageChange:chapter.index=${pageController.durChapterIndex},page.index=${pageController.durPageIndex}")
         val newProgression =  pageController.progression
         _readProgression.value = newProgression
         _curChapterIndex.value = pageController.durChapterIndex
         _curChapterPageIndex.value = pageController.durPageIndex
         _curChapterName.value = pageController.curTextChapter?.title.orEmpty()
+
+        _isBookmarked.value = (pageController.curTextChapter?.pages?.getOrNull(pageController.durPageIndex)?.bookmarkId ?: -1) > 0
 
         viewModelScope.launch {
             if (isReadingSessionActive) {
@@ -849,6 +854,7 @@ class MainReadViewModel @Inject constructor(
             _selectedNote.update { selectedNote ->
                 if (selectedNote?.id == note.id) note else selectedNote
             }
+            pageController.updateChapterByUpdateNote(note)
         }
     }
 
@@ -866,12 +872,13 @@ class MainReadViewModel @Inject constructor(
     fun addNote(noteText: String, color: Color) {
         val locator = selectedLocator ?: return
         val bookId = _currentBookId.value ?: return
+        val noteColor = color.toStringColor()
         val newNote = Note(
             bookId = bookId,
             locator = locator.toJsonString(),
             selectedText = locator.text,
             note = noteText,
-            color = color.toStringColor(),
+            color = noteColor,
         )
         viewModelScope.launch {
             val newNoteId = addNotesUseCase(newNote)
@@ -901,14 +908,32 @@ class MainReadViewModel @Inject constructor(
     /***
      * 移除书签
      */
-    fun deleteBookmark(bookmark: Bookmark) {
+    fun deleteBookmark(bookmark: Bookmark? = null) {
+        Logger.i("MainReadViewModel:deleteBookmark")
         viewModelScope.launch {
-            deleteBookmarkUseCase(bookmark)
-            currentBookId.value?.let { loadBookmarks(it) }
+            val mark = if (bookmark == null) {
+                val bookmarkId = pageController.curTextChapter?.pages?.getOrNull(pageController.durPageIndex)?.bookmarkId ?: return@launch
+                _bookmarks.value.firstOrNull{
+                    it.id == bookmarkId
+                }
+            } else {
+                bookmark
+            }
+            Logger.d("MainReadViewModel:deleteBookmark:markid=${mark?.id}")
+            if (mark != null) {
+                deleteBookmarkUseCase(mark)
+                currentBookId.value?.let { loadBookmarks(it) }
+                if (pageController.updateChapterByDelBookmark(mark)) {
+                    val isBookmarked = (pageController.curTextChapter?.pages?.getOrNull(pageController.durPageIndex)?.bookmarkId ?: -1) > 0
+                    _isBookmarked.value = isBookmarked
+                    Logger.d("MainReadViewModel:deleteBookmark:_isBookmarked=${isBookmarked}")
+                }
+            }
         }
     }
 
     fun addBookmark() {
+        Logger.i("MainReadViewModel:addBookmark")
         val bookid = _currentBookId.value ?: return
         pageController.getCurrentPageLocator()?.let { locator ->
             viewModelScope.launch {
@@ -920,8 +945,15 @@ class MainReadViewModel @Inject constructor(
                     dateAndTime = currentTime,
                     color = "#FF0000FF"
                 )
-                addBookmarksUseCase(newBookmark)
+                val newBookmarkId = addBookmarksUseCase(newBookmark)
+                val newBookmark2 = newBookmark.copy(id = newBookmarkId)
+                Logger.i("MainReadViewModel:addBookmark[${newBookmark2}]")
                 currentBookId.value?.let { loadBookmarks(it) }
+                if (pageController.updateChapterByAddBookmark(newBookmark2)) {
+                    val isBookmarked = (pageController.curTextChapter?.pages?.getOrNull(pageController.durPageIndex)?.bookmarkId ?: -1) > 0
+                    Logger.d("MainReadViewModel:addBookmark:isBookmarked[${isBookmarked}]")
+                    _isBookmarked.value = isBookmarked
+                }
             }
         }
     }
@@ -1010,5 +1042,16 @@ class MainReadViewModel @Inject constructor(
     fun cancelTextSelected() {
         Logger.i("MainReaderViewModel::cancelTextSelected")
         pageController.cancelTextSelected()
+    }
+
+    fun navigateTo(locatorInfo: Locator?) {
+        locatorInfo ?: return
+        val chapterIndex = locatorInfo.chapterIndex
+        val progress = locatorInfo.progression
+        if (progress > 0.0) {
+            pageController.changeChapter(chapterIndex, progress)
+        } else {
+            pageController.changeChapter(chapterIndex)
+        }
     }
 }

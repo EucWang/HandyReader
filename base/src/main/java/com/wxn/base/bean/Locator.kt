@@ -18,7 +18,8 @@ data class Locator(
     val startTextOffset: Int = 0,       //位于开始的段落的文字偏移量
     val endParagraphIndex: Int = 0,     //结束的段落索引
     val endTextOffset: Int = 0,        //位于结束的段落的文字偏移量
-    val text: String = ""               //包含的文字内容
+    val text: String = "",               //包含的文字内容
+    val progression: Double,
 ) : Parcelable {
 
     fun toJsonString() : String {
@@ -30,6 +31,7 @@ data class Locator(
         obj.put("end_paragraph_index", endParagraphIndex)
         obj.put("end_text_offset", endTextOffset)
         obj.put("text", text)
+        obj.put("progression", progression)
         return obj.toString()
     }
 
@@ -45,7 +47,8 @@ data class Locator(
                 val endParagraphIndex = obj.optInt("end_paragraph_index", 0)
                 val endTextOffset = obj.optInt("end_text_offset", 0)
                 val text = obj.optString("text", "")
-                ret = Locator(id, chapterIndex, startParagraphIndex, startTextOffset, endParagraphIndex, endTextOffset, text)
+                val progression = obj.optDouble("progression", 0.0)
+                ret = Locator(id, chapterIndex, startParagraphIndex, startTextOffset, endParagraphIndex, endTextOffset, text, progression)
             } catch (ex: JSONException) {
             }
             return ret

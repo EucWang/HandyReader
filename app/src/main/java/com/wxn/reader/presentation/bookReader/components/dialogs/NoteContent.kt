@@ -26,7 +26,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.unit.dp
 import androidx.compose.foundation.background
 import androidx.compose.ui.res.stringResource
@@ -34,6 +33,7 @@ import com.github.skydoves.colorpicker.compose.HsvColorPicker
 import com.github.skydoves.colorpicker.compose.rememberColorPickerController
 import com.wxn.base.ext.toColor
 import com.wxn.base.ext.toComposeColor
+import com.wxn.base.ext.toStringColor
 import com.wxn.reader.R
 import com.wxn.reader.data.model.AppPreferences
 import com.wxn.reader.domain.model.Note
@@ -154,7 +154,8 @@ fun NoteContent(
             TextButton(
                 onClick = {
                     if (isEditing) {
-                        onEdit(note.copy(note = editedNoteText, color = selectedColor.toArgb().toString()))
+                        onEdit(note.copy(note = editedNoteText,
+                            color = selectedColor.toStringColor()))
                         isEditing = false
                     } else {
                         isEditing = true

@@ -60,8 +60,6 @@ import com.wxn.reader.util.PurchaseHelper
 @Composable
 fun NotesDrawer(
     navController: NavHostController,
-//    viewModel: BookReaderViewModel,
-//    purchaseHelper: PurchaseHelper,
     appPreferences: AppPreferences,
     isOpen: Boolean,
     onClose: () -> Unit,
@@ -73,7 +71,6 @@ fun NotesDrawer(
     var selectedTabIndex by remember { mutableIntStateOf(0) }
     val tabTitles = listOf(stringResource(R.string.notes))
 //    var showPremiumModal by remember { mutableStateOf(false) }
-
 
     AnimatedVisibility(
         visible = isOpen,
@@ -117,7 +114,6 @@ fun NotesDrawer(
                         }
                     }
 
-
                     when (selectedTabIndex) {
                         0 -> {
                             BookmarksList(
@@ -150,19 +146,26 @@ fun NotesDrawer(
 @Composable
 fun BookmarksList(
     appPreferences: AppPreferences,
-    notes: List<Note>, onNoteClick: (Note) -> Unit, onUpdateNote: (Note) -> Unit ,onRemoveNote: (Note) -> Unit,
+    notes: List<Note>,
+    onNoteClick: (Note) -> Unit,
+    onUpdateNote: (Note) -> Unit,
+    onRemoveNote: (Note) -> Unit,
     showPremiumModal: () -> Unit,
-    ) {
+) {
     LazyColumn(
         modifier = Modifier
             .fillMaxSize()
             .padding(12.dp)
-    )  {
+    ) {
         items(notes) { note ->
             NoteItem(
-                appPreferences = appPreferences,note = note, onClick = { onNoteClick(note) }, onUpdateNote = { updatedNote -> onUpdateNote(updatedNote) } ,onRemoveNote = { onRemoveNote(note) },
+                appPreferences = appPreferences,
+                note = note,
+                onClick = { onNoteClick(note) },
+                onUpdateNote = { updatedNote -> onUpdateNote(updatedNote) },
+                onRemoveNote = { onRemoveNote(note) },
                 showPremiumModal = { showPremiumModal() }
-                )
+            )
             Spacer(modifier = Modifier.height(12.dp))
 
         }
@@ -179,21 +182,9 @@ fun NoteItem(
     showPremiumModal: () -> Unit,
 
 ) {
-
-
-
     var isPaletteVisible by remember { mutableStateOf(false) }
-
-    var selectedColor by remember {
-        mutableStateOf(
-            Color(
-                note.color.toIntOrNull() ?: Color.Yellow.toArgb()
-            )
-        )
-    }
+    var selectedColor by remember { mutableStateOf(Color(note.color.toIntOrNull() ?: Color.Yellow.toArgb())) }
     val controller = rememberColorPickerController()
-
-
 
     Box(
         modifier = Modifier
@@ -207,8 +198,6 @@ fun NoteItem(
             .clickable(onClick = onClick)
             .background(MaterialTheme.colorScheme.surfaceContainerHigh)
             .padding(16.dp)
-
-
     ) {
         Column(
             modifier = Modifier
@@ -250,7 +239,6 @@ fun NoteItem(
                     Icon(Icons.Default.DeleteOutline, contentDescription = "Remove Note")
                 }
             }
-
             Spacer(modifier = Modifier.height(8.dp))
             Text(
                 text = note.selectedText,

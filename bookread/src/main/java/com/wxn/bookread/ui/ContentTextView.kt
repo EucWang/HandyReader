@@ -123,6 +123,7 @@ class ContentTextView(context: Context, attrs: AttributeSet?) : View(context, at
 
     fun setContent(textPage: TextPage) {
         this.textPage = textPage
+        upView?.invoke(textPage)
         contentDescription = textPage.text
         Coroutines.mainScope().launch {
             textPaintColor = ChapterProvider.readerPreferencesUtil?.readerPreferencesFlow?.firstOrNull()?.textColor ?: Color.BLACK

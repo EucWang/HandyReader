@@ -108,6 +108,8 @@ fun ReaderView(
 
     val clickedLinkContent by viewModel.clickedLinkContent.collectAsStateWithLifecycle()
 
+    val isBookmarked by viewModel.isBookmarked.collectAsStateWithLifecycle()
+
 
     Box(
         modifier = Modifier
@@ -144,25 +146,21 @@ fun ReaderView(
             exit = slideOutVertically(targetOffsetY = { -it })
         ) {
             TopToolbar(
-                isBookmarked = false, // isBookmarked,
+                isBookmarked = isBookmarked,
                 navController = navController,
                 book = book,
                 bookTitle = book?.title,
-                currentChapter = curChapterName, //currentChapter,
+                currentChapter = curChapterName,
                 onChaptersClick = { viewModel.chaptersDrawerOpen() },
                 onNotesDrawerToggle = { viewModel.notesDrawerOpen() },
                 onBookmarkDrawerToggle = { viewModel.bookmarksDrawerOpen() },
                 onHighlightsDrawerToggle = { viewModel.highlightsDrawerOpen() },
                 bookmark = {
-//                    currentLocator?.let { locator ->
-//                        val existingBookmark =
-//                            bookmarks.find { it.locator == locator.toJSON().toString() }
-//                        if (existingBookmark != null) {
-//                            viewModel.deleteBookmark(existingBookmark)
-//                        } else {
-                            viewModel.addBookmark()
-//                        }
-//                    }
+                    if (isBookmarked) {
+                        viewModel.deleteBookmark()
+                    } else {
+                        viewModel.addBookmark()
+                    }
                 },
                 textToSpeech = {
 //                    viewModel.toggleTts(navigatorFragment, context)
@@ -270,9 +268,8 @@ fun ReaderView(
             onNoteClick = { note ->
                 // Handle note click, e.g., navigate to the note's location in the book
                 viewModel.viewModelScope.launch {
-//                    Locator.fromJSON(JSONObject(note.locator))?.let { navigatorFragment?.go(it) }
-                    //TODO 跳转到对应位置
                     viewModel.notesDrawerOpen(false)
+                    viewModel.navigateTo(note.locatorInfo)
                 }
             },
             onUpdateNote = { updatedNote ->
@@ -291,9 +288,8 @@ fun ReaderView(
             bookmarks = bookmarks,
             onBookmarkClick = { bookmark ->
                 viewModel.viewModelScope.launch {
-//                    Locator.fromJSON(JSONObject(bookmark.locator))
-//                        ?.let { navigatorFragment?.go(it) }
                     viewModel.bookmarksDrawerOpen(false)
+                    viewModel.navigateTo(bookmark.locatorInfo)
                 }
             },
             onRemoveBookmark = { bookmark ->
@@ -304,12 +300,11 @@ fun ReaderView(
         AnnotationsDrawer(
             navController = navController,
             appPreferences = appPreferences,
-//            navigator = navigatorFragment,
             annotations = annotations,
             onRemoveAnnotation = viewModel::deleteAnnotation,
             onUpdateAnnotation = viewModel::updateAnnotation,
-            onClickAnnotation = {
-                //TODO 跳转到注释位置
+            onClickAnnotation = { annotation ->
+                viewModel.navigateTo(annotation.locatorInfo)
             },
             isOpen = isHighlightsDrawerOpen,
             onClose = { viewModel.highlightsDrawerOpen(false) }
