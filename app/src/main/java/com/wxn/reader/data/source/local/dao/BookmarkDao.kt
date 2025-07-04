@@ -14,7 +14,7 @@ interface BookmarkDao {
     fun getAllBookmarks(): Flow<List<BookmarkEntity>>
 
     @Insert
-    suspend fun insert(bookmark: BookmarkEntity)
+    suspend fun insert(bookmark: BookmarkEntity) : Long
 
     @Update
     suspend fun update(bookmark: BookmarkEntity)

@@ -6,7 +6,7 @@ import com.wxn.reader.data.dto.FileType
 import com.wxn.reader.data.dto.ReadingStatus
 import com.wxn.reader.data.model.SortOption
 import com.wxn.reader.domain.model.BookAnnotation
-import com.wxn.reader.domain.model.Bookmark
+import com.wxn.base.bean.Bookmark
 import com.wxn.reader.domain.model.Note
 import com.wxn.reader.domain.model.ReadingActive
 import kotlinx.coroutines.flow.Flow
@@ -63,7 +63,7 @@ interface BooksRepository {
     // Bookmarks
     suspend fun getAllBookmarks(): Flow<List<Bookmark>>
     suspend fun getBookmarksForBook(bookId: Long): Flow<List<Bookmark>>
-    suspend fun addBookmark(bookmark: Bookmark)
+    suspend fun addBookmark(bookmark: Bookmark) : Long
     suspend fun updateBookmark(bookmark: Bookmark)
     suspend fun deleteBookmark(bookmark: Bookmark)
 

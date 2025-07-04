@@ -1,7 +1,7 @@
 package com.wxn.reader.data.mapper.bookmark
 
 import com.wxn.reader.data.dto.BookmarkEntity
-import com.wxn.reader.domain.model.Bookmark
+import com.wxn.base.bean.Bookmark
 
 interface BookmarkMapper {
 

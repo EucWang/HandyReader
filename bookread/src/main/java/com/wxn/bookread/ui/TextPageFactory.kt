@@ -194,5 +194,4 @@ class TextPageFactory(dataSource: IDataSource, val provider: PageViewDataProvide
         }
         return Pair(effectedTextTags, textCssInfo)
     }
-
 }

@@ -20,7 +20,7 @@ import com.wxn.reader.data.source.local.dao.BookmarkDao
 import com.wxn.reader.data.source.local.dao.NoteDao
 import com.wxn.reader.data.source.local.dao.ReadingActivityDao
 import com.wxn.reader.domain.model.BookAnnotation
-import com.wxn.reader.domain.model.Bookmark
+import com.wxn.base.bean.Bookmark
 import com.wxn.reader.domain.model.Note
 import com.wxn.reader.domain.model.ReadingActive
 import com.wxn.reader.domain.repository.BooksRepository
@@ -240,8 +240,8 @@ class BooksRepositoryImpl @Inject constructor(
         }
     }
 
-    override suspend fun addBookmark(bookmark: Bookmark) {
-        bookmarkDao.insert(bookmarkMapper.toBookmarkEntity(bookmark))
+    override suspend fun addBookmark(bookmark: Bookmark) : Long {
+        return bookmarkDao.insert(bookmarkMapper.toBookmarkEntity(bookmark))
     }
 
     override suspend fun updateBookmark(bookmark: Bookmark) {

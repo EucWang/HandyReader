@@ -39,6 +39,7 @@ import com.wxn.reader.domain.repository.ChaptersRepository
 import com.wxn.reader.domain.repository.PermissionRepository
 import com.wxn.reader.domain.repository.ShelfRepository
 import com.wxn.reader.domain.use_case.annotations.GetAnnotationsUseCase
+import com.wxn.reader.domain.use_case.bookmarks.GetBookmarksForBookUseCase
 import com.wxn.reader.domain.use_case.books.UpdateBookUseCase
 import com.wxn.reader.domain.use_case.chapters.GetChapterByIdUserCase
 import com.wxn.reader.domain.use_case.chapters.GetChapterCountByBookIdUserCase
@@ -201,6 +202,7 @@ object AppModule {
         getChapterCountByBookIdUserCase: GetChapterCountByBookIdUserCase,
         getAnnotationsUseCase: GetAnnotationsUseCase,
         getNotesForBookUseCase: GetNotesForBookUseCase,
+        getBookmarksForBookUseCase : GetBookmarksForBookUseCase,
         updateChapterWordCountUserCase: UpdateChapterWordCountUserCase,
         updateBookUseCase: UpdateBookUseCase,
         appPreferencesUtil: AppPreferencesUtil,
@@ -212,6 +214,7 @@ object AppModule {
             getChapterCountByBookIdUserCase,
             getAnnotationsUseCase,
             getNotesForBookUseCase,
+            getBookmarksForBookUseCase,
             updateChapterWordCountUserCase,
             updateBookUseCase,
             appPreferencesUtil,

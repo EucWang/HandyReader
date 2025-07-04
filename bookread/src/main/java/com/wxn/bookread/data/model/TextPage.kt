@@ -41,7 +41,9 @@ data class TextPage(
     /***
      * 高度
      */
-    var height: Float = 0f
+    var height: Float = 0f,
+
+    var bookmarkId: Long = -1,
 ) {
 
 

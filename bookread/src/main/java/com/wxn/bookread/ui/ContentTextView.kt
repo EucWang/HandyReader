@@ -5,7 +5,7 @@ import android.graphics.Bitmap
 import android.graphics.Canvas
 import android.graphics.Color
 import android.graphics.Paint
-import android.graphics.Point
+import android.graphics.Path
 import android.graphics.RectF
 import android.graphics.Typeface
 import android.os.Build
@@ -189,6 +189,8 @@ class ContentTextView(context: Context, attrs: AttributeSet?) : View(context, at
         val chapterIndex = textPage.chapterIndex        //章节索引
         val noteIds = mutableSetOf<String>()
 
+        tryDrawBookmark(canvas)
+
         textPage.textLines.forEachIndexed { index, textLine ->
             val (marginTop, marginBottom) = getLineMargin(index, textLine, textPage)
 
@@ -241,6 +243,29 @@ class ContentTextView(context: Context, attrs: AttributeSet?) : View(context, at
                     drawLine(canvas, textLine, tags, textCssInfo, relativeOffset)
                 }
             }
+        }
+    }
+
+    /***
+     * try 都让我 bookmark
+     */
+    private fun tryDrawBookmark(canvas: Canvas) {
+        if (textPage.bookmarkId >= 0) {
+            val dp21px = DpExt.dp2px(context, 21f)
+            val left = ChapterProvider.viewWidth - dp21px
+            val top = 0f
+            canvas.drawPath(Path().apply {
+                moveTo(left, top)
+                lineTo(left + dp21px, top + 0f)
+                lineTo(left + dp21px, top + dp21px * 2f)
+                lineTo(left + dp21px * 0.5f, top + dp21px * 1.5f)
+                lineTo(left + 0f, top + dp21px * 2f)
+                lineTo(left + 0f, top + 0f)
+            },
+                Paint().apply{
+                    style = Paint.Style.FILL
+                    color = "#FF575757".toColorInt()
+                })
         }
     }
 

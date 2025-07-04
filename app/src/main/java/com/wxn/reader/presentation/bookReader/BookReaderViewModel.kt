@@ -11,7 +11,7 @@ import androidx.lifecycle.viewModelScope
 import com.wxn.reader.data.model.AppPreferences
 import com.wxn.base.bean.Book
 import com.wxn.reader.domain.model.BookAnnotation
-import com.wxn.reader.domain.model.Bookmark
+import com.wxn.base.bean.Bookmark
 import com.wxn.reader.domain.model.Note
 import com.wxn.bookread.data.model.preference.ReaderPreferences
 import com.wxn.reader.data.dto.ReadingStatus

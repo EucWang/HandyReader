@@ -26,7 +26,7 @@ import com.wxn.reader.data.model.AppPreferences
 import com.wxn.reader.data.source.local.AppPreferencesUtil
 import com.wxn.reader.domain.model.AnnotationType
 import com.wxn.reader.domain.model.BookAnnotation
-import com.wxn.reader.domain.model.Bookmark
+import com.wxn.base.bean.Bookmark
 import com.wxn.reader.domain.model.LinkedContent
 import com.wxn.reader.domain.model.Note
 import com.wxn.reader.domain.model.ReadingActive
@@ -907,6 +907,25 @@ class MainReadViewModel @Inject constructor(
             currentBookId.value?.let { loadBookmarks(it) }
         }
     }
+
+    fun addBookmark() {
+        val bookid = _currentBookId.value ?: return
+        pageController.getCurrentPageLocator()?.let { locator ->
+            viewModelScope.launch {
+                val currentTime = System.currentTimeMillis()
+                val newBookmark = Bookmark(
+                    locator = locator.toJsonString(),
+                    chapterIndex = locator.chapterIndex,
+                    bookId = bookid,
+                    dateAndTime = currentTime,
+                    color = "#FF0000FF"
+                )
+                addBookmarksUseCase(newBookmark)
+                currentBookId.value?.let { loadBookmarks(it) }
+            }
+        }
+    }
+
 
     /***
      * 删除注释

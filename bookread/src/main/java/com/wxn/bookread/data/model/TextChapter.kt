@@ -1,6 +1,5 @@
 package com.wxn.bookread.data.model
 
-import com.wxn.base.bean.CssInfo
 import com.wxn.base.bean.ReaderText
 import com.wxn.base.bean.TextCssInfo
 import com.wxn.base.bean.TextTag
@@ -20,8 +19,8 @@ data class TextChapter(
     var annotations: Map<Int, List<TextTag>> = emptyMap<Int, List<TextTag>>(),    //每个自然段包含的文本标记
     var textCssInfos: Map<Int, TextCssInfo> = emptyMap<Int, TextCssInfo>(),       //每个自然段包含的css标记
     var readerTexts: List<ReaderText> = emptyList<ReaderText>(),                  //按自然段分布的文本内容，
-    var wordCount: Long = 0L,       //字数
-    var picCount: Long = 0L,       //图片数
+    var wordCount: Long = 0L,                                                       //字数
+    var picCount: Long = 0L,                                                        //图片数
     var chapterProgress: Float = 0f,
     var totalWordCount: Long = 0L,
 ) {

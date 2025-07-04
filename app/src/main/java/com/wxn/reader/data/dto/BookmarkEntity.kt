@@ -19,6 +19,7 @@ data class BookmarkEntity (
     @PrimaryKey(autoGenerate = true)
     val id: Long = 0,
     val bookId: Long,
+    val chapterIndex: Int,
     val locator: String,
     val dateAndTime: Long,
     val color: String? = null,

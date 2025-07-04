@@ -23,9 +23,11 @@ import com.wxn.bookread.ui.SelectTextCallback
 import com.wxn.bookread.ui.TextPageFactory
 import com.wxn.reader.data.source.local.AppPreferencesUtil
 import com.wxn.reader.domain.model.BookAnnotation
+import com.wxn.base.bean.Bookmark
 import com.wxn.reader.domain.model.Note
 import com.wxn.reader.domain.model.toTextTags
 import com.wxn.reader.domain.use_case.annotations.GetAnnotationsUseCase
+import com.wxn.reader.domain.use_case.bookmarks.GetBookmarksForBookUseCase
 import com.wxn.reader.domain.use_case.books.UpdateBookUseCase
 import com.wxn.reader.domain.use_case.chapters.BookHelper
 import com.wxn.reader.domain.use_case.chapters.GetChapterByIdUserCase
@@ -46,8 +48,10 @@ open class PageViewController @Inject constructor(
     val context: Context,
     val getChapterByIdUserCase: GetChapterByIdUserCase,
     val getChapterCountByBookIdUserCase: GetChapterCountByBookIdUserCase,
+
     val getAnnotationsUseCase: GetAnnotationsUseCase,
     val getNotesForBookUseCase: GetNotesForBookUseCase,
+    val getBookmarksForBookUseCase: GetBookmarksForBookUseCase,
 
     val updateChapterWordCountUserCase: UpdateChapterWordCountUserCase,
     val updateBookUseCase: UpdateBookUseCase,
@@ -61,6 +65,7 @@ open class PageViewController @Inject constructor(
     override var book: Book? = null
     var userAnnotations : ArrayList<BookAnnotation>? = null
     var userNotes : ArrayList<Note>? = null
+    var userBookmakrs: ArrayList<Bookmark>? = null
 
     var inBookshelf = false
     var durPageIndex = 0
@@ -224,13 +229,20 @@ open class PageViewController @Inject constructor(
             return
         }
 
-
         userNotes?.clear()
         userNotes = arrayListOf()
         val notes = getNotesForBookUseCase(book.id).firstOrNull()
         if (!notes.isNullOrEmpty()) {
             userNotes?.addAll(notes)
         }
+
+        userBookmakrs?.clear()
+        userBookmakrs = arrayListOf()
+        val bookmarks = getBookmarksForBookUseCase(book.id).firstOrNull()
+        if (!bookmarks.isNullOrEmpty()) {
+            userBookmakrs?.addAll(bookmarks)
+        }
+        Logger.d("PageViewController::resetBook:[${book.id}],userBokmarks[${userBookmakrs?.size}]")
 
         this.chapterSize = count
         durChapterIndex = book.scrollIndex
@@ -422,6 +434,53 @@ open class PageViewController @Inject constructor(
         callBack?.upContent(resetPageOffset = false)
     }
 
+    private fun getPageBookmark(textPage: TextPage, chapter: TextChapter, chapterBookmarks: List<Bookmark>?):Bookmark? {
+        if (chapterBookmarks.isNullOrEmpty()) {
+            Logger.d("TextPageFactory::getPageBookmark:: current chapter[${chapter.position}] bookmarks is empty.")
+            return null
+        } else {
+            Logger.d("TextPageFactory::getPageBookmark:: current chapter[${chapter.position}] bookmarks.size=${chapterBookmarks.size}.")
+        }
+        var pageStartParagraphIndex = 0
+        var pageStartParagraphTextOffset = 0
+        var pageEndParagraphIndex  = 0
+        var pageEndParagraphTextOffset = 0
+
+        val firstLine = textPage.textLines.firstOrNull()
+        val lastLine = textPage.textLines.lastOrNull()
+
+        pageStartParagraphIndex = firstLine?.paragraphIndex ?: 0
+        pageStartParagraphTextOffset = firstLine?.charStartOffset ?: 0
+        pageEndParagraphIndex = lastLine?.paragraphIndex ?: 0
+        pageEndParagraphTextOffset = lastLine?.charEndOffset ?: 0
+        Logger.d("TextPageFactory::getPageBookmark::pageStartParagraphIndex=${pageStartParagraphIndex},pageEndParagraphIndex=${pageEndParagraphIndex}," +
+                "pageStartParagraphTextOffset=$pageStartParagraphTextOffset,pageEndParagraphTextOffset=$pageEndParagraphTextOffset")
+
+        var targetMark : Bookmark? = null
+        for(mark in chapterBookmarks) {
+            val locator = mark.locatorInfo ?: continue
+            val paragraphIndex = locator.startParagraphIndex
+            val textOffset = locator.startTextOffset
+            Logger.d("TextPageFactory::getPageBookmark::locator=${locator}")
+
+            if (paragraphIndex < pageStartParagraphIndex || paragraphIndex > pageEndParagraphIndex) {
+                continue
+            }
+
+            if (paragraphIndex == pageStartParagraphIndex && textOffset >= pageStartParagraphTextOffset) {
+                targetMark = mark
+                break
+            } else if (paragraphIndex == pageEndParagraphIndex && textOffset <= pageEndParagraphTextOffset) {
+                targetMark = mark
+                break
+            } else if (paragraphIndex > pageStartParagraphIndex && paragraphIndex < pageEndParagraphIndex) {
+                targetMark = mark
+                break
+            }
+        }
+        return targetMark
+    }
+
     private suspend fun loadContent(chapterIndex: Int, upContent: Boolean = true, resetPageOffset: Boolean) {
 //        Logger.i("PageViewController::loadContent:index=$index,upContent=$upContent,resetPageOffset=$resetPageOffset,bookid=${book?.id},bookname=${book?.title}")
         if (chapterIndex < 0) return
@@ -440,7 +499,7 @@ open class PageViewController @Inject constructor(
             return
         }
         BookHelper.loadChapterContent(context, curBook, chapter, textParser).let { contents ->
-            Logger.i("PageViewController::loadContent:index=$chapterIndex, contents.size=${contents.size}")
+            Logger.i("PageViewController::loadContent:index=$chapterIndex,chapter.index=${chapter.chapterIndex} contents.size=${contents.size}")
 
             var tags = hashMapOf<Int, List<TextTag>>()  //章节全部标签信息
             contents.forEachIndexed { index, content ->
@@ -479,6 +538,12 @@ open class PageViewController @Inject constructor(
                 }
             }
 
+            //遍历当前章节的书签
+            val chapterBookmarks = userBookmakrs?.filter {
+                it.chapterIndex == chapterIndex
+            }
+            Logger.d("PageViewController::loadContent[$chapterIndex],chapterBookmarks[${chapterBookmarks?.size}]")
+
             val cssInfos = BookHelper.loadChpaterCsses(context, curBook, tags, textParser)      //章节全部的css信息
 
             val contents = BookHelper.disposeContent(appPreferencesUtil, chapter, contents, cssInfos)
@@ -499,6 +564,10 @@ open class PageViewController @Inject constructor(
             textChapter?.wordCount = wordCount
             textChapter?.totalWordCount = curBook.wordCount
             textChapter?.chapterProgress = chapter.chapterProgress
+
+            textChapter?.pages?.forEach { page ->
+                page.bookmarkId = getPageBookmark(page, textChapter, chapterBookmarks)?.id ?: -1
+            }
 
             var needOnPageChange = (targetProgress < 0.0)
 
@@ -646,6 +715,27 @@ open class PageViewController @Inject constructor(
 
     fun getSelectedText(): String {
         return callBack?.getSelectedText().orEmpty()
+    }
+
+    /****
+     * 获取当前界面上，第一行的文字的Locator
+     * 如果是图片，一样处理
+     */
+    fun getCurrentPageLocator(): Locator? {
+        val chapterIndex = durChapterIndex
+        val curChapter = textChapter(0) ?: return null
+        val pageIndex = durPageIndex
+        val curPage = curChapter.pages.getOrNull(pageIndex) ?: return null
+        val curLine = curPage.textLines.firstOrNull()
+        return Locator(
+            id = "",
+            chapterIndex = chapterIndex,
+            startParagraphIndex = curLine?.paragraphIndex ?: 0,
+            startTextOffset = curLine?.charStartOffset ?: 0,
+            endParagraphIndex = curLine?.paragraphIndex ?: 0,
+            endTextOffset = curLine?.charEndOffset ?: 0,
+            text = curLine?.text ?: ""
+        )
     }
 
     fun getSelectedLocator(): Locator? {

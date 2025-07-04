@@ -1,7 +1,7 @@
 package com.wxn.reader.data.mapper.bookmark
 
 import com.wxn.reader.data.dto.BookmarkEntity
-import com.wxn.reader.domain.model.Bookmark
+import com.wxn.base.bean.Bookmark
 import javax.inject.Inject
 
 class BookmarkMapperImpl @Inject constructor() : BookmarkMapper {
@@ -9,6 +9,7 @@ class BookmarkMapperImpl @Inject constructor() : BookmarkMapper {
         return BookmarkEntity(
             id = bookmark.id,
             bookId = bookmark.bookId,
+            chapterIndex = bookmark.chapterIndex,
             locator = bookmark.locator,
             dateAndTime = bookmark.dateAndTime,
             color = bookmark.color
@@ -19,6 +20,7 @@ class BookmarkMapperImpl @Inject constructor() : BookmarkMapper {
         return Bookmark(
             id = bookmarkEntity.id,
             bookId = bookmarkEntity.bookId,
+            chapterIndex = bookmarkEntity.chapterIndex,
             locator = bookmarkEntity.locator,
             dateAndTime = bookmarkEntity.dateAndTime,
             color = bookmarkEntity.color

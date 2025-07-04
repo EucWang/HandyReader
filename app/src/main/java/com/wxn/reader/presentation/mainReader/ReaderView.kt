@@ -160,7 +160,7 @@ fun ReaderView(
 //                        if (existingBookmark != null) {
 //                            viewModel.deleteBookmark(existingBookmark)
 //                        } else {
-//                            viewModel.addBookmark(locator)
+                            viewModel.addBookmark()
 //                        }
 //                    }
                 },
@@ -291,7 +291,6 @@ fun ReaderView(
             bookmarks = bookmarks,
             onBookmarkClick = { bookmark ->
                 viewModel.viewModelScope.launch {
-                    //TODO
 //                    Locator.fromJSON(JSONObject(bookmark.locator))
 //                        ?.let { navigatorFragment?.go(it) }
                     viewModel.bookmarksDrawerOpen(false)
