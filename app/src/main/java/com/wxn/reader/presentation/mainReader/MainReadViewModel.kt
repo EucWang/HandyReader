@@ -67,6 +67,7 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import java.util.Calendar
 import javax.inject.Inject
+import com.wxn.reader.data.model.AppLanguage
 
 @HiltViewModel
 @Stable
@@ -145,10 +146,6 @@ class MainReadViewModel @Inject constructor(
     private val _isHighlightsDrawerOpen = MutableStateFlow<Boolean>(false)
     val isHighlightsDrawerOpen: StateFlow<Boolean> = _isHighlightsDrawerOpen.asStateFlow()
 
-    //tts
-    private val _isTtsOn = MutableStateFlow<Boolean>(false)
-    val isTtsOn: StateFlow<Boolean> = _isTtsOn.asStateFlow()
-
     private val _isShowTextToolbar = MutableStateFlow<Boolean>(false)
     val showTextToolbar: StateFlow<Boolean> = _isShowTextToolbar.asStateFlow()
 
@@ -224,6 +221,21 @@ class MainReadViewModel @Inject constructor(
 
     private val _curChapterPageIndex = MutableStateFlow<Int>(0)
     val curChapterPageIndex : StateFlow<Int> = _curChapterPageIndex.asStateFlow()
+
+    //tts
+    private val _isTtsOn = MutableStateFlow(false)
+    val isTtsOn: StateFlow<Boolean> = _isTtsOn.asStateFlow()
+
+    private val _isTtsPlaying = MutableStateFlow(false)
+    val isTtsPlaying: StateFlow<Boolean> = _isTtsPlaying.asStateFlow()
+    private val _ttsSpeed = MutableStateFlow(1.0)
+    val ttsSpeed: StateFlow<Double> = _ttsSpeed.asStateFlow()
+
+    private val _ttsPitch = MutableStateFlow(1.0)
+    val ttsPitch: StateFlow<Double> = _ttsPitch.asStateFlow()
+
+    private val _ttsLanguage = MutableStateFlow(AppLanguage.fromCode("en"))
+    val ttsLanguage: StateFlow<AppLanguage> = _ttsLanguage.asStateFlow()
 
     private suspend fun fetchBook(bookId: Long): Boolean {
         try {
@@ -1052,6 +1064,75 @@ class MainReadViewModel @Inject constructor(
             pageController.changeChapter(chapterIndex, progress)
         } else {
             pageController.changeChapter(chapterIndex)
+        }
+    }
+
+    fun setTtsPlaying(isPlaying: Boolean) {
+        _isTtsPlaying.value = isPlaying
+    }
+
+    fun toggleTts(
+//        navigatorFragment: EpubNavigatorFragment?,
+//        context: Context,
+    ) {
+        viewModelScope.launch {
+//            val navigator = _ttsNavigator.value
+            val isTtsOn = _isTtsOn.value
+
+            if (isTtsOn) {
+//                navigator?.pause()
+                _isTtsOn.value = false
+                _isTtsPlaying.value = false
+            } else {
+//                initializeTtsNavigator(navigatorFragment, context)
+//                _ttsNavigator.collectLatest { newNavigator ->
+//                    if (newNavigator != null) {
+//                        newNavigator.play()
+//                        _isTtsOn.value = true
+//                        _isTtsPlaying.value = true
+//                    }
+//                }
+            }
+        }
+    }
+
+    fun setTtsSpeed(speed: Double) {
+        _ttsSpeed.value = speed
+        updateTtsPreferences()
+    }
+
+    fun setTtsPitch(pitch: Double) {
+        _ttsPitch.value = pitch
+        updateTtsPreferences()
+    }
+
+
+    fun setTtsLanguage(language: AppLanguage) {
+        _ttsLanguage.value = language
+        updateTtsPreferences()
+    }
+
+    private fun updateTtsPreferences() {
+//        ttsNavigator.value?.pause()
+//        ttsNavigator.value?.submitPreferences(
+//            AndroidTtsPreferences(
+//                speed = _ttsSpeed.value,
+//                pitch = _ttsPitch.value,
+//                language = _ttsLanguage.value
+//            )
+//        )
+//        ttsNavigator.value?.play()
+    }
+
+    fun skipToNextUtterance() {
+        viewModelScope.launch {
+//            ttsNavigator.value?.skipToNextUtterance()
+        }
+    }
+
+    fun skipToPreviousUtterance() {
+        viewModelScope.launch {
+//            ttsNavigator.value?.skipToPreviousUtterance()
         }
     }
 }

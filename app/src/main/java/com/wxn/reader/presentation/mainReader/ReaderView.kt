@@ -26,31 +26,26 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.IntOffset
-import androidx.compose.ui.unit.IntRect
-import androidx.compose.ui.unit.IntSize
-import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.compose.ui.window.Popup
-import androidx.compose.ui.window.PopupPositionProvider
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewModelScope
 import com.wxn.base.ext.toAndroidColor
 import com.wxn.base.ext.toCompatibleArgb
-import com.wxn.base.util.Logger
 import com.wxn.bookread.data.model.preference.ReaderPreferences
 import com.wxn.bookread.ui.PageView
 import com.wxn.bookread.ui.TextPageFactory
 import com.wxn.reader.navigation.LocalNavController
 import com.wxn.reader.navigation.Screens
 import com.wxn.reader.presentation.bookReader.components.TextToolbar
+import com.wxn.reader.presentation.bookReader.components.TtsPlayer
 import com.wxn.reader.presentation.bookReader.components.dialogs.NoteContent
 import com.wxn.reader.presentation.bookReader.components.dialogs.NoteDialog
 import com.wxn.reader.presentation.bookReader.components.drawers.AnnotationsDrawer
@@ -65,7 +60,6 @@ import com.wxn.reader.presentation.bookReader.components.toolbars.BottomToolbar
 import com.wxn.reader.presentation.bookReader.components.toolbars.TopToolbar
 import com.wxn.reader.util.LogCompositions
 import com.wxn.reader.util.TopPopupPositionProvider
-import io.github.jan.supabase.realtime.Column
 import kotlinx.coroutines.launch
 
 
@@ -85,7 +79,6 @@ fun ReaderView(
     val isNotesDrawerOpen by viewModel.isNotesDrawerOpen.collectAsStateWithLifecycle()
     val isBookmarksDrawerOpen by viewModel.isBookmarksDrawerOpen.collectAsStateWithLifecycle()
     val isHighlightsDrawerOpen by viewModel.isHighlightsDrawerOpen.collectAsStateWithLifecycle()
-    val isTtsOn by viewModel.isTtsOn.collectAsStateWithLifecycle()
 
     val showTextToolbar by viewModel.showTextToolbar.collectAsStateWithLifecycle()
     val textToolbarRect by viewModel.textToolbarRect.collectAsStateWithLifecycle()
@@ -110,6 +103,11 @@ fun ReaderView(
 
     val isBookmarked by viewModel.isBookmarked.collectAsStateWithLifecycle()
 
+    val isTtsOn by viewModel.isTtsOn.collectAsStateWithLifecycle()
+    val isTtsPlaying by viewModel.isTtsPlaying.collectAsStateWithLifecycle()
+    val ttsSpeed by viewModel.ttsSpeed.collectAsStateWithLifecycle()
+    val ttsPitch by viewModel.ttsPitch.collectAsStateWithLifecycle()
+    val ttsLanguage by viewModel.ttsLanguage.collectAsStateWithLifecycle()
 
     Box(
         modifier = Modifier
@@ -175,30 +173,30 @@ fun ReaderView(
             }
         }
 
-//        TtsPlayer(
-//            areToolbarsVisible = areToolbarsVisible,
-//            isTtsOn = isTtsOn,
-//            isTtsPlaying = isTtsPlaying,
-//            speed = ttsSpeed,
-//            pitch = ttsPitch,
-//            language = ttsLanguage,
-//            onPlay = {
+        TtsPlayer(
+            areToolbarsVisible = areToolbarsVisible,
+            isTtsOn = isTtsOn,
+            isTtsPlaying = isTtsPlaying,
+            speed = ttsSpeed,
+            pitch = ttsPitch,
+            language = ttsLanguage,
+            onPlay = {
 //                ttsNavigator?.play()
-//                viewModel.setTtsPlaying(true)
-//            },
-//            onPause = {
+                viewModel.setTtsPlaying(true)
+            },
+            onPause = {
 //                ttsNavigator?.pause()
-//                viewModel.setTtsPlaying(false)
-//            },
-//            onEnd = {
-//                viewModel.toggleTts(navigatorFragment, context)
-//            },
-//            onSpeedChange = { viewModel.setTtsSpeed(it.toDouble()) },
-//            onPitchChange = { viewModel.setTtsPitch(it.toDouble()) },
-//            onLanguageChange = { viewModel.setTtsLanguage(it) },
-//            onSkipToNextUtterance = { viewModel.skipToNextUtterance() },
-//            onSkipToPreviousUtterance = { viewModel.skipToPreviousUtterance() }
-//        )
+                viewModel.setTtsPlaying(false)
+            },
+            onEnd = {
+                viewModel.toggleTts()
+            },
+            onSpeedChange = { viewModel.setTtsSpeed(it.toDouble()) },
+            onPitchChange = { viewModel.setTtsPitch(it.toDouble()) },
+            onLanguageChange = { viewModel.setTtsLanguage(it) },
+            onSkipToNextUtterance = { viewModel.skipToNextUtterance() },
+            onSkipToPreviousUtterance = { viewModel.skipToPreviousUtterance() }
+        )
         // ActionModeLayout
         if (showTextToolbar || isHighlightsDrawerOpen || isChaptersDrawerOpen) {
             Box(
