@@ -25,7 +25,7 @@ sealed class Screens(val route: String) {
     data object StatisticsScreen: Screens("statistics_screen")
 //    data object OnlineBooksScreen: Screens("online_books_screen")
 
-
     data object PremiumScreen: Screens("premium_screen")
 
+    data object TtsSetScreen: Screens("tts_set_screen")
 }

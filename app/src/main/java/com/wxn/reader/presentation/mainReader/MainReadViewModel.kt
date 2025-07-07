@@ -68,6 +68,7 @@ import kotlinx.coroutines.launch
 import java.util.Calendar
 import javax.inject.Inject
 import com.wxn.reader.data.model.AppLanguage
+import com.wxn.reader.util.tts.TtsNavigator
 
 @HiltViewModel
 @Stable
@@ -237,6 +238,8 @@ class MainReadViewModel @Inject constructor(
     private val _ttsLanguage = MutableStateFlow(AppLanguage.fromCode("en"))
     val ttsLanguage: StateFlow<AppLanguage> = _ttsLanguage.asStateFlow()
 
+    private val ttsNavigator = TtsNavigator(context, 1.0f, 1.0f, _ttsLanguage.value)
+
     private suspend fun fetchBook(bookId: Long): Boolean {
         try {
             val theBook = getBookByIdUseCase(bookId)
@@ -350,12 +353,15 @@ class MainReadViewModel @Inject constructor(
         _book.value = null
         isReadingSessionActive = false
         lastLocatorChangeTime = 0L
+        ttsNavigator.onDestroy()
+
         super.onCleared()
         Logger.i("MainReadViewModel::onCleared")
     }
 
     override fun onCenterClick() {
         _showMenu.value = !_showMenu.value
+        ttsNavigator.play()
     }
 
     /***

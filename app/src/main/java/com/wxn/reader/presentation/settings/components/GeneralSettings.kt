@@ -20,6 +20,7 @@ import androidx.compose.material.icons.outlined.Delete
 import androidx.compose.material.icons.outlined.Folder
 import androidx.compose.material.icons.outlined.FolderCopy
 import androidx.compose.material.icons.outlined.PictureAsPdf
+import androidx.compose.material.icons.outlined.SmartToy
 import androidx.compose.material.icons.outlined.Translate
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
@@ -52,6 +53,7 @@ import androidx.navigation.NavHostController
 import com.wxn.reader.R
 import com.wxn.reader.data.model.AppLanguage
 import com.wxn.reader.navigation.LocalNavController
+import com.wxn.reader.navigation.Screens
 import com.wxn.reader.presentation.settings.SettingsViewModel
 
 
@@ -311,7 +313,14 @@ fun GeneralSettings(
 
             HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
 
-
+            ListItem(
+                headlineContent = { Text(stringResource(R.string.tts_set))},
+                leadingContent = { Icon(Icons.Outlined.SmartToy, contentDescription = "tts") },
+                trailingContent = {},
+                modifier = Modifier.clickable {
+                    navController.navigate(Screens.TtsSetScreen.route)
+                }
+            )
         }
     }
 

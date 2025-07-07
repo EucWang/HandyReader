@@ -17,6 +17,7 @@ import com.wxn.reader.presentation.settings.SettingsScreen
 import com.wxn.reader.presentation.settings.components.AboutAppScreen
 import com.wxn.reader.presentation.settings.components.DeletedBooksScreen
 import com.wxn.reader.presentation.settings.components.GeneralSettings
+import com.wxn.reader.presentation.settings.components.SpeakerScreen
 import com.wxn.reader.presentation.shelves.ShelvesScreen
 import com.wxn.reader.presentation.settings.components.ThemeScreen
 import com.wxn.reader.presentation.sharedComponents.PremiumScreen
@@ -114,6 +115,11 @@ fun SetupNavGraph(startDestination: String) {
             route = Screens.PremiumScreen.route,
         ) {
             PremiumScreen()
+        }
+        composable(
+            route = Screens.TtsSetScreen.route,
+        ) {
+            SpeakerScreen()
         }
         //composable(
         //    route = Screens.OnlineBooksScreen.route,

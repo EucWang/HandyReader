@@ -257,5 +257,6 @@
     <string name="is_load_chapter_info">It\'s currently parsing the book information. Please wait and try again.</string>
     <string name="progression_format">Progression: %1$s</string>
     <string name="date_format">Date: %1$s</string>
+    <string name="tts_set">TextToSpeech</string>
 
 </resources>

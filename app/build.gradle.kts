@@ -15,9 +15,8 @@ plugins {
     id("com.mikepenz.aboutlibraries.plugin")
 //    alias(libs.plugins.google.gms.google.services) //TODO
     alias(libs.plugins.google.firebase.crashlytics)
-
 //    id("com.chaquo.python")
-
+    id("kotlinx-serialization")
 }
 
 
@@ -222,6 +221,10 @@ dependencies {
 //    implementation("androidx.credentials:credentials-play-services-auth:1.5.0-rc01")
 //
 //    implementation("com.google.android.libraries.identity.googleid:googleid:1.1.1")
+
+    implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.8.0")
+    implementation("io.ktor:ktor-client-okhttp:3.0.0")
+    implementation("net.gotev:speech:1.1.2")
 
     implementation(project(":bookparser"))
     implementation(project(":bookread"))
