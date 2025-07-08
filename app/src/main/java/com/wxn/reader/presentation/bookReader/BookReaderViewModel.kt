@@ -15,7 +15,6 @@ import com.wxn.base.bean.Bookmark
 import com.wxn.reader.domain.model.Note
 import com.wxn.bookread.data.model.preference.ReaderPreferences
 import com.wxn.reader.data.dto.ReadingStatus
-import com.wxn.bookread.data.model.preference.toEpubPreferences
 import com.wxn.bookread.data.source.local.ReaderPreferencesUtil
 import com.wxn.reader.data.source.local.AppPreferencesUtil
 import com.wxn.reader.domain.model.ReadingActive

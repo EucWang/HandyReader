@@ -27,7 +27,6 @@ import com.wxn.reader.data.source.local.AppPreferencesUtil
 import com.wxn.reader.domain.model.AnnotationType
 import com.wxn.reader.domain.model.BookAnnotation
 import com.wxn.base.bean.Bookmark
-import com.wxn.bookread.data.source.local.TtsPreferencesUtil
 import com.wxn.reader.domain.model.LinkedContent
 import com.wxn.reader.domain.model.Note
 import com.wxn.reader.domain.model.ReadingActive
@@ -71,6 +70,7 @@ import javax.inject.Inject
 import com.wxn.reader.data.model.AppLanguage
 import com.wxn.reader.util.tts.TtsNavigator
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.collectLatest
 
 @HiltViewModel
 @Stable
@@ -274,7 +274,6 @@ class MainReadViewModel @Inject constructor(
 
     init {
         ChapterProvider.init(context)
-
 
         context.cacheDir
         context.applicationContext.filesDir
@@ -1027,30 +1026,47 @@ class MainReadViewModel @Inject constructor(
     fun resetFontPreferences() {
         viewModelScope.launch {
             readerPreferencesUtil.resetFontPreferences()
+            readerPreferencesUtil.readerPreferencesFlow.stateIn(viewModelScope).collect { preferences ->
+                _readerPreferences.value = preferences
+            }
         }
     }
 
     fun resetPagePreferences() {
         viewModelScope.launch {
             readerPreferencesUtil.resetPagePreferences()
+            readerPreferencesUtil.readerPreferencesFlow.stateIn(viewModelScope).collect { preferences ->
+                _readerPreferences.value = preferences
+            }
         }
     }
 
     fun resetUiPreferences() {
         viewModelScope.launch {
             readerPreferencesUtil.resetUiPreferences()
+            readerPreferencesUtil.readerPreferencesFlow.stateIn(viewModelScope).collect { preferences ->
+                _readerPreferences.value = preferences
+            }
         }
     }
 
     fun resetReaderPreferences() {
         viewModelScope.launch {
             readerPreferencesUtil.resetReaderPreferences()
+            readerPreferencesUtil.readerPreferencesFlow.stateIn(viewModelScope).collect { preferences ->
+                _readerPreferences.value = preferences
+            }
         }
     }
 
     fun updateReaderPreferences(newPreferences: ReaderPreferences) {
+        Logger.d("MainReadViewModel::updateReaderPreferences")
         viewModelScope.launch {
             readerPreferencesUtil.updatePreferences(newPreferences)
+            _readerPreferences.value = newPreferences
+            with(Dispatchers.Main) {
+                pageController.updateView()
+            }
         }
     }
 
@@ -1074,18 +1090,18 @@ class MainReadViewModel @Inject constructor(
         }
     }
 
-    fun setTtsPlaying(isPlaying: Boolean) {
-        _isTtsPlaying.value = isPlaying
-        Logger.i("MainReadViewModel::setTtsPlaying:isPlaying=$isPlaying")
-            if (isPlaying) {
-                ttsPlay()
-            } else {
-                ttsNavigator.stop()
-                pageController.stopReadPage()
-                _isTtsOn.value = false
-                _isTtsPlaying.value = false
-            }
-    }
+//    fun setTtsPlaying(isPlaying: Boolean) {
+//        _isTtsPlaying.value = isPlaying
+//        Logger.i("MainReadViewModel::setTtsPlaying:isPlaying=$isPlaying")
+//            if (isPlaying) {
+//                ttsPlay()
+//            } else {
+//                ttsNavigator.stop()
+//                pageController.stopReadPage()
+//                _isTtsOn.value = false
+//                _isTtsPlaying.value = false
+//            }
+//    }
 
     private fun ttsPlay() {
         Logger.i("MainReadViewModel::ttsPlay")
@@ -1111,30 +1127,30 @@ class MainReadViewModel @Inject constructor(
         }
     }
 
-    fun setTtsSpeed(speed: Double) {
-        _ttsSpeed.value = speed
-        ttsNavigator.setSpeed(speed.toFloat())
-    }
-
-    fun setTtsPitch(pitch: Double) {
-        _ttsPitch.value = pitch
-        ttsNavigator.setPitch(pitch.toFloat())
-    }
-
-    fun setTtsLanguage(language: AppLanguage) {
-        _ttsLanguage.value = language
-        ttsNavigator.setLanguage(language)
-    }
-
-    fun skipToNextUtterance() {
-        viewModelScope.launch {
-//            ttsNavigator.value?.skipToNextUtterance()
-        }
-    }
-
-    fun skipToPreviousUtterance() {
-        viewModelScope.launch {
-//            ttsNavigator.value?.skipToPreviousUtterance()
-        }
-    }
+//    fun setTtsSpeed(speed: Double) {
+//        _ttsSpeed.value = speed
+//        ttsNavigator.setSpeed(speed.toFloat())
+//    }
+//
+//    fun setTtsPitch(pitch: Double) {
+//        _ttsPitch.value = pitch
+//        ttsNavigator.setPitch(pitch.toFloat())
+//    }
+//
+//    fun setTtsLanguage(language: AppLanguage) {
+//        _ttsLanguage.value = language
+//        ttsNavigator.setLanguage(language)
+//    }
+//
+//    fun skipToNextUtterance() {
+//        viewModelScope.launch {
+////            ttsNavigator.value?.skipToNextUtterance()
+//        }
+//    }
+//
+//    fun skipToPreviousUtterance() {
+//        viewModelScope.launch {
+////            ttsNavigator.value?.skipToPreviousUtterance()
+//        }
+//    }
 }

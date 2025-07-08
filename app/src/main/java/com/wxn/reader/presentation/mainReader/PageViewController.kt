@@ -1066,6 +1066,15 @@ open class PageViewController @Inject constructor(
         }
     }
 
+    /***
+     * update view after modify preference
+     */
+    fun updateView() {
+        ChapterProvider.upStyle(context) {
+            callBack?.upContent()
+        }
+    }
+
     fun clear() {
         scope?.launchIO {
             book?.let {

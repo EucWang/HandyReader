@@ -11,7 +11,7 @@ val BASE_TITLE_FONT_SIZE : Float = 24.sp.toFloat()
 /****
  * 阅读设置
  */
-data class ReaderPreferences constructor(
+data class ReaderPreferences(
     //Font Settings
     val fontSize: Double,                       //字体大小   //取值 0.5 ～ 2.0 之间， 基础字体大小的系数， 基础大小16.sp
     val font: String = "",                      //字体路径
@@ -45,28 +45,3 @@ data class ReaderPreferences constructor(
     val publisherStyles: Boolean,                   //出版商样式
     val textNormalization: Boolean,                 //文字格式化
 )
-
-// Extension function to convert ReaderPreferences to EpubPreferences
-fun ReaderPreferences.toEpubPreferences(): EpubPreferences {
-
-    return EpubPreferences(
-        fontSize = this.fontSize,
-//        fontWeight = this.fontWeight,
-        letterSpacing = this.letterSpacing,
-        lineHeight = this.lineHeight,
-        pageMargins = this.pageHorizontalMargins,
-        paragraphIndent = this.paragraphIndent,
-        paragraphSpacing = this.paragraphSpacing,
-        wordSpacing = this.wordSpacing,
-        textAlign = this.textAlign,
-        //ui Settings
-        backgroundColor = this.backgroundColor,
-        textColor = this.textColor,
-        //Reader Settings
-        scroll = this.scroll,
-        readingProgression = this.readingProgression,
-        verticalText = this.verticalText,
-        publisherStyles = this.publisherStyles,
-        textNormalization = this.textNormalization,
-    )
-}

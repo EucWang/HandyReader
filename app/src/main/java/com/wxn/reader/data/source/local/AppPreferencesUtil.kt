@@ -7,6 +7,7 @@ import androidx.datastore.preferences.core.intPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.core.stringSetPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
+import com.wxn.base.util.Coroutines
 import com.wxn.reader.data.model.AppPreferences
 import com.wxn.reader.data.model.AppTheme
 import com.wxn.reader.data.dto.FileType
@@ -19,16 +20,16 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import javax.inject.Inject
 
-private val Context.dataStore by preferencesDataStore(name = "app_prefs")
+private val Context.appPreferencesDataStore by preferencesDataStore(name = "app_prefs")
 
 class AppPreferencesUtil @Inject constructor(
     context: Context
 ) {
-    private val dataStore = context.dataStore
-
+    private val dataStore = context.appPreferencesDataStore
 
     companion object {
         val IS_FIRST_LAUNCH = booleanPreferencesKey("is_first_launch")
@@ -51,8 +52,6 @@ class AppPreferencesUtil @Inject constructor(
         val READING_STATUS = stringSetPreferencesKey("reading_status")
         val FILE_TYPE = stringSetPreferencesKey("file_type")
         val IS_PREMIUM = booleanPreferencesKey("is_premium")
-
-
 
         // Default values
         val defaultPreferences = AppPreferences(
@@ -79,13 +78,12 @@ class AppPreferencesUtil @Inject constructor(
         )
     }
 
-
-
     init {
-        runBlocking {
+        Coroutines.scope().launch {
             initializeDefaultPreferences()
         }
     }
+
     private suspend fun initializeDefaultPreferences() {
         val preferences = dataStore.data.first()
         if (preferences[IS_FIRST_LAUNCH] == null) {

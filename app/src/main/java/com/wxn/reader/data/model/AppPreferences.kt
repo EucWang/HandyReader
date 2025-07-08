@@ -11,7 +11,6 @@ data class AppPreferences(
     val enablePdfSupport: Boolean,
     val language: String,
 
-
     //Ui settings
     val appTheme: AppTheme,
     val colorScheme: String,
@@ -24,16 +23,11 @@ data class AppPreferences(
     val showReadingDates: Boolean,
     val showFileTypeLabel: Boolean,
 
-
     val sortBy: SortOption,
     val sortOrder: SortOrder,
 
-
-
     val readingStatus: Set<ReadingStatus> = emptySet(),
     val fileTypes: Set<FileType> = emptySet(),
-
-
 
     // premium unlocked
     val isPremium: Boolean = true

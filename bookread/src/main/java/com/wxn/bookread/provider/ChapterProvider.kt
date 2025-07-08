@@ -262,7 +262,7 @@ object ChapterProvider {
     /**
      * 更新样式
      */
-    fun upStyle(context: Context) {
+    fun upStyle(context: Context, onFinish:(()->Unit)? = null) {
         //https://hyperos.mi.com/font 字体下载
         //https://hyperos.mi.com/font/download
         //https://hyperos.mi.com/font-download/MiSans.zip               // 简体中文
@@ -431,6 +431,7 @@ object ChapterProvider {
             //更新屏幕参数
             upVisibleSize(context)
             Logger.d("ChapterProvider::upStyle done")
+            onFinish?.invoke()
         }
     }
 

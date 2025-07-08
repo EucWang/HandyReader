@@ -12,15 +12,17 @@ import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
 import com.wxn.base.ext.toColor
 import com.wxn.base.ext.toCompatibleArgb
+import com.wxn.base.util.Coroutines
 import com.wxn.bookread.data.model.config.ConfigReadingProgression
 import com.wxn.bookread.data.model.config.toTextAlign
 import com.wxn.bookread.data.model.preference.ReaderPreferences
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.launch
 import javax.inject.Inject
 
-private val Context.readerPreferencesDataStore by preferencesDataStore(name = "reader_preferences")
-
+private val Context.readerPreferencesDataStore by preferencesDataStore(name = "reader_prefs")
 
 class ReaderPreferencesUtil @Inject constructor(
     val context: Context
@@ -61,7 +63,6 @@ class ReaderPreferencesUtil @Inject constructor(
         val PUBLISHER_STYLES = booleanPreferencesKey("publisher_styles")                    //出版商样式
         val TEXT_NORMALIZATION = booleanPreferencesKey("text_normalization")                //文字标准化
 
-
         // Default values
 //        @OptIn(ExperimentalReadiumApi::class)
         val defaultPreferences = ReaderPreferences(
@@ -92,6 +93,48 @@ class ReaderPreferencesUtil @Inject constructor(
         )
     }
 
+    private suspend fun initializeDefaultPreferences() {
+        val preferences = dataStore.data.firstOrNull()
+        if (preferences == null) {
+            dataStore.edit { pref ->
+                pref[FONT_SIZE] = defaultPreferences.fontSize.toDouble()
+                pref[LINE_HEIGHT] = defaultPreferences.lineHeight.toDouble()
+                pref[LETTER_SPACING] = defaultPreferences.letterSpacing.toDouble()
+                pref[WORD_SPACING] = defaultPreferences.wordSpacing.toDouble()
+
+                pref[PAGE_HORIZONTAL_MARGINS] = defaultPreferences.pageHorizontalMargins.toDouble()
+                pref[PAGE_VERTICAL_MARGINS] = defaultPreferences.pageVerticalMargins.toDouble()
+                pref[PARAGRAPH_INDENT] = defaultPreferences.paragraphIndent.toDouble()
+                pref[PARAGRAPH_SPACING] = defaultPreferences.paragraphSpacing.toDouble()
+                pref[TEXT_ALIGN] = defaultPreferences.textAlign.toString()
+
+                pref[BACKGROUND_COLOR] = defaultPreferences.backgroundColor
+                pref[TEXT_COLOR] = defaultPreferences.textColor
+
+                pref[COLOR_HISTORY] = serializeColorHistory(defaultPreferences.colorHistory)
+
+                pref[KEEP_SCREEN_ON] = defaultPreferences.keepScreenOn
+                pref[SCROLL] = defaultPreferences.scroll
+                pref[TAP_NAVIGATION] = defaultPreferences.tapNavigation
+                pref[READING_PROGRESSION] = defaultPreferences.readingProgression.name
+                pref[VERTICAL_TEXT] = defaultPreferences.verticalText
+                pref[PUBLISHER_STYLES] = defaultPreferences.publisherStyles
+                pref[TEXT_NORMALIZATION] = defaultPreferences.textNormalization
+
+                pref[FONT_FAMILY] = defaultPreferences.font
+                pref[FONT_BOLD] = defaultPreferences.fontBold
+                pref[TITLE_FONT_SIZE] = defaultPreferences.titleSize.toDouble()
+                pref[TITLE_TOP_SPACING] = defaultPreferences.titleTopSpacing.toDouble()
+                pref[TITLE_BOTTOM_SPACING] = defaultPreferences.titleBottomSpacing.toDouble()
+            }
+        }
+    }
+
+    init {
+        Coroutines.scope().launch {
+            initializeDefaultPreferences()
+        }
+    }
 
     val readerPreferencesFlow: Flow<ReaderPreferences> = dataStore.data.map { preferences ->
         ReaderPreferences(
