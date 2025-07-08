@@ -688,7 +688,6 @@ class PageView : FrameLayout, IDataSource, PageCallback {
 //        }
 //    }
 
-
     /***
      * 更新提示样式
      */

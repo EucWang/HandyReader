@@ -1006,35 +1006,41 @@ open class PageViewController @Inject constructor(
         }
     }
 
-    fun readPage(ttsNavigator: TtsNavigator) {
+    fun currentPage() : TextPage? = textChapter(0)?.page(durChapterPos())
+
+    fun stopReadPage() {
+        scope?.launchIO {
+            val chapter = textChapter(0) ?: return@launchIO
+            for(page in chapter.pages) {
+                val currentTextLines = page.textLines
+                if (currentTextLines.isNotEmpty()) {
+                    for (textLine in currentTextLines) {
+                        textLine.isReadAloud = false
+                    }
+                }
+            }
+            with(Dispatchers.Main) {
+                callBack?.upContent()
+            }
+        }
+    }
+
+    fun readPage(ttsNavigator: TtsNavigator, onFinish:()->Unit) {
         Logger.i("PageViewController::readPage::durChapterIndex=${durChapterIndex},durPageIndex=$durPageIndex")
         var status = 1
         scope?.launchIO {
             do {
-                var textLines = arrayListOf<TextLine>()
-                with(Dispatchers.Main) {
-                    val curChapter = textChapter(0)
-                    if (curChapter == null) {
-                        Logger.d("PageViewController::readPage::curChapter is null")
-                        return@launchIO
-                    }
-                    val pageIndex = durChapterPos()
-                    val curPage = curChapter.page(pageIndex)
-                    if (curPage == null) {
-                        Logger.d("PageViewController::readPage:curPage is null ")
-                        return@launchIO
-                    }
-                    textLines.clear()
-                    textLines.addAll(curPage.textLines)
-                    if (textLines.isEmpty()) {
-                        Logger.d("PageViewController::readPage::textLines is empty")
-                        return@launchIO
-                    }
-                }
-
+                var textLines : List<TextLine>? = currentPage()?.textLines
                 status = ttsNavigator.play(textLines) { targetLines, status ->
-                    for(line in targetLines) {
-                        line.isReadAloud = status
+                    val currentTextLines = currentPage()?.textLines ?: return@play
+                    if (currentTextLines.isNotEmpty()) {
+                        for (textLine in currentTextLines) {
+                            textLine.isReadAloud = false
+                            if (targetLines.contains(textLine)) {
+                                textLine.isReadAloud = status
+                                Logger.d("PageViewController::readPage::line[${textLine.text}]::set readAloud::status[$status]")
+                            }
+                        }
                     }
                     callBack?.upContent()
                 }
@@ -1056,6 +1062,7 @@ open class PageViewController @Inject constructor(
                     Logger.d("MainReadViewModel::ttsPlay::status=$status")
                 }
             } while(status == 1)
+            onFinish()
         }
     }
 

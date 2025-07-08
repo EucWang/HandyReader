@@ -177,11 +177,9 @@ fun ReaderView(
             pitch = ttsPitch,
             language = ttsLanguage,
             onPlay = {
-//                ttsNavigator?.play()
                 viewModel.setTtsPlaying(true)
             },
             onPause = {
-//                ttsNavigator?.pause()
                 viewModel.setTtsPlaying(false)
             },
             onEnd = {

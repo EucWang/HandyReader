@@ -190,7 +190,7 @@ class TtsNavigator(
     private var speed = 1.0f
     private var pitch = 1.0f
 
-    suspend fun play(textLines: List<TextLine>, onReadLine: (List<TextLine>, Boolean)->Unit) : Int {
+    suspend fun play(textLines: List<TextLine>?, onReadLine: (List<TextLine>, Boolean)->Unit) : Int {
         Logger.i("TtsNavigator::play")
         var status = 1
         try {
@@ -212,15 +212,17 @@ class TtsNavigator(
                 var ret  = 1
                 val textLineMap = hashMapOf<Int, ArrayList<TextLine>>()
                 val texts = arrayListOf<StringBuilder>()
-                for(textLine in textLines) {
-                    if (!textLine.isImage && !textLine.isLine && textLine.text.isNotEmpty()) {
-                        val paragraph = textLine.paragraphIndex
-                        if (textLineMap.get(paragraph) == null) {
-                            textLineMap.put(paragraph, arrayListOf(textLine))
-                            texts.add(StringBuilder(textLine.text))
-                        } else {
-                            textLineMap[paragraph]?.add(textLine)
-                            texts.lastOrNull()?.append(textLine.text)
+                if (!textLines.isNullOrEmpty()) {
+                    for(textLine in textLines) {
+                        if (!textLine.isImage && !textLine.isLine && textLine.text.isNotEmpty()) {
+                            val paragraph = textLine.paragraphIndex
+                            if (textLineMap.get(paragraph) == null) {
+                                textLineMap.put(paragraph, arrayListOf(textLine))
+                                texts.add(StringBuilder(textLine.text))
+                            } else {
+                                textLineMap[paragraph]?.add(textLine)
+                                texts.lastOrNull()?.append(textLine.text)
+                            }
                         }
                     }
                 }
@@ -234,7 +236,7 @@ class TtsNavigator(
                         onReadLine(lines, true)
                     }
                     ret = innerPlay(text.toString())
-                    Logger.d("TtsNavigator::play::innerPlay result[$ret],text[$text]")
+                    Logger.d("TtsNavigator::play::innerPlay result[$ret],text[$text], key=$key, index=$index, lines.size[${lines.size}]")
                     with(Dispatchers.Main) {
                         onReadLine(lines, false)
                     }
@@ -243,24 +245,6 @@ class TtsNavigator(
                         break
                     }
                 }
-
-//                for(textLine in textLines) {
-//                    if (!textLine.isImage && !textLine.isLine && textLine.text.isNotEmpty()) {
-//                        val text = textLine.text
-//                        with(Dispatchers.Main) {
-//                            onReadLine(textLine, true)
-//                        }
-//                        ret = innerPlay(text)
-//                        Logger.d("TtsNavigator::play::innerPlay result[$ret],text[$text], then delay 200ms")
-//                        with(Dispatchers.Main) {
-//                            onReadLine(textLine, false)
-//                        }
-//                        if (ret != 1) {
-//                            status = 0
-//                            break
-//                        }
-//                    }
-//                }
             }
         }catch(ex : SpeechRecognitionNotAvailable) {
             Logger.e("TtsNavigator::$ex")
@@ -341,19 +325,20 @@ class TtsNavigator(
         }
     }
 
-    fun pause() {
-        Logger.i("TtsNavigator::pause")
-        Speech.getInstance().stopTextToSpeech()
-    }
-
-    fun onDestroy() {
-        Logger.i("TtsNavigator::onDestroy")
+    fun stop() {
+        Logger.i("TtsNavigator::stop")
         Speech.getInstance().stopTextToSpeech()
         Speech.getInstance().stopListening()
     }
 
-    fun isPlaying() : Boolean {
-        Logger.i("TtsNavigator::isPlaying")
-        return Speech.getInstance().isListening
+    fun onDestroy() {
+        Logger.i("TtsNavigator::onDestroy")
+        stop()
     }
+//
+//    fun isPlaying() : Boolean {
+//        val isPlaying = Speech.getInstance().isListening
+//        Logger.i("TtsNavigator::isPlaying[$isPlaying]")
+//        return isPlaying
+//    }
 }

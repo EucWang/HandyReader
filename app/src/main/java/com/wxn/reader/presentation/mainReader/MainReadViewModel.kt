@@ -1075,39 +1075,37 @@ class MainReadViewModel @Inject constructor(
     }
 
     fun setTtsPlaying(isPlaying: Boolean) {
-        Logger.i("MainReadViewModel::setTtsPlaying:isPlaying=$isPlaying")
         _isTtsPlaying.value = isPlaying
-        val navigatorPlaying = ttsNavigator.isPlaying()
-        if (isPlaying != navigatorPlaying) {
+        Logger.i("MainReadViewModel::setTtsPlaying:isPlaying=$isPlaying")
             if (isPlaying) {
                 ttsPlay()
             } else {
-                ttsNavigator.pause()
+                ttsNavigator.stop()
+                pageController.stopReadPage()
                 _isTtsOn.value = false
                 _isTtsPlaying.value = false
             }
-        } else {
-            /* do nothing */
-        }
     }
 
     private fun ttsPlay() {
         Logger.i("MainReadViewModel::ttsPlay")
-        var status = 0
         _isTtsOn.value = true
         _isTtsPlaying.value = true
-        pageController.readPage(ttsNavigator)
-        _isTtsOn.value = false
-        _isTtsPlaying.value = false
+        pageController.readPage(ttsNavigator) {
+            _isTtsOn.value = false
+            _isTtsPlaying.value = false
+            pageController.stopReadPage()
+        }
     }
 
     fun toggleTts() {
-        Logger.i("MainReadViewModel:toggleTts")
-        val navigatorPlaying = ttsNavigator.isPlaying()
-        if (!navigatorPlaying) {
+        val isPlayging = _isTtsPlaying.value
+        Logger.i("MainReadViewModel:toggleTts:isPlayging=$isPlayging")
+        if (!isPlayging) {
             ttsPlay()
         } else {
-            ttsNavigator.pause()
+            ttsNavigator.stop()
+            pageController.stopReadPage()
             _isTtsOn.value = false
             _isTtsPlaying.value = false
         }

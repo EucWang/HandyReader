@@ -200,6 +200,7 @@ class ContentTextView(context: Context, attrs: AttributeSet?) : View(context, at
             val endOffset = textLine.charEndOffset + if(textLine.isTableCell) textLine.rowLineOffset else 0         //当前行所在段落结束索引（不包含）
             val (tags, textCssInfo) = factory.getPagesAnnotation(chapterIndex, paragraphIndex, startOffset, endOffset)
 
+            tryDrawReadAloudBg(canvas, textLine, relativeOffset, marginTop, marginBottom)
             tryDrawNote(canvas, textLine, tags, relativeOffset, noteIds, marginTop, marginBottom)
             drawLine(canvas, textLine, tags, textCssInfo, relativeOffset)
         }
@@ -220,6 +221,7 @@ class ContentTextView(context: Context, attrs: AttributeSet?) : View(context, at
                 val endOffset = textLine.charEndOffset  + if(textLine.isTableCell) textLine.rowLineOffset else 0          //当前行所在段落结束索引（不包含）
                 val (tags, textCssInfo) = factory.getPagesAnnotation(chapterIdx, paragraphIndex, startOffset, endOffset)
 
+                tryDrawReadAloudBg(canvas, textLine, relativeOffset, marginTop, marginBottom)
                 tryDrawNote(canvas, textLine, tags, relativeOffset, noteIds, marginTop, marginBottom)
                 drawLine(canvas, textLine, tags, textCssInfo, relativeOffset)
             }
@@ -240,6 +242,7 @@ class ContentTextView(context: Context, attrs: AttributeSet?) : View(context, at
                     val endOffset = textLine.charEndOffset  + if(textLine.isTableCell) textLine.rowLineOffset else 0          //当前行所在段落结束索引（不包含）
                     val (tags, textCssInfo) = factory.getPagesAnnotation(chapterIdx, paragraphIndex, startOffset, endOffset)
 
+                    tryDrawReadAloudBg(canvas, textLine, relativeOffset, marginTop, marginBottom)
                     tryDrawNote(canvas, textLine, tags, relativeOffset, noteIds, marginTop, marginBottom)
                     drawLine(canvas, textLine, tags, textCssInfo, relativeOffset)
                 }
@@ -266,6 +269,37 @@ class ContentTextView(context: Context, attrs: AttributeSet?) : View(context, at
                 Paint().apply{
                     style = Paint.Style.FILL
                     color = "#FF575757".toColorInt()
+                })
+        }
+    }
+
+    private fun tryDrawReadAloudBg(
+        canvas: Canvas,
+        textLine: TextLine,
+        relativeOffset: Float,
+        marginTop : Int,
+        marginBottom : Int
+    ) {
+
+        val lineTop = textLine.lineTop + relativeOffset
+        val lineBottom = textLine.lineBottom + relativeOffset
+
+        if (textLine.isReadAloud) {   //绘制笔记的背景色
+            var noteColor = "#FFFF00"
+            val dp12px = DpExt.dp2px(context, 12f)
+            val dp6px = DpExt.dp2px(context, 6f)
+            val left = 0f
+            val top = lineTop - (marginTop / 2)
+            val right = ChapterProvider.viewWidth.toFloat()
+            val bottom = lineBottom + (marginBottom / 2)
+            canvas.drawRect(
+                RectF(left, top, right, bottom),
+                Paint().apply {
+                    noteColor.toColor()?.let { intColor ->
+                        color = intColor
+                        alpha = (0.4 * 256).toInt()
+                    }
+                    style = Paint.Style.FILL
                 })
         }
     }
@@ -361,8 +395,7 @@ class ContentTextView(context: Context, attrs: AttributeSet?) : View(context, at
             } else {                                            //绘制一行文字
                 drawChars(
                     this, textLine, tags, textCssInfo, lineTop, lineBase, lineBottom,
-                    isTitle = textLine.isTitle,
-                    isReadAloud = textLine.isReadAloud
+                    isTitle = textLine.isTitle
                 )
             }
         }
@@ -377,8 +410,7 @@ class ContentTextView(context: Context, attrs: AttributeSet?) : View(context, at
         lineTop: Float,
         lineBase: Float,
         lineBottom: Float,
-        isTitle: Boolean,
-        isReadAloud: Boolean
+        isTitle: Boolean
     ) {
         var tagPaint: TextPaint? = null
         var lineTextTag: TextTag? = null
@@ -405,9 +437,10 @@ class ContentTextView(context: Context, attrs: AttributeSet?) : View(context, at
                 }
             }
         }
-        if (isReadAloud) {
-            defaultTextPaint?.color = "#FFAD1457".toColorInt()
-        }
+
+//        if (isReadAloud) {
+//            defaultTextPaint?.color = "#FFAD1457".toColorInt()
+//        }
 
         if (textLine.withLineDot > 0) { //绘制html列表前面的 圆点/方块
             val lineTop = textLine.lineTop
