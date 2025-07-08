@@ -8,11 +8,9 @@ import com.wxn.bookread.data.model.TextLine
 import com.wxn.bookread.data.source.local.TtsPreferencesUtil
 import com.wxn.reader.data.model.AppLanguage
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.launch
 import net.gotev.speech.Speech
-import net.gotev.speech.SpeechDelegate
 import net.gotev.speech.SpeechRecognitionNotAvailable
 import net.gotev.speech.TextToSpeechCallback
 import java.util.Locale
@@ -36,8 +34,6 @@ class TtsNavigator(
 //            return false
 //        }
 //
-//        //TODO
-//
 //        return true
 //    }
 //
@@ -46,7 +42,6 @@ class TtsNavigator(
 //            return false
 //        }
 //
-//        //TODO
 //        return true
 //    }
 //
@@ -85,17 +80,14 @@ class TtsNavigator(
 //
 //                override fun onDone(utteranceId: String?) {  // 播放完成
 //                    Logger.d("TtsNavigator::onDone:utteranceId=${utteranceId}")
-//                    //TODO
 //                }
 //
 //                override fun onError(utteranceId: String?) {  // 播放出错
 //                    Logger.d("TtsNavigator::onError:utteranceId=${utteranceId}")
-//                    //TODO
 //                }
 //
 //                override fun onError(utteranceId: String?, errorCode: Int) {  // 播放出错
 //                    Logger.d("TtsNavigator::onError:utteranceId=${utteranceId},errorCode=$errorCode")
-//                    //TODO
 //                }
 //
 //                override fun onStop(utteranceId: String?, interrupted: Boolean) {
@@ -166,24 +158,6 @@ class TtsNavigator(
 
     init {
         Speech.init(context)
-
-        Speech.getInstance().startListening(object: SpeechDelegate{
-            override fun onStartOfSpeech() {
-                Logger.d("TtsNavigator:onStartOfSpeech")
-            }
-
-            override fun onSpeechRmsChanged(value: Float) {
-                Logger.d("TtsNavigator:onSpeechRmsChanged:value=$value")
-            }
-
-            override fun onSpeechPartialResults(results: List<String?>?) {
-                Logger.d("TtsNavigator:onSpeechPartialResults:results=${results}")
-            }
-
-            override fun onSpeechResult(result: String?) {
-                Logger.d("TtsNavigator:onSpeechResult:result=${result}")
-            }
-        })
     }
 
     private var ttsLocale : Locale = AppLanguage.SYSTEM.locale
@@ -328,7 +302,6 @@ class TtsNavigator(
     fun stop() {
         Logger.i("TtsNavigator::stop")
         Speech.getInstance().stopTextToSpeech()
-        Speech.getInstance().stopListening()
     }
 
     fun onDestroy() {

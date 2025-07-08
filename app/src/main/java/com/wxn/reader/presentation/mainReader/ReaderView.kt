@@ -169,28 +169,28 @@ fun ReaderView(
             }
         }
 
-        TtsPlayer(
-            areToolbarsVisible = areToolbarsVisible,
-            isTtsOn = isTtsOn,
-            isTtsPlaying = isTtsPlaying,
-            speed = ttsSpeed,
-            pitch = ttsPitch,
-            language = ttsLanguage,
-            onPlay = {
-                viewModel.setTtsPlaying(true)
-            },
-            onPause = {
-                viewModel.setTtsPlaying(false)
-            },
-            onEnd = {
-                viewModel.toggleTts()
-            },
-            onSpeedChange = { viewModel.setTtsSpeed(it.toDouble()) },
-            onPitchChange = { viewModel.setTtsPitch(it.toDouble()) },
-            onLanguageChange = { viewModel.setTtsLanguage(it) },
-            onSkipToNextUtterance = { viewModel.skipToNextUtterance() },
-            onSkipToPreviousUtterance = { viewModel.skipToPreviousUtterance() }
-        )
+//        TtsPlayer(
+//            areToolbarsVisible = areToolbarsVisible,
+//            isTtsOn = isTtsOn,
+//            isTtsPlaying = isTtsPlaying,
+//            speed = ttsSpeed,
+//            pitch = ttsPitch,
+//            language = ttsLanguage,
+//            onPlay = {
+//                viewModel.setTtsPlaying(true)
+//            },
+//            onPause = {
+//                viewModel.setTtsPlaying(false)
+//            },
+//            onEnd = {
+//                viewModel.toggleTts()
+//            },
+//            onSpeedChange = { viewModel.setTtsSpeed(it.toDouble()) },
+//            onPitchChange = { viewModel.setTtsPitch(it.toDouble()) },
+//            onLanguageChange = { viewModel.setTtsLanguage(it) },
+//            onSkipToNextUtterance = { viewModel.skipToNextUtterance() },
+//            onSkipToPreviousUtterance = { viewModel.skipToPreviousUtterance() }
+//        )
         // ActionModeLayout
         if (showTextToolbar || isHighlightsDrawerOpen || isChaptersDrawerOpen) {
             Box(
