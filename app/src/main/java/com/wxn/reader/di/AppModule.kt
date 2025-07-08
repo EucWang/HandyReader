@@ -4,6 +4,7 @@ import android.app.Application
 import android.content.Context
 import androidx.room.Room
 import com.wxn.bookparser.TextParser
+import com.wxn.bookread.data.source.local.TtsPreferencesUtil
 import com.wxn.reader.data.mapper.annotation.BookAnnotationMapper
 import com.wxn.reader.data.mapper.annotation.BookAnnotationMapperImpl
 import com.wxn.reader.data.mapper.book.BookMapper
@@ -49,6 +50,7 @@ import com.wxn.reader.domain.use_case.notes.GetNotesForBookUseCase
 import com.wxn.reader.presentation.mainReader.PageViewController
 import com.wxn.reader.util.LanguageHelper
 import com.wxn.reader.util.PdfBitmapConverter
+import com.wxn.reader.util.tts.TtsNavigator
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -336,6 +338,12 @@ object AppModule {
     @Singleton
     fun providePermissionRepository(application: Application): PermissionRepository =
         PermissionRepositoryImpl(application)
+
+    @Provides
+    @Singleton
+    fun provideTtsNavigator(application: Application,
+                            ttsPreferencesUtil: TtsPreferencesUtil) : TtsNavigator =
+        TtsNavigator(application, ttsPreferencesUtil)
 }
 //
 //@Singleton

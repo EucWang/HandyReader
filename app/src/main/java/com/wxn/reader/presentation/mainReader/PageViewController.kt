@@ -35,7 +35,10 @@ import com.wxn.reader.domain.use_case.chapters.GetChapterByIdUserCase
 import com.wxn.reader.domain.use_case.chapters.GetChapterCountByBookIdUserCase
 import com.wxn.reader.domain.use_case.chapters.UpdateChapterWordCountUserCase
 import com.wxn.reader.domain.use_case.notes.GetNotesForBookUseCase
+import com.wxn.reader.util.tts.TtsNavigator
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.firstOrNull
 import java.io.Reader
@@ -70,12 +73,20 @@ open class PageViewController @Inject constructor(
     var userBookmakrs: ArrayList<Bookmark>? = null
 
     var inBookshelf = false
+
+    /***
+     * 通过durChapterPos() 方法获得 页面索引，而不要直接使用这个属性
+     */
     var durPageIndex = 0
     var targetProgress: Double = -1.0 //临时保存更改的进度，默认0.0, 不作为正常进度使用
 
     //    var isLocalBook = true
     var callBack: PageCallback? = null
     var prevTextChapter: TextChapter? = null
+
+    /***
+     * 通过textChapter() 来获得对应的章节，不用直接使用当前属性
+     */
     var curTextChapter: TextChapter? = null
     var nextTextChapter: TextChapter? = null
     override var msg: String? = null            //对应章节名？
@@ -992,6 +1003,59 @@ open class PageViewController @Inject constructor(
 //                clickListener?.onCheckedAnnotation(annotationIds, startX, startY, endX, endY)
                 onFinished(RectF(startX, startY, endX, endY))
             }
+        }
+    }
+
+    fun readPage(ttsNavigator: TtsNavigator) {
+        Logger.i("PageViewController::readPage::durChapterIndex=${durChapterIndex},durPageIndex=$durPageIndex")
+        var status = 1
+        scope?.launchIO {
+            do {
+                var textLines = arrayListOf<TextLine>()
+                with(Dispatchers.Main) {
+                    val curChapter = textChapter(0)
+                    if (curChapter == null) {
+                        Logger.d("PageViewController::readPage::curChapter is null")
+                        return@launchIO
+                    }
+                    val pageIndex = durChapterPos()
+                    val curPage = curChapter.page(pageIndex)
+                    if (curPage == null) {
+                        Logger.d("PageViewController::readPage:curPage is null ")
+                        return@launchIO
+                    }
+                    textLines.clear()
+                    textLines.addAll(curPage.textLines)
+                    if (textLines.isEmpty()) {
+                        Logger.d("PageViewController::readPage::textLines is empty")
+                        return@launchIO
+                    }
+                }
+
+                status = ttsNavigator.play(textLines) { targetLines, status ->
+                    for(line in targetLines) {
+                        line.isReadAloud = status
+                    }
+                    callBack?.upContent()
+                }
+                if (status == 1) {
+                    Logger.d("MainReadViewModel::ttsPlay::then moveToNextPage or moveToNextChapter")
+                    with(Dispatchers.Main) {
+                        moveToNextPage()
+                        val curChapter = textChapter(0)
+                        if (curChapter != null) {
+                            if (durPageIndex >= curChapter.pageSize) {
+                                moveToNextChapter(true)
+                            }
+                        } else {
+                            status = 0
+                        }
+                        delay(200)
+                    }
+                } else {
+                    Logger.d("MainReadViewModel::ttsPlay::status=$status")
+                }
+            } while(status == 1)
         }
     }
 

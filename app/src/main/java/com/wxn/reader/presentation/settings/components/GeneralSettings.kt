@@ -313,14 +313,15 @@ fun GeneralSettings(
 
             HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
 
-            ListItem(
-                headlineContent = { Text(stringResource(R.string.tts_set))},
-                leadingContent = { Icon(Icons.Outlined.SmartToy, contentDescription = "tts") },
-                trailingContent = {},
-                modifier = Modifier.clickable {
-                    navController.navigate(Screens.TtsSetScreen.route)
-                }
-            )
+//            ListItem(
+//                headlineContent = { Text(stringResource(R.string.tts_set))},
+//                leadingContent = { Icon(Icons.Outlined.SmartToy, contentDescription = "tts") },
+//                trailingContent = {},
+//                modifier = Modifier.clickable {
+//                    navController.navigate(Screens.TtsSetScreen.route)
+//                }
+//            )
+            //TODO 采用Edge TTS
         }
     }
 

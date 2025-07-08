@@ -27,6 +27,7 @@ import com.wxn.reader.data.source.local.AppPreferencesUtil
 import com.wxn.reader.domain.model.AnnotationType
 import com.wxn.reader.domain.model.BookAnnotation
 import com.wxn.base.bean.Bookmark
+import com.wxn.bookread.data.source.local.TtsPreferencesUtil
 import com.wxn.reader.domain.model.LinkedContent
 import com.wxn.reader.domain.model.Note
 import com.wxn.reader.domain.model.ReadingActive
@@ -69,6 +70,7 @@ import java.util.Calendar
 import javax.inject.Inject
 import com.wxn.reader.data.model.AppLanguage
 import com.wxn.reader.util.tts.TtsNavigator
+import kotlinx.coroutines.Dispatchers
 
 @HiltViewModel
 @Stable
@@ -102,6 +104,7 @@ class MainReadViewModel @Inject constructor(
     private val addOrUpdateReadingActivityUseCase: AddReadingActivityUseCase,
     private val getReadingActivityByDateUseCase: GetReadingActivityByDateUseCase,
     private val readerPreferencesUtil: ReaderPreferencesUtil,
+    private val ttsNavigator: TtsNavigator,
 
     private val textParser: TextParser,
     val pageController: PageViewController,
@@ -238,7 +241,6 @@ class MainReadViewModel @Inject constructor(
     private val _ttsLanguage = MutableStateFlow(AppLanguage.fromCode("en"))
     val ttsLanguage: StateFlow<AppLanguage> = _ttsLanguage.asStateFlow()
 
-    private val ttsNavigator = TtsNavigator(context, 1.0f, 1.0f, _ttsLanguage.value)
 
     private suspend fun fetchBook(bookId: Long): Boolean {
         try {
@@ -361,7 +363,6 @@ class MainReadViewModel @Inject constructor(
 
     override fun onCenterClick() {
         _showMenu.value = !_showMenu.value
-        ttsNavigator.play()
     }
 
     /***
@@ -1074,60 +1075,57 @@ class MainReadViewModel @Inject constructor(
     }
 
     fun setTtsPlaying(isPlaying: Boolean) {
+        Logger.i("MainReadViewModel::setTtsPlaying:isPlaying=$isPlaying")
         _isTtsPlaying.value = isPlaying
-    }
-
-    fun toggleTts(
-//        navigatorFragment: EpubNavigatorFragment?,
-//        context: Context,
-    ) {
-        viewModelScope.launch {
-//            val navigator = _ttsNavigator.value
-            val isTtsOn = _isTtsOn.value
-
-            if (isTtsOn) {
-//                navigator?.pause()
+        val navigatorPlaying = ttsNavigator.isPlaying()
+        if (isPlaying != navigatorPlaying) {
+            if (isPlaying) {
+                ttsPlay()
+            } else {
+                ttsNavigator.pause()
                 _isTtsOn.value = false
                 _isTtsPlaying.value = false
-            } else {
-//                initializeTtsNavigator(navigatorFragment, context)
-//                _ttsNavigator.collectLatest { newNavigator ->
-//                    if (newNavigator != null) {
-//                        newNavigator.play()
-//                        _isTtsOn.value = true
-//                        _isTtsPlaying.value = true
-//                    }
-//                }
             }
+        } else {
+            /* do nothing */
+        }
+    }
+
+    private fun ttsPlay() {
+        Logger.i("MainReadViewModel::ttsPlay")
+        var status = 0
+        _isTtsOn.value = true
+        _isTtsPlaying.value = true
+        pageController.readPage(ttsNavigator)
+        _isTtsOn.value = false
+        _isTtsPlaying.value = false
+    }
+
+    fun toggleTts() {
+        Logger.i("MainReadViewModel:toggleTts")
+        val navigatorPlaying = ttsNavigator.isPlaying()
+        if (!navigatorPlaying) {
+            ttsPlay()
+        } else {
+            ttsNavigator.pause()
+            _isTtsOn.value = false
+            _isTtsPlaying.value = false
         }
     }
 
     fun setTtsSpeed(speed: Double) {
         _ttsSpeed.value = speed
-        updateTtsPreferences()
+        ttsNavigator.setSpeed(speed.toFloat())
     }
 
     fun setTtsPitch(pitch: Double) {
         _ttsPitch.value = pitch
-        updateTtsPreferences()
+        ttsNavigator.setPitch(pitch.toFloat())
     }
-
 
     fun setTtsLanguage(language: AppLanguage) {
         _ttsLanguage.value = language
-        updateTtsPreferences()
-    }
-
-    private fun updateTtsPreferences() {
-//        ttsNavigator.value?.pause()
-//        ttsNavigator.value?.submitPreferences(
-//            AndroidTtsPreferences(
-//                speed = _ttsSpeed.value,
-//                pitch = _ttsPitch.value,
-//                language = _ttsLanguage.value
-//            )
-//        )
-//        ttsNavigator.value?.play()
+        ttsNavigator.setLanguage(language)
     }
 
     fun skipToNextUtterance() {
