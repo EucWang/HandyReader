@@ -1,5 +1,6 @@
 package com.wxn.reader.presentation.settings
 
+import kotlinx.coroutines.flow.stateIn
 import android.app.Application
 import android.net.Uri
 import androidx.lifecycle.AndroidViewModel
@@ -15,7 +16,6 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
@@ -34,12 +34,12 @@ class SettingsViewModel @Inject constructor(
 
     init {
         viewModelScope.launch {
-            appPreferencesUtil.appPreferencesFlow.first().let { initialPreferences ->
+            appPreferencesUtil.appPrefsFlow.stateIn(viewModelScope).collect { initialPreferences ->
                 _appPreferences.value = initialPreferences
             }
 
             // Continue collecting preferences updates
-            appPreferencesUtil.appPreferencesFlow.collect { preferences ->
+            appPreferencesUtil.appPrefsFlow.stateIn(viewModelScope).collect { preferences ->
                 _appPreferences.value = preferences
             }
         }

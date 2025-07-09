@@ -9,6 +9,7 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
@@ -26,7 +27,7 @@ class AppThemeViewModel @Inject constructor(
 
     init {
         viewModelScope.launch {
-            appPreferencesUtil.appPreferencesFlow.collect { preferences ->
+            appPreferencesUtil.appPrefsFlow.stateIn(viewModelScope).collect { preferences ->
                 _appPreferences.value = preferences
             }
         }

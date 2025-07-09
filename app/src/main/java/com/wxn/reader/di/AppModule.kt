@@ -4,6 +4,8 @@ import android.app.Application
 import android.content.Context
 import androidx.room.Room
 import com.wxn.bookparser.TextParser
+import com.wxn.bookread.data.source.local.ReadTipPreferencesUtil
+import com.wxn.bookread.data.source.local.ReaderPreferencesUtil
 import com.wxn.bookread.data.source.local.TtsPreferencesUtil
 import com.wxn.reader.data.mapper.annotation.BookAnnotationMapper
 import com.wxn.reader.data.mapper.annotation.BookAnnotationMapperImpl
@@ -344,6 +346,24 @@ object AppModule {
     fun provideTtsNavigator(application: Application,
                             ttsPreferencesUtil: TtsPreferencesUtil) : TtsNavigator =
         TtsNavigator(application, ttsPreferencesUtil)
+
+    @Provides
+    @Singleton
+    fun provideReaderPreferences(@ApplicationContext context: Context): ReaderPreferencesUtil {
+        return ReaderPreferencesUtil(context)
+    }
+
+    @Provides
+    @Singleton
+    fun provideReadTipPreferencesUtil(@ApplicationContext context: Context): ReadTipPreferencesUtil {
+        return ReadTipPreferencesUtil(context)
+    }
+
+    @Provides
+    @Singleton
+    fun provideTtsPreferencesUtil(@ApplicationContext context: Context) : TtsPreferencesUtil {
+        return TtsPreferencesUtil(context)
+    }
 }
 //
 //@Singleton

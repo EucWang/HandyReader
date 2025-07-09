@@ -224,21 +224,11 @@ object ChapterProvider {
         }
     }
 
-    fun tryCreatePreference(context: Context) {
-        if (readerPreferencesUtil == null) {
-            readerPreferencesUtil = ReaderPreferencesUtil(context)
-        }
-        if (readTipPreferencesUtil == null) {
-            readTipPreferencesUtil = ReadTipPreferencesUtil(context)
-        }
-    }
-
     /**
      * 更新绘制尺寸
      */
     private suspend fun upVisibleSize(context: Context) {
         Logger.i("ChapterProvider:upVisibleSize")
-        tryCreatePreference(context)
 
         if (viewWidth == 0 || viewHeight == 0) {
             val metrics = context.resources.displayMetrics
@@ -247,7 +237,7 @@ object ChapterProvider {
             Logger.d("ChapterProvider::set screen size to view::viewWidth=$viewWidth,viewHeight=$viewHeight")
         }
 
-        val readerPreferences = readerPreferencesUtil?.readerPreferencesFlow?.firstOrNull()
+        val readerPreferences = readerPreferencesUtil?.readerPrefsFlow?.firstOrNull()
         if (viewWidth > 0 && viewHeight > 0) {
             paddingLeft = (((readerPreferences?.pageHorizontalMargins?.toDouble() ?: 0.0) * 0.1 * viewWidth.toDouble()).toInt()) / 2         //页面左边距
             paddingTop = ((readerPreferences?.pageVerticalMargins ?: 0.0) * 0.1 * viewHeight.toDouble()).toInt() / 2                 //页面顶部间距
@@ -280,8 +270,7 @@ object ChapterProvider {
 //        oneWordWidth = 0f
         Logger.i("ChapterProvider::upStyle")
         Coroutines.mainScope().launch {
-            tryCreatePreference(context)
-            val readerPreferences = readerPreferencesUtil?.readerPreferencesFlow?.firstOrNull()
+            val readerPreferences = readerPreferencesUtil?.readerPrefsFlow?.firstOrNull()
             Logger.d("ChapterProvider::upStyle::readerPreferences =${readerPreferences}")
 
             //更新字体
@@ -1494,7 +1483,9 @@ object ChapterProvider {
         Logger.d("ChapterProvider::setViewSize,viewWidth=$viewWidth, viewHeight=$viewHeight")
     }
 
-    fun init(context: Context) {
+    fun init(context: Context, readTipPreferencesUtil: ReadTipPreferencesUtil, readerPreferencesUtil: ReaderPreferencesUtil) {
+        this.readTipPreferencesUtil = readTipPreferencesUtil
+        this.readerPreferencesUtil = readerPreferencesUtil
         upStyle(context)
     }
 }

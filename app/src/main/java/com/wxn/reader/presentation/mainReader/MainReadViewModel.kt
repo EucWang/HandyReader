@@ -27,6 +27,7 @@ import com.wxn.reader.data.source.local.AppPreferencesUtil
 import com.wxn.reader.domain.model.AnnotationType
 import com.wxn.reader.domain.model.BookAnnotation
 import com.wxn.base.bean.Bookmark
+import com.wxn.bookread.data.source.local.ReadTipPreferencesUtil
 import com.wxn.reader.domain.model.LinkedContent
 import com.wxn.reader.domain.model.Note
 import com.wxn.reader.domain.model.ReadingActive
@@ -70,13 +71,15 @@ import javax.inject.Inject
 import com.wxn.reader.data.model.AppLanguage
 import com.wxn.reader.util.tts.TtsNavigator
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.flow.collectLatest
 
 @HiltViewModel
 @Stable
 class MainReadViewModel @Inject constructor(
     context: Application,
-    private val appPreferencesUtil: AppPreferencesUtil,
+
+    private val appPrefsUtil: AppPreferencesUtil,
+    private val readerPrefsUtil: ReaderPreferencesUtil,
+    private val readerTipPrefsUtil: ReadTipPreferencesUtil,
 
     private val getBookByIdUseCase: GetBookByIdUseCase,
     private val updateBookUseCase: UpdateBookUseCase,
@@ -103,7 +106,6 @@ class MainReadViewModel @Inject constructor(
 
     private val addOrUpdateReadingActivityUseCase: AddReadingActivityUseCase,
     private val getReadingActivityByDateUseCase: GetReadingActivityByDateUseCase,
-    private val readerPreferencesUtil: ReaderPreferencesUtil,
     private val ttsNavigator: TtsNavigator,
 
     private val textParser: TextParser,
@@ -115,7 +117,7 @@ class MainReadViewModel @Inject constructor(
     private val _appPreferences = MutableStateFlow(AppPreferencesUtil.defaultPreferences)
     val appPreferences: StateFlow<AppPreferences> = _appPreferences.asStateFlow()
 
-    private val _readerPreferences = MutableStateFlow(ReaderPreferencesUtil.defaultPreferences)
+    private val _readerPreferences = MutableStateFlow<ReaderPreferences>(ReaderPreferencesUtil.defaultPreferences)
     val readerPreferences: StateFlow<ReaderPreferences> = _readerPreferences.asStateFlow()
 
     private val _uiState = MutableStateFlow<BookReaderUiState>(BookReaderUiState.Loading)
@@ -241,7 +243,6 @@ class MainReadViewModel @Inject constructor(
     private val _ttsLanguage = MutableStateFlow(AppLanguage.fromCode("en"))
     val ttsLanguage: StateFlow<AppLanguage> = _ttsLanguage.asStateFlow()
 
-
     private suspend fun fetchBook(bookId: Long): Boolean {
         try {
             val theBook = getBookByIdUseCase(bookId)
@@ -273,26 +274,25 @@ class MainReadViewModel @Inject constructor(
     }
 
     init {
-        ChapterProvider.init(context)
+        pageController.scope = viewModelScope
 
-        context.cacheDir
-        context.applicationContext.filesDir
+        viewModelScope.launch {
+            readerPrefsUtil.readerPrefsFlow.stateIn(viewModelScope).collect { pref ->
+                _readerPreferences.value = pref
+                Logger.d("MainReadViewModel::init readerPreferences[$pref]")
+            }
+
+            appPrefsUtil.appPrefsFlow.stateIn(viewModelScope).collect { pref ->
+                _appPreferences.value = pref
+                Logger.d("MainReadViewModel::init appPreferences[$pref]")
+            }
+        }
+
+        ChapterProvider.init(context, readerTipPrefsUtil, readerPrefsUtil)
 
         val openedBookId = savedStateHandle.get<String>("bookId")?.toLongOrNull()
         val bookUri = savedStateHandle.get<String>("bookUri")
         resetCurrentDayStartTime()
-        pageController.scope = viewModelScope
-
-        viewModelScope.launch {
-            appPreferencesUtil.appPreferencesFlow.stateIn(viewModelScope).collect { initialPreferences ->
-                _appPreferences.value = initialPreferences
-            }
-
-            readerPreferencesUtil.readerPreferencesFlow.stateIn(viewModelScope).collect { preferences ->
-                _readerPreferences.value = preferences
-//                _epubPreferences.value = preferences.toRediumEpubPreferences()
-            }
-        }
 
         viewModelScope.launchIO {
             val bookId = openedBookId ?: return@launchIO
@@ -1025,8 +1025,8 @@ class MainReadViewModel @Inject constructor(
 
     fun resetFontPreferences() {
         viewModelScope.launch {
-            readerPreferencesUtil.resetFontPreferences()
-            readerPreferencesUtil.readerPreferencesFlow.stateIn(viewModelScope).collect { preferences ->
+            readerPrefsUtil.resetFontPreferences()
+            readerPrefsUtil.readerPrefsFlow.stateIn(viewModelScope).collect { preferences ->
                 _readerPreferences.value = preferences
             }
         }
@@ -1034,8 +1034,8 @@ class MainReadViewModel @Inject constructor(
 
     fun resetPagePreferences() {
         viewModelScope.launch {
-            readerPreferencesUtil.resetPagePreferences()
-            readerPreferencesUtil.readerPreferencesFlow.stateIn(viewModelScope).collect { preferences ->
+            readerPrefsUtil.resetPagePreferences()
+            readerPrefsUtil.readerPrefsFlow.stateIn(viewModelScope).collect { preferences ->
                 _readerPreferences.value = preferences
             }
         }
@@ -1043,8 +1043,8 @@ class MainReadViewModel @Inject constructor(
 
     fun resetUiPreferences() {
         viewModelScope.launch {
-            readerPreferencesUtil.resetUiPreferences()
-            readerPreferencesUtil.readerPreferencesFlow.stateIn(viewModelScope).collect { preferences ->
+            readerPrefsUtil.resetUiPreferences()
+            readerPrefsUtil.readerPrefsFlow.stateIn(viewModelScope).collect { preferences ->
                 _readerPreferences.value = preferences
             }
         }
@@ -1052,8 +1052,8 @@ class MainReadViewModel @Inject constructor(
 
     fun resetReaderPreferences() {
         viewModelScope.launch {
-            readerPreferencesUtil.resetReaderPreferences()
-            readerPreferencesUtil.readerPreferencesFlow.stateIn(viewModelScope).collect { preferences ->
+            readerPrefsUtil.resetReaderPreferences()
+            readerPrefsUtil.readerPrefsFlow.stateIn(viewModelScope).collect { preferences ->
                 _readerPreferences.value = preferences
             }
         }
@@ -1062,7 +1062,7 @@ class MainReadViewModel @Inject constructor(
     fun updateReaderPreferences(newPreferences: ReaderPreferences) {
         Logger.d("MainReadViewModel::updateReaderPreferences")
         viewModelScope.launch {
-            readerPreferencesUtil.updatePreferences(newPreferences)
+            readerPrefsUtil.updatePreferences(newPreferences)
             _readerPreferences.value = newPreferences
             with(Dispatchers.Main) {
                 pageController.updateView()

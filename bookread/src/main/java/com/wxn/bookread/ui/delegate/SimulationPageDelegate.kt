@@ -114,7 +114,7 @@ class SimulationPageDelegate(pageView: PageView) : HorizontalPageDelegate(pageVi
         mFrontShadowDrawableHBT.gradientType = GradientDrawable.LINEAR_GRADIENT
 
         Coroutines.mainScope().launch {
-            bgMeanColor = ChapterProvider.readerPreferencesUtil?.readerPreferencesFlow?.firstOrNull()?.backgroundColor ?: Color.WHITE
+            bgMeanColor = ChapterProvider.readerPreferencesUtil?.readerPrefsFlow?.firstOrNull()?.backgroundColor ?: Color.WHITE
         }
     }
 

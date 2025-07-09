@@ -10,13 +10,11 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 import javax.inject.Inject
 
-private val Context.readTipPreferenceDataStore by preferencesDataStore(name = "reader_tips_preferences")
+private val Context.readTipPrefsDataStore by preferencesDataStore(name = "reader_tips_prefs")
 
-class ReadTipPreferencesUtil @Inject constructor(
-    val context: Context
-) {
+class ReadTipPreferencesUtil @Inject constructor(context: Context) {
 
-    private val dataStore = context.readTipPreferenceDataStore
+    private val dataStore = context.readTipPrefsDataStore
 
     companion object {
         const val ReadTip_none = 0

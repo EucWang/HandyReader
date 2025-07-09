@@ -25,6 +25,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import java.time.Instant
 import java.time.LocalDate
@@ -67,11 +68,8 @@ class StatisticsViewModel @Inject constructor(
 
     init {
         viewModelScope.launch {
-            val initialPreferences = appPreferencesUtil.appPreferencesFlow.first()
-            _appPreferences.value = initialPreferences
-
-            appPreferencesUtil.appPreferencesFlow.collect { preferences ->
-                _appPreferences.value = preferences
+            appPreferencesUtil.appPrefsFlow.stateIn(viewModelScope).collect{ initialPreferences->
+                _appPreferences.value = initialPreferences
             }
         }
         loadStatistics()

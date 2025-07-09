@@ -13,6 +13,7 @@ import androidx.datastore.preferences.preferencesDataStore
 import com.wxn.base.ext.toColor
 import com.wxn.base.ext.toCompatibleArgb
 import com.wxn.base.util.Coroutines
+import com.wxn.base.util.Logger
 import com.wxn.bookread.data.model.config.ConfigReadingProgression
 import com.wxn.bookread.data.model.config.toTextAlign
 import com.wxn.bookread.data.model.preference.ReaderPreferences
@@ -22,12 +23,11 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
-private val Context.readerPreferencesDataStore by preferencesDataStore(name = "reader_prefs")
+private val Context.readerPrefsDataStore by preferencesDataStore(name = "reader_prefs")
 
-class ReaderPreferencesUtil @Inject constructor(
-    val context: Context
-) {
-    private val dataStore = context.readerPreferencesDataStore
+class ReaderPreferencesUtil @Inject constructor(context: Context) {
+
+    private val dataStore = context.readerPrefsDataStore
 
     companion object {
         val FONT_SIZE = doublePreferencesKey("font_size")                                   //字体大小
@@ -136,7 +136,7 @@ class ReaderPreferencesUtil @Inject constructor(
         }
     }
 
-    val readerPreferencesFlow: Flow<ReaderPreferences> = dataStore.data.map { preferences ->
+    val readerPrefsFlow: Flow<ReaderPreferences> = dataStore.data.map { preferences ->
         ReaderPreferences(
             fontSize = preferences[FONT_SIZE] ?: defaultPreferences.fontSize,
             letterSpacing = preferences[LETTER_SPACING] ?: defaultPreferences.letterSpacing,
@@ -147,9 +147,6 @@ class ReaderPreferencesUtil @Inject constructor(
             paragraphSpacing = preferences[PARAGRAPH_SPACING]
                 ?: defaultPreferences.paragraphSpacing,
             wordSpacing = preferences[WORD_SPACING] ?: defaultPreferences.wordSpacing,
-//            textAlign = TextAlign.from(
-//                preferences[TEXT_ALIGN] ?: defaultPreferences.textAlign
-//            ),
             textAlign = toTextAlign(preferences[TEXT_ALIGN]) ?: defaultPreferences.textAlign,
             backgroundColor = preferences[BACKGROUND_COLOR] ?: Color.WHITE,
             textColor = preferences[TEXT_COLOR] ?: Color.BLACK,
@@ -173,6 +170,7 @@ class ReaderPreferencesUtil @Inject constructor(
     }
 
     suspend fun updatePreferences(newPreferences: ReaderPreferences) {
+        Logger.d("ReaderPreferencesUtil::updatePreferences[$newPreferences]")
         dataStore.edit { preferences ->
             preferences[FONT_SIZE] = newPreferences.fontSize.toDouble()
             preferences[LINE_HEIGHT] = newPreferences.lineHeight.toDouble()
@@ -209,6 +207,7 @@ class ReaderPreferencesUtil @Inject constructor(
 
 
     suspend fun resetFontPreferences() {
+        Logger.d("ReaderPreferencesUtil::resetFontPreferences")
         dataStore.edit { preferences ->
             preferences[FONT_SIZE] = defaultPreferences.fontSize.toDouble()
             preferences[LINE_HEIGHT] = defaultPreferences.lineHeight.toDouble()
@@ -222,6 +221,7 @@ class ReaderPreferencesUtil @Inject constructor(
     }
 
     suspend fun resetPagePreferences() {
+        Logger.d("ReaderPreferencesUtil::resetPagePreferences")
         dataStore.edit { preferences ->
             preferences[PAGE_HORIZONTAL_MARGINS] = defaultPreferences.pageHorizontalMargins.toDouble()
             preferences[PAGE_VERTICAL_MARGINS] = defaultPreferences.pageVerticalMargins.toDouble()
@@ -235,6 +235,7 @@ class ReaderPreferencesUtil @Inject constructor(
     }
 
     suspend fun resetUiPreferences() {
+        Logger.d("ReaderPreferencesUtil::resetUiPreferences")
         dataStore.edit { preferences ->
             preferences[BACKGROUND_COLOR] = defaultPreferences.backgroundColor
             preferences[TEXT_COLOR] = defaultPreferences.textColor
@@ -242,6 +243,7 @@ class ReaderPreferencesUtil @Inject constructor(
     }
 
     suspend fun resetReaderPreferences() {
+        Logger.d("ReaderPreferencesUtil::resetReaderPreferences")
         dataStore.edit { preferences ->
             preferences[KEEP_SCREEN_ON] = defaultPreferences.keepScreenOn
             preferences[SCROLL] = defaultPreferences.scroll
@@ -254,7 +256,9 @@ class ReaderPreferencesUtil @Inject constructor(
     }
 
     private fun serializeColorHistory(colors: List<Color>): String {
-        return colors.joinToString(",") { it.toCompatibleArgb().toString() }
+        val ret = colors.joinToString(",") { it.toCompatibleArgb().toString() }
+        Logger.d("ReaderPreferencesUtil::serializeColorHistory[${colors}],ret=${ret}")
+        return ret
     }
 
     private fun parseColorHistory(serialized: String): List<Color> {

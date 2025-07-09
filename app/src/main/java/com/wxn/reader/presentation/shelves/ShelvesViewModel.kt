@@ -16,6 +16,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
@@ -43,7 +44,7 @@ class ShelvesViewModel @Inject constructor(
 
     private fun getShelves() {
         viewModelScope.launch {
-            appPreferencesUtil.appPreferencesFlow.first().let { initialPreferences ->
+            appPreferencesUtil.appPrefsFlow.stateIn(viewModelScope).collect { initialPreferences ->
                 _appPreferences.value = initialPreferences
             }
             try {
@@ -54,7 +55,7 @@ class ShelvesViewModel @Inject constructor(
                 _shelvesState.value = ShelvesState.Error(e.message ?: "Unknown error occurred")
             }
             // Continue collecting preferences updates
-            appPreferencesUtil.appPreferencesFlow.collect { preferences ->
+            appPreferencesUtil.appPrefsFlow.stateIn(viewModelScope).collect { preferences ->
                 _appPreferences.value = preferences
             }
         }

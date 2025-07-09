@@ -78,12 +78,11 @@ class ContentView(context: Context) : FrameLayout(context) {
     fun upStyle() {
         binding.apply {
             Coroutines.mainScope().launch {
-                ChapterProvider.tryCreatePreference(context)
                 val tipPreference =
                     ChapterProvider.readTipPreferencesUtil?.readTIpPreferencesFlow?.firstOrNull()
                         ?: return@launch
                 val readPreference =
-                    ChapterProvider.readerPreferencesUtil?.readerPreferencesFlow?.firstOrNull()
+                    ChapterProvider.readerPreferencesUtil?.readerPrefsFlow?.firstOrNull()
                         ?: return@launch
                 val textColor = readPreference.textColor ?: Color.BLACK
 //
@@ -156,10 +155,10 @@ class ContentView(context: Context) : FrameLayout(context) {
             setPadding(paddingLeft, context.statusBarHeight, paddingRight, paddingBottom)
 
             Coroutines.mainScope().launch {
-                ChapterProvider.tryCreatePreference(context)
-                val tipPreference =
-                    ChapterProvider.readTipPreferencesUtil?.readTIpPreferencesFlow?.firstOrNull()
-                        ?: return@launch
+//                ChapterProvider.tryCreatePreference(context)
+//                val tipPreference =
+//                    ChapterProvider.readTipPreferencesUtil?.readTIpPreferencesFlow?.firstOrNull()
+//                        ?: return@launch
 
 //                isGone = tipPreference.hideStatusBar || (activity as? BaseActivity)?.isInMultiWindow == true
             }
@@ -172,10 +171,8 @@ class ContentView(context: Context) : FrameLayout(context) {
     fun upTipStyle() {
         binding.apply {
             Coroutines.mainScope().launch {
-                ChapterProvider.tryCreatePreference(context)
-                val tipPreference =
-                    ChapterProvider.readTipPreferencesUtil?.readTIpPreferencesFlow?.firstOrNull()
-                        ?: return@launch
+//                ChapterProvider.tryCreatePreference(context)
+                val tipPreference = ChapterProvider.readTipPreferencesUtil?.readTIpPreferencesFlow?.firstOrNull() ?: return@launch
 
                 val tipHeaderLeft = tipPreference.tipHeaderLeft
                 val tipHeaderRight = tipPreference.tipHeaderRight

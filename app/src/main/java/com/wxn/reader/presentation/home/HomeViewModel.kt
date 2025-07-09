@@ -157,7 +157,7 @@ class HomeViewModel
 
     private fun initializeApp() {
         viewModelScope.launch {
-            val preferences = appPreferencesUtil.appPreferencesFlow.first()
+            val preferences = appPreferencesUtil.appPrefsFlow.first()
             coroutineScope {
                 launch { loadBooks(preferences) }
                 launch { loadShelves() }
@@ -185,7 +185,7 @@ class HomeViewModel
             }
         }
         insertBookUseCase.insert(books)
-//        val initialPreferences = appPreferencesUtil.appPreferencesFlow.first()
+//        val initialPreferences = appPreferencesUtil.appPrefsFlow.first()
 //        val updatedAppPreferences = initialPreferences.copy(isAssetsBooksFetched = true)
 //        appPreferencesUtil.updateAppPreferences(updatedAppPreferences)
     }
@@ -273,7 +273,7 @@ class HomeViewModel
 
     private fun observeAppPreferences() {
         viewModelScope.launch {
-            appPreferencesUtil.appPreferencesFlow.collect { preferences ->
+            appPreferencesUtil.appPrefsFlow.collect { preferences ->
                 _appPreferences.value = preferences
                 // Optionally reload books if sort preferences change
                 loadBooks(preferences)
@@ -465,7 +465,7 @@ class HomeViewModel
                 )
             } finally {
                 _isAddingBooks.value = false
-//                val initialPreferences = appPreferencesUtil.appPreferencesFlow.first()
+//                val initialPreferences = appPreferencesUtil.appPrefsFlow.first()
 //                val updatedAppPreferences = initialPreferences.copy(isAssetsBooksFetched = true)
 //                appPreferencesUtil.updateAppPreferences(updatedAppPreferences)
             }
@@ -1086,7 +1086,7 @@ class HomeViewModel
 
     fun updatePremiumStatus(isPremium: Boolean) {
         viewModelScope.launch {
-            val currentPreferences = appPreferencesUtil.appPreferencesFlow.first()
+            val currentPreferences = appPreferencesUtil.appPrefsFlow.first()
             if (currentPreferences.isPremium != isPremium) {
                 val updatedPreferences = currentPreferences.copy(isPremium = isPremium)
                 Logger.d("HomeViewModel:updatePremiumStatus:the home viewModel")

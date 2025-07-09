@@ -203,7 +203,6 @@ class PageView : FrameLayout, IDataSource, PageCallback {
 
     init {
         Logger.d("PageView::init")
-        ChapterProvider.init(context)
         addView(nextPage)               //添加三个界面
         addView(curPage)
         addView(prevPage)
@@ -602,7 +601,6 @@ class PageView : FrameLayout, IDataSource, PageCallback {
      */
     override fun upPageAnim() {
         Coroutines.mainScope().launch {
-            ChapterProvider.tryCreatePreference(context)
             ChapterProvider.readTipPreferencesUtil?.readTIpPreferencesFlow?.firstOrNull()?.let { preference ->
                 val pageAnim = preference.pageAnim
                 isScroll = pageAnim == 3
@@ -712,8 +710,7 @@ class PageView : FrameLayout, IDataSource, PageCallback {
      */
     fun upBg() {
         Coroutines.mainScope().launch {
-            ChapterProvider.tryCreatePreference(context)
-            ChapterProvider.readerPreferencesUtil?.readerPreferencesFlow?.firstOrNull()?.let { preference ->
+            ChapterProvider.readerPreferencesUtil?.readerPrefsFlow?.firstOrNull()?.let { preference ->
                 val bgColor = preference.backgroundColor
                 curPage.setBg(bgColor)
                 prevPage.setBg(bgColor)

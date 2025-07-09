@@ -36,7 +36,7 @@ class ThemeViewModel @Inject constructor(
 
     private fun observeAppPreferences() {
         viewModelScope.launch {
-            appPreferencesUtil.appPreferencesFlow.collect { preferences ->
+            appPreferencesUtil.appPrefsFlow.collect { preferences ->
                 _appPreferences.value = preferences
             }
         }

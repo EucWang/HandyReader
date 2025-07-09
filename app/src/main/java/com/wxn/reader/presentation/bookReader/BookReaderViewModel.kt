@@ -172,7 +172,7 @@ import kotlin.time.Duration.Companion.seconds
 //        resetCurrentDayStartTime()
 //
 //        viewModelScope.launch {
-//            appPreferencesUtil.appPreferencesFlow.first().let { initialPreferences ->
+//            appPreferencesUtil.appPrefsFlow.first().let { initialPreferences ->
 //                _appPreferences.value = initialPreferences
 //            }
 //
@@ -198,7 +198,7 @@ import kotlin.time.Duration.Companion.seconds
 //
 //
 //                // Continue collecting preferences updates
-//                appPreferencesUtil.appPreferencesFlow.collect { preferences ->
+//                appPreferencesUtil.appPrefsFlow.collect { preferences ->
 //                    _appPreferences.value = preferences
 //                }
 //            }

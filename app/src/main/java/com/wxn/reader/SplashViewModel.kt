@@ -14,6 +14,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
@@ -24,7 +25,6 @@ class SplashViewModel @Inject constructor(
     application: Application,
 ) : AndroidViewModel(application) {
 
-
     private val _appPreferences = MutableStateFlow(AppPreferencesUtil.defaultPreferences)
     val appPreferences: StateFlow<AppPreferences> = _appPreferences.asStateFlow()
 
@@ -34,18 +34,19 @@ class SplashViewModel @Inject constructor(
     private val _isLoading = MutableStateFlow(true)
     val isLoading: StateFlow<Boolean> = _isLoading.asStateFlow()
 
-
     init {
         viewModelScope.launch {
             try {
-                val initialPreferences = appPreferencesUtil.appPreferencesFlow.first()
+                val initialPreferences = appPreferencesUtil.appPrefsFlow.firstOrNull()
                 Logger.d("SplashViewModel:Initial preferences: $initialPreferences")
-                _appPreferences.value = initialPreferences
-                languageHelper.changeLanguage(
-                    getApplication(),
-                    AppLanguage.fromCode(initialPreferences.language)
-                )
-                determineStartDestination(initialPreferences)
+                if (initialPreferences != null) {
+                    _appPreferences.value = initialPreferences
+                    languageHelper.changeLanguage(
+                        getApplication(),
+                        AppLanguage.fromCode(initialPreferences.language)
+                    )
+                    determineStartDestination(initialPreferences)
+                }
             } catch (e: Exception) {
                 Logger.e("SplashViewModel:Initialization error,$e")
             }

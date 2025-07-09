@@ -148,11 +148,6 @@ open class PageViewController @Inject constructor(
             return retVal
         }
 
-    init {
-        ChapterProvider.tryCreatePreference(context)
-    }
-
-
     /***
      * 初始章节加载成功/失败回调
      */

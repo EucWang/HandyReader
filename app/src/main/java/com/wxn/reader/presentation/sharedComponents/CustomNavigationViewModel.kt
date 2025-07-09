@@ -13,6 +13,8 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.firstOrNull
+import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
@@ -39,19 +41,16 @@ class CustomNavigationViewModel @Inject constructor(
 
     init {
         viewModelScope.launch {
-            appPreferencesUtil.appPreferencesFlow.collect { preferences ->
+            appPreferencesUtil.appPrefsFlow.stateIn(viewModelScope).collect { preferences ->
                 _appPreferences.value = preferences
             }
         }
     }
 
-
-
-
     fun updatePremiumStatus(isPremium: Boolean) {
         viewModelScope.launch {
-            val currentPreferences = appPreferencesUtil.appPreferencesFlow.first()
-            if (currentPreferences.isPremium != isPremium) {
+            val currentPreferences = appPreferencesUtil.appPrefsFlow.firstOrNull()
+            if (currentPreferences != null && currentPreferences.isPremium != isPremium) {
                 val updatedPreferences = currentPreferences.copy(isPremium = isPremium)
                 appPreferencesUtil.updateAppPreferences(updatedPreferences)
                 _appPreferences.value = updatedPreferences

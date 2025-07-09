@@ -116,7 +116,7 @@ class ContentTextView(context: Context, attrs: AttributeSet?) : View(context, at
     init {
         contentDescription = textPage.text
         Coroutines.mainScope().launch {
-            textPaintColor = ChapterProvider.readerPreferencesUtil?.readerPreferencesFlow?.firstOrNull()?.textColor ?: Color.BLACK
+            textPaintColor = ChapterProvider.readerPreferencesUtil?.readerPrefsFlow?.firstOrNull()?.textColor ?: Color.BLACK
         }
         Logger.i("ContentTextView::init")
     }
@@ -126,7 +126,7 @@ class ContentTextView(context: Context, attrs: AttributeSet?) : View(context, at
         upView?.invoke(textPage)
         contentDescription = textPage.text
         Coroutines.mainScope().launch {
-            textPaintColor = ChapterProvider.readerPreferencesUtil?.readerPreferencesFlow?.firstOrNull()?.textColor ?: Color.BLACK
+            textPaintColor = ChapterProvider.readerPreferencesUtil?.readerPrefsFlow?.firstOrNull()?.textColor ?: Color.BLACK
         }
         invalidate()
     }

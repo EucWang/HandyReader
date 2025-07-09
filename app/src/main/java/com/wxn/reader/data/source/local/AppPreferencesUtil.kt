@@ -21,15 +21,12 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.runBlocking
 import javax.inject.Inject
 
-private val Context.appPreferencesDataStore by preferencesDataStore(name = "app_prefs")
+private val Context.appPrefsDataStore by preferencesDataStore(name = "app_prefs")
 
-class AppPreferencesUtil @Inject constructor(
-    context: Context
-) {
-    private val dataStore = context.appPreferencesDataStore
+class AppPreferencesUtil @Inject constructor(context: Context) {
+    private val dataStore = context.appPrefsDataStore
 
     companion object {
         val IS_FIRST_LAUNCH = booleanPreferencesKey("is_first_launch")
@@ -113,7 +110,7 @@ class AppPreferencesUtil @Inject constructor(
     }
 
 
-    val appPreferencesFlow: Flow<AppPreferences> = dataStore.data.map { preferences ->
+    val appPrefsFlow: Flow<AppPreferences> = dataStore.data.map { preferences ->
         AppPreferences(
             isFirstLaunch = preferences[IS_FIRST_LAUNCH] ?: defaultPreferences.isFirstLaunch,
             isAssetsBooksFetched = preferences[IS_ASSETS_BOOKS_FETCHED] ?: defaultPreferences.isAssetsBooksFetched,
@@ -145,7 +142,7 @@ class AppPreferencesUtil @Inject constructor(
      * 0  其他
      */
     suspend fun chineseConverterType(): Int {
-        appPreferencesFlow.firstOrNull()?.let {
+        appPrefsFlow.firstOrNull()?.let {
             val code = it.language
             return when {
                 code == "zh-CN" || code == "ZH-HANS" -> 1
