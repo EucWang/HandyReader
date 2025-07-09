@@ -603,23 +603,23 @@ class PageView : FrameLayout, IDataSource, PageCallback {
      */
     override fun upPageAnim() {
         Coroutines.mainScope().launch {
-            ChapterProvider.readTipPreferencesUtil?.readTIpPreferencesFlow?.firstOrNull()?.let { preference ->
-                val pageAnim = preference.pageAnim
-                isScroll = pageAnim == 3
+            ChapterProvider.readerPreferencesUtil?.readerPrefsFlow?.firstOrNull()?.let { preference ->
+                val pageAnim = preference.scroll
+                isScroll = pageAnim == 4
                 when (pageAnim) {
-                    0 -> if (pageDelegate !is CoverPageDelegate) {
+                    1 -> if (pageDelegate !is CoverPageDelegate) {
                         pageDelegate = CoverPageDelegate(this@PageView)
                     }
 
-                    1 -> if (pageDelegate !is SlidePageDelegate) {
+                    2 -> if (pageDelegate !is SlidePageDelegate) {
                         pageDelegate = SlidePageDelegate(this@PageView)
                     }
 
-                    2 -> if (pageDelegate !is SimulationPageDelegate) {
+                    3 -> if (pageDelegate !is SimulationPageDelegate) {
                         pageDelegate = SimulationPageDelegate(this@PageView)
                     }
 
-                    3 -> if (pageDelegate !is ScrollPageDelegate) {
+                    4 -> if (pageDelegate !is ScrollPageDelegate) {
                         pageDelegate = ScrollPageDelegate(this@PageView)
                     }
 

@@ -47,8 +47,6 @@ class ReadTipPreferencesUtil @Inject constructor(context: Context) {
         val HideHeader = booleanPreferencesKey("hide_header")
         val HideFooter = booleanPreferencesKey("hide_footer")
 
-        val PageAnim = intPreferencesKey("page_anim")
-
 //        val HideStatusBar = booleanPreferencesKey("hide_status_bar")
 //        val HideNavigationBar = booleanPreferencesKey("hide_navigation_bar")
 
@@ -78,8 +76,6 @@ class ReadTipPreferencesUtil @Inject constructor(context: Context) {
 
             hideHeader = true,
             hideFooter = true,
-
-            pageAnim = 0,
 
 //            hideStatusBar = true,
 //            hideNavigationBar = true,
@@ -124,8 +120,6 @@ class ReadTipPreferencesUtil @Inject constructor(context: Context) {
             hideHeader = preference[HideHeader] ?: defaultReadTipPreference.hideHeader,
             hideFooter = preference[HideFooter] ?: defaultReadTipPreference.hideFooter,
 
-            pageAnim = preference[PageAnim] ?: defaultReadTipPreference.pageAnim,
-
 //            hideStatusBar = preference[HideStatusBar] ?: defaultReadTipPreference.hideStatusBar,
 //            hideNavigationBar = preference[HideNavigationBar] ?: defaultReadTipPreference.hideNavigationBar,
 
@@ -161,8 +155,6 @@ class ReadTipPreferencesUtil @Inject constructor(context: Context) {
             preference[HideHeader] = newPreferences.hideHeader
             preference[HideFooter] = newPreferences.hideFooter
 
-            preference[PageAnim] = newPreferences.pageAnim
-
 //            preference[HideStatusBar] = newPreferences.hideStatusBar
 //            preference[HideNavigationBar] = newPreferences.hideNavigationBar
 
@@ -196,8 +188,6 @@ class ReadTipPreferencesUtil @Inject constructor(context: Context) {
 
             preference[HideHeader] = defaultReadTipPreference.hideHeader
             preference[HideFooter] = defaultReadTipPreference.hideFooter
-
-            preference[PageAnim] = defaultReadTipPreference.pageAnim
 
 //            preference[HideStatusBar] = defaultReadTipPreference.hideStatusBar
 //            preference[HideNavigationBar] = defaultReadTipPreference.hideNavigationBar

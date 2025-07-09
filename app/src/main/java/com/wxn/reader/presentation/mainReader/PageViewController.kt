@@ -1071,6 +1071,7 @@ open class PageViewController @Inject constructor(
             callBack?.upStyle()
             callBack?.upTipStyle()
             callBack?.upBg()
+            callBack?.upPageAnim()
         }
     }
 

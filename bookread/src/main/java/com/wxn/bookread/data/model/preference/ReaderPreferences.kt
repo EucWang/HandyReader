@@ -39,8 +39,19 @@ data class ReaderPreferences(
     val colorHistory: List<Color> = emptyList(),    //颜色历史
     //Reader Settings
     val keepScreenOn: Boolean,                      //保持屏幕常亮
-    val tapNavigation: Boolean,                     //点击导航
-    val scroll: Boolean,                            //滚动模式
+    val tapNavigation: Boolean,                     //点击导航 , 不知道是用来做什么的
+
+
+    /****
+     * 页面切换动画方式
+     *  0   -> pageDelegate = CoverPageDelegate(this) 覆盖
+     *  1   -> pageDelegate = SlidePageDelegate(this)   滑动
+     *  2   -> pageDelegate = SimulationPageDelegate(this) 仿真
+     *  3   -> pageDelegate = ScrollPageDelegate(this)  滚动
+     *  else -> pageDelegate = NoAnimPageDelegate(this) 无动画
+     */
+    val scroll: Int,                            //滚动模式
+
     val readingProgression: ConfigReadingProgression,       //阅读方向/从左向右/从右向左
     val verticalText: Boolean,                      //垂直文本
     val publisherStyles: Boolean,                   //出版商样式

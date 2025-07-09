@@ -60,7 +60,7 @@ class ReaderPreferencesUtil @Inject constructor(context: Context) {
 
         val KEEP_SCREEN_ON = booleanPreferencesKey("keep_screen_on")                        //保持屏幕常亮
         val TAP_NAVIGATION = booleanPreferencesKey("tap_navigation")                        //点击导航
-        val SCROLL = booleanPreferencesKey("scroll")                                        //滚动
+        val SCROLL = intPreferencesKey("scroll")                                        //滚动
         val PUBLISHER_STYLES = booleanPreferencesKey("publisher_styles")                    //出版商样式
         val TEXT_NORMALIZATION = booleanPreferencesKey("text_normalization")                //文字标准化
 
@@ -87,7 +87,7 @@ class ReaderPreferencesUtil @Inject constructor(context: Context) {
             colorHistory = emptyList(),
             keepScreenOn = true,
             tapNavigation = false,
-            scroll = false,
+            scroll = 1,
             readingProgression = ConfigReadingProgression.LTR,
             verticalText = false,
             publisherStyles = false,

@@ -271,4 +271,9 @@
     <string name="old_paper">Old Paper</string>
     <string name="leather">Leather</string>
     <string name="broken_parchment">Broken Parchment</string>
+    <string name="no_page_trans_anim">No Animation</string>
+    <string name="page_trans_anim_cover">Cover</string>
+    <string name="page_trans_anim_slide">Slide</string>
+    <string name="page_trans_anim_simulation">Simulation</string>
+    <string name="page_trans_anim_scroll">Scroll</string>
 </resources>

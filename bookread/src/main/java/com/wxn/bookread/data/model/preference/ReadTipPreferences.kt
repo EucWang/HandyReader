@@ -33,7 +33,7 @@ data class ReadTipPreferences constructor(
      *  3   -> pageDelegate = ScrollPageDelegate(this)  滚动
      *  else -> pageDelegate = NoAnimPageDelegate(this) 无动画
      */
-    val pageAnim: Int,
+//    val pageAnim: Int,
 
 //    val hideStatusBar: Boolean,
 //    val hideNavigationBar: Boolean,

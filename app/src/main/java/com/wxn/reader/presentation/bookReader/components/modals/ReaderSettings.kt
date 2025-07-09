@@ -213,8 +213,6 @@ fun ReaderSettings(
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
 
-
-
             Box(
                 modifier = Modifier.fillMaxWidth(),
                 contentAlignment = Alignment.CenterEnd
@@ -260,43 +258,106 @@ fun ReaderSettings(
             )
 
             // Scroll Mode
-            SettingsSwitch(
-                title = stringResource(R.string.scroll_mode),
-                checked = readerPreferences.scroll,
-                onCheckedChange = { isScrollMode ->
-                    viewModel.updateReaderPreferences(
-                        readerPreferences.copy(
-                            scroll = isScrollMode,
-                            tapNavigation = if (isScrollMode) false else readerPreferences.tapNavigation
-                        )
-                    )
+//            SettingsSwitch(
+//                title = stringResource(R.string.scroll_mode),
+//                checked = readerPreferences.scroll,
+//                onCheckedChange = { isScrollMode ->
+//                    viewModel.updateReaderPreferences(
+//                        readerPreferences.copy(
+//                            scroll = isScrollMode,
+//                            tapNavigation = if (isScrollMode) false else readerPreferences.tapNavigation
+//                        )
+//                    )
+//                }
+//            )
+            Column(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.spacedBy(6.dp)
+            ) {
+                Text(stringResource(R.string.scroll_mode), style = MaterialTheme.typography.titleMedium)
+                Row(modifier = Modifier,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    listOf(
+                        0 to stringResource(R.string.no_page_trans_anim),
+                        1 to stringResource(R.string.page_trans_anim_cover),
+                        2 to stringResource(R.string.page_trans_anim_slide),
+                    ).forEach{ (id, label) ->
+                        FilledTonalButton(
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = if (readerPreferences.scroll == id) {
+                                    MaterialTheme.colorScheme.primaryContainer
+                                } else {
+                                    MaterialTheme.colorScheme.surfaceVariant
+                                },
+                                contentColor = if (readerPreferences.scroll == id) {
+                                    MaterialTheme.colorScheme.onPrimaryContainer
+                                } else {
+                                    MaterialTheme.colorScheme.onSurfaceVariant
+                                }
+                            ),
+                            onClick = {
+                                viewModel.updateReaderPreferences(readerPreferences.copy(scroll = id))
+                            }
+                        ) {
+                            Text(text = label, style = MaterialTheme.typography.bodySmall)
+                        }
+                    }
                 }
-            )
+                Row(modifier = Modifier,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    listOf(
+                        3 to stringResource(R.string.page_trans_anim_simulation),
+                        4 to stringResource(R.string.page_trans_anim_scroll),
+                    ).forEach{ (id, label) ->
+                        FilledTonalButton(
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = if (readerPreferences.scroll == id) {
+                                    MaterialTheme.colorScheme.primaryContainer
+                                } else {
+                                    MaterialTheme.colorScheme.surfaceVariant
+                                },
+                                contentColor = if (readerPreferences.scroll == id) {
+                                    MaterialTheme.colorScheme.onPrimaryContainer
+                                } else {
+                                    MaterialTheme.colorScheme.onSurfaceVariant
+                                }
+                            ),
+                            onClick = {
+                                viewModel.updateReaderPreferences(readerPreferences.copy(scroll = id))
+                            }
+                        ) {
+                            Text(text = label, style = MaterialTheme.typography.bodySmall)
+                        }
+                    }
+                }
+            }
+
 
             // Tap Navigation
-            SettingsSwitch(
-                title = stringResource(R.string.tap_navigation),
-                checked = readerPreferences.tapNavigation,
-                onCheckedChange = { isTapNavigation ->
-                    viewModel.updateReaderPreferences(
-                        readerPreferences.copy(
-                            tapNavigation = isTapNavigation,
-                            scroll = if (isTapNavigation) false else readerPreferences.scroll
-                        )
-                    )
-                }
-            )
+//            SettingsSwitch(
+//                title = stringResource(R.string.tap_navigation),
+//                checked = readerPreferences.tapNavigation,
+//                onCheckedChange = { isTapNavigation ->
+//                    viewModel.updateReaderPreferences(
+//                        readerPreferences.copy(
+//                            tapNavigation = isTapNavigation,
+////                            scroll = if (isTapNavigation) false else readerPreferences.scroll
+//                        )
+//                    )
+//                }
+//            )
 
             //Reading Progression
             Column(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.spacedBy(12.dp)
+                verticalArrangement = Arrangement.spacedBy(6.dp)
             ) {
                 Text(stringResource(R.string.reading_progression), style = MaterialTheme.typography.titleMedium)
                 Row(
                     modifier = Modifier,
-                    horizontalArrangement = Arrangement.spacedBy(16.dp)
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
                     listOf(
                         ConfigReadingProgression.LTR to stringResource(R.string.left_to_right),
@@ -366,5 +427,5 @@ fun SettingsSwitch(
             onCheckedChange = onCheckedChange
         )
     }
-    Spacer(modifier = Modifier.height(8.dp))
+    Spacer(modifier = Modifier.height(4.dp))
 }
