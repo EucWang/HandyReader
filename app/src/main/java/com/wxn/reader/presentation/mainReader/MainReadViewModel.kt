@@ -993,22 +993,22 @@ class MainReadViewModel @Inject constructor(
         }
     }
 
-    suspend fun deleteAnnotations(conflictAnnotations: List<BookAnnotation>) {
-//        viewModelScope.launch {
-            for(anno in conflictAnnotations) {
-                deleteAnnotationUseCase(anno)
-            }
-            _annotations.update { currentAnnotations ->
-                currentAnnotations.filter { cur ->
-                    conflictAnnotations.firstOrNull { item ->
-                        cur.id == item.id
-                    } == null
-                }
-            }
-            _selectedAnnotation.value = null
-            currentBookId.value?.let { loadAnnotations(it) }
-//        }
-    }
+//    suspend fun deleteAnnotations(conflictAnnotations: List<BookAnnotation>) {
+////        viewModelScope.launch {
+//            for(anno in conflictAnnotations) {
+//                deleteAnnotationUseCase(anno)
+//            }
+//            _annotations.update { currentAnnotations ->
+//                currentAnnotations.filter { cur ->
+//                    conflictAnnotations.firstOrNull { item ->
+//                        cur.id == item.id
+//                    } == null
+//                }
+//            }
+//            _selectedAnnotation.value = null
+//            currentBookId.value?.let { loadAnnotations(it) }
+////        }
+//    }
 
     /***
      * 更新注释
@@ -1028,6 +1028,9 @@ class MainReadViewModel @Inject constructor(
             readerPrefsUtil.resetFontPreferences()
             readerPrefsUtil.readerPrefsFlow.stateIn(viewModelScope).collect { preferences ->
                 _readerPreferences.value = preferences
+                with(Dispatchers.Main) {
+                    pageController.updatePageViews()
+                }
             }
         }
     }
@@ -1037,6 +1040,9 @@ class MainReadViewModel @Inject constructor(
             readerPrefsUtil.resetPagePreferences()
             readerPrefsUtil.readerPrefsFlow.stateIn(viewModelScope).collect { preferences ->
                 _readerPreferences.value = preferences
+                with(Dispatchers.Main) {
+                    pageController.updatePageViews()
+                }
             }
         }
     }
@@ -1046,6 +1052,9 @@ class MainReadViewModel @Inject constructor(
             readerPrefsUtil.resetUiPreferences()
             readerPrefsUtil.readerPrefsFlow.stateIn(viewModelScope).collect { preferences ->
                 _readerPreferences.value = preferences
+                with(Dispatchers.Main) {
+                    pageController.updatePageViews()
+                }
             }
         }
     }
@@ -1055,6 +1064,9 @@ class MainReadViewModel @Inject constructor(
             readerPrefsUtil.resetReaderPreferences()
             readerPrefsUtil.readerPrefsFlow.stateIn(viewModelScope).collect { preferences ->
                 _readerPreferences.value = preferences
+                with(Dispatchers.Main) {
+                    pageController.updatePageViews()
+                }
             }
         }
     }
@@ -1065,7 +1077,7 @@ class MainReadViewModel @Inject constructor(
             readerPrefsUtil.updatePreferences(newPreferences)
             _readerPreferences.value = newPreferences
             with(Dispatchers.Main) {
-                pageController.updateView()
+                pageController.updatePageViews()
             }
         }
     }

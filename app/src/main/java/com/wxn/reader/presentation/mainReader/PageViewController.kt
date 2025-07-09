@@ -1064,9 +1064,13 @@ open class PageViewController @Inject constructor(
     /***
      * update view after modify preference
      */
-    fun updateView() {
+    fun updatePageViews() {
         ChapterProvider.upStyle(context) {
+            loadContent(true)
             callBack?.upContent()
+            callBack?.upStyle()
+            callBack?.upTipStyle()
+            callBack?.upBg()
         }
     }
 

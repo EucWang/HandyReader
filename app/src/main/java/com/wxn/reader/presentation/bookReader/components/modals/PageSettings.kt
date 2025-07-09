@@ -172,10 +172,9 @@ fun PageSettings(
     readerPreferences: ReaderPreferences,
     onDismiss: () -> Unit,
 ) {
-    val context = LocalContext.current
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
 
-    val minPageMargins = 0.0
+    val minPageMargins = 0.5
     val maxPageMargins = 5.0
 
     ModalBottomSheet(
@@ -189,7 +188,6 @@ fun PageSettings(
                 .padding(horizontal = 16.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-
 
             Box(
                 modifier = Modifier.fillMaxWidth(),
@@ -224,9 +222,19 @@ fun PageSettings(
 
             //can be changed on publisher styles
             SettingsRange(
-                title = stringResource(R.string.page_margins),
+                title = stringResource(R.string.page_horizontal_margins),
                 value = readerPreferences.pageHorizontalMargins,
                 onValueChange = { viewModel.updateReaderPreferences( readerPreferences.copy(pageHorizontalMargins = it) ) },
+
+                valueRange = minPageMargins..maxPageMargins,
+                valueDisplay = { String.format(Locale.getDefault(), "%.1f", it) }
+            )
+
+            //can be changed on publisher styles
+            SettingsRange(
+                title = stringResource(R.string.page_vertial_margins),
+                value = readerPreferences.pageVerticalMargins,
+                onValueChange = { viewModel.updateReaderPreferences( readerPreferences.copy(pageVerticalMargins = it) ) },
 
                 valueRange = minPageMargins..maxPageMargins,
                 valueDisplay = { String.format(Locale.getDefault(), "%.1f", it) }
@@ -253,53 +261,53 @@ fun PageSettings(
                 enabled = !readerPreferences.publisherStyles
             )
 
-
-            Column(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.spacedBy(12.dp)
-            ) {
-                Text(stringResource(R.string.text_align), style = MaterialTheme.typography.titleMedium)
-                Row(
-                    modifier = Modifier,
-                    horizontalArrangement = Arrangement.spacedBy(16.dp)
-                ) {
-                    listOf(
-                        TextAlign.Left to stringResource(R.string.left),
-                        TextAlign.Justify to stringResource(R.string.justify),
-                        TextAlign.Right to stringResource(R.string.right)
-                    ).forEach { (alignment, label) ->
-                        FilledTonalButton(
-                            colors = ButtonDefaults.buttonColors(
-                                containerColor = if (readerPreferences.textAlign == alignment) {
-                                    MaterialTheme.colorScheme.primaryContainer
-                                } else {
-                                    MaterialTheme.colorScheme.surfaceVariant
-                                },
-                                contentColor = if (readerPreferences.textAlign == alignment) {
-                                    MaterialTheme.colorScheme.onPrimaryContainer
-                                } else {
-                                    MaterialTheme.colorScheme.onSurfaceVariant
-                                }
-                            ),
-                            onClick = {
-                                if (readerPreferences.publisherStyles) {
-                                    Toast.makeText(
-                                        context,
-                                        "Cannot change settings on publisher styles",
-                                        Toast.LENGTH_SHORT
-                                    ).show()
-                                } else {
-                                    viewModel.updateReaderPreferences( readerPreferences.copy(textAlign = alignment) )
-                                }
-
-                            }
-                        ) {
-                            Text(text = label)
-                        }
-                    }
-                }
-            }
+            //TODO Text Align
+//            Column(
+//                modifier = Modifier.fillMaxWidth(),
+//                horizontalAlignment = Alignment.CenterHorizontally,
+//                verticalArrangement = Arrangement.spacedBy(12.dp)
+//            ) {
+//                Text(stringResource(R.string.text_align), style = MaterialTheme.typography.titleMedium)
+//                Row(
+//                    modifier = Modifier,
+//                    horizontalArrangement = Arrangement.spacedBy(16.dp)
+//                ) {
+//                    listOf(
+//                        TextAlign.Left to stringResource(R.string.left),
+//                        TextAlign.Justify to stringResource(R.string.justify),
+//                        TextAlign.Right to stringResource(R.string.right)
+//                    ).forEach { (alignment, label) ->
+//                        FilledTonalButton(
+//                            colors = ButtonDefaults.buttonColors(
+//                                containerColor = if (readerPreferences.textAlign == alignment) {
+//                                    MaterialTheme.colorScheme.primaryContainer
+//                                } else {
+//                                    MaterialTheme.colorScheme.surfaceVariant
+//                                },
+//                                contentColor = if (readerPreferences.textAlign == alignment) {
+//                                    MaterialTheme.colorScheme.onPrimaryContainer
+//                                } else {
+//                                    MaterialTheme.colorScheme.onSurfaceVariant
+//                                }
+//                            ),
+//                            onClick = {
+//                                if (readerPreferences.publisherStyles) {
+//                                    Toast.makeText(
+//                                        context,
+//                                        "Cannot change settings on publisher styles",
+//                                        Toast.LENGTH_SHORT
+//                                    ).show()
+//                                } else {
+//                                    viewModel.updateReaderPreferences( readerPreferences.copy(textAlign = alignment) )
+//                                }
+//
+//                            }
+//                        ) {
+//                            Text(text = label)
+//                        }
+//                    }
+//                }
+//            }
         }
     }
 }

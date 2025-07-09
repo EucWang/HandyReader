@@ -26,5 +26,11 @@ interface PageChangeCallback {
 
     fun upContent(relativePosition: Int = 0, resetPageOffset: Boolean = true)
 
+    fun upStyle()
+
+    fun upTipStyle()
+
+    fun upBg()
+
     fun cancelTextSelected()
 }

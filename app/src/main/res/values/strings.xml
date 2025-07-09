@@ -258,4 +258,6 @@
     <string name="progression_format">Progression: %1$s</string>
     <string name="date_format">Date: %1$s</string>
     <string name="tts_set">TextToSpeech</string>
+    <string name="page_horizontal_margins">Horizontal Margins</string>
+    <string name="page_vertial_margins">Vertical Margins</string>
 </resources>

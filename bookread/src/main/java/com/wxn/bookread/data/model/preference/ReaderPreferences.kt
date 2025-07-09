@@ -23,11 +23,11 @@ data class ReaderPreferences(
 
     val letterSpacing: Double,                  //字母间距
     val lineHeight: Double,                     //行高        取值 1.0 ～ 3.0 之间， 基础行高的系数，
-    val pageHorizontalMargins: Double,          //页面左右边距 取值 0.0 ～ 5.0 之间，  取值5.0 即表示左右边距占屏幕的一半
-    val pageVerticalMargins: Double,                     //页面顶部边距  取值 0.0 ～ 5.0 之间，  取值5.0 即表示上下边距占屏幕的一半
+    val pageHorizontalMargins: Double,          //页面左右边距 取值 0.5 ～ 5.0 之间，  取值5.0 即表示左右边距占屏幕的一半
+    val pageVerticalMargins: Double,                     //页面顶部边距  取值 0.5 ～ 5.0 之间，  取值5.0 即表示上下边距占屏幕的一半
 //    val lineSpacingExtra: Double,               //行高系数， 最终会除上10， 默认值13
 
-    val paragraphIndent: Double,                //段落缩进
+    val paragraphIndent: Double,                //段落缩进, 段落首行缩进， 多少个字符宽度
     val paragraphSpacing: Double,               //段落间距
     val wordSpacing: Double,                    //词间距
     val textAlign: TextAlign,                   //文本对齐

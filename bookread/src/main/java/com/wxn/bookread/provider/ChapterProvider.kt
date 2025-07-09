@@ -692,6 +692,8 @@ object ChapterProvider {
         }
         textPaint.set(parentPaint)
 
+        val readerPrefs = readerPreferencesUtil?.readerPrefsFlow?.firstOrNull()
+
         var marginLeft = 0f
         var marginRight = 0f
         var marginTop = 0f
@@ -739,7 +741,8 @@ object ChapterProvider {
 //                    }
                 }
                 //首行缩进
-                firstLineIndent = textIndent * oneWordWidth
+                val userSetIndent = (readerPrefs?.paragraphIndent?.toFloat() ?: 0f)   //用户设置的首航缩进
+                firstLineIndent = (if (userSetIndent <= 0.0f) textIndent.toFloat() else userSetIndent) * oneWordWidth   //书籍自带的样式
                 Logger.d("ChapterProvider::textIndent[$textIndent],firstLineIndent[$firstLineIndent],oneEmWidth=$oneWordWidth")
                 //左边距
                 marginLeft = (if (paragraph.textCssInfo.marginLeft.isEm()) {
@@ -828,8 +831,10 @@ object ChapterProvider {
             } != null
         } else false
 
-        if (marginTop > 0f && !isTableRow && !isListRow) {
-            durY += marginTop
+        if (!isTableRow && !isListRow) {
+            val userSetParagraphSpacing = readerPrefs?.paragraphSpacing?.toFloat() ?: 0.0f
+//            Logger.d("ChapterProvider::userSetParagraphSpacing=$userSetParagraphSpacing")
+            durY += if (userSetParagraphSpacing > 0) (userSetParagraphSpacing * textPaint.textHeight) else marginTop
         }
 
         if (isTableRow) {               //是表格行

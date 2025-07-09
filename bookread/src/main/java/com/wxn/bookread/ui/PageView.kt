@@ -689,7 +689,7 @@ class PageView : FrameLayout, IDataSource, PageCallback {
     /***
      * 更新提示样式
      */
-    fun upTipStyle() {
+    override fun upTipStyle() {
         curPage.upTipStyle()
         prevPage.upTipStyle()
         nextPage.upTipStyle()
@@ -698,7 +698,7 @@ class PageView : FrameLayout, IDataSource, PageCallback {
     /****
      * 更新显示样式
      */
-    fun upStyle() {
+    override fun upStyle() {
         ChapterProvider.upStyle(context)
         curPage.upStyle()
         prevPage.upStyle()
@@ -708,7 +708,7 @@ class PageView : FrameLayout, IDataSource, PageCallback {
     /***
      * 更新背景
      */
-    fun upBg() {
+    override fun upBg() {
         Coroutines.mainScope().launch {
             ChapterProvider.readerPreferencesUtil?.readerPrefsFlow?.firstOrNull()?.let { preference ->
                 val bgColor = preference.backgroundColor
