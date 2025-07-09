@@ -31,57 +31,6 @@ class TextParserImpl @Inject constructor(
     private val mobiTextParser: MobiTextParser
 ) : TextParser {
 
-//    override suspend fun parsedChapterData(bookId: Long, cachedFile: CachedFile, chapterIndex: Int): List<ReaderText> {
-//        if (!cachedFile.canAccess()) {
-//            Log.e(TEXT_PARSER, "File does not exist or no read access is granted.")
-//            return emptyList()
-//        }
-//
-//        val fileFormat = cachedFile.extension
-//        Logger.d("TextParserImpl:parse:fileFormat=$fileFormat")
-//        return withContext(Dispatchers.IO) {
-//            when (fileFormat) {
-//                "pdf" -> {
-//                    pdfTextParser.parse(bookId, cachedFile)
-//                }
-//
-//                "epub" -> {
-//                    epubTextParser.parse(bookId, cachedFile)
-//                }
-//
-//                in listOf("mobi", "azw3") -> {
-//                    mobiTextParser.parse(bookId, cachedFile)
-//                }
-//
-//                "txt" -> {
-//                    txtTextParser.parse(bookId, cachedFile)
-//                }
-//
-//                "fb2" -> {
-//                    xmlTextParser.parse(bookId, cachedFile)
-//                }
-//
-//                "html" -> {
-//                    htmlTextParser.parse(bookId, cachedFile)
-//                }
-//
-//                "htm" -> {
-//                    htmlTextParser.parse(bookId, cachedFile)
-//                }
-//
-//                "md" -> {
-//                    htmlTextParser.parse(bookId, cachedFile)
-//                }
-//
-//                else -> {
-//                    Log.e(TEXT_PARSER, "Wrong file format, could not find supported extension.")
-//                    emptyList()
-//                }
-//            }
-//        }
-//    }
-
-
     /***
      * 解析得到章节列表
      */

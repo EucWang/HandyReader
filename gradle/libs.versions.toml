@@ -1,10 +1,18 @@
 [versions]
 aboutlibrariesCore = "11.2.3"
 #billingKtx = "7.1.1"
+commonmark = "0.24.0"
 coreSplashscreen = "1.0.1"
+jp2Android = "1.0.3"
+jsoup = "1.18.3"
 ketch = "2.0.1"
+kotlinxSerializationCore = "1.8.1"
+kotlinxSerializationJson = "1.8.0"
+ktorClientOkhttp = "3.0.0"
+materialVersion = "1.8.3"
 media3Exoplayer = "1.5.1"
 multiplatformMarkdownRenderer = "0.25.0"
+pdfboxAndroid = "2.0.27.0"
 playServicesAds = "23.6.0"
 #readium = "3.0.3"
 agp = "8.9.2"
@@ -20,7 +28,7 @@ junit = "4.13.2"
 junitVersion = "1.2.1"
 espressoCore = "3.6.1"
 lifecycleRuntimeKtx = "2.8.7"
-activityCompose = "1.10.0"
+activityCompose = "1.10.1"
 composeBom = "2025.02.00"
 materialIconsExtended = "1.7.8"
 navigationCompose = "2.8.7"
@@ -37,6 +45,8 @@ paletteKtx = "1.0.0"
 firebaseCrashlytics = "19.4.0"
 googleGmsGoogleServices = "4.4.2"
 googleFirebaseCrashlytics = "3.0.3"
+speech = "1.1.2"
+storage = "2.0.0"
 timber = "5.0.1"
 material = "1.12.0"
 toaster = "12.8"
@@ -46,16 +56,28 @@ toaster = "12.8"
 aboutlibraries-compose = { module = "com.mikepenz:aboutlibraries-compose", version.ref = "aboutlibrariesCore" }
 aboutlibraries-core = { module = "com.mikepenz:aboutlibraries-core", version.ref = "aboutlibrariesCore" }
 androidx-core-splashscreen = { module = "androidx.core:core-splashscreen", version.ref = "coreSplashscreen" }
+androidx-hilt-compiler = { module = "androidx.hilt:hilt-compiler", version.ref = "hiltCompiler" }
+androidx-material = { module = "androidx.compose.material:material", version.ref = "materialVersion" }
 androidx-media3-common = { module = "androidx.media3:media3-common", version.ref = "media3Exoplayer" }
 androidx-media3-exoplayer = { module = "androidx.media3:media3-exoplayer", version.ref = "media3Exoplayer" }
 androidx-media3-exoplayer-dash = { module = "androidx.media3:media3-exoplayer-dash", version.ref = "media3Exoplayer" }
 androidx-media3-session = { module = "androidx.media3:media3-session", version.ref = "media3Exoplayer" }
 androidx-media3-ui = { module = "androidx.media3:media3-ui", version.ref = "media3Exoplayer" }
 #billing-ktx = { module = "com.android.billingclient:billing-ktx", version.ref = "billingKtx" }
+commonmark = { module = "org.commonmark:commonmark", version.ref = "commonmark" }
+hilt-android-compiler = { module = "com.google.dagger:hilt-android-compiler", version.ref = "hiltAndroid" }
+jp2-android = { module = "com.gemalto.jp2:jp2-android", version.ref = "jp2Android" }
+jsoup = { module = "org.jsoup:jsoup", version.ref = "jsoup" }
 ketch = { module = "com.github.khushpanchal:Ketch", version.ref = "ketch" }
+kotlinx-serialization-core = { module = "org.jetbrains.kotlinx:kotlinx-serialization-core", version.ref = "kotlinxSerializationCore" }
+kotlinx-serialization-json = { module = "org.jetbrains.kotlinx:kotlinx-serialization-json", version.ref = "kotlinxSerializationJson" }
+ktor-client-okhttp = { module = "io.ktor:ktor-client-okhttp", version.ref = "ktorClientOkhttp" }
 multiplatform-markdown-renderer-m3 = { module = "com.mikepenz:multiplatform-markdown-renderer-m3", version.ref = "multiplatformMarkdownRenderer" }
+pdfbox-android = { module = "com.tom-roush:pdfbox-android", version.ref = "pdfboxAndroid" }
 play-review-ktx = { module = "com.google.android.play:review-ktx", version.ref = "reviewKtxVersion" }
 play-services-ads = { module = "com.google.android.gms:play-services-ads", version.ref = "playServicesAds" }
+speech = { module = "net.gotev:speech", version.ref = "speech" }
+storage = { module = "com.anggrayudi:storage", version.ref = "storage" }
 timber = { module = "com.jakewharton.timber:timber", version.ref = "timber" }
 
 

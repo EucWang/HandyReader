@@ -42,31 +42,31 @@ dependencies {
     androidTestImplementation(libs.androidx.espresso.core)
 
     // Dagger - Hilt
-    implementation("com.google.dagger:hilt-android:2.55")
-    ksp("com.google.dagger:hilt-android-compiler:2.55")
-    implementation("com.google.dagger:hilt-compiler:2.55")
-    ksp("androidx.hilt:hilt-compiler:1.2.0")
-    implementation("androidx.hilt:hilt-navigation-compose:1.2.0")
+    implementation(libs.hilt.android)
+    ksp(libs.hilt.android.compiler)
+    implementation(libs.hilt.compiler)
+    ksp(libs.androidx.hilt.compiler)
+    implementation(libs.androidx.hilt.navigation.compose)
 
-    implementation("androidx.compose.material:material:1.7.8")
+    implementation(libs.androidx.material)
 
-    implementation("androidx.activity:activity-compose:1.10.1")
+    implementation(libs.androidx.activity.compose)
 
     // SAF
-    implementation("com.anggrayudi:storage:2.0.0")
+    implementation(libs.storage)
 
     // PDF parser
-    implementation("com.tom-roush:pdfbox-android:2.0.27.0")
-    implementation("com.gemalto.jp2:jp2-android:1.0.3")     //Reading JPX Images for pdf
+    implementation(libs.pdfbox.android)
+    implementation(libs.jp2.android)     //Reading JPX Images for pdf
 
-    // EPUB parser
-    implementation("org.jsoup:jsoup:1.18.3")
+    // xml parser
+    implementation(libs.jsoup)
 
     // FB2 parser
-    implementation("org.jetbrains.kotlinx:kotlinx-serialization-core:1.8.1")
+    implementation(libs.kotlinx.serialization.core)
 
     // Markdown
-    implementation("org.commonmark:commonmark:0.24.0")
+    implementation(libs.commonmark)
 
     implementation(project(":mobi"))
     implementation(project(":base"))

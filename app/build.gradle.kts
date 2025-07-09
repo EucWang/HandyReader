@@ -143,21 +143,28 @@ dependencies {
     implementation(libs.androidx.ui)
     implementation(libs.androidx.ui.graphics)
     implementation(libs.androidx.ui.tooling.preview)
+
     implementation(libs.androidx.material3)
     implementation(libs.androidx.material.icons.extended)
     implementation(libs.androidx.navigation.compose)
+
+//    debugImplementation(libs.androidx.ui.tooling)
+//    debugImplementation(libs.androidx.ui.test.manifest)
+//    testImplementation(libs.junit)
+//    androidTestImplementation(libs.androidx.junit)
+//    androidTestImplementation(libs.androidx.espresso.core)
+//    androidTestImplementation(platform(libs.androidx.compose.bom))
+//    androidTestImplementation(libs.androidx.ui.test.junit4)
+
+    //androidx.documentfile 是 Android 开发中用于访问和操作文件系统的一个库，它基于 Android 的 Storage Access Framework（SAF），
+    // 允许应用程序在不直接访问系统权限的情况下，对设备上的文件和目录进行读写操作。
     implementation(libs.androidx.documentfile)
+
     implementation(libs.androidx.appcompat)
     implementation(libs.androidx.runtime.livedata)
     implementation(libs.androidx.palette.ktx)
-    implementation(libs.firebase.crashlytics)
-    testImplementation(libs.junit)
-    androidTestImplementation(libs.androidx.junit)
-    androidTestImplementation(libs.androidx.espresso.core)
-    androidTestImplementation(platform(libs.androidx.compose.bom))
-    androidTestImplementation(libs.androidx.ui.test.junit4)
-    debugImplementation(libs.androidx.ui.tooling)
-    debugImplementation(libs.androidx.ui.test.manifest)
+    implementation(libs.androidx.room.paging)
+    implementation(libs.androidx.paging.compose)
 
     implementation(libs.androidx.media3.exoplayer)
     implementation(libs.androidx.media3.exoplayer.dash)
@@ -165,45 +172,43 @@ dependencies {
     implementation(libs.androidx.media3.common)
     implementation(libs.androidx.media3.session)
 
+    implementation(libs.firebase.crashlytics)
+
     coreLibraryDesugaring(libs.desugar.jdk.libs)
     implementation(libs.coil.compose)       // for images
     implementation(libs.room.runtime)
     implementation(libs.androidx.room.ktx)
     ksp(libs.androidx.room.compiler)
 
-    implementation(libs.androidx.room.paging)
-    implementation(libs.androidx.paging.compose)
-
     implementation(libs.hilt.android)
     ksp(libs.dagger.compiler)
     ksp(libs.hilt.compiler)
 
     implementation(libs.androidx.hilt.navigation.compose)
-
     implementation(libs.androidx.datastore.preferences)
     implementation(libs.palette)
     implementation(libs.colorpicker.compose)
-
     implementation(libs.androidx.core.splashscreen)
-
     implementation(libs.multiplatform.markdown.renderer.m3)
 
     // for ads TODO
 //    implementation(libs.play.services.ads)
 
-    // for in app reviews
+    // for in app reviews  应用内点赞
     implementation(libs.play.review.ktx)
 
     // for in app purchases
 //    implementation(libs.billing.ktx)
 
+    //这个库用于在 Android 应用中自动收集和展示项目的依赖信息，
+    // 包括依赖项的名称、版本、许可证等信息。它提供了易于集成的 UI 组件，使得开发者可以轻松地在应用中展示这些信息 。
     implementation(libs.aboutlibraries.core)
     implementation(libs.aboutlibraries.compose)
 
-    implementation(platform("io.github.jan-tennert.supabase:bom:3.1.1"))
-    implementation("io.github.jan-tennert.supabase:postgrest-kt")
-    implementation("io.github.jan-tennert.supabase:auth-kt")
-    implementation("io.github.jan-tennert.supabase:realtime-kt")
+//    implementation(platform("io.github.jan-tennert.supabase:bom:3.1.1"))
+//    implementation("io.github.jan-tennert.supabase:postgrest-kt")
+//    implementation("io.github.jan-tennert.supabase:auth-kt")
+//    implementation("io.github.jan-tennert.supabase:realtime-kt")
 
 //    implementation(libs.ketch)
 //    implementation(libs.retrofit)
@@ -222,9 +227,9 @@ dependencies {
 //
 //    implementation("com.google.android.libraries.identity.googleid:googleid:1.1.1")
 
-    implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.8.0")
-    implementation("io.ktor:ktor-client-okhttp:3.0.0")
-    implementation("net.gotev:speech:1.1.2")
+    implementation(libs.kotlinx.serialization.json)
+    implementation(libs.ktor.client.okhttp)
+    implementation(libs.speech)
 
     implementation(project(":bookparser"))
     implementation(project(":bookread"))

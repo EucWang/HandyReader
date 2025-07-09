@@ -1,16 +1,11 @@
 package com.wxn.bookparser.parser.html
 
 import android.content.Context
-import android.net.Uri
-import androidx.compose.ui.res.stringResource
 import androidx.documentfile.provider.DocumentFile
 import com.anggrayudi.storage.file.baseName
-import com.anggrayudi.storage.file.getAbsolutePath
 import com.anggrayudi.storage.file.openInputStream
-import com.anggrayudi.storage.file.toRawFile
-import com.wxn.bookparser.FileParser
-import com.wxn.bookparser.R
 import com.wxn.base.bean.Book
+import com.wxn.bookparser.FileParser
 import com.wxn.bookparser.domain.book.BookWithCover
 import com.wxn.bookparser.domain.file.CachedFile
 import org.jsoup.Jsoup

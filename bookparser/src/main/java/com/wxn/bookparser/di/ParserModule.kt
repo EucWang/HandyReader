@@ -87,11 +87,11 @@ object ParserModule {
 
     @Provides
     @Singleton
-    fun provideEpubTextParser(context: Context, documentParser: DocumentParser): EpubTextParser = EpubTextParser(context, documentParser)
+    fun provideEpubTextParser(context: Context): EpubTextParser = EpubTextParser(context)
 
     @Provides
     @Singleton
-    fun provideMobiTextParser(context: Context, documentParser: DocumentParser) : MobiTextParser = MobiTextParser(context, documentParser)
+    fun provideMobiTextParser(context: Context) : MobiTextParser = MobiTextParser(context)
 
     @Provides
     @Singleton

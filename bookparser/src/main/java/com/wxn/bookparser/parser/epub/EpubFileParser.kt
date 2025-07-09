@@ -1,25 +1,17 @@
 package com.wxn.bookparser.parser.epub
 
 import android.content.Context
-import android.util.Log
 import androidx.documentfile.provider.DocumentFile
 import com.anggrayudi.storage.file.baseName
 import com.anggrayudi.storage.file.extension
-import com.anggrayudi.storage.file.toRawFile
 import com.wxn.base.bean.Book
 import com.wxn.bookparser.FileParser
 import com.wxn.bookparser.domain.book.BookWithCover
 import com.wxn.bookparser.domain.file.CachedFile
 import com.wxn.bookparser.exts.rawFile
-import com.wxn.bookparser.util.FileUtil
-import com.wxn.bookparser.util.getCoverPath
 import com.wxn.mobi.EpubParser
 import com.wxn.mobi.data.model.MetaInfo
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.withContext
-import org.jsoup.Jsoup
 import java.io.File
-import java.util.zip.ZipFile
 import javax.inject.Inject
 
 /**

@@ -3,8 +3,6 @@ package com.wxn.bookparser.parser.base
 import android.content.Context
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
-import androidx.compose.ui.graphics.ImageBitmap
-import androidx.compose.ui.graphics.asImageBitmap
 import com.wxn.base.util.Logger
 import com.wxn.base.bean.ReaderText
 import com.wxn.base.util.PathUtil
