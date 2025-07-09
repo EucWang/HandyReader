@@ -962,7 +962,14 @@ object ChapterProvider {
                     for (index in 0 until tagCells.size) {
                         val tagCell = tagCells[index]
                         val tagPercent: Int = tablePercents[index] //当前单元格所占的宽度的百分比,
-                        val text = paragraph.line.substring(tagCell.start, tagCell.end)
+                        Logger.d("ChapterProvider::setTextTable::line[${paragraph.line}],tagCell[$tagCell],index[$index],tagPercent=$tagPercent")
+                        val text = if (tagCell.start in 0 until paragraph.line.length && tagCell.end in 0 .. paragraph.line.length) {
+                            paragraph.line.substring(tagCell.start, tagCell.end)
+                        } else if (tagCell.start in 0 until paragraph.line.length && tagCell.end > paragraph.line.length){
+                            paragraph.line.substring(tagCell.start)
+                        } else {
+                            ""
+                        }
 
                         val usableWidth = (fullWidth * (tagPercent / 100f) - 2 * tableCellInnerPadding).toInt()   //可用宽度
                         val leftOffset = (fullWidth * (leftOffsetPercent / 100f) + tableCellInnerPadding).toInt()    //距离屏幕左边的偏移位置

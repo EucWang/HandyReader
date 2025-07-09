@@ -1,6 +1,7 @@
 package com.wxn.reader.presentation.bookReader.components.modals
 
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -10,6 +11,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
@@ -37,6 +39,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.toArgb
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.res.colorResource
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -259,10 +264,21 @@ fun UiSettings(
 
     val predefinedColors = remember {
         mapOf(
-            "White" to Color.White,
-            "Black" to Color.Black,
-            "Gray" to Color(0xFFD8D3D6),
-            "Blue Gray" to Color(0xFFDBE1F1),
+            com.wxn.reader.ui.theme.stringResource(R.string.white) to Color.White,
+            com.wxn.reader.ui.theme.stringResource(R.string.black) to Color.Black,
+            com.wxn.reader.ui.theme.stringResource(R.string.gray) to Color(0xFFEBEBE4),
+            com.wxn.reader.ui.theme.stringResource(R.string.light_yellow) to Color(0xFFFAF9DE),
+            com.wxn.reader.ui.theme.stringResource(R.string.pale_brown) to Color(0xFFFFF2E2),
+        )
+    }
+
+    val predefinedImages = remember {
+        mapOf(
+            com.wxn.reader.ui.theme.stringResource(R.string.none) to "",
+            com.wxn.reader.ui.theme.stringResource(R.string.parchment) to "ic_read_bg1",            //羊皮纸
+            com.wxn.reader.ui.theme.stringResource(R.string.old_paper) to "ic_read_bg2",            //旧纸张
+            com.wxn.reader.ui.theme.stringResource(R.string.leather) to "ic_read_bg3",              //皮革纸
+            com.wxn.reader.ui.theme.stringResource(R.string.broken_parchment) to "ic_read_bg4",    //破羊皮纸
         )
     }
 
@@ -277,7 +293,7 @@ fun UiSettings(
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 16.dp),
+                .padding(horizontal = 8.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
 
@@ -307,7 +323,7 @@ fun UiSettings(
                 }
             }
 
-            Spacer(modifier = Modifier.height(16.dp))
+            Spacer(modifier = Modifier.height(8.dp))
 
             ColorSection(
                 title = stringResource(R.string.background_color),
@@ -334,9 +350,36 @@ fun UiSettings(
                 },
             )
 
-            Spacer(modifier = Modifier.height(20.dp))
+            Spacer(modifier = Modifier.height(8.dp))
             HorizontalDivider()
-            Spacer(modifier = Modifier.height(20.dp))
+            Spacer(modifier = Modifier.height(8.dp))
+
+            ImageSection(
+                title = stringResource(R.string.background_image),
+                currentImage = readerPreferences.backgroundImage,
+                predefinedImages = predefinedImages,
+                onImageSelected = { image ->
+                    viewModel.updateReaderPreferences(
+                        readerPreferences.copy(backgroundImage =image)
+                    )
+                },
+//                onCustomColorClicked = {
+//                    if (appPreferences.isPremium) {
+//                        editingColorType = ColorType.BACKGROUND
+//                        isPaletteVisible = true
+//                    } else {
+//                        navController.navigate(Screens.PremiumScreen.route);
+////                        viewModel.purchasePremium(purchaseHelper)
+////                        showPremiumModal = true
+//                    }
+//
+//                },
+            )
+
+            Spacer(modifier = Modifier.height(8.dp))
+            HorizontalDivider()
+            Spacer(modifier = Modifier.height(8.dp))
+
 
             ColorSection(
                 title = stringResource(R.string.text_color),
@@ -354,14 +397,12 @@ fun UiSettings(
 //                        viewModel.purchasePremium(purchaseHelper)
 //                        showPremiumModal = true
                     }
-
                 },
             )
 
-            Spacer(modifier = Modifier.height(20.dp))
+            Spacer(modifier = Modifier.height(8.dp))
             HorizontalDivider()
-            Spacer(modifier = Modifier.height(20.dp))
-
+            Spacer(modifier = Modifier.height(8.dp))
 
             AnimatedVisibility(
                 visible = isPaletteVisible && appPreferences.isPremium
@@ -420,6 +461,42 @@ fun UiSettings(
 
 
 @Composable
+private fun ImageSection(
+    title: String,
+    currentImage: String,
+    predefinedImages: Map<String, String>,
+    onImageSelected: (String) -> Unit,
+) {
+    Text(
+        title,
+        style = MaterialTheme.typography.titleMedium,
+        textAlign = TextAlign.Center
+    )
+    Spacer(modifier = Modifier.height(6.dp))
+    Text(
+        text = predefinedImages.entries.find { it.value == currentImage }?.key.orEmpty(), // ?: "Custom Color",
+        style = MaterialTheme.typography.titleMedium,
+        textAlign = TextAlign.Center
+    )
+    Spacer(modifier = Modifier.height(6.dp))
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.SpaceAround
+    ) {
+        predefinedImages.forEach { (_, image) ->
+            ImageBox(
+                image = image,
+                isSelected = image == currentImage,
+                onClick = { onImageSelected(image) }
+            )
+        }
+    }
+}
+
+
+
+
+@Composable
 private fun ColorSection(
     title: String,
     currentColor: Color,
@@ -432,13 +509,13 @@ private fun ColorSection(
         style = MaterialTheme.typography.titleMedium,
         textAlign = TextAlign.Center
     )
-    Spacer(modifier = Modifier.height(12.dp))
+    Spacer(modifier = Modifier.height(6.dp))
     Text(
         text = predefinedColors.entries.find { it.value == currentColor }?.key ?: "Custom Color",
         style = MaterialTheme.typography.titleMedium,
         textAlign = TextAlign.Center
     )
-    Spacer(modifier = Modifier.height(12.dp))
+    Spacer(modifier = Modifier.height(6.dp))
     Row(
         modifier = Modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.SpaceAround
@@ -469,8 +546,8 @@ private fun ColorBox(
 ) {
     Box(
         modifier = Modifier
-            .size(60.dp)
-            .clip(shape = RoundedCornerShape(50.dp))
+            .size(50.dp)
+            .clip(shape = RoundedCornerShape(40.dp))
             .border(
                 width = 2.dp,
                 color = if (isSelected) {
@@ -478,7 +555,7 @@ private fun ColorBox(
                 } else {
                     Color.Transparent
                 },
-                shape = RoundedCornerShape(50.dp)
+                shape = RoundedCornerShape(40.dp)
             )
             .background(color)
             .clickable(onClick = onClick),
@@ -491,6 +568,45 @@ private fun ColorBox(
                 tint = if (color == Color.Black) Color.White else Color.Black
             )
         }
+    }
+}
+
+
+@Composable
+private fun ImageBox(
+    image: String,
+    isSelected: Boolean,
+    onClick: () -> Unit,
+) {
+    Box(
+        modifier = Modifier
+            .size(50.dp)
+            .clip(shape = RoundedCornerShape(40.dp))
+            .border(
+                width = 2.dp,
+                color = if (isSelected) {
+                        Color(0xFFFFF8DC)
+                } else {
+                    Color.Transparent
+                },
+                shape = RoundedCornerShape(40.dp)
+            )
+            .background(Color(0xFF575757))
+            .clickable(onClick = onClick),
+        contentAlignment = Alignment.Center
+    ) {
+        Image(
+                when(image) {
+                    "ic_read_bg1" -> painterResource(com.wxn.bookread.R.drawable.ic_read_bg1)
+                    "ic_read_bg2" -> painterResource(com.wxn.bookread.R.drawable.ic_read_bg2)
+                    "ic_read_bg3" -> painterResource(com.wxn.bookread.R.drawable.ic_read_bg3)
+                    "ic_read_bg4" -> painterResource(com.wxn.bookread.R.drawable.ic_read_bg4)
+                    else -> painterResource(com.wxn.bookread.R.drawable.ic_bg_none)
+                },
+            contentDescription = image,
+            modifier = Modifier.fillMaxSize().clip(RoundedCornerShape(40.dp)),
+            contentScale = ContentScale.FillBounds
+        )
     }
 }
 

@@ -260,5 +260,16 @@
     <string name="tts_set">TextToSpeech</string>
     <string name="page_horizontal_margins">Page Horizontal Margins</string>
     <string name="page_vertial_margins">Page Vertical Margins</string>
+    <string name="background_image">Background Image</string>
+    <string name="white">White</string>
+    <string name="black">Black</string>
+    <string name="gray">Gray</string>
+    <string name="light_yellow">Light Yellow</string>
+    <string name="pale_brown">Pale Brown</string>
+    <string name="none">None</string>
+    <string name="parchment">Parchment</string>
+    <string name="old_paper">Old Paper</string>
+    <string name="leather">Leather</string>
+    <string name="broken_parchment">Broken Parchment</string>
 
 </resources>

@@ -12,12 +12,14 @@ import com.wxn.bookread.data.model.TextChapter
 import com.wxn.bookread.ui.delegate.PageDelegate
 import android.graphics.Paint
 import android.view.MotionEvent
+import androidx.appcompat.content.res.AppCompatResources
 import androidx.core.graphics.toColorInt
 import com.wxn.base.bean.Book
 import com.wxn.base.bean.Locator
 import com.wxn.base.ext.screenshot
 import com.wxn.base.util.Coroutines
 import com.wxn.base.util.Logger
+import com.wxn.bookread.R
 import com.wxn.bookread.data.model.TextChar
 import com.wxn.bookread.data.model.TextLine
 import com.wxn.bookread.provider.ChapterProvider
@@ -711,10 +713,23 @@ class PageView : FrameLayout, IDataSource, PageCallback {
     override fun upBg() {
         Coroutines.mainScope().launch {
             ChapterProvider.readerPreferencesUtil?.readerPrefsFlow?.firstOrNull()?.let { preference ->
-                val bgColor = preference.backgroundColor
-                curPage.setBg(bgColor)
-                prevPage.setBg(bgColor)
-                nextPage.setBg(bgColor)
+                val bgDrawable = when (preference.backgroundImage) {
+                    "ic_read_bg1" -> AppCompatResources.getDrawable(context, R.drawable.ic_read_bg1)
+                    "ic_read_bg2" -> AppCompatResources.getDrawable(context, R.drawable.ic_read_bg2)
+                    "ic_read_bg3" -> AppCompatResources.getDrawable(context, R.drawable.ic_read_bg3)
+                    "ic_read_bg4" -> AppCompatResources.getDrawable(context, R.drawable.ic_read_bg4)
+                    else -> null
+                }
+                if (bgDrawable != null) {
+                    curPage.setBg(bgDrawable)
+                    prevPage.setBg(bgDrawable)
+                    nextPage.setBg(bgDrawable)
+                } else {
+                    val bgColor = preference.backgroundColor
+                    curPage.setBg(bgColor)
+                    prevPage.setBg(bgColor)
+                    nextPage.setBg(bgColor)
+                }
             }
         }
 

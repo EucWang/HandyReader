@@ -64,7 +64,7 @@ fun MainReadScreen(
     SetFullScreen(context, showSystemBars = areToolbarsVisible)
 
     Box(
-        modifier = Modifier.fillMaxSize().background(color = Color(readerPreferences.backgroundColor)), //.background(MaterialTheme.colorScheme.background),
+        modifier = Modifier.fillMaxSize(),
         contentAlignment = Alignment.Center
     ) {
         // reader

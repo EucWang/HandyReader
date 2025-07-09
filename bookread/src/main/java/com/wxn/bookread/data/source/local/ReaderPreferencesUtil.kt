@@ -51,6 +51,7 @@ class ReaderPreferencesUtil @Inject constructor(context: Context) {
         val TEXT_ALIGN = stringPreferencesKey("text_align")                                 //文本对齐方式
 
         val BACKGROUND_COLOR = intPreferencesKey("background_color")                        //背景颜色
+        val BACKGROUND_IMAGE = stringPreferencesKey("background_image")                        //背景图片
         val TEXT_COLOR = intPreferencesKey("text_color")                                    //文字颜色
         val COLOR_HISTORY = stringPreferencesKey("color_history")                           //颜色历史
 
@@ -81,6 +82,7 @@ class ReaderPreferencesUtil @Inject constructor(context: Context) {
             wordSpacing = 0.0,
             textAlign = TextAlign.Justify,
             backgroundColor = Color.WHITE,
+            backgroundImage = "",
             textColor = Color.BLACK,
             colorHistory = emptyList(),
             keepScreenOn = true,
@@ -109,6 +111,7 @@ class ReaderPreferencesUtil @Inject constructor(context: Context) {
                 pref[TEXT_ALIGN] = defaultPreferences.textAlign.toString()
 
                 pref[BACKGROUND_COLOR] = defaultPreferences.backgroundColor
+                pref[BACKGROUND_IMAGE] = defaultPreferences.backgroundImage
                 pref[TEXT_COLOR] = defaultPreferences.textColor
 
                 pref[COLOR_HISTORY] = serializeColorHistory(defaultPreferences.colorHistory)
@@ -149,6 +152,7 @@ class ReaderPreferencesUtil @Inject constructor(context: Context) {
             wordSpacing = preferences[WORD_SPACING] ?: defaultPreferences.wordSpacing,
             textAlign = toTextAlign(preferences[TEXT_ALIGN]) ?: defaultPreferences.textAlign,
             backgroundColor = preferences[BACKGROUND_COLOR] ?: Color.WHITE,
+            backgroundImage = preferences[BACKGROUND_IMAGE] ?: "",
             textColor = preferences[TEXT_COLOR] ?: Color.BLACK,
             colorHistory = preferences[COLOR_HISTORY]?.let { parseColorHistory(it) } ?: emptyList(),
             keepScreenOn = preferences[KEEP_SCREEN_ON] ?: defaultPreferences.keepScreenOn,
@@ -184,6 +188,7 @@ class ReaderPreferencesUtil @Inject constructor(context: Context) {
             preferences[TEXT_ALIGN] = newPreferences.textAlign.toString()
 
             preferences[BACKGROUND_COLOR] = newPreferences.backgroundColor
+            preferences[BACKGROUND_IMAGE] = newPreferences.backgroundImage
             preferences[TEXT_COLOR] = newPreferences.textColor
 
             preferences[COLOR_HISTORY] = serializeColorHistory(newPreferences.colorHistory)
@@ -238,6 +243,7 @@ class ReaderPreferencesUtil @Inject constructor(context: Context) {
         Logger.d("ReaderPreferencesUtil::resetUiPreferences")
         dataStore.edit { preferences ->
             preferences[BACKGROUND_COLOR] = defaultPreferences.backgroundColor
+            preferences[BACKGROUND_IMAGE] = defaultPreferences.backgroundImage
             preferences[TEXT_COLOR] = defaultPreferences.textColor
         }
     }

@@ -204,14 +204,14 @@ fun FontSettings(
             )
 
             //cannot be changed on publisher styles
-            SettingsRange(
-                title = stringResource(R.string.word_spacing),
-                value = readerPreferences.wordSpacing,
-                onValueChange = { viewModel.updateReaderPreferences( readerPreferences.copy(wordSpacing = it) ) },
-                valueRange = 0.0..3.0,
-                valueDisplay = { String.format(Locale.getDefault(), "%.1f", it) },
-                enabled = !readerPreferences.publisherStyles
-            )
+//            SettingsRange(
+//                title = stringResource(R.string.word_spacing),
+//                value = readerPreferences.wordSpacing,
+//                onValueChange = { viewModel.updateReaderPreferences( readerPreferences.copy(wordSpacing = it) ) },
+//                valueRange = 0.0..3.0,
+//                valueDisplay = { String.format(Locale.getDefault(), "%.1f", it) },
+//                enabled = !readerPreferences.publisherStyles
+//            )
         }
     }
 }

@@ -29,11 +29,12 @@ data class ReaderPreferences(
 
     val paragraphIndent: Double,                //段落缩进, 段落首行缩进， 多少个字符宽度
     val paragraphSpacing: Double,               //段落间距
-    val wordSpacing: Double,                    //词间距
+    val wordSpacing: Double,                    //词间距   取值 0.0 ～ 3.0 之间，TextPaint.wordSpacing设置无效果
     val textAlign: TextAlign,                   //文本对齐
 
     //ui Settings
     val backgroundColor:  Int,                    //背景颜色
+    val backgroundImage: String,                  //背景图片
     val textColor: Int,                           //文字颜色
     val colorHistory: List<Color> = emptyList(),    //颜色历史
     //Reader Settings
