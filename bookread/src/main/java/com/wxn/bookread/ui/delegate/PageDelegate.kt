@@ -35,6 +35,9 @@ abstract class PageDelegate(protected val pageView: PageView) {
     protected var viewWidth: Int = pageView.width
     protected var viewHeight: Int = pageView.height
 
+
+    protected var lastActionDown = 0L
+
     protected val scroller: Scroller by lazy {
         Scroller(pageView.context, DecelerateInterpolator())
     }
@@ -195,7 +198,6 @@ abstract class PageDelegate(protected val pageView: PageView) {
 
 
     open fun onDestroy() {
-
     }
 
     enum class Direction {

@@ -320,64 +320,7 @@ fun ReaderSettings(
                         }
                     }
                 }
-//                Row(modifier = Modifier,
-//                    horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-//                    listOf(
-//                        0 to stringResource(R.string.no_page_trans_anim),
-//                        1 to stringResource(R.string.page_trans_anim_cover_horizontal),
-//                        2 to stringResource(R.string.page_trans_anim_slide_horizontal),
-//                    ).forEach{ (id, label) ->
-//                        FilledTonalButton(
-//                            colors = ButtonDefaults.buttonColors(
-//                                containerColor = if (readerPreferences.scroll == id) {
-//                                    MaterialTheme.colorScheme.primaryContainer
-//                                } else {
-//                                    MaterialTheme.colorScheme.surfaceVariant
-//                                },
-//                                contentColor = if (readerPreferences.scroll == id) {
-//                                    MaterialTheme.colorScheme.onPrimaryContainer
-//                                } else {
-//                                    MaterialTheme.colorScheme.onSurfaceVariant
-//                                }
-//                            ),
-//                            onClick = {
-//                                viewModel.updateReaderPreferences(readerPreferences.copy(scroll = id))
-//                            }
-//                        ) {
-//                            Text(text = label, style = MaterialTheme.typography.bodySmall)
-//                        }
-//                    }
-//                }
-//                Row(modifier = Modifier,
-//                    horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-//                    listOf(
-//                        3 to stringResource(R.string.page_trans_anim_simulation),
-//                        4 to stringResource(R.string.page_trans_anim_cover_vertical),
-//                        5 to stringResource(R.string.page_trans_anim_slide_vertical),
-//                    ).forEach{ (id, label) ->
-//                        FilledTonalButton(
-//                            colors = ButtonDefaults.buttonColors(
-//                                containerColor = if (readerPreferences.scroll == id) {
-//                                    MaterialTheme.colorScheme.primaryContainer
-//                                } else {
-//                                    MaterialTheme.colorScheme.surfaceVariant
-//                                },
-//                                contentColor = if (readerPreferences.scroll == id) {
-//                                    MaterialTheme.colorScheme.onPrimaryContainer
-//                                } else {
-//                                    MaterialTheme.colorScheme.onSurfaceVariant
-//                                }
-//                            ),
-//                            onClick = {
-//                                viewModel.updateReaderPreferences(readerPreferences.copy(scroll = id))
-//                            }
-//                        ) {
-//                            Text(text = label, style = MaterialTheme.typography.bodySmall)
-//                        }
-//                    }
-//                }
             }
-
 
             // Tap Navigation
 //            SettingsSwitch(
@@ -394,63 +337,63 @@ fun ReaderSettings(
 //            )
 
             //Reading Progression
-            Column(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.spacedBy(6.dp)
-            ) {
-                Text(stringResource(R.string.reading_progression), style = MaterialTheme.typography.titleMedium)
-                Row(
-                    modifier = Modifier,
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    listOf(
-                        ConfigReadingProgression.LTR to stringResource(R.string.left_to_right),
-                        ConfigReadingProgression.RTL to stringResource(R.string.right_to_left),
-                    ).forEach { (readingProgression, label) ->
-                        FilledTonalButton(
-                            colors = ButtonDefaults.buttonColors(
-                                containerColor = if (readerPreferences.readingProgression == readingProgression) {
-                                    MaterialTheme.colorScheme.primaryContainer
-                                } else {
-                                    MaterialTheme.colorScheme.surfaceVariant
-                                },
-                                contentColor = if (readerPreferences.readingProgression == readingProgression) {
-                                    MaterialTheme.colorScheme.onPrimaryContainer
-                                } else {
-                                    MaterialTheme.colorScheme.onSurfaceVariant
-                                }
-                            ),
-                            onClick = {
-                                viewModel.updateReaderPreferences(readerPreferences.copy(readingProgression = readingProgression))
-                            }
-                        ) {
-                            Text(text = label, style = MaterialTheme.typography.bodySmall)
-                        }
-                    }
-                }
-            }
+//            Column(
+//                modifier = Modifier.fillMaxWidth(),
+//                horizontalAlignment = Alignment.CenterHorizontally,
+//                verticalArrangement = Arrangement.spacedBy(6.dp)
+//            ) {
+//                Text(stringResource(R.string.reading_progression), style = MaterialTheme.typography.titleMedium)
+//                Row(
+//                    modifier = Modifier,
+//                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+//                ) {
+//                    listOf(
+//                        ConfigReadingProgression.LTR to stringResource(R.string.left_to_right),
+//                        ConfigReadingProgression.RTL to stringResource(R.string.right_to_left),
+//                    ).forEach { (readingProgression, label) ->
+//                        FilledTonalButton(
+//                            colors = ButtonDefaults.buttonColors(
+//                                containerColor = if (readerPreferences.readingProgression == readingProgression) {
+//                                    MaterialTheme.colorScheme.primaryContainer
+//                                } else {
+//                                    MaterialTheme.colorScheme.surfaceVariant
+//                                },
+//                                contentColor = if (readerPreferences.readingProgression == readingProgression) {
+//                                    MaterialTheme.colorScheme.onPrimaryContainer
+//                                } else {
+//                                    MaterialTheme.colorScheme.onSurfaceVariant
+//                                }
+//                            ),
+//                            onClick = {
+//                                viewModel.updateReaderPreferences(readerPreferences.copy(readingProgression = readingProgression))
+//                            }
+//                        ) {
+//                            Text(text = label, style = MaterialTheme.typography.bodySmall)
+//                        }
+//                    }
+//                }
+//            }
 
-            // Vertical Text
-            SettingsSwitch(
-                title = stringResource(R.string.vertical_text),
-                checked = readerPreferences.verticalText,
-                onCheckedChange = { viewModel.updateReaderPreferences(readerPreferences.copy(verticalText = it)) }
-            )
-
-            // Publisher Styles
-            SettingsSwitch(
-                title = stringResource(R.string.publisher_styles),
-                checked = readerPreferences.publisherStyles,
-                onCheckedChange = { viewModel.updateReaderPreferences(readerPreferences.copy(publisherStyles = it)) }
-            )
-
-            // Text Normalisation
-            SettingsSwitch(
-                title = stringResource(R.string.text_normalization),
-                checked = readerPreferences.textNormalization,
-                onCheckedChange = { viewModel.updateReaderPreferences(readerPreferences.copy(textNormalization = it)) }
-            )
+//            // Vertical Text
+//            SettingsSwitch(
+//                title = stringResource(R.string.vertical_text),
+//                checked = readerPreferences.verticalText,
+//                onCheckedChange = { viewModel.updateReaderPreferences(readerPreferences.copy(verticalText = it)) }
+//            )
+//
+//            // Publisher Styles
+//            SettingsSwitch(
+//                title = stringResource(R.string.publisher_styles),
+//                checked = readerPreferences.publisherStyles,
+//                onCheckedChange = { viewModel.updateReaderPreferences(readerPreferences.copy(publisherStyles = it)) }
+//            )
+//
+//            // Text Normalisation
+//            SettingsSwitch(
+//                title = stringResource(R.string.text_normalization),
+//                checked = readerPreferences.textNormalization,
+//                onCheckedChange = { viewModel.updateReaderPreferences(readerPreferences.copy(textNormalization = it)) }
+//            )
         }
     }
 }

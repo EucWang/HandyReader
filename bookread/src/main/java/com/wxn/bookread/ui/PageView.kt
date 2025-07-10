@@ -186,6 +186,8 @@ class PageView : FrameLayout, IDataSource, PageCallback {
 
     val slopSquare by lazy { ViewConfiguration.get(context).scaledTouchSlop }                       //用户手势滑动的最小距离
 
+    val slopTapDuration by lazy { ViewConfiguration.getTapTimeout() }
+
     private val centerRectF = RectF(width * 0.33f, height * 0.33f, width * 0.66f, height * 0.66f)   //中间矩形区域
 
     private val autoPageRect by lazy { Rect() }
@@ -253,6 +255,10 @@ class PageView : FrameLayout, IDataSource, PageCallback {
         }
     }
 
+    /***
+     * Called by a parent to request that a child update its values for mScrollX and mScrollY if necessary.
+     * This will typically be done if the child is animating a scroll using a Scroller object.
+     */
     override fun computeScroll() {
         pageDelegate?.scroll()
     }

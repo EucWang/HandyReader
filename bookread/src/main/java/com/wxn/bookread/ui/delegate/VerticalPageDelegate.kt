@@ -3,6 +3,7 @@ package com.wxn.bookread.ui.delegate
 import android.graphics.Bitmap
 import android.view.MotionEvent
 import com.wxn.base.ext.screenshot
+import com.wxn.base.util.Logger
 import com.wxn.bookread.ui.PageView
 import kotlin.math.sqrt
 
@@ -39,7 +40,11 @@ abstract class VerticalPageDelegate(pageView: PageView) : PageDelegate(pageView)
     override fun onTouch(event: MotionEvent) {
         when (event.action) {
             MotionEvent.ACTION_DOWN -> {
-                abortAnim()
+                val curTimestamp = System.currentTimeMillis()
+                if (curTimestamp - lastActionDown > pageView.slopTapDuration) {
+                    abortAnim()
+                    lastActionDown = curTimestamp
+                }
             }
             MotionEvent.ACTION_MOVE -> {
                 onScroll(event)
@@ -141,5 +146,6 @@ abstract class VerticalPageDelegate(pageView: PageView) : PageDelegate(pageView)
         curBitmap = null
         nextBitmap?.recycle()
         nextBitmap = null
+        Logger.d("VerticalPageDelegate::onDestroy()")
     }
 }
