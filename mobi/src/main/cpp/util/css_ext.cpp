@@ -36,7 +36,7 @@ CssInfo parse_to_css_info(future::Selector *selector, std::string &identifier, i
             break;
         }
         case 2 : {
-            selectorType == CssInfo_Type_Id;
+            selectorType = CssInfo_Type_Id;
             break;
         }
         default: {

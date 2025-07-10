@@ -152,6 +152,10 @@ abstract class PageDelegate(protected val pageView: PageView) {
      */
     abstract fun onTouch(event: MotionEvent)
 
+    open fun startMove() {
+
+    }
+
     /**
      * 按下
      */

@@ -2,6 +2,7 @@ package com.wxn.bookread.ui.delegate
 
 import android.graphics.Canvas
 import android.graphics.Matrix
+import com.wxn.base.util.Logger
 import com.wxn.bookread.ui.PageView
 
 class SlidePageDelegate(pageView: PageView) : HorizontalPageDelegate(pageView) {
@@ -9,6 +10,7 @@ class SlidePageDelegate(pageView: PageView) : HorizontalPageDelegate(pageView) {
     private val bitmapMatrix = Matrix()
 
     override fun onAnimStart(animationSpeed: Int) {
+        Logger.d("${this.javaClass.name}::onAnimStart()")
         val distanceX: Float
         when (mDirection) {
             Direction.NEXT -> distanceX =
@@ -53,6 +55,7 @@ class SlidePageDelegate(pageView: PageView) : HorizontalPageDelegate(pageView) {
     }
 
     override fun onAnimStop() {
+        Logger.d("${this.javaClass.name}::onAnimStop() then fillPage,isCancel[$isCancel],mDirection[$mDirection]")
         if (!isCancel) {
             pageView.fillPage(mDirection)
         }

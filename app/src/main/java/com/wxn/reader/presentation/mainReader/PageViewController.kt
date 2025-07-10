@@ -509,10 +509,10 @@ open class PageViewController @Inject constructor(
 
     private fun getPageBookmark(textPage: TextPage, chapter: TextChapter, chapterBookmarks: List<Bookmark>?):Bookmark? {
         if (chapterBookmarks.isNullOrEmpty()) {
-            Logger.d("TextPageFactory::getPageBookmark:: current chapter[${chapter.position}] bookmarks is empty.")
+//            Logger.d("TextPageFactory::getPageBookmark:: current chapter[${chapter.position}] bookmarks is empty.")
             return null
         } else {
-            Logger.d("TextPageFactory::getPageBookmark:: current chapter[${chapter.position}] bookmarks.size=${chapterBookmarks.size}.")
+//            Logger.d("TextPageFactory::getPageBookmark:: current chapter[${chapter.position}] bookmarks.size=${chapterBookmarks.size}.")
         }
         var pageStartParagraphIndex = 0
         var pageStartParagraphTextOffset = 0
@@ -700,14 +700,14 @@ open class PageViewController @Inject constructor(
      * 当前章节中正在显示的页面的索引
      */
     override fun durChapterPos(): Int {
-        Logger.i("PageViewController::durChapterPos")
+//        Logger.i("PageViewController::durChapterPos")
         curTextChapter?.let {
             if (durPageIndex < it.pageSize) {
                 return durPageIndex
             }
             return it.pageSize - 1
         }
-        Logger.i("PageViewController::durChapterPos::durPageIndex=$durPageIndex")
+//        Logger.i("PageViewController::durChapterPos::durPageIndex=$durPageIndex")
         return durPageIndex
     }
 

@@ -3,6 +3,7 @@ package com.wxn.bookread.ui.delegate
 import android.graphics.Canvas
 import android.graphics.Matrix
 import android.graphics.drawable.GradientDrawable
+import com.wxn.base.util.Logger
 import com.wxn.bookread.ui.PageView
 
 class CoverPageDelegate(pageView: PageView) : HorizontalPageDelegate(pageView) {
@@ -52,12 +53,14 @@ class CoverPageDelegate(pageView: PageView) : HorizontalPageDelegate(pageView) {
     }
 
     override fun onAnimStop() {
+        Logger.d("${this.javaClass.name}::onAnimStop() then fillPage,isCancel[$isCancel],mDirection[$mDirection]")
         if (!isCancel) {
             pageView.fillPage(mDirection)
         }
     }
 
     override fun onAnimStart(animationSpeed: Int) {
+        Logger.d("${this.javaClass.name}::onAnimStart():then startScroll")
         val distanceX: Float
         when (mDirection) {
             Direction.NEXT -> distanceX =

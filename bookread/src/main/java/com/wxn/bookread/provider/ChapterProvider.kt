@@ -430,6 +430,7 @@ object ChapterProvider {
         imageStyles: String = "",
         chapterSize: Int,
     ): TextChapter? {
+        Logger.d("ChapterProvider::getTextChapter::chapterIndex=[${chapter.chapterIndex}]")
         val textPages = arrayListOf<TextPage>()   //一个章节的内容，可以拆分成多少页进行显示
         val pageLines = arrayListOf<Int>()          //每一个页面上，显示的行数的集合
         val pageLengths = arrayListOf<Int>()        //每一个页面上，显示的字符数的集合
@@ -743,7 +744,7 @@ object ChapterProvider {
                 //首行缩进
                 val userSetIndent = (readerPrefs?.paragraphIndent?.toFloat() ?: 0f)   //用户设置的首航缩进
                 firstLineIndent = (if (userSetIndent <= 0.0f) textIndent.toFloat() else userSetIndent) * oneWordWidth   //书籍自带的样式
-                Logger.d("ChapterProvider::textIndent[$textIndent],firstLineIndent[$firstLineIndent],oneEmWidth=$oneWordWidth")
+//                Logger.d("ChapterProvider::textIndent[$textIndent],firstLineIndent[$firstLineIndent],oneEmWidth=$oneWordWidth")
                 //左边距
                 marginLeft = (if (paragraph.textCssInfo.marginLeft.isEm()) {
                     oneWordWidth * paragraph.textCssInfo.marginLeft.value

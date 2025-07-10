@@ -293,10 +293,16 @@ class PageView : FrameLayout, IDataSource, PageCallback {
 
             MotionEvent.ACTION_MOVE -> {
                 pressDown = true
+                var isStartMove = false
                 if (!isMove) {
-                    isMove =
-                        abs(startX - event.x) > slopSquare || abs(startY - event.y) > slopSquare
+                    isStartMove = true
+                    isMove = abs(startX - event.x) > slopSquare || abs(startY - event.y) > slopSquare
                 }
+
+                if (isStartMove) {
+                    pageDelegate?.startMove()
+                }
+
                 if (isMove) {
                     longPressed = false
                     removeCallbacks(longPressRunnable)
@@ -608,7 +614,7 @@ class PageView : FrameLayout, IDataSource, PageCallback {
         Coroutines.mainScope().launch {
             ChapterProvider.readerPreferencesUtil?.readerPrefsFlow?.firstOrNull()?.let { preference ->
                 val pageAnim = preference.scroll
-                isScroll = (pageAnim == 4)
+//                isScroll = (pageAnim == 4)
                 when (pageAnim) {
                     1 -> if (pageDelegate !is CoverPageDelegate) {
                         pageDelegate = CoverPageDelegate(this@PageView)

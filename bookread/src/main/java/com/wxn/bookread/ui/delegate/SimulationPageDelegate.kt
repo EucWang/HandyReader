@@ -12,6 +12,7 @@ import kotlinx.coroutines.launch
 import kotlin.math.*
 import androidx.core.graphics.withSave
 import androidx.core.graphics.withClip
+import com.wxn.base.util.Logger
 
 @Suppress("DEPRECATION")
 class SimulationPageDelegate(pageView: PageView) : HorizontalPageDelegate(pageView) {
@@ -170,6 +171,7 @@ class SimulationPageDelegate(pageView: PageView) : HorizontalPageDelegate(pageVi
     }
 
     override fun onAnimStart(animationSpeed: Int) {
+        Logger.d("${this.javaClass.name}::onAnimStart()")
         var dx: Float
         val dy: Float
         // dy 垂直方向滑动的距离，负值会使滚动向上滚动
@@ -203,6 +205,7 @@ class SimulationPageDelegate(pageView: PageView) : HorizontalPageDelegate(pageVi
     }
 
     override fun onAnimStop() {
+        Logger.d("${this.javaClass.name}::onAnimStop() then fillPage,isCancel[$isCancel],mDirection[$mDirection]")
         if (!isCancel) {
             pageView.fillPage(mDirection)
         }

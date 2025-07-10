@@ -2,6 +2,7 @@ package com.wxn.bookread.ui.delegate
 
 import android.graphics.Canvas
 import android.graphics.Matrix
+import com.wxn.base.util.Logger
 import com.wxn.bookread.ui.PageView
 
 class SlideVerticalPageDelegate(pageView: PageView) : VerticalPageDelegate(pageView) {
@@ -114,6 +115,7 @@ class SlideVerticalPageDelegate(pageView: PageView) : VerticalPageDelegate(pageV
     private val bitmapMatrix = Matrix()
 
     override fun onAnimStart(animationSpeed: Int) {
+        Logger.d("${this.javaClass.name}::onAnimStart()")
         val distanceY: Float
         when (mDirection) {
             Direction.NEXT -> distanceY =
@@ -137,6 +139,7 @@ class SlideVerticalPageDelegate(pageView: PageView) : VerticalPageDelegate(pageV
     }
 
     override fun onAnimStop() {
+        Logger.d("${this.javaClass.name}::onAnimStop() then fillPage,isCancel[$isCancel],mDirection[$mDirection]")
         if (!isCancel) {
             pageView.fillPage(mDirection)
         }

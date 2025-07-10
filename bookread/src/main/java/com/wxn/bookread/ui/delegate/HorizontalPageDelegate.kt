@@ -55,7 +55,7 @@ abstract class HorizontalPageDelegate(pageView: PageView) : PageDelegate(pageVie
     }
 
     private fun onScroll(event: MotionEvent) {
-
+        Logger.d("${this.javaClass.name}::onScroll()")
         val action: Int = event.action
         val pointerUp =
             action and MotionEvent.ACTION_MASK == MotionEvent.ACTION_POINTER_UP
@@ -105,6 +105,7 @@ abstract class HorizontalPageDelegate(pageView: PageView) : PageDelegate(pageVie
     }
 
     override fun abortAnim() {
+        Logger.d("${this.javaClass.name}::abortAnim()")
         isStarted = false
         isMoved = false
         isRunning = false
@@ -121,6 +122,7 @@ abstract class HorizontalPageDelegate(pageView: PageView) : PageDelegate(pageVie
     }
 
     override fun nextPageByAnim(animationSpeed: Int) {
+        Logger.d("HorizontalPageDelegate::nextPageByAnim()")
         abortAnim()
         if (!hasNext()) return
         setDirection(Direction.NEXT)
@@ -129,6 +131,7 @@ abstract class HorizontalPageDelegate(pageView: PageView) : PageDelegate(pageVie
     }
 
     override fun prevPageByAnim(animationSpeed: Int) {
+        Logger.d("${this.javaClass.name}::nextPageByAnim()")
         abortAnim()
         if (!hasPrev()) return
         setDirection(Direction.PREV)
