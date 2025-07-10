@@ -128,15 +128,15 @@ fun HomeMinePanel(innerPadding: PaddingValues, viewModel: HomeViewModel) {
                         Column(
                             horizontalAlignment = Alignment.CenterHorizontally,
                         ) {
-                            if (appPreferences.isPremium) {
-                                Image(
-                                    painter = painterResource(id = R.drawable.crown),
-                                    contentDescription = "Crown",
-                                    modifier = Modifier
-                                        .size(24.dp)
-                                        .offset(y = (36).dp)  // Adjust this value to control overlap
-                                )
-                            }
+//                            if (appPreferences.isPremium) {
+//                                Image(
+//                                    painter = painterResource(id = R.drawable.crown),
+//                                    contentDescription = "Crown",
+//                                    modifier = Modifier
+//                                        .size(24.dp)
+//                                        .offset(y = (36).dp)  // Adjust this value to control overlap
+//                                )
+//                            }
                             Image(
                                 painter = painterResource(id = R.mipmap.ic_launcher_foreground),
                                 contentDescription = "App Logo",
