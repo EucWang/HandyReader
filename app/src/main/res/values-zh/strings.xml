@@ -1,5 +1,5 @@
 <resources xmlns:tools="http://schemas.android.com/tools">
-    <string name="app_name">随阅·悦读 </string>
+    <string name="app_name">随阅</string>
     <string name="highlight">高亮</string>
     <string name="underline">下划线</string>
     <string name="note">笔记</string>
@@ -224,7 +224,7 @@
     <string name="subjects_with_comma">主题（逗号分隔）</string>
     <string name="narrator">朗读者</string>
     <string name="translated_text">翻译文本：[API调用结果 \"%1$s\"]</string>
-    <string name="welcome_to_uread">欢迎使用随阅.悦读</string>
+    <string name="welcome_to_uread">欢迎使用随阅</string>
     <string name="remove_note">删除笔记</string>
     <string name="dialog_content_remove_note">确定要删除此笔记吗？</string>
     <string name="ok">确定</string>

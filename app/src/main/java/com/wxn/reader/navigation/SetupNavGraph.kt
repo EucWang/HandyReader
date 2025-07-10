@@ -4,7 +4,6 @@ import androidx.compose.runtime.Composable
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
-import com.wxn.reader.presentation.annotations.AnnotationsScreen
 import com.wxn.reader.presentation.audioBookReader.AudiobookReaderScreen
 import com.wxn.reader.presentation.bookDetails.BookDetailsScreen
 import com.wxn.reader.presentation.gettingStarted.GettingStartedScreen
@@ -12,7 +11,6 @@ import com.wxn.reader.presentation.home.HomeScreen
 import com.wxn.reader.presentation.mainReader.MainReadScreen
 import com.wxn.reader.presentation.notes.NotesScreen
 import com.wxn.reader.presentation.pdfReader.PdfReaderScreen
-//import com.wxn.reader.presentation.settings.components.AboutAppScreen
 import com.wxn.reader.presentation.settings.components.DeletedBooksScreen
 import com.wxn.reader.presentation.settings.components.GeneralSettings
 import com.wxn.reader.presentation.settings.components.SpeakerScreen
@@ -78,21 +76,11 @@ fun SetupNavGraph(startDestination: String) {
         ) {
             DeletedBooksScreen()
         }
-//        composable(
-//            route = Screens.AboutAppScreen.route + "/{isDarkTheme}",
-//        ) {
-//            AboutAppScreen()
-//        }
 
         composable(
             route = Screens.NotesScreen.route,
         ) {
             NotesScreen()
-        }
-        composable(
-            route = Screens.AnnotationsScreen.route,
-        ) {
-            AnnotationsScreen()
         }
         composable(
             route = Screens.StatisticsScreen.route,

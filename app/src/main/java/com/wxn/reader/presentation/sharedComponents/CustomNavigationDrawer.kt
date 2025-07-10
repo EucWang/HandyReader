@@ -192,39 +192,6 @@ fun CustomNavigationDrawer(
                         )
                         Spacer(Modifier.height(16.dp))
                     }
-                    item {
-                        NavigationItem(
-                            icon = Icons.Outlined.BorderColor,
-                            label = stringResource(R.string.highlights_underlines),
-                            isSelected = currentRoute == Screens.AnnotationsScreen.route,
-                            onClick = {
-                                navigateIfNeeded(
-                                    navController,
-                                    currentRoute,
-                                    drawerState,
-                                    Screens.AnnotationsScreen.route,
-                                    scope
-                                )
-                            }
-                        )
-                        Spacer(Modifier.height(16.dp))
-                    }
-//                    item {
-//                        NavigationItem(
-//                            icon = Icons.Outlined.Settings,
-//                            label = stringResource(R.string.settings),
-//                            isSelected = currentRoute == Screens.SettingsScreen.route,
-//                            onClick = {
-//                                navigateIfNeeded(
-//                                    navController,
-//                                    currentRoute,
-//                                    drawerState,
-//                                    Screens.SettingsScreen.route,
-//                                    scope
-//                                )
-//                            }
-//                        )
-//                    }
                 }
             }
         }

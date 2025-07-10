@@ -28,7 +28,6 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.StickyNote2
-import androidx.compose.material.icons.outlined.BorderColor
 import androidx.compose.material.icons.outlined.DeleteOutline
 import androidx.compose.material.icons.outlined.FolderCopy
 import androidx.compose.material.icons.outlined.Info
@@ -163,11 +162,6 @@ fun HomeMinePanel(innerPadding: PaddingValues, viewModel: HomeViewModel) {
                 item {
                     SetListItem(isDarkTheme,  stringResource(R.string.notes),Icons.AutoMirrored.Outlined.StickyNote2,) {
                         navController.navigate(Screens.NotesScreen.route)
-                    }
-                }
-                item {
-                    SetListItem(isDarkTheme, stringResource(R.string.highlights_underlines),Icons.Outlined.BorderColor,) {
-                        navController.navigate(Screens.AnnotationsScreen.route)
                     }
                 }
 
