@@ -6,7 +6,8 @@ import com.wxn.base.ext.screenshot
 import com.wxn.bookread.ui.PageView
 import kotlin.math.sqrt
 
-abstract class HorizontalPageDelegate(pageView: PageView) : PageDelegate(pageView) {
+abstract class VerticalPageDelegate(pageView: PageView) : PageDelegate(pageView) {
+
 
     protected var curBitmap: Bitmap? = null
     protected var prevBitmap: Bitmap? = null
@@ -49,8 +50,8 @@ abstract class HorizontalPageDelegate(pageView: PageView) : PageDelegate(pageVie
         }
     }
 
-    private fun onScroll(event: MotionEvent) {
 
+    private fun onScroll(event: MotionEvent) {
         val action: Int = event.action
         val pointerUp =
             action and MotionEvent.ACTION_MASK == MotionEvent.ACTION_POINTER_UP
@@ -74,7 +75,7 @@ abstract class HorizontalPageDelegate(pageView: PageView) : PageDelegate(pageVie
             val distance = sqrt(deltaX * deltaX + deltaY * deltaY)
             isMoved = distance >= pageView.slopSquare
             if (isMoved) {
-                if (sumX - startX > 0) {
+                if (sumY - startY > 0) {
                     //如果上一页不存在
                     if (!hasPrev()) {
                         noNext = true
@@ -92,12 +93,13 @@ abstract class HorizontalPageDelegate(pageView: PageView) : PageDelegate(pageVie
             }
         }
         if (isMoved) {
-            isCancel = if (mDirection == Direction.NEXT) sumX > lastX else sumX < lastX
+            isCancel = if (mDirection == Direction.NEXT) sumY > lastY else sumY < lastY
             isRunning = true
             //设置触摸点
             pageView.setTouchPoint(sumX, sumY)
         }
     }
+
 
     override fun abortAnim() {
         isStarted = false
@@ -119,7 +121,7 @@ abstract class HorizontalPageDelegate(pageView: PageView) : PageDelegate(pageVie
         abortAnim()
         if (!hasNext()) return
         setDirection(Direction.NEXT)
-        pageView.setTouchPoint(viewWidth.toFloat(), 0f, false)
+        pageView.setTouchPoint(0f, viewHeight.toFloat(), false)
         onAnimStart(animationSpeed)
     }
 
@@ -140,5 +142,4 @@ abstract class HorizontalPageDelegate(pageView: PageView) : PageDelegate(pageVie
         nextBitmap?.recycle()
         nextBitmap = null
     }
-
 }

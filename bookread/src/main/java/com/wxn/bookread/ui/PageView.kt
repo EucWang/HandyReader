@@ -15,23 +15,20 @@ import android.view.MotionEvent
 import androidx.appcompat.content.res.AppCompatResources
 import androidx.core.graphics.toColorInt
 import com.wxn.base.bean.Book
-import com.wxn.base.bean.Locator
 import com.wxn.base.ext.screenshot
 import com.wxn.base.util.Coroutines
 import com.wxn.base.util.Logger
 import com.wxn.bookread.R
-import com.wxn.bookread.data.model.TextChar
 import com.wxn.bookread.data.model.TextLine
 import com.wxn.bookread.provider.ChapterProvider
 import com.wxn.bookread.ui.delegate.CoverPageDelegate
+import com.wxn.bookread.ui.delegate.CoverVerticalPageDelegate
 import com.wxn.bookread.ui.delegate.NoAnimPageDelegate
-import com.wxn.bookread.ui.delegate.ScrollPageDelegate
 import com.wxn.bookread.ui.delegate.SimulationPageDelegate
 import com.wxn.bookread.ui.delegate.SlidePageDelegate
-import kotlinx.coroutines.delay
+import com.wxn.bookread.ui.delegate.SlideVerticalPageDelegate
 import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.launch
-import java.util.UUID
 import kotlin.math.abs
 
 /****
@@ -605,7 +602,7 @@ class PageView : FrameLayout, IDataSource, PageCallback {
         Coroutines.mainScope().launch {
             ChapterProvider.readerPreferencesUtil?.readerPrefsFlow?.firstOrNull()?.let { preference ->
                 val pageAnim = preference.scroll
-                isScroll = pageAnim == 4
+                isScroll = (pageAnim == 4)
                 when (pageAnim) {
                     1 -> if (pageDelegate !is CoverPageDelegate) {
                         pageDelegate = CoverPageDelegate(this@PageView)
@@ -619,8 +616,12 @@ class PageView : FrameLayout, IDataSource, PageCallback {
                         pageDelegate = SimulationPageDelegate(this@PageView)
                     }
 
-                    4 -> if (pageDelegate !is ScrollPageDelegate) {
-                        pageDelegate = ScrollPageDelegate(this@PageView)
+                    4 -> if (pageDelegate !is CoverVerticalPageDelegate) {
+                        pageDelegate = CoverVerticalPageDelegate(this@PageView)
+                    }
+
+                    5 -> if (pageDelegate !is SlideVerticalPageDelegate) {
+                        pageDelegate = SlideVerticalPageDelegate(this@PageView)
                     }
 
                     else -> if (pageDelegate !is NoAnimPageDelegate) {

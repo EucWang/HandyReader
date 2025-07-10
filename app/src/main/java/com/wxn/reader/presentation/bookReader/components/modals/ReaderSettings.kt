@@ -3,15 +3,28 @@ package com.wxn.reader.presentation.bookReader.components.modals
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowForward
+import androidx.compose.material.icons.automirrored.filled.VolumeDown
+import androidx.compose.material.icons.filled.ArrowDownward
+import androidx.compose.material.icons.filled.ArrowForward
+import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.KeyboardArrowDown
+import androidx.compose.material.icons.filled.KeyboardArrowRight
+import androidx.compose.material.icons.filled.Search
+import androidx.compose.material.icons.filled.SubdirectoryArrowRight
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilledTonalButton
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Switch
@@ -191,7 +204,7 @@ import com.wxn.bookread.data.model.config.ConfigReadingProgression
 //    }
 //}
 
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
 @Composable
 fun ReaderSettings(
     viewModel: MainReadViewModel,
@@ -276,40 +289,16 @@ fun ReaderSettings(
                 verticalArrangement = Arrangement.spacedBy(6.dp)
             ) {
                 Text(stringResource(R.string.scroll_mode), style = MaterialTheme.typography.titleMedium)
-                Row(modifier = Modifier,
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+
+                FlowRow(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
                     listOf(
                         0 to stringResource(R.string.no_page_trans_anim),
-                        1 to stringResource(R.string.page_trans_anim_cover),
-                        2 to stringResource(R.string.page_trans_anim_slide),
-                    ).forEach{ (id, label) ->
-                        FilledTonalButton(
-                            colors = ButtonDefaults.buttonColors(
-                                containerColor = if (readerPreferences.scroll == id) {
-                                    MaterialTheme.colorScheme.primaryContainer
-                                } else {
-                                    MaterialTheme.colorScheme.surfaceVariant
-                                },
-                                contentColor = if (readerPreferences.scroll == id) {
-                                    MaterialTheme.colorScheme.onPrimaryContainer
-                                } else {
-                                    MaterialTheme.colorScheme.onSurfaceVariant
-                                }
-                            ),
-                            onClick = {
-                                viewModel.updateReaderPreferences(readerPreferences.copy(scroll = id))
-                            }
-                        ) {
-                            Text(text = label, style = MaterialTheme.typography.bodySmall)
-                        }
-                    }
-                }
-                Row(modifier = Modifier,
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    listOf(
+                        1 to stringResource(R.string.page_trans_anim_cover_horizontal),
+                        2 to stringResource(R.string.page_trans_anim_slide_horizontal),
                         3 to stringResource(R.string.page_trans_anim_simulation),
-                        4 to stringResource(R.string.page_trans_anim_scroll),
-                    ).forEach{ (id, label) ->
+                        4 to stringResource(R.string.page_trans_anim_cover_vertical),
+                        5 to stringResource(R.string.page_trans_anim_slide_vertical),
+                    ) .forEach {  (id, label) ->
                         FilledTonalButton(
                             colors = ButtonDefaults.buttonColors(
                                 containerColor = if (readerPreferences.scroll == id) {
@@ -331,6 +320,62 @@ fun ReaderSettings(
                         }
                     }
                 }
+//                Row(modifier = Modifier,
+//                    horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+//                    listOf(
+//                        0 to stringResource(R.string.no_page_trans_anim),
+//                        1 to stringResource(R.string.page_trans_anim_cover_horizontal),
+//                        2 to stringResource(R.string.page_trans_anim_slide_horizontal),
+//                    ).forEach{ (id, label) ->
+//                        FilledTonalButton(
+//                            colors = ButtonDefaults.buttonColors(
+//                                containerColor = if (readerPreferences.scroll == id) {
+//                                    MaterialTheme.colorScheme.primaryContainer
+//                                } else {
+//                                    MaterialTheme.colorScheme.surfaceVariant
+//                                },
+//                                contentColor = if (readerPreferences.scroll == id) {
+//                                    MaterialTheme.colorScheme.onPrimaryContainer
+//                                } else {
+//                                    MaterialTheme.colorScheme.onSurfaceVariant
+//                                }
+//                            ),
+//                            onClick = {
+//                                viewModel.updateReaderPreferences(readerPreferences.copy(scroll = id))
+//                            }
+//                        ) {
+//                            Text(text = label, style = MaterialTheme.typography.bodySmall)
+//                        }
+//                    }
+//                }
+//                Row(modifier = Modifier,
+//                    horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+//                    listOf(
+//                        3 to stringResource(R.string.page_trans_anim_simulation),
+//                        4 to stringResource(R.string.page_trans_anim_cover_vertical),
+//                        5 to stringResource(R.string.page_trans_anim_slide_vertical),
+//                    ).forEach{ (id, label) ->
+//                        FilledTonalButton(
+//                            colors = ButtonDefaults.buttonColors(
+//                                containerColor = if (readerPreferences.scroll == id) {
+//                                    MaterialTheme.colorScheme.primaryContainer
+//                                } else {
+//                                    MaterialTheme.colorScheme.surfaceVariant
+//                                },
+//                                contentColor = if (readerPreferences.scroll == id) {
+//                                    MaterialTheme.colorScheme.onPrimaryContainer
+//                                } else {
+//                                    MaterialTheme.colorScheme.onSurfaceVariant
+//                                }
+//                            ),
+//                            onClick = {
+//                                viewModel.updateReaderPreferences(readerPreferences.copy(scroll = id))
+//                            }
+//                        ) {
+//                            Text(text = label, style = MaterialTheme.typography.bodySmall)
+//                        }
+//                    }
+//                }
             }
 
 
