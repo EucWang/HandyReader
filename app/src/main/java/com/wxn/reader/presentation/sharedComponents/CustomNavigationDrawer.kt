@@ -209,22 +209,22 @@ fun CustomNavigationDrawer(
                         )
                         Spacer(Modifier.height(16.dp))
                     }
-                    item {
-                        NavigationItem(
-                            icon = Icons.Outlined.Settings,
-                            label = stringResource(R.string.settings),
-                            isSelected = currentRoute == Screens.SettingsScreen.route,
-                            onClick = {
-                                navigateIfNeeded(
-                                    navController,
-                                    currentRoute,
-                                    drawerState,
-                                    Screens.SettingsScreen.route,
-                                    scope
-                                )
-                            }
-                        )
-                    }
+//                    item {
+//                        NavigationItem(
+//                            icon = Icons.Outlined.Settings,
+//                            label = stringResource(R.string.settings),
+//                            isSelected = currentRoute == Screens.SettingsScreen.route,
+//                            onClick = {
+//                                navigateIfNeeded(
+//                                    navController,
+//                                    currentRoute,
+//                                    drawerState,
+//                                    Screens.SettingsScreen.route,
+//                                    scope
+//                                )
+//                            }
+//                        )
+//                    }
                 }
             }
         }

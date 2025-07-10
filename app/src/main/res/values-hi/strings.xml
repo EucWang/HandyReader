@@ -28,8 +28,8 @@
     <string name="cancel">रद्द करें</string>
     <string name="all_books">सभी पुस्तकें</string>
     <string name="unlock_premium">प्रीमियम अनलॉक करें</string>
-    <string name="unlock_uread_premium">uRead प्रीमियम अनलॉक करें</string>
-    <string name="unlock_all_premium_features_and_get_the_best_reading_experience_with_uread_premium">uRead प्रीमियम के साथ सभी प्रीमियम सुविधाएँ अनलॉक करें और सबसे बेहतरीन पढ़ने का अनुभव प्राप्त करें।</string>
+    <string name="unlock_uread_premium">Handy Reader प्रीमियम अनलॉक करें</string>
+    <string name="unlock_all_premium_features_and_get_the_best_reading_experience_with_uread_premium">Handy Reader प्रीमियम के साथ सभी प्रीमियम सुविधाएँ अनलॉक करें और सबसे बेहतरीन पढ़ने का अनुभव प्राप्त करें।</string>
     <string name="remove_ads">विज्ञापन हटाएँ</string>
     <string name="get_full_access_to_custom_app_theme">कस्टम ऐप थीम तक पूर्ण पहुँच प्राप्त करें</string>
     <string name="get_unlimited_number_of_shelves">असीमित संख्या में शेल्फ़ प्राप्त करें</string>
@@ -113,7 +113,7 @@
     <string name="text_color">टेक्स्ट रंग</string>
     <string name="select_color">%1$s रंग चुनें</string>
     <string name="no_books_in">%1$s में कोई पुस्तक नहीं</string>
-<!--    <string name="welcome_to_uread">uRead में आपका स्वागत है!</string>-->
+<!--    <string name="welcome_to_uread">Handy Reader में आपका स्वागत है!</string>-->
     <string name="to_get_started_please_select_a_directory_where_you_would_like_to_load_your_books">शुरुआत करने के लिए, कृपया एक निर्देशिका चुनें जहाँ आप अपनी पुस्तकें लोड करना चाहते हैं।</string>
     <string name="select_directory">निर्देशिका स्थान चुनें</string>
     <string name="select_scan_directory">स्कैन निर्देशिका चुनें</string>

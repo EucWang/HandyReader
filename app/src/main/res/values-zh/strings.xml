@@ -27,8 +27,8 @@
     <string name="cancel">取消</string>
     <string name="all_books">所有书籍</string>
     <string name="unlock_premium">解锁高级版</string>
-    <string name="unlock_uread_premium">解锁 uRead 高级版</string>
-    <string name="unlock_all_premium_features_and_get_the_best_reading_experience_with_uread_premium">解锁所有高级功能，获得 uRead 高级版最佳阅读体验</string>
+    <string name="unlock_uread_premium">解锁 Handy Reader 高级版</string>
+    <string name="unlock_all_premium_features_and_get_the_best_reading_experience_with_uread_premium">解锁所有高级功能，获得 随阅 高级版最佳阅读体验</string>
     <string name="remove_ads">移除广告</string>
     <string name="get_full_access_to_custom_app_theme">获取自定义应用主题完全访问权限</string>
     <string name="get_unlimited_number_of_shelves">获取无限数量的书架</string>
@@ -112,7 +112,7 @@
     <string name="text_color">文本颜色</string>
     <string name="select_color">选择 %1$s 颜色</string>
     <string name="no_books_in">%1$s 中没有书籍</string>
-<!--    <string name="welcome_to_uread">欢迎使用 uRead！</string>-->
+<!--    <string name="welcome_to_uread">欢迎使用 随阅！</string>-->
     <string name="to_get_started_please_select_a_directory_where_you_would_like_to_load_your_books">要开始使用，请选择要加载书籍的目录。</string>
     <string name="select_directory">选择目录位置</string>
     <string name="select_scan_directory">选择扫描目录</string>

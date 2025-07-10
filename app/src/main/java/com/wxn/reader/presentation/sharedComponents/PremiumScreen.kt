@@ -244,20 +244,20 @@ fun PremiumScreen(
                 ) {
                     Button(
                         onClick = {
-                            try {
-                                val intent = Intent(
-                                    Intent.ACTION_VIEW,
-                                    Uri.parse("https://github.com/Rics-Dev/uRead/blob/main/app/src/main/assets/documentation/PRIVACY_POLICY.md")
-                                )
-                                context.startActivity(intent)
-                            } catch (e: Exception) {
-                                Toast.makeText(
-                                    context,
-                                    "Unable to open Privacy Policy",
-                                    Toast.LENGTH_SHORT
-                                )
-                                    .show()
-                            }
+//                            try {
+//                                val intent = Intent(
+//                                    Intent.ACTION_VIEW,
+//                                    Uri.parse("https://github.com/EucWang/HandyReader/blob/main/PrivayPolicy.md")
+//                                )
+//                                context.startActivity(intent)
+//                            } catch (e: Exception) {
+//                                Toast.makeText(
+//                                    context,
+//                                    "Unable to open Privacy Policy",
+//                                    Toast.LENGTH_SHORT
+//                                )
+//                                    .show()
+//                            }
                         },
                         modifier = Modifier.weight(1f)
                     ) {

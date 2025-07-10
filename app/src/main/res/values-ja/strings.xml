@@ -27,8 +27,8 @@
     <string name="cancel">キャンセル</string>
     <string name="all_books">すべての本</string>
     <string name="unlock_premium">プレミアムを解除</string>
-    <string name="unlock_uread_premium">uRead プレミアムを解除</string>
-    <string name="unlock_all_premium_features_and_get_the_best_reading_experience_with_uread_premium">すべてのプレミアム機能を解除し、uRead プレミアムで最高の読書体験を</string>
+    <string name="unlock_uread_premium">Handy Reader プレミアムを解除</string>
+    <string name="unlock_all_premium_features_and_get_the_best_reading_experience_with_uread_premium">すべてのプレミアム機能を解除し、Handy Reader プレミアムで最高の読書体験を</string>
     <string name="remove_ads">広告を削除</string>
     <string name="get_full_access_to_custom_app_theme">カスタムアプリテーマへのフルアクセス</string>
     <string name="get_unlimited_number_of_shelves">本棚の数に制限なし</string>

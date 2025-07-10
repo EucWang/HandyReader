@@ -104,7 +104,7 @@ fun GettingStartedScreen(
                         contentDescription = "App Logo",
                         modifier = Modifier
                             .size(150.dp)
-                            .semantics { contentDescription = "uRead app logo" }
+                            .semantics { contentDescription = "Handy Reader app logo" }
                     )
 
                 }
@@ -119,7 +119,7 @@ fun GettingStartedScreen(
                         style = MaterialTheme.typography.headlineMedium,
                         textAlign = TextAlign.Center,
                         modifier = Modifier.semantics {
-                            contentDescription = "Welcome to uRead heading"
+                            contentDescription = "Welcome to Handy Reader heading"
                         }
                     )
                 }

@@ -2,21 +2,11 @@
 
 ## 👀 Overview 
 
-<p align=center>
-<image src="https://raw.githubusercontent.com/Rics-Dev/uRead/main/.github/screenshots/screenshot1.png" height="512"></image>
- <image src="https://raw.githubusercontent.com/Rics-Dev/uRead/main/.github/screenshots/screenshot2.png" height="512"></image>
- <image src="https://raw.githubusercontent.com/Rics-Dev/uRead/main/.github/screenshots/screenshot3.png" height="512"></image>
- <image src="https://raw.githubusercontent.com/Rics-Dev/uRead/main/.github/screenshots/screenshot4.png" height="512"></image>
- <image src="https://raw.githubusercontent.com/Rics-Dev/uRead/main/.github/screenshots/screenshot5.png" height="512"></image>
- <image src="https://raw.githubusercontent.com/Rics-Dev/uRead/main/.github/screenshots/screenshot6.png" height="512"></image>
- <image src="https://raw.githubusercontent.com/Rics-Dev/uRead/main/.github/screenshots/screenshot7.png" height="512"></image>
-</p>
-
 ---
 
 ## Features
 
-- Support for EPUB format
+- Support for EPUB/MOBI/AZW/AZW3/FB2/TXT/MD/PDF/Mp3 format
 - Material You design
 - Color picker functionality
 - Room database integration for local storage
@@ -26,10 +16,7 @@
 - Datastore for preferences
 - Paging support
 
-
 --- 
-
-
 
 ## License
 
@@ -41,6 +28,5 @@ This project is licensed under the GNU General Public License v3.0 - see the [LI
 
 ## Acknowledgments
 
-- [Readium](https://readium.org/) for their e-book toolkit
 - [Skydoves](https://github.com/skydoves) for the ColorPicker Compose library
 - [Shivamdhuria](https://github.com/Shivamdhuria) for the Palette library

@@ -27,8 +27,8 @@
     <string name="cancel">Cancelar</string>
     <string name="all_books">Todos los Libros</string>
     <string name="unlock_premium">Desbloquear Premium</string>
-    <string name="unlock_uread_premium">Desbloquear uRead Premium</string>
-    <string name="unlock_all_premium_features_and_get_the_best_reading_experience_with_uread_premium">Desbloquea todas las funciones premium y obtén la mejor experiencia de lectura con uRead Premium.</string>
+    <string name="unlock_uread_premium">Desbloquear Handy Reader Premium</string>
+    <string name="unlock_all_premium_features_and_get_the_best_reading_experience_with_uread_premium">Desbloquea todas las funciones premium y obtén la mejor experiencia de lectura con Handy Reader Premium.</string>
     <string name="remove_ads">Eliminar anuncios</string>
     <string name="get_full_access_to_custom_app_theme">Obtén acceso completo al tema personalizado de la aplicación</string>
     <string name="get_unlimited_number_of_shelves">Obtén un número ilimitado de estantes</string>
@@ -112,7 +112,7 @@
     <string name="text_color">Color de Texto</string>
     <string name="select_color">Seleccionar Color de %1$s</string>
     <string name="no_books_in">No hay libros en %1$s</string>
-<!--    <string name="welcome_to_uread">¡Bienvenido a uRead!</string>-->
+<!--    <string name="welcome_to_uread">¡Bienvenido a Handy Reader!</string>-->
     <string name="to_get_started_please_select_a_directory_where_you_would_like_to_load_your_books">Para comenzar, selecciona un directorio donde te gustaría cargar tus libros.</string>
     <string name="select_directory">Seleccionar Directorio</string>
     <string name="select_scan_directory">Seleccionar Directorio de Escaneo</string>
