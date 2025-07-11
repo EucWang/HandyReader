@@ -144,7 +144,7 @@
     <string name="show_reading_status">पढ़ने की स्थिति दिखाएँ</string>
     <string name="show_reading_dates">पढ़ने की तिथियाँ दिखाएँ</string>
     <string name="show_ratings">रेटिंग्स दिखाएँ</string>
-    <string name="show_pdf_label">PDF लेबल दिखाएँ</string>
+    <string name="show_file_label">फ़ाइल लेबल प्रदर्शित करें</string>
     <string name="show_entries">प्रविष्टियाँ दिखाएँ</string>
     <string name="sort">क्रमबद्ध करें</string>
     <string name="filter">फ़िल्टर</string>

@@ -142,7 +142,7 @@
     <string name="show_reading_status">Show Reading Status</string>
     <string name="show_reading_dates">Show Reading Dates</string>
     <string name="show_ratings">Show Ratings</string>
-    <string name="show_pdf_label">Show PDF Label</string>
+    <string name="show_file_label">Show File Labels</string>
     <string name="show_entries">Show Entries</string>
     <string name="sort">Sort</string>
     <string name="filter">Filter</string>

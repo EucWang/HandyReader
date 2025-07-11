@@ -214,7 +214,7 @@ void string_ext::replace_all(std::string &input, std::string &old_str, std::stri
 }
 
 
-std::string &string_ext::cleanStr(const std::string &str) {
+std::string string_ext::cleanStr(const std::string &str) {
     std::string ret = str;
 //    trim(ret);
     ret = std::regex_replace(ret, regex, my_empty_str);

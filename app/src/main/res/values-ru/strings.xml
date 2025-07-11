@@ -142,7 +142,7 @@
     <string name="show_reading_status">Показать статус чтения</string>
     <string name="show_reading_dates">Показать даты чтения</string>
     <string name="show_ratings">Показать оценки</string>
-    <string name="show_pdf_label">Показать метку PDF</string>
+    <string name="show_file_label">Показать метки файлов</string>
     <string name="show_entries">Показать записи</string>
     <string name="sort">Сортировка</string>
     <string name="filter">Фильтр</string>

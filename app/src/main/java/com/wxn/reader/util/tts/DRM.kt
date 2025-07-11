@@ -36,7 +36,7 @@ object DRM {
         val rfc2616Format = SimpleDateFormat("EEE, dd MMM yyyy HH:mm:ss 'GMT'", Locale.US)
         rfc2616Format.timeZone = TimeZone.getTimeZone("GMT")
         try {
-            val date: Date = rfc2616Format.parse(rfc2616Time)
+            val date: Date = rfc2616Format.parse(rfc2616Time) ?: return null
             return date.time.toDouble() / 1000
         } catch (e: ParseException) {
             e.printStackTrace()

@@ -144,7 +144,7 @@
     <string name="show_reading_status">إظهار حالة القراءة</string>
     <string name="show_reading_dates">إظهار تواريخ القراءة</string>
     <string name="show_ratings">إظهار التقييمات</string>
-    <string name="show_pdf_label">إظهار ملصق PDF</string>
+    <string name="show_file_label">إظهار ملصق</string>
     <string name="show_entries">إظهار المدخلات</string>
     <string name="sort">فرز</string>
     <string name="filter">تصفية</string>

@@ -143,7 +143,7 @@
     <string name="show_reading_status">Mostrar Status de Leitura</string>
     <string name="show_reading_dates">Mostrar Datas de Leitura</string>
     <string name="show_ratings">Mostrar Avaliações</string>
-    <string name="show_pdf_label">Mostrar Etiqueta PDF</string>
+    <string name="show_file_label">Mostrar etiquetas de arquivos</string>
     <string name="show_entries">Mostrar Entradas</string>
     <string name="sort">Ordenar</string>
     <string name="filter">Filtrar</string>

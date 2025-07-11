@@ -75,7 +75,7 @@ public:
 
     static void replace_all(std::string &input, std::string &old_str, std::string &new_str);
 
-    static std::string& cleanStr(const std::string &str);
+    static std::string cleanStr(const std::string &str);
 
     /****
      * 基础的URL解码，支持ASCII 和空格

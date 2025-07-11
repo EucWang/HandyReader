@@ -25,6 +25,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.zIndex
@@ -149,18 +150,27 @@ fun BookCard(
                                 .fillMaxWidth()
                                 .background(Color.LightGray)
                         ) {
-                            val request = ImageRequest.Builder(LocalContext.current)
-                                .data(book.coverImage)
-                                .size(300)
-                                .scale(Scale.FILL)
-                                .build()
-                            val imageModifier = remember { Modifier.fillMaxSize() }
-                            AsyncImage(
-                                model = request,
-                                contentDescription = "Book cover",
-                                modifier = imageModifier,
-                                contentScale = ContentScale.Crop
-                            )
+                            if (book.coverImage.isNullOrEmpty()) {
+                                Text(
+                                    text = "${book.title}\n${book.author}",
+                                    modifier = Modifier.align(Alignment.Center).fillMaxWidth().padding(horizontal = 3.dp),
+                                    textAlign = TextAlign.Center,
+                                    style = MaterialTheme.typography.titleSmall
+                                )
+                            } else {
+                                val request = ImageRequest.Builder(LocalContext.current)
+                                    .data(book.coverImage)
+                                    .size(300)
+                                    .scale(Scale.FILL)
+                                    .build()
+                                val imageModifier = remember { Modifier.fillMaxSize() }
+                                AsyncImage(
+                                    model = request,
+                                    contentDescription = "Book cover",
+                                    modifier = imageModifier,
+                                    contentScale = ContentScale.Crop
+                                )
+                            }
                         }
                         AnimatedVisibility(visible = appPreferences.homeLayout != Layout.CoverOnly) {
                             Text(

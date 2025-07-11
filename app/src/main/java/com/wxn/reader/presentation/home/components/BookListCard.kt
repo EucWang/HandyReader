@@ -45,6 +45,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.zIndex
@@ -169,17 +170,25 @@ fun BookListCard(
                         .width(70.dp)
                         .background(Color.LightGray)
                 ) {
-                    val request = ImageRequest.Builder(LocalContext.current)
-                        .data(book.coverImage)
-                        .size(200)
-                        .scale(Scale.FILL)
-                        .build()
-                    AsyncImage(
-                        model = request,
-                        contentDescription = "Book cover",
-                        modifier = Modifier.fillMaxSize(),
-                        contentScale = ContentScale.Crop
-                    )
+                    if (book.coverImage.isNullOrEmpty()) {
+                        Text(
+                            text = "${book.title}\n${book.author}", modifier = Modifier.align(Alignment.Center).fillMaxWidth().padding(horizontal = 3.dp),
+                            textAlign = TextAlign.Center,
+                            style = MaterialTheme.typography.titleSmall
+                        )
+                    } else {
+                        val request = ImageRequest.Builder(LocalContext.current)
+                            .data(book.coverImage)
+                            .size(200)
+                            .scale(Scale.FILL)
+                            .build()
+                        AsyncImage(
+                            model = request,
+                            contentDescription = "Book cover",
+                            modifier = Modifier.fillMaxSize(),
+                            contentScale = ContentScale.Crop
+                        )
+                    }
                     if (selected) {
                         Box(
                             modifier = Modifier

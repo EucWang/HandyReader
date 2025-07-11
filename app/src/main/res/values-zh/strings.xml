@@ -27,7 +27,7 @@
     <string name="cancel">取消</string>
     <string name="all_books">所有书籍</string>
     <string name="unlock_premium">解锁高级版</string>
-    <string name="unlock_uread_premium">解锁 Handy Reader 高级版</string>
+    <string name="unlock_uread_premium">解锁随阅高级版</string>
     <string name="unlock_all_premium_features_and_get_the_best_reading_experience_with_uread_premium">解锁所有高级功能，获得 随阅 高级版最佳阅读体验</string>
     <string name="remove_ads">移除广告</string>
     <string name="get_full_access_to_custom_app_theme">获取自定义应用主题完全访问权限</string>
@@ -143,7 +143,7 @@
     <string name="show_reading_status">显示阅读状态</string>
     <string name="show_reading_dates">显示阅读日期</string>
     <string name="show_ratings">显示评分</string>
-    <string name="show_pdf_label">显示PDF标签</string>
+    <string name="show_file_label">显示文件标签</string>
     <string name="show_entries">显示条目</string>
     <string name="sort">排序</string>
     <string name="filter">筛选</string>
