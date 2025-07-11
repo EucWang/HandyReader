@@ -278,5 +278,6 @@
     <string name="page_trans_anim_slide_horizontal">Slide in horizontal</string>
     <string name="page_trans_anim_slide_vertical">Slide in vertical</string>
     <string name="page_trans_anim_cover_vertical">Cover in vertical</string>
+    <string name="dialog_content_to_out_href">Confirmer la navigation vers un lien externe (%1$s) ?</string>
 
 </resources>

@@ -280,5 +280,6 @@
     <string name="page_trans_anim_slide_horizontal">Slide in horizontal</string>
     <string name="page_trans_anim_slide_vertical">Slide in vertical</string>
     <string name="page_trans_anim_cover_vertical">Cover in vertical</string>
+    <string name="dialog_content_to_out_href">क्या आप बाहरी लिंक (%1$s) पर जाना चाहते हैं?</string>
 
 </resources>

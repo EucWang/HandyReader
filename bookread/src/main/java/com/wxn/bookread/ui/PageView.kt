@@ -13,9 +13,11 @@ import com.wxn.bookread.ui.delegate.PageDelegate
 import android.graphics.Paint
 import android.view.MotionEvent
 import androidx.appcompat.content.res.AppCompatResources
+import androidx.compose.ui.util.fastJoinToString
 import androidx.core.graphics.toColorInt
 import com.wxn.base.bean.Book
 import com.wxn.base.ext.screenshot
+import com.wxn.base.ext.statusBarHeight
 import com.wxn.base.util.Coroutines
 import com.wxn.base.util.Logger
 import com.wxn.bookread.R
@@ -421,7 +423,7 @@ class PageView : FrameLayout, IDataSource, PageCallback {
         val curPage = dataProvider?.pageFactory?.currentPage
         val textLines = curPage?.textLines.orEmpty()
         var clickLine: TextLine? = null
-        val clickY = startY - ChapterProvider.paddingTop.toFloat()
+        val clickY = startY - context.statusBarHeight
         val clickX = startX
         for (line in textLines) {
             val lineStartX = line.textChars.getOrNull(0)?.start ?: -1f
@@ -433,7 +435,7 @@ class PageView : FrameLayout, IDataSource, PageCallback {
             }
         }
         if (curPage != null && clickLine != null) {
-            Logger.d("PageView::onSingleTapUp::curPage.index=[${curPage.index}],clickLine.paragraphIndex=[${clickLine.paragraphIndex}]")
+            Logger.d("PageView::onSingleTapUp::curPage.index=[${curPage.index}],clickLine=[${clickLine.text}]")
             val chapterIndex = curPage.chapterIndex
             val paragraphIndex = clickLine.paragraphIndex
             dataProvider?.pageFactory?.let { factory ->
@@ -445,7 +447,8 @@ class PageView : FrameLayout, IDataSource, PageCallback {
                         ((item.name == "underline" || item.name == "highlight") && item.params.isNotEmpty() && item.params.contains("color")) ||
                             (item.name == "note" && item.params.isNotEmpty() && item.params.contains("color"))
                 }
-                if (filterTags.isNotEmpty()) {
+                if (filterTags.isNotEmpty() && clickLine.textChars.isNotEmpty()) {
+                    Logger.d("clickLine#tags:${filterTags.map { it.name }.fastJoinToString(", ")}")
                     val annoIds = arrayListOf<String>()
 
                     val noteTag = filterTags.firstOrNull {
@@ -474,15 +477,23 @@ class PageView : FrameLayout, IDataSource, PageCallback {
 
                         //itemTag在这一行的可点击区域
                         val tagInLineRect : RectF? =
-                        if (startTagCharInLineIndex in 0 until clickLine.textChars.size && endTagCharInLineIndex in 0 until clickLine.textChars.size) {
-                            val startChar = clickLine.textChars[startTagCharInLineIndex]
-                            val endChar = clickLine.textChars[endTagCharInLineIndex]
-                            RectF(
-                                startChar.start - padding,
-                                clickLine.lineTop - padding,
-                                endChar.end + padding,
-                                clickLine.lineBottom + padding
-                            )
+                        if (startTagCharInLineIndex in 0 until clickLine.textChars.size && endTagCharInLineIndex in 0 .. clickLine.textChars.size) {
+                            val startChar = clickLine.textChars.getOrNull(startTagCharInLineIndex)
+                            val endChar = if (endTagCharInLineIndex < clickLine.textChars.size) {
+                                clickLine.textChars[endTagCharInLineIndex]
+                            } else {
+                                clickLine.textChars.lastOrNull()
+                            }
+                            if (endChar == null || startChar == null) {
+                                null
+                            } else {
+                                RectF(
+                                    startChar.start - padding,
+                                    clickLine.lineTop - padding,
+                                    endChar.end + padding,
+                                    clickLine.lineBottom + padding
+                                )
+                            }
                         } else {
                             null
                         }

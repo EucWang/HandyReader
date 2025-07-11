@@ -1,10 +1,11 @@
 package com.wxn.reader.presentation.mainReader
 
+import android.content.Intent
+import android.net.Uri
 import android.widget.FrameLayout
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
-import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
@@ -12,14 +13,16 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -29,8 +32,10 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -110,6 +115,16 @@ fun ReaderView(
     val ttsSpeed by viewModel.ttsSpeed.collectAsStateWithLifecycle()
     val ttsPitch by viewModel.ttsPitch.collectAsStateWithLifecycle()
     val ttsLanguage by viewModel.ttsLanguage.collectAsStateWithLifecycle()
+
+    val outHref by viewModel.outHref.collectAsStateWithLifecycle()
+    val showOutHrefDialog by viewModel.showOutHrefDialog.collectAsStateWithLifecycle()
+
+    val context = LocalContext.current
+
+    fun navigateToHref(href: String) {
+        val intent = Intent(Intent.ACTION_VIEW, Uri.parse(href))
+        context.startActivity(Intent.createChooser(intent, "Search with"))
+    }
 
     Box(
         modifier = Modifier
@@ -469,6 +484,40 @@ fun ReaderView(
                 }))
             },
             showColorSelectionPanel = showColorSelectionPanel
+        )
+    }
+
+    if (showOutHrefDialog) {
+        AlertDialog(
+            onDismissRequest = {
+                viewModel.hideOutHrefDialog()
+
+           },
+            title = { Text("") },
+            text = { Text(stringResource(R.string.dialog_content_to_out_href, outHref)) },
+            dismissButton = {
+                Button(
+                    onClick = {
+                        viewModel.hideOutHrefDialog()
+                    }
+                ) {
+                    Text(stringResource(R.string.cancel))
+                }
+            },
+            confirmButton = {
+                Button(
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = MaterialTheme.colorScheme.error,
+                        contentColor = MaterialTheme.colorScheme.onError,
+                    ),
+                    onClick = {
+                        navigateToHref(outHref)
+                        viewModel.hideOutHrefDialog()
+                    }
+                ) {
+                    Text(stringResource(R.string.navigate_to))
+                }
+            },
         )
     }
 }

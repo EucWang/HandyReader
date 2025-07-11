@@ -228,6 +228,11 @@ class MainReadViewModel @Inject constructor(
     private val _curChapterPageIndex = MutableStateFlow<Int>(0)
     val curChapterPageIndex : StateFlow<Int> = _curChapterPageIndex.asStateFlow()
 
+    private val _outHref = MutableStateFlow<String>("")
+    val outHref : StateFlow<String> = _outHref.asStateFlow()
+    private val _showOutHrefDialog = MutableStateFlow(false)
+    val showOutHrefDialog: StateFlow<Boolean> = _showOutHrefDialog.asStateFlow()
+
     //tts
     private val _isTtsOn = MutableStateFlow(false)
     val isTtsOn: StateFlow<Boolean> = _isTtsOn.asStateFlow()
@@ -372,6 +377,8 @@ class MainReadViewModel @Inject constructor(
         if (!href.isNullOrEmpty()) {
             if (href.startsWith("http")) {
                 //跳转到h5界面显示
+                _outHref.value = href
+                _showOutHrefDialog.value = true
             } else {
                 val curIndex = curChapterIndex.value
                 val currentChapter: BookChapter? = allChapters.firstOrNull { it.chapterIndex == curIndex }
@@ -1138,6 +1145,12 @@ class MainReadViewModel @Inject constructor(
             _isTtsPlaying.value = false
         }
     }
+
+    fun hideOutHrefDialog() {
+        _outHref.value = ""
+        _showOutHrefDialog.value = false
+    }
+
 
 //    fun setTtsSpeed(speed: Double) {
 //        _ttsSpeed.value = speed
