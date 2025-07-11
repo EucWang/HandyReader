@@ -354,7 +354,6 @@ int mobi_util::getChapters(std::vector<NavPoint> &points) {
         return 1;
     }
 
-
     const unsigned char *opf_data = nullptr;
     const unsigned char *ncx_data = nullptr;
     size_t opf_data_size = 0;
@@ -976,10 +975,22 @@ int mobi_util::getChapter(JNIEnv *env,
             LOGI("%s:invoke failed, run_flag false", __func__);
             return 0;
         }
+        std::string titleStr;
         char *title = mobi_meta_get_title(mobi_data);
+        if (title != nullptr) {
+            titleStr = title;
+        }
+        std::string authorStr;
         char *author = mobi_meta_get_author(mobi_data);
+        if (author != nullptr) {
+            authorStr = author;
+        }
+        std::string publisherStr;
         char *publisher = mobi_meta_get_publisher(mobi_data);
-        mockFirstPage(chapter, docTexts, title, author, publisher);
+        if (publisher != nullptr) {
+            publisherStr = publisher;
+        }
+        mockFirstPage(chapter, docTexts, titleStr, authorStr, publisherStr);
         handle_tags(env, docTexts);
     }
     auto end_time = std::chrono::high_resolution_clock::now();

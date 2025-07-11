@@ -97,6 +97,7 @@ protected:
      * @param publisher
      */
     void mockFirstPage(NavPoint &chapter, std::vector<DocText> &docTexts, const std::string &title, const std::string &author, const std::string &publisher) {
+        LOGD("%s chapter[%s], title[%s], author[%s],publisher[%s]", __func__, chapter.text.c_str(), title.c_str(), author.c_str(), publisher.c_str());
         if (docTexts.empty() && chapter.playOrder == 1) {
             LOGI("%s:invoke", __func__);
 //            std::string &title = meta_info.title;

@@ -1,7 +1,6 @@
 package com.wxn.reader.presentation.mainReader
 
 import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
@@ -14,7 +13,6 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -24,6 +22,7 @@ import com.wxn.reader.presentation.bookReader.BookReaderUiState
 import com.wxn.reader.util.ImagePanel
 import com.wxn.reader.util.KeepScreenOn
 import com.wxn.reader.util.SetFullScreen
+import com.wxn.reader.util.consumeClick
 
 @Composable
 fun MainReadScreen(
@@ -76,7 +75,9 @@ fun MainReadScreen(
 
         // Book cover
         AnimatedVisibility(visible = (showState == 1), modifier = Modifier.fillMaxSize()) {
-            ImagePanel(modifier = Modifier.fillMaxSize(0.7f).padding(16.dp), data = book?.coverImage)
+            Box(modifier = Modifier.fillMaxSize().consumeClick()) {
+                ImagePanel(modifier = Modifier.fillMaxSize(0.7f).padding(16.dp), data = book?.coverImage)
+            }
         }
     }
 }
