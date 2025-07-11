@@ -586,14 +586,10 @@ class MainReadViewModel @Inject constructor(
     }
 
     fun handleHighlight(color: Color) {
-        Logger.d("MainReadViewModel:handleHighlight")
         val bookid = _currentBookId.value ?: return
-        Logger.d("MainReadViewModel:handleHighlight,bookid=$bookid")
         val locator = selectedLocator ?: return
         Logger.d("MainReadViewModel:handleHighlight,locator=$locator")
         val colorStr : String = color.toStringColor()
-        Logger.d("MainReadViewModel:handleHighlight:color=$colorStr")
-
         viewModelScope.launch {
             val conflictAnnotations = filterConflictAnnotations(AnnotationType.HIGHLIGHT, arrayListOf(locator))
 
@@ -1078,13 +1074,15 @@ class MainReadViewModel @Inject constructor(
         }
     }
 
-    fun updateReaderPreferences(newPreferences: ReaderPreferences) {
+    fun updateReaderPreferences(newPreferences: ReaderPreferences, updateView: Boolean = true) {
         Logger.d("MainReadViewModel::updateReaderPreferences")
         viewModelScope.launch {
             readerPrefsUtil.updatePreferences(newPreferences)
             _readerPreferences.value = newPreferences
-            with(Dispatchers.Main) {
-                pageController.updatePageViews()
+            if (updateView) {
+                with(Dispatchers.Main) {
+                    pageController.updatePageViews()
+                }
             }
         }
     }

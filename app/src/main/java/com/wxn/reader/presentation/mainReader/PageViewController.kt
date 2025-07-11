@@ -449,8 +449,12 @@ open class PageViewController @Inject constructor(
      * @param conflictAnnotations delete from TextChapter
      */
     suspend fun updateChapter(annotation: BookAnnotation?, addNote: Note?, deleteNote: Note?, conflictAnnotations: List<BookAnnotation>) {
-        val tags = curTextChapter?.annotations?.toMutableMap() ?: return
-        if (conflictAnnotations.isNotEmpty()) {
+        val tags = textChapter(0)?.annotations?.toMutableMap()
+        if (tags == null) {
+            Logger.e("${this.javaClass.name}::updateChapter::tags is null")
+        }
+
+        if (conflictAnnotations.isNotEmpty() && !tags.isNullOrEmpty()) {
             for(entry in tags) {
                 val lists = entry.value.toMutableList()
                 lists.removeIf { item ->
@@ -464,7 +468,7 @@ open class PageViewController @Inject constructor(
             }
         }
 
-        if (deleteNote != null) {
+        if (deleteNote != null && !tags.isNullOrEmpty()) {
             for(entry in tags) {
                 val lists = entry.value.toMutableList()
                 lists.removeIf { item ->
@@ -476,34 +480,36 @@ open class PageViewController @Inject constructor(
             }
         }
 
-        val readerTexts = curTextChapter?.readerTexts ?: return
-        val texttags = annotation?.locatorInfo?.toTextTags(
-            annotation.id.toString(),
-            annotation.type.toString(),
-            annotation.color,
-            durChapterIndex, readerTexts).orEmpty()
-        if (texttags.isNotEmpty()) {
-            val keys = tags.keys.plus(texttags.keys)
-            for(key in keys) {
-                tags[key] = (tags[key].orEmpty()).toMutableList().plus(texttags[key].orEmpty())
+        val readerTexts = textChapter(0)?.readerTexts
+        if (readerTexts != null) {
+            val texttags = annotation?.locatorInfo?.toTextTags(
+                annotation.id.toString(),
+                annotation.type.toString(),
+                annotation.color,
+                durChapterIndex, readerTexts).orEmpty()
+            if (texttags.isNotEmpty() && !tags.isNullOrEmpty()) {
+                val keys = tags.keys.plus(texttags.keys)
+                for(key in keys) {
+                    tags[key] = (tags[key].orEmpty()).toMutableList().plus(texttags[key].orEmpty())
+                }
+            }
+
+            val noteTextTags = addNote?.locatorInfo?.toTextTags(
+                addNote.id.toString(),
+                "note",
+                addNote.color,
+                durChapterIndex,
+                readerTexts
+            ).orEmpty()
+            if (noteTextTags.isNotEmpty() && !tags.isNullOrEmpty()) {
+                val keys = tags.keys.plus(noteTextTags.keys)
+                for(key in keys) {
+                    tags[key] = (tags[key].orEmpty()).toMutableList().plus(noteTextTags[key].orEmpty())
+                }
             }
         }
 
-        val noteTextTags = addNote?.locatorInfo?.toTextTags(
-            addNote.id.toString(),
-            "note",
-            addNote.color,
-            durChapterIndex,
-            readerTexts
-        ).orEmpty()
-        if (noteTextTags.isNotEmpty()) {
-            val keys = tags.keys.plus(noteTextTags.keys)
-            for(key in keys) {
-                tags[key] = (tags[key].orEmpty()).toMutableList().plus(noteTextTags[key].orEmpty())
-            }
-        }
-
-        curTextChapter?.annotations = tags
+        curTextChapter?.annotations = tags.orEmpty()
         callBack?.upContent(resetPageOffset = false)
     }
 
@@ -866,11 +872,9 @@ open class PageViewController @Inject constructor(
         selectedStartTop = top
         startParagraphIndex = paragraphIndex
         startInnerTextOffset = innerTextOffset
-        Logger.i("PageViewController::upSelectedStart:x=$x,y=$y,top=$top")
     }
 
     override fun upSelectedEnd(x: Float, y: Float, paragraphIndex: Int, innerTextOffset: Int) {
-        Logger.i("PageViewController::upSelectedEnd:x=$x,y=$y")
         selectedEndX = x
         selectedEndY = y
         endParagraphIndex = paragraphIndex

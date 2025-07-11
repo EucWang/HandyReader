@@ -45,6 +45,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewModelScope
 import com.wxn.base.ext.toAndroidColor
 import com.wxn.base.ext.toCompatibleArgb
+import com.wxn.base.util.Logger
 import com.wxn.bookread.data.model.preference.ReaderPreferences
 import com.wxn.bookread.ui.PageView
 import com.wxn.bookread.ui.TextPageFactory
@@ -479,9 +480,10 @@ fun ReaderView(
                 Color(it.toCompatibleArgb())
             },
             onColorHistoryUpdated = { newHistory ->
+//                Logger.d("TextToolbar::onColorHistoryUpdated")
                 viewModel.updateReaderPreferences(readerPreferences.copy(colorHistory = newHistory.mapNotNull { it ->
                     it.toAndroidColor()
-                }))
+                }), false)
             },
             showColorSelectionPanel = showColorSelectionPanel
         )

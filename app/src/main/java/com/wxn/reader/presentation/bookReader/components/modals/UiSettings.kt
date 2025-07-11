@@ -40,7 +40,6 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.res.colorResource
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
@@ -49,19 +48,13 @@ import androidx.navigation.NavHostController
 import com.elixer.palette.Presets
 import com.elixer.palette.constraints.HorizontalAlignment
 import com.elixer.palette.constraints.VerticalAlignment
-import com.wxn.base.ext.toColor
 import com.wxn.base.ext.toComposeColor
+import com.wxn.bookread.data.model.preference.ReaderPreferences
 import com.wxn.reader.R
 import com.wxn.reader.data.model.AppPreferences
-import com.wxn.bookread.data.model.preference.ReaderPreferences
 import com.wxn.reader.navigation.Screens
-//import com.wxn.reader.presentation.bookReader.BookReaderViewModel
 import com.wxn.reader.presentation.mainReader.MainReadViewModel
-//import com.ricsdev.uread.presentation.sharedComponents.PremiumModal
 import com.wxn.reader.util.ColorPicker
-import com.wxn.reader.util.PurchaseHelper
-//import org.readium.r2.shared.ExperimentalReadiumApi
-
 
 enum class ColorType(val displayName: String) {
     BACKGROUND("Background"),
