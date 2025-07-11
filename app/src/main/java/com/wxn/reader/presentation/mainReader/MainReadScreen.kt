@@ -1,9 +1,19 @@
 package com.wxn.reader.presentation.mainReader
 
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.foundation.Image
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
@@ -13,15 +23,22 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.wxn.base.util.Logger
+import com.wxn.reader.R
 import com.wxn.reader.presentation.bookReader.BookReaderUiState
 import com.wxn.reader.util.ImagePanel
 import com.wxn.reader.util.KeepScreenOn
 import com.wxn.reader.util.SetFullScreen
+import com.wxn.reader.util.Space
 import com.wxn.reader.util.consumeClick
 
 @Composable
@@ -75,8 +92,42 @@ fun MainReadScreen(
 
         // Book cover
         AnimatedVisibility(visible = (showState == 1), modifier = Modifier.fillMaxSize()) {
-            Box(modifier = Modifier.fillMaxSize().consumeClick()) {
-                ImagePanel(modifier = Modifier.fillMaxSize(0.7f).padding(16.dp), data = book?.coverImage)
+            Box(modifier = Modifier.fillMaxSize().consumeClick(),
+                contentAlignment = Alignment.Center) {
+                if (!book?.coverImage.isNullOrEmpty()) {
+                    ImagePanel(modifier = Modifier.fillMaxSize(0.75f).padding(8.dp), data = book?.coverImage)
+                } else {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxSize(0.75f).padding(8.dp)
+                            .background(Color.LightGray, RoundedCornerShape(0.dp, 12.dp, 12.dp, 0.dp)),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Image(painterResource(R.drawable.ic_default_book_cover),
+                            contentScale = ContentScale.FillBounds,
+                            modifier = Modifier.fillMaxSize().align(Alignment.Center).clip(RoundedCornerShape(0.dp, 12.dp, 12.dp, 0.dp)),
+
+                            contentDescription = "", )
+                        Column(modifier = Modifier.align(Alignment.Center).fillMaxWidth().padding(horizontal = 6.dp),
+                            verticalArrangement = Arrangement.Center,
+                            horizontalAlignment = Alignment.CenterHorizontally) {
+                            Text(
+                                text = book?.title.orEmpty(),
+                                textAlign = TextAlign.Center,
+                                style = MaterialTheme.typography.titleMedium,
+                                color = Color.White,
+                            )
+                            Space(height = 12.dp)
+                            Text(
+                                text = book?.author.orEmpty(), modifier = Modifier.padding(horizontal = 6.dp),
+                                textAlign = TextAlign.Center,
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = Color.White,
+                            )
+                        }
+
+                    }
+                }
             }
         }
     }

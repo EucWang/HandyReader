@@ -4,6 +4,7 @@ import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -44,6 +45,7 @@ import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
@@ -171,11 +173,27 @@ fun BookListCard(
                         .background(Color.LightGray)
                 ) {
                     if (book.coverImage.isNullOrEmpty()) {
-                        Text(
-                            text = "${book.title}\n${book.author}", modifier = Modifier.align(Alignment.Center).fillMaxWidth().padding(horizontal = 3.dp),
-                            textAlign = TextAlign.Center,
-                            style = MaterialTheme.typography.titleSmall
-                        )
+                        Image(painterResource(R.drawable.ic_default_book_cover), modifier = Modifier.fillMaxSize().align(Alignment.Center),
+                            contentDescription = "", contentScale = ContentScale.FillBounds)
+
+                        Column(modifier = Modifier.align(Alignment.Center).fillMaxWidth().padding(horizontal = 1.dp),
+                            verticalArrangement = Arrangement.Center,
+                            horizontalAlignment = Alignment.CenterHorizontally) {
+                            Text(
+                                text = book.title,
+                                textAlign = TextAlign.Center,
+                                maxLines = 3,
+                                style = MaterialTheme.typography.titleSmall,
+                                color = Color.White,
+                            )
+                            Text(
+                                text = book.author, modifier = Modifier.padding(horizontal = 2.dp),
+                                textAlign = TextAlign.Center,
+                                maxLines = 1,
+                                style = MaterialTheme.typography.bodySmall,
+                                color = Color.White,
+                            )
+                        }
                     } else {
                         val request = ImageRequest.Builder(LocalContext.current)
                             .data(book.coverImage)
@@ -185,7 +203,7 @@ fun BookListCard(
                         AsyncImage(
                             model = request,
                             contentDescription = "Book cover",
-                            modifier = Modifier.fillMaxSize(),
+                            modifier = Modifier.align(Alignment.Center).fillMaxSize(),
                             contentScale = ContentScale.Crop
                         )
                     }
