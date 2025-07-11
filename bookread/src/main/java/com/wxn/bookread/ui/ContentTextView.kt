@@ -592,7 +592,7 @@ class ContentTextView(context: Context, attrs: AttributeSet?) : View(context, at
     }
 
     /***
-     * 绘制图片
+     * 绘制图片, 行内图片
      */
     private fun drawImage(canvas: Canvas, textChar: TextChar, lineTop: Float, lineBottom: Float) {
         callback?.book?.let { book ->

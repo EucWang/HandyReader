@@ -440,6 +440,7 @@ object ChapterProvider {
         val isOneElePage = (contents.size == 1) //只有一个元素的页面
 
         textPages.add(TextPage())   //增加一空白页，然后给这个页面增加显示内容
+        offsetY += paddingTop
         contents.forEachIndexed { index, paragraph -> //遍历需要显示的内容的每一个自然段， 一个段落一个段落（图片）的遍历
             when (paragraph) {
                 is ReaderText.Image -> {
@@ -553,15 +554,17 @@ object ChapterProvider {
         var height = 0
         var originWidth = imgWidth  //图片的实际宽高
         var originHeight = imgHeight
-        val options: BitmapFactory.Options = BitmapFactory.Options()
-        options.inJustDecodeBounds = true // 不加载图片像素，只获取宽高
-        options.inSampleSize = 2
-        BitmapFactory.decodeFile(imgSrc, options)
-        val bmpOriginWidth = options.outWidth
-        val bmpOriginHeight = options.outHeight
-        if (originWidth < bmpOriginWidth || originHeight < bmpOriginHeight) {
-            originWidth = bmpOriginWidth
-            originHeight = bmpOriginHeight
+        if (originWidth <= 0 || originHeight <= 0) {
+            val options: BitmapFactory.Options = BitmapFactory.Options()
+            options.inJustDecodeBounds = true // 不加载图片像素，只获取宽高
+            options.inSampleSize = 2
+            BitmapFactory.decodeFile(imgSrc, options)
+            val bmpOriginWidth = options.outWidth
+            val bmpOriginHeight = options.outHeight
+            if (originWidth < bmpOriginWidth || originHeight < bmpOriginHeight) {
+                originWidth = bmpOriginWidth
+                originHeight = bmpOriginHeight
+            }
         }
 
         if ((durY > visibleHeight || durY + originHeight + 2 * imgVerticalMargin > visibleHeight) &&
@@ -569,7 +572,8 @@ object ChapterProvider {
         ) { // //当前可显示便宜位置超过了可视高度
             textPages.last().height = durY    //修改上一页的高度
             textPages.add(TextPage())                   //增加新一页
-            durY = 0f                                  //修改当前页的距离顶部的偏移量
+            durY = paddingTop.toFloat()
+                                              //修改当前页的距离顶部的偏移量
         }
 
         var usableHeight = (visibleHeight - durY).toInt()   //图片显示可用高度
@@ -601,7 +605,7 @@ object ChapterProvider {
                 if (durY + height + 2 * imgVerticalMargin > usableHeight) { //当前页显示不下了，则创建新页用于显示图片
                     textPages.last().height = durY
                     textPages.add(TextPage())
-                    durY = 0f
+                    durY = paddingTop.toFloat()
 
                     usableHeight = (visibleHeight - 2 * imgVerticalMargin).toInt()  //可用高度重新计算
                     if (originWidth > visibleWidth) {                               //重新计算显示宽高
@@ -958,7 +962,7 @@ object ChapterProvider {
                     var leftOffsetPercent: Int = 0  //距离左边的宽度的百分比
                     val fullWidth = visibleWidth - marginLeft.roundToInt() - marginRight.roundToInt()
                     var maxLineCount = 1 //最大行数，用来计算一行的高度
-                    var textLineMaps = hashMapOf<Int, ArrayList<TextLine>>()  //遍历完，用来合并TextLine,
+                    var textLineMaps = hashMapOf<Int, ArrayList<TextLine>>()  //遍历完，用来合并TextLine
                     //每个单元格
                     for (index in 0 until tagCells.size) {
                         val tagCell = tagCells[index]
@@ -1050,7 +1054,7 @@ object ChapterProvider {
 
                             textPages.add(TextPage())
                             stringBuilder.clear()
-                            durY = 0f
+                            durY = paddingTop.toFloat()
                         }
 
                         var words = StringBuilder()
@@ -1077,8 +1081,8 @@ object ChapterProvider {
                             lastPage.textLines.add(
                                 TextLine(
                                     isLine = true,
-                                    lineStart = Pair(marginLeft + paddingLeft, paddingTop + durY),
-                                    lineEnd = Pair(visibleRight - marginRight, paddingTop + durY),
+                                    lineStart = Pair(marginLeft + paddingLeft, durY),
+                                    lineEnd = Pair(visibleRight - marginRight, durY),
                                     lineBorder = 1f,
                                     lineColor = "#333333"
                                 )
@@ -1096,8 +1100,8 @@ object ChapterProvider {
                             lastPage.textLines.add(
                                 TextLine(
                                     isLine = true,
-                                    lineStart = Pair(left + paddingLeft + marginLeft, paddingTop + durY),
-                                    lineEnd = Pair(left + paddingLeft + marginLeft, paddingTop + durY + lineHeight),
+                                    lineStart = Pair(left + paddingLeft + marginLeft, durY),
+                                    lineEnd = Pair(left + paddingLeft + marginLeft, durY + lineHeight),
                                     lineBorder = 1f,
                                     lineColor = "#333333"
                                 )
@@ -1108,8 +1112,8 @@ object ChapterProvider {
                             lastPage.textLines.add(
                                 TextLine(
                                     isLine = true,
-                                    lineStart = Pair(marginLeft + paddingLeft, paddingTop + durY + lineHeight),
-                                    lineEnd = Pair(visibleRight - marginRight, paddingTop + durY + lineHeight),
+                                    lineStart = Pair(marginLeft + paddingLeft, durY + lineHeight),
+                                    lineEnd = Pair(visibleRight - marginRight, durY + lineHeight),
                                     lineBorder = 1f,
                                     lineColor = "#333333"
                                 )
@@ -1237,7 +1241,7 @@ object ChapterProvider {
                     }
 
                     //新增加的行，超过了一页的显示高度, 则创建新页
-                    if (durY + textPaint.textHeight * lineSpacingExtra * lineHeightParam > visibleHeight) {
+                    if (durY + textPaint.textHeight * lineSpacingExtra * lineHeightParam > visibleBottom) {
                         val lastPage = textPages.last()
                         lastPage.text = stringBuilder.toString()
                         pageLines.add(lastPage.textLines.size)
@@ -1246,7 +1250,7 @@ object ChapterProvider {
 
                         textPages.add(TextPage())
                         stringBuilder.clear()
-                        durY = 0f
+                        durY = paddingTop.toFloat()
                     }
 
                     stringBuilder.append(words)
@@ -1375,7 +1379,7 @@ object ChapterProvider {
             }
 
             //新增加的行，超过了一页的显示高度, 则创建新页
-            if (durY + textPaint.textHeight * lineSpacingExtra * lineHeightParam > visibleHeight) {
+            if (durY + textPaint.textHeight * lineSpacingExtra * lineHeightParam > visibleBottom) {
                 val lastPage = textPages.last()
                 lastPage.text = stringBuilder.toString()
                 pageLines.add(lastPage.textLines.size)
@@ -1384,7 +1388,7 @@ object ChapterProvider {
 
                 textPages.add(TextPage())
                 stringBuilder.clear()
-                durY = 0f
+                durY = paddingTop.toFloat()
             }
 
             if (lineIndex == 0 && isListRow && listLevel > 0) { //第一行，并且是列表

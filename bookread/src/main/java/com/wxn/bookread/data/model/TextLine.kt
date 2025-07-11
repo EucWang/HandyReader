@@ -69,7 +69,7 @@ data class TextLine(
 ) {
 
     fun upTopBottom(durY: Float, textPaint: TextPaint) {
-        lineTop = ChapterProvider.paddingTop + durY
+        lineTop = durY
         lineBottom = lineTop + textPaint.textHeight
         lineBase = lineBottom - textPaint.fontMetrics.descent
     }
