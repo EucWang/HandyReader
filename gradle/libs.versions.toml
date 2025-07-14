@@ -3,6 +3,7 @@ aboutlibrariesCore = "11.2.3"
 #billingKtx = "7.1.1"
 commonmark = "0.24.0"
 coreSplashscreen = "1.0.1"
+firebaseBom = "33.16.0"
 jp2Android = "1.0.3"
 jsoup = "1.18.3"
 ketch = "2.0.1"
@@ -43,12 +44,12 @@ runtimeLivedata = "1.7.8"
 paletteKtx = "1.0.0"
 firebaseCrashlytics = "19.4.0"
 googleGmsGoogleServices = "4.4.2"
-googleFirebaseCrashlytics = "3.0.3"
-speech = "1.1.2"
-storage = "2.0.0"
+googleFirebaseCrashlytics = "3.0.4"
+speech = "1.6.2"
+storage = "2.1.0"
 timber = "5.0.1"
 material = "1.12.0"
-toaster = "12.8"
+toaster = "13.0"
 
 
 [libraries]
@@ -64,6 +65,9 @@ androidx-media3-session = { module = "androidx.media3:media3-session", version.r
 androidx-media3-ui = { module = "androidx.media3:media3-ui", version.ref = "media3Exoplayer" }
 #billing-ktx = { module = "com.android.billingclient:billing-ktx", version.ref = "billingKtx" }
 commonmark = { module = "org.commonmark:commonmark", version.ref = "commonmark" }
+firebase-analytics = { module = "com.google.firebase:firebase-analytics" }
+firebase-bom = { module = "com.google.firebase:firebase-bom", version.ref = "firebaseBom" }
+firebase-crashlytics-ndk = { module = "com.google.firebase:firebase-crashlytics-ndk" }
 hilt-android-compiler = { module = "com.google.dagger:hilt-android-compiler", version.ref = "hiltAndroid" }
 jp2-android = { module = "com.gemalto.jp2:jp2-android", version.ref = "jp2Android" }
 jsoup = { module = "org.jsoup:jsoup", version.ref = "jsoup" }
@@ -126,6 +130,6 @@ android-application = { id = "com.android.application", version.ref = "agp" }
 jetbrains-kotlin-android = { id = "org.jetbrains.kotlin.android", version.ref = "kotlin" }
 compose-compiler = { id = "org.jetbrains.kotlin.plugin.compose", version.ref = "kotlin" }
 google-gms-google-services = { id = "com.google.gms.google-services", version.ref = "googleGmsGoogleServices" }
-google-firebase-crashlytics = { id = "com.google.firebase.crashlytics", version.ref = "googleFirebaseCrashlytics" }
+#google-firebase-crashlytics = { id = "com.google.firebase.crashlytics", version.ref = "googleFirebaseCrashlytics" }
 android-library = { id = "com.android.library", version.ref = "agp" }
 

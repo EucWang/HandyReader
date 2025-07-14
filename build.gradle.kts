@@ -8,14 +8,16 @@ plugins {
     id("com.google.dagger.hilt.android") version "2.51.1" apply false
     id("androidx.room") version "2.6.1" apply false
 
-
     id("com.mikepenz.aboutlibraries.plugin") version "11.2.3" apply false
     alias(libs.plugins.google.gms.google.services) apply false
-    alias(libs.plugins.google.firebase.crashlytics) apply false
+//    alias(libs.plugins.google.firebase.crashlytics) apply false
+    // Add the dependency for the Crashlytics Gradle plugin
+    id("com.google.firebase.crashlytics") version "3.0.4" apply false
     alias(libs.plugins.android.library) apply false
 
 //    id("com.chaquo.python") version "15.0.1" apply false
 
     id("org.jetbrains.kotlin.jvm") version "2.0.21"
     id("org.jetbrains.kotlin.plugin.serialization") version "2.0.21"
+
 }

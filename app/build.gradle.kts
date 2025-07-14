@@ -13,10 +13,10 @@ plugins {
     id("kotlin-parcelize")
 
     id("com.mikepenz.aboutlibraries.plugin")
-//    alias(libs.plugins.google.gms.google.services) //TODO
-    alias(libs.plugins.google.firebase.crashlytics)
-//    id("com.chaquo.python")
+    alias(libs.plugins.google.gms.google.services)
     id("kotlinx-serialization")
+    // Add the Crashlytics Gradle plugin
+    id("com.google.firebase.crashlytics")
 }
 
 
@@ -172,7 +172,13 @@ dependencies {
     implementation(libs.androidx.media3.common)
     implementation(libs.androidx.media3.session)
 
-    implementation(libs.firebase.crashlytics)
+    implementation(platform(libs.firebase.bom))
+//    implementation(libs.firebase.crashlytics)
+    implementation(libs.firebase.analytics)
+    // Add the dependencies for the Crashlytics NDK and Analytics libraries
+    // When using the BoM, you don't specify versions in Firebase library dependencies
+    implementation(libs.firebase.crashlytics.ndk)
+
 
     coreLibraryDesugaring(libs.desugar.jdk.libs)
     implementation(libs.coil.compose)       // for images

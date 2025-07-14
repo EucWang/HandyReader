@@ -5,7 +5,7 @@ import java.util.Locale
 
 enum class AppLanguage(val code: String, val displayName: String) {
     SYSTEM("system", "System Default"),
-    ENGLISH("en", "English"),           //英语
+    ENGLISH("en-US", "English"),           //英语
     FRENCH("fr", "Français"),           //法语
     GERMAN("de", "Deutsch"),            //德语
     SPANISH("es", "Español"),           //西班牙语

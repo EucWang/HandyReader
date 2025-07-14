@@ -29,7 +29,7 @@ std::string xml_ext::ele_name(const tinyxml2::XMLElement *elem) {
     std::string ret;
     if (elem != nullptr) {
         const char *name = elem->Name();
-        if (name != NULL && name != nullptr && strlen(name) > 0) {
+        if (name != nullptr && strlen(name) > 0) {
             ret = name;
         }
     }
@@ -83,7 +83,7 @@ bool xml_ext::has_attr(tinyxml2::XMLElement *elem, const char *attr_name) {
 
 
 std::string xml_ext::get_img_src(tinyxml2::XMLElement *elem) {
-    std::string imgSrc = "";
+    std::string imgSrc;
     if (elem != nullptr) {
         if (xml_ext::has_attr(elem, "src")) {
             imgSrc = xml_ext::getEleAttr(elem, "src");
