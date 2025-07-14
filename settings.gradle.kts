@@ -45,7 +45,7 @@ dependencyResolutionManagement {
     }
 }
 
-rootProject.name = "uRead"
+rootProject.name = "handyreader"
 include(":app")
 include(":bookparser")
 include(":mobi")

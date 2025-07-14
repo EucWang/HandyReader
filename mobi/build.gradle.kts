@@ -5,7 +5,7 @@ plugins {
 
 android {
     namespace = "com.wxn.mobi"
-    compileSdk = 35
+    compileSdk = 36
 
     defaultConfig {
         minSdk = 23

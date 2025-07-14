@@ -19,16 +19,14 @@ plugins {
     id("com.google.firebase.crashlytics")
 }
 
-
 val apikeyPropertiesFile = rootProject.file("apikey.properties")
 val apikeyProperties = Properties().apply {
     load(FileInputStream(apikeyPropertiesFile))
 }
 
-
 android {
     namespace = "com.wxn.reader"
-    compileSdk = 35
+    compileSdk = 36
 
     defaultConfig {
         applicationId = "com.wxn.reader"
