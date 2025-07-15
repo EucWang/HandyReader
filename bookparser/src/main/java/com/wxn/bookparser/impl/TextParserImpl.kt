@@ -12,7 +12,7 @@ import com.wxn.bookparser.parser.html.HtmlTextParser
 import com.wxn.bookparser.parser.mobi.MobiTextParser
 import com.wxn.bookparser.parser.pdf.PdfTextParser
 import com.wxn.bookparser.parser.txt.TxtTextParser
-import com.wxn.bookparser.parser.xml.XmlTextParser
+import com.wxn.bookparser.parser.fb2.Fb2TextParser
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import javax.inject.Inject
@@ -20,6 +20,7 @@ import javax.inject.Inject
 private const val TEXT_PARSER = "Text Parser"
 
 class TextParserImpl @Inject constructor(
+
     // Markdown parser (Markdown)
     private val txtTextParser: TxtTextParser,
     private val pdfTextParser: PdfTextParser,
@@ -27,7 +28,7 @@ class TextParserImpl @Inject constructor(
     // Document parser (HTML+Markdown)
     private val epubTextParser: EpubTextParser,
     private val htmlTextParser: HtmlTextParser,
-    private val xmlTextParser: XmlTextParser,
+    private val fb2TextParser: Fb2TextParser,
     private val mobiTextParser: MobiTextParser
 ) : TextParser {
 
@@ -61,7 +62,7 @@ class TextParserImpl @Inject constructor(
                 }
 
                 "fb2" -> {
-                    xmlTextParser.parseChapterInfo(bookId, cachedFile)
+                    fb2TextParser.parseChapterInfo(bookId, cachedFile)
                 }
 
                 "html" -> {
@@ -114,7 +115,7 @@ class TextParserImpl @Inject constructor(
                 }
 
                 "fb2" -> {
-                    xmlTextParser.parsedChapterData(bookId, cachedFile, chapter)
+                    fb2TextParser.parsedChapterData(bookId, cachedFile, chapter)
                 }
 
                 "html" -> {
@@ -164,7 +165,7 @@ class TextParserImpl @Inject constructor(
                 }
 
                 "fb2" -> {
-                    xmlTextParser.parseCss(bookId, cachedFile, cssNames, tagNames, ids)
+                    fb2TextParser.parseCss(bookId, cachedFile, cssNames, tagNames, ids)
                 }
 
                 "html" -> {
@@ -214,7 +215,7 @@ class TextParserImpl @Inject constructor(
                 }
 
                 "fb2" -> {
-                    xmlTextParser.getWordCount(bookId, cachedFile)
+                    fb2TextParser.getWordCount(bookId, cachedFile)
                 }
 
                 "html" -> {
@@ -264,7 +265,7 @@ class TextParserImpl @Inject constructor(
                 }
 
                 "fb2" -> {
-                    xmlTextParser.close(bookId, cachedFile)
+                    fb2TextParser.close(bookId, cachedFile)
                 }
 
                 "html" -> {

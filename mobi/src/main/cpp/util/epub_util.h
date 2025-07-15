@@ -150,14 +150,12 @@ private:
     bool isEmptyCss;
     std::vector<BookManifest> manifests;
     std::vector<BookSpine> spines;
-    MetaInfo meta_info;
     std::vector<std::string> zipEntities;
 
     std::string opf_path;
     std::string ncx_path;
 
     int epub_init();
-
 
     int parseOpfData(std::vector<NavPoint> &points);
 

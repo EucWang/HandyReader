@@ -104,7 +104,23 @@ class TxtTextParser @Inject constructor(
     }
 
     override suspend fun getWordCount(bookId:Long, cachedFile: CachedFile):  List<Triple<Int, Int, Int>> {
-        return emptyList()
+        var count = 0
+        return try {
+            cachedFile.openInputStream()?.bufferedReader()?.use { reader ->
+                reader.forEachLine { line ->
+                    if (line.isNotBlank()) {
+                        count += line.length
+                    }
+                }
+            }
+            listOf<Triple<Int, Int, Int>>(
+                Triple(1, count, 0), //第一章节的字数
+                Triple(-1, count, 0)    //总字数
+            )
+        } catch (ex: Exception) {
+            ex.printStackTrace()
+            emptyList()
+        }
     }
 
     override suspend fun close(bookId:Long, cachedFile: CachedFile) {

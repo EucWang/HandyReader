@@ -211,10 +211,7 @@ class MobiFileParser @Inject constructor(val context: Context) : FileParser {
                 lastOpened = null,
                 category = metaInfo.subject.orEmpty(),
                 coverImage = metaInfo.coverPath.orEmpty(),
-                fileType = format,
-
-
-            ),
+                fileType = format),
             coverImage = metaInfo.coverPath.orEmpty()
         )
     }

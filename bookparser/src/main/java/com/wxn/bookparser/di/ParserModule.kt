@@ -12,6 +12,7 @@ import com.wxn.bookparser.parser.base.MarkdownParser
 import com.wxn.bookparser.parser.epub.EpubFileParser
 import com.wxn.bookparser.parser.epub.EpubTextParser
 import com.wxn.bookparser.parser.fb2.Fb2FileParser
+import com.wxn.bookparser.parser.fb2.Fb2TextParser
 import com.wxn.bookparser.parser.html.HtmlFileParser
 import com.wxn.bookparser.parser.html.HtmlTextParser
 import com.wxn.bookparser.parser.mobi.MobiFileParser
@@ -20,7 +21,6 @@ import com.wxn.bookparser.parser.pdf.PdfFileParser
 import com.wxn.bookparser.parser.pdf.PdfTextParser
 import com.wxn.bookparser.parser.txt.TxtFileParser
 import com.wxn.bookparser.parser.txt.TxtTextParser
-import com.wxn.bookparser.parser.xml.XmlTextParser
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -33,15 +33,18 @@ object ParserModule {
 
     @Provides
     @Singleton
-    fun provideCommonmarkParser(): org.commonmark.parser.Parser = org.commonmark.parser.Parser.builder().build();
+    fun provideCommonmarkParser(): org.commonmark.parser.Parser =
+        org.commonmark.parser.Parser.builder().build();
 
     @Provides
     @Singleton
-    fun provideMarkdownParser(parser: org.commonmark.parser.Parser): MarkdownParser = MarkdownParser(parser)
+    fun provideMarkdownParser(parser: org.commonmark.parser.Parser): MarkdownParser =
+        MarkdownParser(parser)
 
     @Provides
     @Singleton
-    fun provideDocumentParser(markdownParser: MarkdownParser): DocumentParser = DocumentParser(markdownParser)
+    fun provideDocumentParser(markdownParser: MarkdownParser): DocumentParser =
+        DocumentParser(markdownParser)
 
     @Provides
     @Singleton
@@ -53,15 +56,19 @@ object ParserModule {
 
     @Provides
     @Singleton
-    fun provideTxtTextParser(markdownParser: MarkdownParser): TxtTextParser = TxtTextParser(markdownParser)
+    fun provideTxtTextParser(markdownParser: MarkdownParser): TxtTextParser =
+        TxtTextParser(markdownParser)
+
+//    @Provides
+//    @Singleton
+//    fun provideXmlTextParser(context: Context, documentParser: DocumentParser, markdownParser: MarkdownParser): XmlTextParser = XmlTextParser(context, documentParser, markdownParser)
 
     @Provides
     @Singleton
-    fun provideXmlTextParser(context: Context, documentParser: DocumentParser, markdownParser: MarkdownParser): XmlTextParser = XmlTextParser(context, documentParser, markdownParser)
-
-    @Provides
-    @Singleton
-    fun providePdfTextParser(markdownParser: MarkdownParser, application: Application): PdfTextParser = PdfTextParser(markdownParser, application)
+    fun providePdfTextParser(
+        markdownParser: MarkdownParser,
+        application: Application
+    ): PdfTextParser = PdfTextParser(markdownParser, application)
 
     @Provides
     @Singleton
@@ -73,7 +80,8 @@ object ParserModule {
 
     @Provides
     @Singleton
-    fun provideHtmlTextParser(context: Context, documentParser: DocumentParser): HtmlTextParser = HtmlTextParser(context, documentParser)
+    fun provideHtmlTextParser(context: Context, documentParser: DocumentParser): HtmlTextParser =
+        HtmlTextParser(context, documentParser)
 
     @Provides
     @Singleton
@@ -91,11 +99,15 @@ object ParserModule {
 
     @Provides
     @Singleton
-    fun provideMobiTextParser(context: Context) : MobiTextParser = MobiTextParser(context)
+    fun provideMobiTextParser(context: Context): MobiTextParser = MobiTextParser(context)
 
     @Provides
     @Singleton
     fun provideAudioFileParser(context: Context): AudioFileParser = AudioFileParser(context)
+
+    @Provides
+    @Singleton
+    fun provideFb2TextParser(context: Context): Fb2TextParser = Fb2TextParser(context)
 
     @Provides
     @Singleton
@@ -127,9 +139,17 @@ object ParserModule {
         pdfTextParser: PdfTextParser,
         // Document parser (HTML+Markdown)
         epubTextParser: EpubTextParser,
+
         htmlTextParser: HtmlTextParser,
-        xmlTextParser: XmlTextParser,
+        fb2TextParser: Fb2TextParser,
         mobiTextParser: MobiTextParser
-    ): TextParser = TextParserImpl(txtTextParser, pdfTextParser, epubTextParser, htmlTextParser, xmlTextParser, mobiTextParser)
+    ): TextParser = TextParserImpl(
+        txtTextParser,
+        pdfTextParser,
+        epubTextParser,
+        htmlTextParser,
+        fb2TextParser,
+        mobiTextParser
+    )
 
 }

@@ -45,6 +45,13 @@ public:
     static std::string get_cover_path(std::string &book_title, std::string &file_ext);
 
     /***
+     * 检查文件路径是否存在，以及文件是否有内容， 有则返回1， 无则返回0
+     * @param path  文件完整路径
+     * @return
+     */
+    static int checkPath(const std::string &path);
+
+    /***
      * 根据media-type 得到图片文件后缀
      * @param media_type
      * @return

@@ -196,7 +196,6 @@ int epub_util::epub_init() {
     meta_info.date = xml_ext::getText(opfMetadataEle->FirstChildElement("dc:date"));
     meta_info.isbn = xml_ext::getText(xml_ext::getChildByNameAndAttr(opfMetadataEle, "dc:identifier", "opf:scheme", "ISBN"));
 
-
     std::string spine_toc_id = "";
     auto spineElem = opfRoot->FirstChildElement("spine");
     if (spineElem != nullptr) {

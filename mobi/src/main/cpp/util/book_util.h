@@ -27,6 +27,7 @@
 #include "nav_point.h"
 #include "tag_info.h"
 #include "xml_ext.h"
+#include "meta_data.h"
 
 class book_util {
 public:
@@ -65,6 +66,7 @@ protected:
     bool initStatus;
     long book_id;
     std::string book_path;
+    MetaInfo meta_info;
 
     bool isSingleSrc;
     volatile bool run_flag;

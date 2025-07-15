@@ -21,12 +21,14 @@ object NativeLib {
 
     external fun loadEpub(context: Context, path: String): MetaInfo? // Array<String>?
 
+    external fun loadFb2(context: Context, path: String): MetaInfo? // Array<String>?
+
     /***
      * 获得书籍章节信息
      * @param context
      * @param book_id
      * @param path
-     * @param type 1: mobi/azw3; 2: epub
+     * @param type 1: mobi/azw3; 2: epub; 3: fb2
      * @return
      */
     external fun getChapters(context: Context, book_id: Long, path: String, type:Int): Array<BookChapter>?
@@ -36,7 +38,7 @@ object NativeLib {
      * @param context
      * @param path
      * @param chapter
-     * @param type 1: mobi/azw3; 2: epub
+     * @param type 1: mobi/azw3; 2: epub; 3: fb2
      * @return
      */
     external fun getChapter(context: Context, path: String, chapter: BookChapter, type: Int): Array<ParagraphData>

@@ -262,7 +262,7 @@ fun ReaderView(
             viewModel = viewModel,
             tableOfContents = viewModel.showOutChapters,
             onChapterSelect = { selectedChapter ->
-                viewModel.onLinkClick(selectedChapter.srcName, -1f, -1f)
+                viewModel.onChapterClick(selectedChapter)
                 viewModel.chaptersDrawerOpen(false)
 //                val locator = publication.locatorFromLink(selectedChapter)
 //                locator?.let {

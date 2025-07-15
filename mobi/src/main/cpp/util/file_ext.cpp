@@ -46,6 +46,13 @@ int file_ext::checkAndCreateDir(const std::string &parentPath, const std::string
     return 0;
 }
 
+int file_ext::checkPath(const std::string &path) {
+    if (fs::exists(path) && fs::file_size(path) > 0) {
+        return 1;
+    }
+    return 0;
+}
+
 int file_ext::writeDataToFile(const std::string &filepath, unsigned char *data, size_t data_size) {
     int fd = open(filepath.c_str(), O_CREAT | O_TRUNC | O_RDWR, 0666);
     if (fd == -1) {
@@ -68,7 +75,7 @@ file_ext::get_cover_path(std::string &book_title, std::string &file_ext) {
     std::string file_name = book_title + "_cover." + file_ext;
     std::string parent_path = app_ext::appFileDir + "/" + "covers";
     if (!dir_exists(parent_path.c_str()) && make_directory(parent_path.c_str()) != SUCCESS) {
-        return 0;
+        return "";
     }
     return parent_path + "/" + file_name;
 }

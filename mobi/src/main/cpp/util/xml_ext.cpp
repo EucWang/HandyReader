@@ -774,6 +774,91 @@ size_t xml_ext::count_ele_words(tinyxml2::XMLElement *element, size_t *wordcount
     return 1;
 }
 
+/***
+ * 得到一个标签下以及其全部子标签下的所有文字
+ * @param element
+ * @param wordcount
+ * @param piccount
+ * @return
+ */
+size_t xml_ext::get_ele_words(tinyxml2::XMLElement *element, std::string &output) {
+    int count = 0;
+    if (element == nullptr) {
+        return 0;
+    }
+
+    tinyxml2::XMLNode *item = element->FirstChild();
+    std::list<tinyxml2::XMLNode *> stack;
+    bool flag = true;
+
+    while (flag && item != nullptr) {
+        std::string itemId = xml_ext::getEleAttr(item, "id");
+
+        tinyxml2::XMLElement *domElem = item->ToElement();
+        auto domText = item->ToText();
+        if (domText != nullptr) {  //是文本节点, 文本节点的标签都在stack中
+            const char *text = domText->Value();
+            if (text != nullptr && strlen(text) > 0) {
+                std::string str(text);
+                str = string_ext::cleanStr(str);
+//                *wordcount += string_ext::utf8Count(str);
+                count += string_ext::utf8Count(str);
+                output.append(str);
+            }
+//        } else if (domElem != nullptr) {
+//            std::string name = xml_ext::ele_name(domElem);
+//            if (name == "img" || name == "image") {  //一个图片占100个
+//                *piccount += 1;
+//            }
+        }
+
+        //优先遍历子节点
+        auto child = item->FirstChild();
+        if (child != nullptr && domElem != nullptr) { //当前节点是Element，并且孩子节点不为空，则深入下一层
+            stack.push_back(domElem);
+            item = child;
+            continue;
+        }
+
+        //没有子节点，则遍历兄弟节点
+        auto bro = item->NextSibling();
+        if (bro != nullptr) {
+            item = bro;
+            continue;
+        }
+
+        //没有兄弟节点，则这一层已经遍历完，从stack中弹出上一层的没有遍历完的节点，得到该节点的兄弟节点
+        bro = nullptr;
+        while (true) {
+            if (stack.empty()) {
+                flag = false;
+                break;
+            }
+            tinyxml2::XMLNode *lastNode = stack.back();
+            stack.pop_back();
+
+            if (lastNode == nullptr) {
+                flag = false;
+                break;
+            }
+
+            auto node = lastNode;
+
+            bro = lastNode->NextSibling();
+            if (bro != nullptr) {           // 该兄弟节点不为空，继续外层循环， 为空，则继续从栈顶拿结点
+                break;
+            }
+        }
+
+        //遍历上/上上级的兄弟节点
+        if (flag && bro != nullptr) {
+            item = bro;
+        }
+    }
+
+    return count;
+}
+
 void handle_table_cell_index(tinyxml2::XMLElement *ele_first_tr, int count_th, int count_td, int *index_row, std::vector<size_t> &col_words) {
     tinyxml2::XMLElement *ele_tr = ele_first_tr;
     std::string cell_name;
@@ -1188,7 +1273,19 @@ int xml_ext::parse(
         std::string &startAnchorId,
         std::string &endAnchorId,
         int *flagAdd,
-        std::string &spineSrcName) {
+        std::string &spineSrcName,
+        int type) {
+
+    std::string topParentTag;
+    if (type == 0) {
+        topParentTag = "body";
+    } else if (type == 1) {
+        topParentTag = "section";
+    } else {
+        LOGE("%s: faield, type[%d] is not support");
+        return 0;
+    }
+
     LOGD("%s: startAnchorId[%s] endAnchorId[%s], flagAdd[%d]", __func__, startAnchorId.c_str(), endAnchorId.c_str(), *flagAdd);
 
     if (element == nullptr) {
@@ -1517,7 +1614,7 @@ int xml_ext::parse(
                     break;
                 }
                 std::string ele_name = xml_ext::ele_name(ele_parent);
-                if (!ele_name.empty() || ele_name == "body") {
+                if (!ele_name.empty() || ele_name == topParentTag) {
                     flag = false;
                     break;
                 }

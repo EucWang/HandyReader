@@ -10,10 +10,12 @@
 #include "util/mobi_util.h"
 #include "util/app_ext.h"
 #include "util/epub_util.h"
+#include "util/fb2_util.h"
 #include <memory>
 
 std::shared_ptr<mobi_util> mobiutil = nullptr;
 std::shared_ptr<epub_util> epubutil = nullptr;
+std::shared_ptr<fb2_util> fb2util = nullptr;
 
 extern "C" JNIEXPORT jobjectArray JNICALL
 Java_com_wxn_mobi_inative_NativeLib_nativeFilesCrc(
@@ -102,12 +104,26 @@ void create_epub_util(long book_id, const char *path) {
     }
 }
 
+void create_fb2_util(long book_id, const char *path) {
+    if (fb2util == nullptr) {
+        long bookid = book_id;
+        std::string bookpath = path;
+        fb2util = std::shared_ptr<fb2_util>(new fb2_util(bookid, bookpath));
+    } else {
+        if (fb2util->bookid() != book_id || fb2util->bookpath() != path) {
+            fb2util.reset(new fb2_util(book_id, path));
+        }
+    }
+}
+
 
 int create_util(long book_id, const char* path, int type) {
     if (type == 1) {
         create_mobi_util(book_id, path);
     } else if (type == 2) {
         create_epub_util(book_id, path);
+    } else if (type == 3) {
+        create_fb2_util(book_id, path);
     } else {
         LOGE("%s unknown type[%d]", __func__, type);
         return 0;
@@ -406,6 +422,11 @@ Java_com_wxn_mobi_inative_NativeLib_getChapters(JNIEnv *env, jobject thiz, jobje
         ret = mobiutil->getChapters(vectors);
     } else if (type == 2) {
         ret = epubutil->getChapters(vectors);
+    } else if (type == 3) {
+        ret = fb2util->getChapters(vectors);
+    } else {
+        LOGE("%s unknown type[%d]", __func__, type);
+        return nullptr;
     }
     if (ret != 1) {
         return nullptr;
@@ -549,6 +570,8 @@ Java_com_wxn_mobi_inative_NativeLib_getChapter(JNIEnv *env, jobject thiz, jobjec
         ret = mobiutil->getChapter(env, book_id, nativeStr, point, docTexts);
     } else if (type == 2) {
         ret = epubutil->getChapter(env, book_id, nativeStr, point, docTexts);
+    } else if (type == 3) {
+        ret = fb2util->getChapter(env, book_id, nativeStr, point, docTexts);
     }
     if (ret != 1) {
         return nullptr;
@@ -812,11 +835,7 @@ JNIEXPORT jobject JNICALL
 Java_com_wxn_mobi_inative_NativeLib_getWordCount(JNIEnv *env, jobject thiz, jlong bookId, jstring path, jint type) {
     const char *nativeStr = env->GetStringUTFChars(path, NULL);
 
-    if (type == 1) {
-        create_mobi_util(bookId, nativeStr);
-    } else if (type == 2) {
-        create_epub_util(bookId, nativeStr);
-    }
+    create_util(bookId, nativeStr, type);
 
     int32_t total = 0;
 
@@ -825,6 +844,8 @@ Java_com_wxn_mobi_inative_NativeLib_getWordCount(JNIEnv *env, jobject thiz, jlon
         total = mobiutil->getWordCount(wordCount);
     } else if (type== 2) {
         total = epubutil->getWordCount(wordCount);
+    } else if (type == 3) {
+        total = fb2util->getWordCount(wordCount);
     }
 
     jclass listClass = env->FindClass("java/util/ArrayList");
@@ -872,5 +893,138 @@ Java_com_wxn_mobi_inative_NativeLib_closeBook(JNIEnv *env, jobject thiz, jlong b
                 epubutil = nullptr;
             }
         }
+    } else if (type == 3) {
+        if (fb2util != nullptr || fb2util.use_count() > 0) {
+            if (book_id == fb2util->bookid()) {
+                fb2util = nullptr;
+            }
+        }
     }
+}
+
+extern "C"
+JNIEXPORT jobject JNICALL
+Java_com_wxn_mobi_inative_NativeLib_loadFb2(JNIEnv *env,
+                                            jobject thiz,
+                                            jobject context,
+                                            jstring path) {
+    const char *nativeStr = env->GetStringUTFChars(path, NULL);
+
+    if (app_ext::appFileDir.empty()) {
+        jclass contextClass = env->GetObjectClass(context);
+        jmethodID getFilesDirMethod = env->GetMethodID(contextClass, "getFilesDir", "()Ljava/io/File;");
+        //call getFilesDir(), return File object
+        jobject filesDirObj = env->CallObjectMethod(context, getFilesDirMethod);
+
+        //call getAbsolutePath(), get full dir path
+        jclass fileClass = env->FindClass("java/io/File");
+        jmethodID getAbsolutePathMethod = env->GetMethodID(fileClass, "getAbsolutePath", "()Ljava/lang/String;");
+        jstring pathStr = (jstring) env->CallObjectMethod(filesDirObj, getAbsolutePathMethod);
+        const char *appFileDir = env->GetStringUTFChars(pathStr, NULL);
+        app_ext::appFileDir = appFileDir;
+        env->ReleaseStringUTFChars(pathStr, appFileDir);
+    }
+    if (app_ext::appCacheDir.empty()) {
+        jclass contextClass = env->GetObjectClass(context);
+        jmethodID getCacheDirMethod = env->GetMethodID(contextClass, "getCacheDir", "()Ljava/io/File;");
+        //call getFilesDir(), return File object
+        jobject filesDirObj = env->CallObjectMethod(context, getCacheDirMethod);
+
+        //call getAbsolutePath(), get full dir path
+        jclass fileClass = env->FindClass("java/io/File");
+        jmethodID getAbsolutePathMethod = env->GetMethodID(fileClass, "getAbsolutePath", "()Ljava/lang/String;");
+        jstring pathStr = (jstring) env->CallObjectMethod(filesDirObj, getAbsolutePathMethod);
+        const char *appCacheDir = env->GetStringUTFChars(pathStr, NULL);
+        app_ext::appCacheDir = appCacheDir;
+        env->ReleaseStringUTFChars(pathStr, appCacheDir);
+    }
+
+
+    std::string coverPath;
+//    std::string epubPath;
+
+    std::string title;
+    std::string author;
+    std::string contributor;
+
+    std::string subject;
+    std::string publisher;
+    std::string date;
+
+    std::string description;
+    std::string review;
+    std::string imprint;
+
+    std::string copyright;
+    std::string isbn;
+    std::string asin;
+    std::string language;
+    std::string identifier;
+    bool isEncrypted = false;
+
+    int ret = fb2_util::load_fb2(nativeStr,
+                                 coverPath,
+                                 title,
+
+                                 author,
+                                 contributor,
+                                 subject,
+
+                                 publisher,
+                                 date,
+                                 description,
+
+                                 review,
+                                 imprint,
+                                 copyright,
+
+                                 isbn,
+                                 asin,
+                                 language,
+
+                                 identifier,
+                                 isEncrypted);
+
+    env->ReleaseStringUTFChars(path, nativeStr);
+
+    if (ret != 1) {
+        return nullptr;
+    }
+
+    jclass infoClazz = env->FindClass("com/wxn/mobi/data/model/MetaInfo");
+    jmethodID constructor = env->GetMethodID(infoClazz, "<init>",
+                                             "(Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;" \
+                                          "Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;" \
+                                          "Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;" \
+                                          "Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;" \
+                                          "Ljava/lang/String;ZLjava/lang/String;)V");
+    if (constructor == nullptr) {
+        return nullptr;
+    }
+
+    // 4. 调用构造函数创建对象
+    jobject mobiInfoObj = env->NewObject(
+            infoClazz,
+            constructor,
+            env->NewStringUTF(title.c_str()),
+            env->NewStringUTF(author.c_str()),
+            env->NewStringUTF(contributor.c_str()),
+
+            env->NewStringUTF(subject.c_str()),
+            env->NewStringUTF(publisher.c_str()),
+            env->NewStringUTF(date.c_str()),
+
+            env->NewStringUTF(description.c_str()),
+            env->NewStringUTF(review.c_str()),
+            env->NewStringUTF(imprint.c_str()),
+
+            env->NewStringUTF(copyright.c_str()),
+            env->NewStringUTF(isbn.c_str()),
+            env->NewStringUTF(asin.c_str()),
+
+            env->NewStringUTF(language.c_str()),
+            isEncrypted,
+            env->NewStringUTF(coverPath.c_str())
+    );
+    return mobiInfoObj;
 }

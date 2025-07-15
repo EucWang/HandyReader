@@ -159,13 +159,25 @@ public:
                                        std::string &spineSrcName);
 
 
+    /****
+     *
+     * @param element
+     * @param docTexts
+     * @param startAnchorId
+     * @param endAnchorId
+     * @param flagAdd
+     * @param spineSrcName
+     * @param type 取值0， 为epub, mobi,azw3 等的解析； 取值为1： 则为fb2的解析
+     * @return
+     */
     static int parse(
             tinyxml2::XMLElement *element,
             std::vector<DocText> &docTexts,
             std::string &startAnchorId,
             std::string &endAnchorId,
             int *flagAdd,
-            std::string &spineSrcName);
+            std::string &spineSrcName,
+            int type = 0);
 
     /***
      * 在一个资源xml文件中， 根据startAnchorId, endAnchorId 来确定开始位置和结束位置，统计一个章节的字数
@@ -221,6 +233,15 @@ public:
     static bool empty_node(const tinyxml2::XMLElement *elem);
 
     static bool is_paragraph_tag(const std::string &name);
+
+    /***
+     * 得到一个标签下以及其全部子标签下的所有文字
+     * @param element
+     * @param wordcount
+     * @param piccount
+     * @return
+     */
+    static size_t get_ele_words(tinyxml2::XMLElement *element, std::string &output);
 };
 
 #endif //UREAD_XML_EXT_H

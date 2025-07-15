@@ -19,6 +19,7 @@ add_subdirectory(cssparser)
 add_subdirectory(threadlibs)
 add_subdirectory(tidy-html5)
 add_subdirectory(utfcpp)
+add_subdirectory(base64)
 
 # Creates and names a library, sets it as either STATIC
 # or SHARED, and provides the relative paths to its source code.
@@ -74,6 +75,8 @@ add_library(${CMAKE_PROJECT_NAME} SHARED
         util/mobi_util.cpp
         util/epub_util.h
         util/epub_util.cpp
+        util/fb2_util.h
+        util/fb2_util.cpp
 
         util/tinyxml2.h
         util/tinyxml2.cpp
@@ -102,6 +105,7 @@ target_link_libraries(${CMAKE_PROJECT_NAME}
         unzip101e
         cssparser
         threadlibs
+        base64
         mobi
         # List libraries link to the target library
         z

@@ -369,6 +369,14 @@ class MainReadViewModel @Inject constructor(
         _showMenu.value = !_showMenu.value
     }
 
+    fun onChapterClick(chapter: BookChapter) {
+        if (_book.value?.fileType != "fb2") {
+            onLinkClick(chapter.srcName, -1f, -1f)
+        } else {
+            pageController.changeChapter(chapter.chapterIndex)
+        }
+    }
+
     /***
      * 点击link链接跳转到对应章节
      */
