@@ -17,11 +17,18 @@ plugins {
     id("kotlinx-serialization")
     // Add the Crashlytics Gradle plugin
     id("com.google.firebase.crashlytics")
+
+//    apply plugin: 'kotlin-kapt'
+    id("androidx.room")
 }
 
 val apikeyPropertiesFile = rootProject.file("apikey.properties")
 val apikeyProperties = Properties().apply {
     load(FileInputStream(apikeyPropertiesFile))
+}
+
+room {
+    schemaDirectory("$projectDir/schemas")
 }
 
 android {
@@ -41,9 +48,9 @@ android {
         vectorDrawables {
             useSupportLibrary = true
         }
-        ksp {
-            arg("room.schemaLocation", "$projectDir/schemas")
-        }
+//        ksp {
+//            arg("room.schemaLocation", "$projectDir/schemas")
+//        }
 
 //        ndk {
 //            abiFilters += listOf("arm64-v8a", "x86_64", "x86", "armeabi-v7a")
@@ -104,8 +111,8 @@ android {
         viewBinding = true
     }
     composeOptions {
-//        kotlinCompilerExtensionVersion = "1.5.15"
-        kotlinCompilerExtensionVersion = "1.5.1"
+        kotlinCompilerExtensionVersion = "1.5.15"
+//        kotlinCompilerExtensionVersion = "1.5.1"
     }
     packaging {
         resources {
@@ -116,7 +123,6 @@ android {
         }
     }
 }
-
 
 //chaquopy {
 //    defaultConfig {
@@ -179,7 +185,12 @@ dependencies {
 
 
     coreLibraryDesugaring(libs.desugar.jdk.libs)
-    implementation(libs.coil.compose)       // for images
+//    implementation(libs.coil.compose)       // for images
+//    implementation(libs.coil.network.okhttp)
+    implementation("io.coil-kt.coil3:coil-compose:3.2.0")
+    implementation("io.coil-kt.coil3:coil-network-okhttp:3.2.0")
+
+
     implementation(libs.room.runtime)
     implementation(libs.androidx.room.ktx)
     ksp(libs.androidx.room.compiler)

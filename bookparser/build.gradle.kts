@@ -57,7 +57,7 @@ dependencies {
 
     // PDF parser
     implementation(libs.pdfbox.android)
-    implementation(libs.jp2.android)     //Reading JPX Images for pdf
+//    implementation(libs.jp2.android)     //Reading JPX Images for pdf
 
     // xml parser
     implementation(libs.jsoup)
@@ -70,4 +70,5 @@ dependencies {
 
     implementation(project(":mobi"))
     implementation(project(":base"))
+    implementation(project(":jp2forandroid"))
 }
