@@ -35,17 +35,10 @@ class MainActivity : BaseActivity() {
     private val languageHelper = LanguageHelper()
 
     @Inject
-    lateinit var  appPreferencesUtil: AppPreferencesUtil
-
-    @Inject
     lateinit var readerPreferencesUtil: ReaderPreferencesUtil
 
     @Inject
     lateinit var readTipPreferencesUtil: ReadTipPreferencesUtil
-
-    override fun attachBaseContext(newBase: Context) {
-        super.attachBaseContext(newBase)
-    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)

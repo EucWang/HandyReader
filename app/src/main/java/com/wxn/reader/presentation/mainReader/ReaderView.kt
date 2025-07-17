@@ -112,10 +112,10 @@ fun ReaderView(
     val isBookmarked by viewModel.isBookmarked.collectAsStateWithLifecycle()
 
     val isTtsOn by viewModel.isTtsOn.collectAsStateWithLifecycle()
-    val isTtsPlaying by viewModel.isTtsPlaying.collectAsStateWithLifecycle()
-    val ttsSpeed by viewModel.ttsSpeed.collectAsStateWithLifecycle()
-    val ttsPitch by viewModel.ttsPitch.collectAsStateWithLifecycle()
-    val ttsLanguage by viewModel.ttsLanguage.collectAsStateWithLifecycle()
+//    val isTtsPlaying by viewModel.isTtsPlaying.collectAsStateWithLifecycle()
+//    val ttsSpeed by viewModel.ttsSpeed.collectAsStateWithLifecycle()
+//    val ttsPitch by viewModel.ttsPitch.collectAsStateWithLifecycle()
+//    val ttsLanguage by viewModel.ttsLanguage.collectAsStateWithLifecycle()
 
     val outHref by viewModel.outHref.collectAsStateWithLifecycle()
     val showOutHrefDialog by viewModel.showOutHrefDialog.collectAsStateWithLifecycle()
@@ -145,6 +145,7 @@ fun ReaderView(
             },
             modifier = Modifier.fillMaxSize(),
             update = { view ->
+                Logger.d("ReaderView::update by AndroidView")
                 view.dataProvider?.book = book
                 view.upStyle()
                 view.upTipStyle()
@@ -214,7 +215,7 @@ fun ReaderView(
 //            onSkipToPreviousUtterance = { viewModel.skipToPreviousUtterance() }
 //        )
         // ActionModeLayout
-        if (showTextToolbar || isHighlightsDrawerOpen || isChaptersDrawerOpen) {
+        if (showTextToolbar || isHighlightsDrawerOpen || isChaptersDrawerOpen || isNotesDrawerOpen || isBookmarksDrawerOpen) {
             Box(
                 modifier = Modifier
                     .fillMaxSize()

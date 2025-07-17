@@ -727,12 +727,13 @@ object ChapterProvider {
                 textPaint.textSkewX = -0.25f
             }
 
+            val userSetIndent = (readerPrefs?.paragraphIndent?.toFloat() ?: 0f)   //用户设置的首航缩进
             val textIndent = if (paragraph.textCssInfo.textIndent.isEm()) paragraph.textCssInfo.textIndent.value.toInt() else 0
             if (paragraph.textCssInfo.marginLeft.value > 0 ||
                 paragraph.textCssInfo.marginRight.value > 0 ||
                 paragraph.textCssInfo.marginTop.value > 0 ||
                 paragraph.textCssInfo.marginBottom.value > 0 ||
-                textIndent > 0
+                textIndent > 0 || userSetIndent > 0
             ) {
 
                 if (oneWordWidth <= 0f) {
@@ -1501,6 +1502,7 @@ object ChapterProvider {
     }
 
     fun init(context: Context, readTipPreferencesUtil: ReadTipPreferencesUtil, readerPreferencesUtil: ReaderPreferencesUtil) {
+        Logger.d("ChapterProvider::init,then invoke ChapterProvider::upStyle")
         this.readTipPreferencesUtil = readTipPreferencesUtil
         this.readerPreferencesUtil = readerPreferencesUtil
         upStyle(context)

@@ -123,7 +123,8 @@ fun ChaptersDrawer2(
         ModalDrawerSheet {
             Column(
                 modifier = Modifier
-                    .fillMaxSize()
+                    .fillMaxHeight()
+                    .fillMaxWidth(0.75f)
                     .padding(16.dp)
             ) {
                 Row(

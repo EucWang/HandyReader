@@ -294,7 +294,6 @@ class MainReadViewModel @Inject constructor(
         }
 
         ChapterProvider.init(context, readerTipPrefsUtil, readerPrefsUtil)
-
         val openedBookId = savedStateHandle.get<String>("bookId")?.toLongOrNull()
         val bookUri = savedStateHandle.get<String>("bookUri")
         resetCurrentDayStartTime()
@@ -599,20 +598,21 @@ class MainReadViewModel @Inject constructor(
         Logger.d("MainReadViewModel:handleHighlight,locator=$locator")
         val colorStr : String = color.toStringColor()
         viewModelScope.launch {
-            val conflictAnnotations = filterConflictAnnotations(AnnotationType.HIGHLIGHT, arrayListOf(locator))
-
-            if (conflictAnnotations.isNotEmpty()) {
-                for(anno in conflictAnnotations) {
-                    deleteAnnotationUseCase(anno)
-                }
-                _annotations.update { currentAnnotations ->
-                    currentAnnotations.filter { cur ->
-                        conflictAnnotations.firstOrNull { item ->
-                            cur.id == item.id
-                        } == null
-                    }
-                }
-            }
+//            val conflictAnnotations = filterConflictAnnotations(AnnotationType.HIGHLIGHT, arrayListOf(locator))
+//
+//            if (conflictAnnotations.isNotEmpty()) {
+//                for(anno in conflictAnnotations) {
+//                    deleteAnnotationUseCase(anno)
+//                }
+//                _annotations.update { currentAnnotations ->
+//                    currentAnnotations.filter { cur ->
+//                        conflictAnnotations.firstOrNull { item ->
+//                            cur.id == item.id
+//                        } == null
+//                    }
+//                }
+//            }
+            val conflictAnnotations = emptyList<BookAnnotation>()
             val newAnnotation = BookAnnotation(
                 bookId = bookid,
                 locator = locator.toJsonString(),
@@ -642,20 +642,22 @@ class MainReadViewModel @Inject constructor(
         val colorStr : String = color.toStringColor()
         Logger.d("MainReadViewModel:handleUnderline:bookid=$bookid, locator=${locator}, color=$colorStr")
         viewModelScope.launch {
-            val conflictAnnotations = filterConflictAnnotations(AnnotationType.UNDERLINE, arrayListOf(locator))
+//            val conflictAnnotations = filterConflictAnnotations(AnnotationType.UNDERLINE, arrayListOf(locator))
+//
+//            if (conflictAnnotations.isNotEmpty()) {
+//                for(anno in conflictAnnotations) {
+//                    deleteAnnotationUseCase(anno)
+//                }
+//                _annotations.update { currentAnnotations ->
+//                    currentAnnotations.filter { cur ->
+//                        conflictAnnotations.firstOrNull { item ->
+//                            cur.id == item.id
+//                        } == null
+//                    }
+//                }
+//            }
+            val conflictAnnotations = emptyList<BookAnnotation>()
 
-            if (conflictAnnotations.isNotEmpty()) {
-                for(anno in conflictAnnotations) {
-                    deleteAnnotationUseCase(anno)
-                }
-                _annotations.update { currentAnnotations ->
-                    currentAnnotations.filter { cur ->
-                        conflictAnnotations.firstOrNull { item ->
-                            cur.id == item.id
-                        } == null
-                    }
-                }
-            }
             val newAnnotation = BookAnnotation(
                 bookId = bookid,
                 locator = locator.toJsonString(),

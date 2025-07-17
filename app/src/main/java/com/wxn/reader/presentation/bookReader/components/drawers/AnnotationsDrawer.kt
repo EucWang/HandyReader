@@ -60,7 +60,7 @@ fun AnnotationsDrawer(
                     .align(Alignment.CenterEnd)
                     .clip(RoundedCornerShape(topStart = 20.dp, bottomStart = 20.dp))
             ) {
-                Column {
+                Column(modifier = Modifier.fillMaxHeight().fillMaxWidth(0.75f)) {
                     // Header
                     Row(
                         modifier = Modifier

@@ -1,10 +1,8 @@
 package com.wxn.base.ui
 
-import androidx.appcompat.app.AppCompatActivity
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.MainScope
+import androidx.activity.ComponentActivity
 
-abstract class BaseActivity : AppCompatActivity(), CoroutineScope by MainScope() {
+abstract class BaseActivity : ComponentActivity() {
 
 
     val isInMultiWindow: Boolean
