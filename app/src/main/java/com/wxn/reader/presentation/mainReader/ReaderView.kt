@@ -112,6 +112,7 @@ fun ReaderView(
     val isBookmarked by viewModel.isBookmarked.collectAsStateWithLifecycle()
 
     val isTtsOn by viewModel.isTtsOn.collectAsStateWithLifecycle()
+    val enableTts by viewModel.enableTts.collectAsStateWithLifecycle()
 //    val isTtsPlaying by viewModel.isTtsPlaying.collectAsStateWithLifecycle()
 //    val ttsSpeed by viewModel.ttsSpeed.collectAsStateWithLifecycle()
 //    val ttsPitch by viewModel.ttsPitch.collectAsStateWithLifecycle()
@@ -182,6 +183,7 @@ fun ReaderView(
                 textToSpeech = {
                     viewModel.toggleTts()
                 },
+                enableTts = enableTts,
                 isTtsOn = isTtsOn,
             )
         }

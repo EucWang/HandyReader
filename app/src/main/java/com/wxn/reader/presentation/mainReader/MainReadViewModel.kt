@@ -237,6 +237,10 @@ class MainReadViewModel @Inject constructor(
     private val _isTtsOn = MutableStateFlow(false)
     val isTtsOn: StateFlow<Boolean> = _isTtsOn.asStateFlow()
 
+    //tts
+    private val _enableTts = MutableStateFlow(false)
+    val enableTts: StateFlow<Boolean> = _enableTts.asStateFlow()
+
     private val _isTtsPlaying = MutableStateFlow(false)
     val isTtsPlaying: StateFlow<Boolean> = _isTtsPlaying.asStateFlow()
     private val _ttsSpeed = MutableStateFlow(1.0)
@@ -442,7 +446,8 @@ class MainReadViewModel @Inject constructor(
         _curChapterPageIndex.value = pageController.durPageIndex
         _curChapterName.value = pageController.curTextChapter?.title.orEmpty()
 
-        _isBookmarked.value = (pageController.curTextChapter?.pages?.getOrNull(pageController.durPageIndex)?.bookmarkId ?: -1) > 0
+        _isBookmarked.value = (pageController.textChapter(0)?.pages?.getOrNull(pageController.durPageIndex)?.bookmarkId ?: -1) > 0
+        _enableTts.value = !pageController.currentPage()?.text.isNullOrEmpty()
 
         viewModelScope.launch {
             if (isReadingSessionActive) {
@@ -1142,15 +1147,17 @@ class MainReadViewModel @Inject constructor(
     }
 
     fun toggleTts() {
-        val isPlayging = _isTtsPlaying.value
-        Logger.i("MainReadViewModel:toggleTts:isPlayging=$isPlayging")
-        if (!isPlayging) {
-            ttsPlay()
-        } else {
-            ttsNavigator.stop()
-            pageController.stopReadPage()
-            _isTtsOn.value = false
-            _isTtsPlaying.value = false
+        if (!pageController.currentPage()?.text.isNullOrEmpty()) {
+            val isPlayging = _isTtsPlaying.value
+            Logger.i("MainReadViewModel:toggleTts:isPlayging=$isPlayging")
+            if (!isPlayging) {
+                ttsPlay()
+            } else {
+                ttsNavigator.stop()
+                pageController.stopReadPage()
+                _isTtsOn.value = false
+                _isTtsPlaying.value = false
+            }
         }
     }
 

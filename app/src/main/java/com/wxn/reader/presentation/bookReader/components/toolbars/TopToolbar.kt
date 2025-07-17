@@ -6,8 +6,10 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBars
@@ -58,6 +60,7 @@ fun TopToolbar(
     onHighlightsDrawerToggle: () -> Unit,
     bookmark: () -> Unit,
     textToSpeech: () -> Unit,
+    enableTts: Boolean,
     isTtsOn: Boolean,
 ) {
 
@@ -124,27 +127,31 @@ fun TopToolbar(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.SpaceBetween
         ) {
-            IconButton(
-                onClick = {
-                    isTtsToggled = !isTtsOn
-                    textToSpeech()
-                },
-                modifier = Modifier.weight(1f)
-            ) {
-                if (isTtsToggled && !isTtsOn) {
-                    CircularProgressIndicator(
-                        color = Color.Black,
-                        modifier = Modifier.size(24.dp),
-                        strokeWidth = 2.dp
-                    )
-                } else {
-                    Icon(
-                        imageVector = if (isTtsOn)
-                            Icons.AutoMirrored.Filled.VolumeOff
-                        else Icons.AutoMirrored.Filled.VolumeUp,
-                        contentDescription = "text to speech"
-                    )
+            if (enableTts) {
+                IconButton(
+                    onClick = {
+                        isTtsToggled = !isTtsOn
+                        textToSpeech()
+                    },
+                    modifier = Modifier.weight(1f)
+                ) {
+                    if (isTtsToggled && !isTtsOn) {
+                        CircularProgressIndicator(
+                            color = Color.Black,
+                            modifier = Modifier.size(24.dp),
+                            strokeWidth = 2.dp
+                        )
+                    } else {
+                        Icon(
+                            imageVector = if (isTtsOn)
+                                Icons.AutoMirrored.Filled.VolumeOff
+                            else Icons.AutoMirrored.Filled.VolumeUp,
+                            contentDescription = "text to speech"
+                        )
+                    }
                 }
+            } else {
+                Spacer(modifier = Modifier.weight(1f).height(2.dp))
             }
             Column(
                 modifier = Modifier
