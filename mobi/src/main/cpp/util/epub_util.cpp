@@ -237,8 +237,18 @@ int epub_util::epub_init() {
     if (ncx_path.empty()) {
         ncx_path = epub_zfile_toc_ncx;
     }
+    std::string zipNcxPath;
+    for(std::string &item : this->zipEntities) {
+        if (string_ext::endsWith(item, ".ncx")) {
+            zipNcxPath = item;
+            break;
+        }
+    }
+    if (!zipNcxPath.empty() && ncx_path != zipNcxPath) {
+        ncx_path = zipNcxPath;
+    }
 
-    LOGI("%s:invoke done", __func__);
+    LOGI("%s:invoke done ncx_path[%s]", __func__, ncx_path.c_str());
     return 1;
 }
 
