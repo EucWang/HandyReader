@@ -267,10 +267,14 @@ const tinyxml2::XMLElement *xml_ext::getChildByNameAndAttr(const tinyxml2::XMLEl
 
 void xml_ext::parseNavData(tinyxml2::XMLElement *firstNavPoint, std::vector<NavPoint> &vectors, const char *parentId) {
     for (tinyxml2::XMLElement *navPoint = firstNavPoint; navPoint; navPoint = navPoint->NextSiblingElement("navPoint")) {
-        const char *id = navPoint->Attribute("id");
-        const char *playOrder = navPoint->Attribute("playOrder");
-        const char *label = navPoint->FirstChildElement("navLabel")->FirstChildElement("text")->GetText();
-        const char *src = navPoint->FirstChildElement("content")->Attribute("src");
+        std::string id = xml_ext::getEleAttr(navPoint, "id");
+        std::string playOrder = xml_ext::getEleAttr(navPoint, "playOrder");
+        std::string label;
+        xml_ext::get_ele_words(navPoint->FirstChildElement("navLabel"), label);
+        std::string src = xml_ext::getEleAttr(navPoint->FirstChildElement("content"), "src");
+
+        LOGD("%s::id[%s],playOrder[%s],label[%s],src[%s]", __func__, id.c_str(), playOrder.c_str(), label.c_str(), src.c_str());
+
         NavPoint nav;
         nav.id = id;
         nav.playOrder = string_ext::toInt(playOrder);
@@ -285,7 +289,7 @@ void xml_ext::parseNavData(tinyxml2::XMLElement *firstNavPoint, std::vector<NavP
         vectors.push_back(nav);
 
         if (navPoint->ChildElementCount("navPoint") > 0) {
-            parseNavData(navPoint->FirstChildElement("navPoint"), vectors, id);
+            parseNavData(navPoint->FirstChildElement("navPoint"), vectors, id.c_str());
         }
     }
 }
