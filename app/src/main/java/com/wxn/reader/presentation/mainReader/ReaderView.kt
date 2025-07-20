@@ -53,7 +53,6 @@ import com.wxn.reader.R
 import com.wxn.reader.navigation.LocalNavController
 import com.wxn.reader.navigation.Screens
 import com.wxn.reader.presentation.bookReader.components.TextToolbar
-import com.wxn.reader.presentation.bookReader.components.TtsPlayer
 import com.wxn.reader.presentation.bookReader.components.dialogs.NoteContent
 import com.wxn.reader.presentation.bookReader.components.dialogs.NoteDialog
 import com.wxn.reader.presentation.bookReader.components.drawers.AnnotationsDrawer

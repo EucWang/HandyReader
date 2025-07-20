@@ -6,7 +6,8 @@ import com.wxn.base.util.Coroutines
 import com.wxn.base.util.Logger
 import com.wxn.bookread.data.model.TextLine
 import com.wxn.bookread.data.source.local.TtsPreferencesUtil
-import com.wxn.reader.data.model.AppLanguage
+import com.wxn.reader.util.LanguageInfo
+import com.wxn.reader.util.LanguageUtil
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.launch
@@ -160,7 +161,7 @@ class TtsNavigator(
         Speech.init(context)
     }
 
-    private var ttsLocale : Locale = AppLanguage.SYSTEM.locale
+    private var ttsLocale : Locale = LanguageUtil.LANG_EN.locale
     private var speed = 1.0f
     private var pitch = 1.0f
 
@@ -173,11 +174,15 @@ class TtsNavigator(
                 Logger.e("TtsNavigator::play::ttsPreferences is null")
                 status = 0
             } else {
-                ttsLocale = AppLanguage.fromCode(ttsPreferences.localeCode).locale
+//                ttsLocale = AppLanguage.fromCode(ttsPreferences.localeCode).locale
                 speed = ttsPreferences.speed
                 pitch = ttsPreferences.pitch
 
-                Speech.getInstance().setLocale(ttsLocale)
+//                val localeSuppported = Speech.getInstance().setLocale(ttsLocale)
+//                if (localeSuppported < 0) {
+//                    return localeSuppported;
+//                }
+//                Logger.d("TtsNavigator::play[language[$ttsLocale]], localeSupported[$localeSuppported]")
                 Speech.getInstance().setTextToSpeechRate(speed)
                 Speech.getInstance().setTextToSpeechPitch(pitch)
                 Speech.getInstance().setTextToSpeechQueueMode(TextToSpeech.QUEUE_ADD)
@@ -283,13 +288,16 @@ class TtsNavigator(
             }
         }
     }
-
-    fun setLanguage(language: AppLanguage) {
+    fun setLanguage(language: LanguageInfo?): Boolean {
         Logger.i("TtsNavigator::setLanguage:language=$language")
-        val newlocale = language.locale
+        val newlocale = language?.locale ?: return false
         if (newlocale != this.ttsLocale) {
             this.ttsLocale = newlocale
-            Speech.getInstance().setLocale(language.locale)
+            val supportLanguage = Speech.getInstance().setLocale(language.locale)
+            if (supportLanguage < 0) {
+                return false
+            }
+            Logger.d("TtsNavigator::setLanguage::language[$language], supportLanguage[$supportLanguage]")
             Coroutines.scope().launch {
                 ttsPreferencesUtil.ttsPreferencesFlow.firstOrNull()?.let { preferences ->
                     preferences.localeCode = language.code
@@ -297,6 +305,7 @@ class TtsNavigator(
                 }
             }
         }
+        return true
     }
 
     fun stop() {

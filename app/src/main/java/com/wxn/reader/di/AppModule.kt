@@ -47,10 +47,8 @@ import com.wxn.reader.domain.use_case.books.UpdateBookUseCase
 import com.wxn.reader.domain.use_case.chapters.GetChapterByIdUserCase
 import com.wxn.reader.domain.use_case.chapters.GetChapterCountByBookIdUserCase
 import com.wxn.reader.domain.use_case.chapters.UpdateChapterWordCountUserCase
-import com.wxn.reader.domain.use_case.notes.GetAllNotesUseCase
 import com.wxn.reader.domain.use_case.notes.GetNotesForBookUseCase
 import com.wxn.reader.presentation.mainReader.PageViewController
-import com.wxn.reader.util.LanguageHelper
 import com.wxn.reader.util.PdfBitmapConverter
 import com.wxn.reader.util.tts.TtsNavigator
 import dagger.Module
@@ -329,11 +327,6 @@ object AppModule {
     fun providePdfBitmapConverter(@ApplicationContext context: Context): PdfBitmapConverter {
         return PdfBitmapConverter(context)
     }
-
-
-    @Provides
-    @Singleton
-    fun provideLanguageHelper(): LanguageHelper = LanguageHelper()
 
 
     @Provides

@@ -56,7 +56,7 @@ class AppPreferencesUtil @Inject constructor(context: Context) {
             isAssetsBooksFetched = false,
             scanDirectories = emptySet(),
             enablePdfSupport = true,
-            language = "system",
+            language = "",
             appTheme = AppTheme.SYSTEM,
             colorScheme = "Dynamic",
             homeLayout = Layout.Grid,
@@ -156,9 +156,10 @@ class AppPreferencesUtil @Inject constructor(context: Context) {
 
     suspend fun updateAppPreferences(newPreferences: AppPreferences) {
         dataStore.edit { preferences ->
-            Logger.d("AppPreferencesUtil:Updating preferences. isFirstLaunch: ${newPreferences.isFirstLaunch}")
-            Logger.d("AppPreferencesUtil:Updating preferences. Scan directories: ${newPreferences.scanDirectories}")
-            Logger.d("AppPreferencesUtil:Updating preferences. Premium status: ${newPreferences.isPremium}")
+            Logger.d("AppPreferencesUtil:Updating preferences. isFirstLaunch: ${newPreferences.isFirstLaunch}," +
+                    " Scan directories: ${newPreferences.scanDirectories}," +
+                    " Premium status: ${newPreferences.isPremium}," +
+                    "language:${newPreferences.language}")
             preferences[IS_FIRST_LAUNCH] = newPreferences.isFirstLaunch
             preferences[IS_ASSETS_BOOKS_FETCHED] = newPreferences.isAssetsBooksFetched
             preferences[SCAN_DIRECTORY] = newPreferences.scanDirectories

@@ -41,6 +41,8 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.style.TextAlign
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.paging.compose.collectAsLazyPagingItems
@@ -181,14 +183,17 @@ fun HomeScreen(
                         NavigationBarItem(
                             icon = { Icon(Icons.AutoMirrored.Rounded.MenuBook, contentDescription = "Ebooks") },
                             label = { Text(
-                                stringResource(R.string.ebooks)
+                                stringResource(R.string.ebooks),
+                                textAlign = TextAlign.Center
                             ) },
                             selected = selectedTabRow == 0,
                             onClick = { viewModel.updateCurrentTabRow(0) }
                         )
                         NavigationBarItem(
                             icon = { Icon(Icons.Default.Headset, contentDescription = "AudioBooks") },
-                            label = { Text(stringResource(R.string.audio_books)) },
+                            label = { Text(stringResource(R.string.audio_books),
+                                textAlign = TextAlign.Center)
+                                    },
                             selected = selectedTabRow == 1,
                             onClick = { viewModel.updateCurrentTabRow(1) }
                         )
@@ -196,7 +201,9 @@ fun HomeScreen(
                             icon = {
                                 Icon(Icons.Default.Person, contentDescription = "Mine")
                             },
-                            label = { Text(stringResource(R.string.mine)) },
+                            label = { Text(stringResource(R.string.mine),
+                                textAlign = TextAlign.Center)
+                                    },
                             selected = selectedTabRow == 2,
                             onClick = { viewModel.updateCurrentTabRow(2) }
                         )

@@ -1057,8 +1057,11 @@ open class PageViewController @Inject constructor(
                         }
                         delay(200)
                     }
+//                } else if (status < 0) {
+//                    ToastUtil.show("Language not suppport.")
                 } else {
                     Logger.d("MainReadViewModel::ttsPlay::status=$status")
+
                 }
             } while(status == 1)
             onFinish()

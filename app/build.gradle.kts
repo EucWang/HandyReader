@@ -122,6 +122,19 @@ android {
             excludes += "/META-INF/gradle/incremental.annotation.processors"
         }
     }
+
+    //aab 包需要配置 ，多语言情况下，部分包，否则会导致多语言切换失效问题
+    bundle {
+        language {
+            enableSplit = false//language enableSplit = false代表aab不进行分包处理
+        }
+        density {
+            enableSplit = true
+        }
+        abi {
+            enableSplit = true
+        }
+    }
 }
 
 //chaquopy {
@@ -244,9 +257,10 @@ dependencies {
 
     implementation(libs.kotlinx.serialization.json)
     implementation(libs.ktor.client.okhttp)
-    implementation(libs.speech)
+//    implementation(libs.speech)
 
     implementation(project(":bookparser"))
     implementation(project(":bookread"))
     implementation(project(":base"))
+    implementation(project(":text2speech"))
 }

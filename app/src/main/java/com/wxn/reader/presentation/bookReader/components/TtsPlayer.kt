@@ -58,7 +58,8 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.wxn.reader.R
-import com.wxn.reader.data.model.AppLanguage
+import com.wxn.reader.util.LanguageInfo
+import com.wxn.reader.util.LanguageUtil
 
 @Composable
 fun TtsPlayer(
@@ -67,13 +68,13 @@ fun TtsPlayer(
     isTtsPlaying: Boolean,
     speed: Double,
     pitch: Double,
-    language: AppLanguage,
+    language: LanguageInfo,
     onPlay: () -> Unit,
     onPause: () -> Unit,
     onEnd: () -> Unit,
     onSpeedChange: (Float) -> Unit,
     onPitchChange: (Float) -> Unit,
-    onLanguageChange: (AppLanguage) -> Unit,
+    onLanguageChange: (LanguageInfo) -> Unit,
     onSkipToNextUtterance: () -> Unit,
     onSkipToPreviousUtterance: () -> Unit
 ) {
@@ -406,11 +407,11 @@ fun TtsSettings(
 @Composable
 fun LanguageSettings(
     heightAnimation: Float,
-    currentLanguage: AppLanguage,
-    onLanguageChange: (AppLanguage) -> Unit,
+    currentLanguage: LanguageInfo,
+    onLanguageChange: (LanguageInfo) -> Unit,
     onClose: () -> Unit
 ) {
-    val languages = AppLanguage.entries.filter { it != AppLanguage.SYSTEM }
+    val languages = LanguageUtil.languageMaps.values.toList()
 
     Box(
         modifier = Modifier
@@ -459,7 +460,7 @@ fun LanguageSettings(
                     val isSelected = lang.code == currentLanguage.code
                     ElevatedButton(
                         onClick = {
-                            onLanguageChange(AppLanguage.fromCode(lang.code))
+                            onLanguageChange(lang)
                             onClose()
                         },
                         modifier = Modifier

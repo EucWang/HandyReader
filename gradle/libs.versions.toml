@@ -45,7 +45,7 @@ paletteKtx = "1.0.0"
 firebaseCrashlytics = "19.4.0"
 googleGmsGoogleServices = "4.4.2"
 googleFirebaseCrashlytics = "3.0.4"
-speech = "1.6.2"
+#speech = "1.6.2"
 storage = "2.1.0"
 timber = "5.0.1"
 material = "1.12.0"
@@ -78,7 +78,7 @@ multiplatform-markdown-renderer-m3 = { module = "com.mikepenz:multiplatform-mark
 pdfbox-android = { module = "com.tom-roush:pdfbox-android", version.ref = "pdfboxAndroid" }
 play-review-ktx = { module = "com.google.android.play:review-ktx", version.ref = "reviewKtxVersion" }
 #play-services-ads = { module = "com.google.android.gms:play-services-ads", version.ref = "playServicesAds" }
-speech = { module = "net.gotev:speech", version.ref = "speech" }
+#speech = { module = "net.gotev:speech", version.ref = "speech" }
 storage = { module = "com.anggrayudi:storage", version.ref = "storage" }
 timber = { module = "com.jakewharton.timber:timber", version.ref = "timber" }
 

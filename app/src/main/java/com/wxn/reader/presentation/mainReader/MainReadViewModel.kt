@@ -57,6 +57,8 @@ import com.wxn.reader.domain.use_case.reading_progress.SetReadingProgressUseCase
 import com.wxn.reader.presentation.bookReader.BookReaderUiState
 import com.wxn.reader.presentation.bookReader.BookReaderUiState.LOAD_CHAPTER_SUCCESS
 import com.wxn.reader.ui.theme.stringResource
+import com.wxn.reader.util.LanguageInfo
+import com.wxn.reader.util.LanguageUtil
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -68,7 +70,6 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import java.util.Calendar
 import javax.inject.Inject
-import com.wxn.reader.data.model.AppLanguage
 import com.wxn.reader.util.tts.TtsNavigator
 import kotlinx.coroutines.Dispatchers
 
@@ -249,8 +250,8 @@ class MainReadViewModel @Inject constructor(
     private val _ttsPitch = MutableStateFlow(1.0)
     val ttsPitch: StateFlow<Double> = _ttsPitch.asStateFlow()
 
-    private val _ttsLanguage = MutableStateFlow(AppLanguage.fromCode("en"))
-    val ttsLanguage: StateFlow<AppLanguage> = _ttsLanguage.asStateFlow()
+    private val _ttsLanguage = MutableStateFlow(LanguageUtil.languageMaps[1])
+    val ttsLanguage: StateFlow<LanguageInfo?> = _ttsLanguage.asStateFlow()
 
     private suspend fun fetchBook(bookId: Long): Boolean {
         try {
@@ -1139,10 +1140,20 @@ class MainReadViewModel @Inject constructor(
         Logger.i("MainReadViewModel::ttsPlay")
         _isTtsOn.value = true
         _isTtsPlaying.value = true
-        pageController.readPage(ttsNavigator) {
+
+        val lang = book.value?.language
+        Logger.d("MainReadViewModel::ttsPlay::lang[$lang]")
+        val langInfo = LanguageInfo.fromCode(lang ?: "en")
+        if (ttsNavigator.setLanguage(langInfo)) {
+            pageController.readPage(ttsNavigator) {
+                _isTtsOn.value = false
+                _isTtsPlaying.value = false
+                pageController.stopReadPage()
+            }
+        } else {
+            ToastUtil.show("Language not supported")
             _isTtsOn.value = false
             _isTtsPlaying.value = false
-            pageController.stopReadPage()
         }
     }
 

@@ -171,7 +171,7 @@ class HomeViewModel
     }
 
     private suspend fun addPublicDomainBooksIfNeeded() {
-        val publicDomainBooks = listOf("alice_in_wonderlands.epub", "romeo_and_juliet.epub")
+        val publicDomainBooks = listOf("alice_in_wonderlands.epub")
         val existingUris = getBookUrisUseCase().toSet()
         var books = arrayListOf<Book>()
         publicDomainBooks.forEach { fileName ->
@@ -356,7 +356,7 @@ class HomeViewModel
                 val currentUris = uniqueFiles.map { it.uri.toString() }.toSet()
 
                 //将资产目录中的2个预置书籍放入到存储目录中
-                val assetBookUris = listOf("alice_in_wonderlands.epub", "romeo_and_juliet.epub").map {
+                val assetBookUris = listOf("alice_in_wonderlands.epub").map {
                     Uri.fromFile(copyAssetToInternalStorage(it)).toString()
                 }
 

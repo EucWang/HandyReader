@@ -5,14 +5,17 @@ import android.app.Application
 import android.net.Uri
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
-import com.wxn.reader.data.model.AppLanguage
 import com.wxn.reader.data.model.AppPreferences
 import com.wxn.reader.data.source.local.AppPreferencesUtil
 import com.wxn.reader.domain.repository.PermissionRepository
-import com.wxn.reader.util.LanguageHelper
 import com.wxn.base.util.Logger
+import com.wxn.base.util.launchMain
+import com.wxn.reader.BookApplication
+import com.wxn.reader.util.LanguageInfo
+import com.wxn.reader.util.LanguageUtil
 import com.wxn.reader.util.PurchaseHelper
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -22,7 +25,6 @@ import javax.inject.Inject
 @HiltViewModel
 class SettingsViewModel @Inject constructor(
     private val appPreferencesUtil: AppPreferencesUtil,
-    private val languageHelper: LanguageHelper,
     private val permissionRepository: PermissionRepository,
     application: Application,
 ) : AndroidViewModel(application) {
@@ -85,15 +87,13 @@ class SettingsViewModel @Inject constructor(
         }
     }
 
-    fun updateLanguage(languageCode: String) {
-        viewModelScope.launch {
-            val language = AppLanguage.fromCode(languageCode)
-            appPreferencesUtil.updateAppPreferences(appPreferences.value.copy(language = language.code))
-            languageHelper.changeLanguage(getApplication(), language)
+    fun updateLanguage(language: LanguageInfo) {
+        LanguageUtil.changeLanguage(getApplication(), language.lang)
+        viewModelScope.launchMain {
+            delay(200)
+            getApplication<BookApplication>().onLanguageChange()
         }
     }
-
-
 
     fun purchasePremium(purchaseHelper: PurchaseHelper) {
         purchaseHelper.makePurchase()
