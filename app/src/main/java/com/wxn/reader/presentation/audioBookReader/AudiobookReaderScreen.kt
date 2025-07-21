@@ -9,9 +9,9 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.rounded.Pause
 import androidx.compose.material.icons.rounded.PlayArrow
-import androidx.compose.material.icons.rounded.Settings
 import androidx.compose.material.icons.rounded.SkipNext
 import androidx.compose.material.icons.rounded.SkipPrevious
 import androidx.compose.material3.*
@@ -34,6 +34,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavHostController
 import coil3.compose.AsyncImage
 import coil3.request.ImageRequest
@@ -71,8 +72,7 @@ fun AudiobookReaderScreen(
     }
 
     Scaffold(
-
-        modifier = Modifier.background(Color.Transparent),
+        modifier = Modifier.background(Color.Transparent).navigationBarsPadding(),
         topBar = {
             TopAppBar(
                 title = { Text("") },
@@ -84,6 +84,19 @@ fun AudiobookReaderScreen(
                 colors = TopAppBarDefaults.topAppBarColors(
                     containerColor = Color.Transparent
                 ),
+                actions = {
+                    if (loadingState is LoadingState.Ready) {
+//                        SettingsControls(
+//                            modifier = Modifier.alpha(readerAlpha), viewModel = viewModel
+//                        )
+                        IconButton(onClick = {
+                            viewModel.toggleSettingModal(true)
+                        }) {
+                            Icon(Icons.Default.Settings, "Edit Metadata")
+                        }
+                    }
+
+                }
             )
         }
     ) { paddingValues ->
@@ -158,10 +171,9 @@ fun AudiobookReaderScreen(
                     is LoadingState.Error -> ErrorScreen((loadingState as LoadingState.Error).message)
                 }
             }
-            if (loadingState is LoadingState.Ready)
-                SettingsControls(
-                    modifier = Modifier.alpha(readerAlpha), viewModel = viewModel
-                )
+            if (loadingState is LoadingState.Ready) {
+                SettingsControls(modifier = Modifier.alpha(readerAlpha), viewModel = viewModel)
+            }
         }
     }
 }
@@ -430,36 +442,13 @@ fun SettingsControls(
     modifier: Modifier,
     viewModel: AudiobookReaderViewModel,
 ) {
-
-    var showSettingsModal by remember { mutableStateOf(false) }
+    val showSettingsModal by viewModel.showSettingsModal.collectAsStateWithLifecycle()
 
     Box(
         modifier = modifier
             .fillMaxSize()
             .padding(28.dp)
     ) {
-        Column(
-            modifier = Modifier.align(Alignment.BottomCenter),
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.Center
-        ) {
-            ElevatedButton(
-                contentPadding = PaddingValues(0.dp),
-                shape = RoundedCornerShape(50),
-                modifier = Modifier.size(48.dp),
-                onClick = {
-                    showSettingsModal = true
-                }
-            ) {
-                Icon(
-                    imageVector = Icons.Rounded.Settings,
-                    contentDescription = "settings",
-                    modifier = Modifier.size(28.dp)
-                )
-            }
-        }
-
-
         val configuration = LocalConfiguration.current
         val screenWidthDp = configuration.screenWidthDp
         val sheetMaxWidth = screenWidthDp * 0.95f
@@ -471,7 +460,9 @@ fun SettingsControls(
                 modifier = Modifier.padding(bottom = 28.dp),
                 shape = RoundedCornerShape(16.dp),
                 sheetMaxWidth = sheetMaxWidth.dp,
-                onDismissRequest = { showSettingsModal = false }
+                onDismissRequest = {
+                    viewModel.toggleSettingModal(false)
+                }
             ) {
                 Column(
                     modifier = Modifier

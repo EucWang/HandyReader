@@ -77,6 +77,9 @@ class AudiobookReaderViewModel @Inject constructor(
     private val handler = Handler(Looper.getMainLooper())
     private val pollIntervalMs: Long = 500
 
+    private val _showSettingsModal = MutableStateFlow(false)
+    val showSettingsModal = _showSettingsModal.asStateFlow()
+
     private val updatePositionRunnable = object : Runnable {
         override fun run() {
             _exoPlayer.value?.let { player ->
@@ -277,5 +280,8 @@ class AudiobookReaderViewModel @Inject constructor(
         }
     }
 
+    fun toggleSettingModal(flag: Boolean) {
+        _showSettingsModal.value = flag
+    }
 }
 
