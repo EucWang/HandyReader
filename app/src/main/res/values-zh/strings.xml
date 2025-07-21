@@ -279,5 +279,6 @@
     <string name="page_trans_anim_slide_vertical">垂直滑动</string>
     <string name="page_trans_anim_cover_vertical">垂直覆盖</string>
     <string name="dialog_content_to_out_href">确定要跳转到外部链接(%1$s)吗？</string>
+    <string name="auto_open_last_read_file">自动打开上次阅读文件</string>
 
 </resources>

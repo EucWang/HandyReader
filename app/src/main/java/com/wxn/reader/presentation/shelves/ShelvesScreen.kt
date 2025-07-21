@@ -51,19 +51,14 @@ fun ShelvesScreen(
     var showEditShelfDialog by remember { mutableStateOf(false) }
     var showDeleteDialog by remember { mutableStateOf(false) }
     var newShelfName by remember { mutableStateOf("") }
-
-
-//    val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
-    val scope = rememberCoroutineScope()
-
     val appPreferences by viewModel.appPreferences.collectAsStateWithLifecycle()
+    val scope = rememberCoroutineScope()
+//    val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
 
 //    var showPremiumModal by remember { mutableStateOf(false) }
 
+    if(appPreferences != null) {
 
-//    CustomNavigationDrawer(
-//        drawerState = drawerState,
-//    ) {
         Scaffold(
             topBar = {
                 TopAppBar(
@@ -83,7 +78,7 @@ fun ShelvesScreen(
             floatingActionButton = {
                 FloatingActionButton(
                     onClick = {
-                        if (shelvesState.let { it is ShelvesState.Success && it.shelves.isNotEmpty() } && !appPreferences.isPremium) {
+                        if (shelvesState.let { it is ShelvesState.Success && it.shelves.isNotEmpty() } && !appPreferences!!.isPremium) {
                             navController.navigate(Screens.PremiumScreen.route);
 //                            showPremiumModal = true
 //                            viewModel.purchasePremium(purchaseHelper)
@@ -279,7 +274,7 @@ fun ShelvesScreen(
                 )
             }
         }
-//    }
+    }
 
 //    if (showPremiumModal) {
 //        PremiumModal(

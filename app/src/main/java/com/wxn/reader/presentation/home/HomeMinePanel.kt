@@ -87,10 +87,11 @@ fun HomeMinePanel(innerPadding: PaddingValues, viewModel: HomeViewModel) {
 
     val context = LocalContext.current
     val reviewManager = remember { ReviewManagerFactory.create(context) }
-    val isDarkTheme = when (appPreferences.appTheme) {
+    val isDarkTheme = when (appPreferences?.appTheme) {
         AppTheme.SYSTEM -> isSystemInDarkTheme()
         AppTheme.LIGHT -> false
         AppTheme.DARK -> true
+        else -> isSystemInDarkTheme()
     }
     val elevationOverlay = if (isDarkTheme == true) {
         Color.White.copy(alpha = 0.09f)

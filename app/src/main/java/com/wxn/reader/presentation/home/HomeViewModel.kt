@@ -74,6 +74,9 @@ import java.io.FileOutputStream
 import javax.inject.Inject
 import com.wxn.bookparser.exts.*
 import com.wxn.bookparser.supportedExtensions
+import com.wxn.reader.domain.repository.PermissionRepository
+import com.wxn.reader.domain.use_case.books.GetBookByIdUseCase
+import com.wxn.reader.navigation.Screens
 
 @HiltViewModel
 class HomeViewModel
@@ -84,6 +87,8 @@ class HomeViewModel
     private val updateBookUseCase: UpdateBookUseCase,
     private val deleteBookUseCase: DeleteBookUseCase,
     private val deleteBookByUriUseCase: DeleteBookByUriUseCase,
+    private val getBookByIdUseCase : GetBookByIdUseCase,
+
     private val addShelfUseCase: AddShelfUseCase,
     private val removeShelfUseCase: RemoveShelfUseCase,
     private val getShelvesUseCase: GetShelvesUseCase,
@@ -94,6 +99,7 @@ class HomeViewModel
 //    private val publicationOpener: PublicationOpener,
     private val appPreferencesUtil: AppPreferencesUtil,
     private val fileParser: FileParser,
+    private val permissionRepository: PermissionRepository,
     application: Application,
 ) : AndroidViewModel(application) {
 
@@ -104,9 +110,8 @@ class HomeViewModel
     val shelves: StateFlow<List<Shelf>> = _shelves.asStateFlow()
 
 
-    private val _appPreferences = MutableStateFlow(AppPreferencesUtil.defaultPreferences)
-    val appPreferences: StateFlow<AppPreferences> = _appPreferences.asStateFlow()
-
+    private val _appPreferences = MutableStateFlow<AppPreferences?>(null)
+    val appPreferences: StateFlow<AppPreferences?> = _appPreferences.asStateFlow()
 
     private val _isAddingBooks = MutableStateFlow(false)
     val isAddingBooks: StateFlow<Boolean> = _isAddingBooks.asStateFlow()
@@ -136,6 +141,7 @@ class HomeViewModel
     private val _searchQuery = MutableStateFlow("")
     val searchQuery: StateFlow<String> = _searchQuery.asStateFlow()
 
+    private @Volatile var hasOpenedLastBook: Boolean = false
 
     private var refreshJob: Job? = null
 
@@ -144,6 +150,9 @@ class HomeViewModel
 
     private val _snackbarState = MutableStateFlow<SnackbarState>(SnackbarState.Hidden)
     val snackbarState: StateFlow<SnackbarState> = _snackbarState.asStateFlow()
+
+    private val _openLastBookRoute = MutableStateFlow<String>("")
+    val openLastBookRoute :StateFlow<String> = _openLastBookRoute.asStateFlow()
 
     private var snackbarJob: Job? = null
 
@@ -219,6 +228,20 @@ class HomeViewModel
         val fileType = preferences.fileTypes
         val isAscending = sortOrder == SortOrder.ASCENDING
 
+        val autoLoadLastBook = preferences.autoOpenLastRead
+        val lastOpenBookId = preferences.lastBookId
+
+        viewModelScope.launch {
+            Logger.d("HomeViewModel::loadBooks::hasOpenedLastBook[$hasOpenedLastBook],lastOpenBookId=[$lastOpenBookId]:autoLoadLastBook[$autoLoadLastBook]")
+            val flag = hasOpenedLastBook
+            hasOpenedLastBook = true
+            if (!flag && autoLoadLastBook && lastOpenBookId > 0) {
+                openLastOpenBook(lastOpenBookId){ route ->
+                    _openLastBookRoute.value = route
+                }
+            }
+        }
+
         viewModelScope.launch {
             combine(
 //                getBooksUseCase(sortBy, isAscending, readingStatus, fileType).cachedIn(
@@ -248,6 +271,10 @@ class HomeViewModel
 //                _books.value = filteredPagingData
             }
         }
+    }
+
+    fun resetLastBookOpenRoute() {
+        _openLastBookRoute.value = ""
     }
 
     private fun loadShelves() {
@@ -286,9 +313,10 @@ class HomeViewModel
         refreshJob = viewModelScope.launch {
             delay(500)
             showSnackbar("Refreshing Library" )
-            val scanDirectory = appPreferences.value.scanDirectories
+            val appPref = _appPreferences.value ?: return@launch
+            val scanDirectory = appPref.scanDirectories
             if (scanDirectory.isNotEmpty()) {
-                observeBooks(appPreferences.value)
+                observeBooks(appPref)
             } else {
                 showSnackbar("No directory set for scanning books" )
             }
@@ -456,7 +484,8 @@ class HomeViewModel
                     )
                 }
 
-                loadBooks(appPreferences.value)
+                val appPref = _appPreferences.value ?: return@launch
+                loadBooks(appPref)
             } catch (e: Exception) {
                 _importProgressState.value = ImportProgressState.Error(e.message ?: "Unknown error occurred")
                 Logger.e("HomeViewModel::Error observing books:${e.message}")
@@ -981,9 +1010,6 @@ class HomeViewModel
 //            lastOpened = 0,
 //        )
 //    }
-
-
-
     fun updateBook(updatedBook: Book, updatedReadingStatus: Boolean = false) {
         viewModelScope.launch {
             var updateBook: Book = updatedBook
@@ -1019,9 +1045,10 @@ class HomeViewModel
 
     fun sortBooks(sortOption: SortOption, sortOrder: SortOrder) {
         viewModelScope.launch {
+            val appPref = _appPreferences.value ?: return@launch
             val isAscending = sortOrder == SortOrder.ASCENDING
-            val readingStatus = _appPreferences.value.readingStatus
-            val fileType = _appPreferences.value.fileTypes
+            val readingStatus = appPref.readingStatus
+            val fileType = appPref.fileTypes
             try {
                 getBooksUseCase(sortOption, isAscending, readingStatus, fileType)
                     .cachedIn(viewModelScope)
@@ -1037,7 +1064,7 @@ class HomeViewModel
 
     fun filterBooks(option: Any) {
         viewModelScope.launch {
-            val currentPreferences = _appPreferences.value
+            val currentPreferences = _appPreferences.value ?: return@launch
             val newPreferences = when (option) {
                 is ReadingStatus -> {
                     val newStatuses = if (option in currentPreferences.readingStatus) {
@@ -1097,6 +1124,44 @@ class HomeViewModel
     }
 
 
+    fun addScanDirectory(uri: Uri) {
+        viewModelScope.launch {
+            val appPref = _appPreferences.value
+            val currentDirectories = appPref?.scanDirectories ?: return@launch
+            val directory = uri.toString()
+            permissionRepository.grantPersistableUriPermission(uri)
+            if (!currentDirectories.contains(directory)) {
+                val updatedDirectories = currentDirectories + directory
+                Logger.d("SettingsViewModel:addScanDirectory:the Settings viewModel")
+                appPreferencesUtil.updateAppPreferences(appPref.copy(scanDirectories = updatedDirectories))
 
+                refreshBooks()
+            }
+        }
+    }
+
+    suspend fun openLastOpenBook(lastOpenBookId: Long, onRouteNav: (String)->Unit) {
+        Logger.d("HomeViewModel::openLastOpenBook::lastBookId[$lastOpenBookId]")
+        if (lastOpenBookId > 0) {
+            getBookByIdUseCase(lastOpenBookId)?.let { lastBook ->
+                Logger.d("HomeViewModel::openLastOpenBook::lastBook[$lastBook]")
+                openBook(lastBook, onRouteNav)
+            }
+        }
+    }
+
+    fun openBook(openedBook: Book, onRouteNav: (String)->Unit) {
+        val encodedUri = Uri.encode(openedBook.filePath)
+        val route = when (stringToFileType(openedBook.fileType)) {
+            FileType.PDF -> Screens.PdfReaderScreen.route + "/${openedBook.id}/${encodedUri}"
+            FileType.AUDIOBOOK -> Screens.AudiobookReaderScreen.route + "/${openedBook.id}/${encodedUri}"
+            else -> {
+                Screens.MainReaderScreen.route + "/${openedBook.id}/${encodedUri}"
+            }
+        }
+        if (route.isNotEmpty()) {
+            onRouteNav(route)
+        }
+    }
 
 }

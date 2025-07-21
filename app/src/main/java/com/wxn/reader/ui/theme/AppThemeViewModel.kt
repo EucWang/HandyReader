@@ -22,8 +22,8 @@ class AppThemeViewModel @Inject constructor(
 ) : AndroidViewModel(application) {
 
 
-    private val _appPreferences = MutableStateFlow(AppPreferencesUtil.defaultPreferences)
-    val appPreferences: StateFlow<AppPreferences> = _appPreferences.asStateFlow()
+    private val _appPreferences = MutableStateFlow<AppPreferences?>(null)
+    val appPreferences: StateFlow<AppPreferences?> = _appPreferences.asStateFlow()
 
     init {
         viewModelScope.launch {

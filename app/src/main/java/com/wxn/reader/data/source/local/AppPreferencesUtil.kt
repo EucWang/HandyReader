@@ -4,6 +4,7 @@ import android.content.Context
 import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.intPreferencesKey
+import androidx.datastore.preferences.core.longPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.core.stringSetPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
@@ -50,6 +51,10 @@ class AppPreferencesUtil @Inject constructor(context: Context) {
         val FILE_TYPE = stringSetPreferencesKey("file_type")
         val IS_PREMIUM = booleanPreferencesKey("is_premium")
 
+        val AUTO_OPEN_LAST_READ = booleanPreferencesKey("auto_open_last_read")
+
+        val LAST_OPEN_BOOK_ID = longPreferencesKey("last_open_book_id")
+
         // Default values
         val defaultPreferences = AppPreferences(
             isFirstLaunch = true,
@@ -72,6 +77,8 @@ class AppPreferencesUtil @Inject constructor(context: Context) {
             readingStatus = emptySet(),
             fileTypes = emptySet(),
             isPremium = true,
+            autoOpenLastRead = false,
+            lastBookId = 0L,
         )
     }
 
@@ -105,6 +112,8 @@ class AppPreferencesUtil @Inject constructor(context: Context) {
                 prefs[READING_STATUS] = defaultPreferences.readingStatus.map { it.name }.toSet()
                 prefs[FILE_TYPE] = defaultPreferences.fileTypes.map { it.name }.toSet()
                 prefs[IS_PREMIUM] = defaultPreferences.isPremium
+                prefs[AUTO_OPEN_LAST_READ] = defaultPreferences.autoOpenLastRead
+                prefs[LAST_OPEN_BOOK_ID] = defaultPreferences.lastBookId
             }
         }
     }
@@ -131,7 +140,9 @@ class AppPreferencesUtil @Inject constructor(context: Context) {
             sortOrder = SortOrder.valueOf(preferences[SORT_ORDER] ?: defaultPreferences.sortOrder.name),
             readingStatus = preferences[READING_STATUS]?.map { ReadingStatus.valueOf(it) }?.toSet() ?: defaultPreferences.readingStatus,
             fileTypes = preferences[FILE_TYPE]?.map { FileType.valueOf(it) }?.toSet() ?: defaultPreferences.fileTypes,
-            isPremium = preferences[IS_PREMIUM] ?: defaultPreferences.isPremium
+            isPremium = preferences[IS_PREMIUM] ?: defaultPreferences.isPremium,
+            autoOpenLastRead = preferences[AUTO_OPEN_LAST_READ] ?: defaultPreferences.autoOpenLastRead,
+            lastBookId = preferences[LAST_OPEN_BOOK_ID] ?: defaultPreferences.lastBookId
         )
     }
 
@@ -180,9 +191,10 @@ class AppPreferencesUtil @Inject constructor(context: Context) {
             preferences[READING_STATUS] = newPreferences.readingStatus.map { it.name }.toSet()
             preferences[FILE_TYPE] = newPreferences.fileTypes.map { it.name }.toSet()
             preferences[IS_PREMIUM] = newPreferences.isPremium
+            preferences[AUTO_OPEN_LAST_READ] = newPreferences.autoOpenLastRead
+            preferences[LAST_OPEN_BOOK_ID] = newPreferences.lastBookId
         }
     }
-
 
     suspend fun resetLayoutPreferences() {
         dataStore.edit { preferences ->

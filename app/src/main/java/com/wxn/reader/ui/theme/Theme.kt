@@ -39,50 +39,55 @@ fun ReadTheme(
     val view = LocalView.current
     val activity = LocalActivity.current
 
-    val darkTheme = when (appPreferences.appTheme) {
-        AppTheme.SYSTEM -> isSystemInDarkTheme()
-        AppTheme.LIGHT -> false
-        AppTheme.DARK -> true
-    }
+    if (appPreferences != null) {
 
-    val colorScheme = when {
-        appPreferences.colorScheme == "Dynamic" -> {
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-                if (darkTheme) dynamicDarkColorScheme(context) else dynamicLightColorScheme(context)
-            } else {
-                if (darkTheme) DarkColorScheme else LightColorScheme
+        val darkTheme = when (appPreferences!!.appTheme) {
+            AppTheme.SYSTEM -> isSystemInDarkTheme()
+            AppTheme.LIGHT -> false
+            AppTheme.DARK -> true
+        }
+
+        val colorScheme = when {
+            appPreferences!!.colorScheme == "Dynamic" -> {
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                    if (darkTheme) dynamicDarkColorScheme(context) else dynamicLightColorScheme(
+                        context
+                    )
+                } else {
+                    if (darkTheme) DarkColorScheme else LightColorScheme
+                }
+            }
+
+            darkTheme -> when (appPreferences!!.colorScheme) {
+                "Light", "Dark" -> DarkColorScheme
+                "Light Grey", "Dark Grey" -> DarkGreyScheme
+                "Light Sepia", "Dark Sepia" -> DarkSepiaScheme
+                "Light Parchment", "Dark Parchment" -> DarkParchmentScheme
+                "Light Yellow", "Dark Yellow" -> DarkYellowScheme
+                "Light Teal", "Dark Teal" -> DarkTealScheme
+                "Light Blue", "Dark Blue" -> DarkBlueScheme
+                "Light Pink", "Dark Pink" -> DarkPinkScheme
+                "Light Purple", "Dark Purple" -> DarkPurpleScheme
+                "Light Red", "Dark Red" -> DarkRedScheme
+                "Light Green", "Dark Green" -> DarkGreenScheme
+                else -> DarkColorScheme
+            }
+
+            else -> when (appPreferences!!.colorScheme) {
+                "Light", "Dark" -> LightColorScheme
+                "Light Grey", "Dark Grey" -> LightGreyScheme
+                "Light Sepia", "Dark Sepia" -> LightSepiaScheme
+                "Light Parchment", "Dark Parchment" -> LightParchmentScheme
+                "Light Yellow", "Dark Yellow" -> LightYellowScheme
+                "Light Teal", "Dark Teal" -> LightTealScheme
+                "Light Blue", "Dark Blue" -> LightBlueScheme
+                "Light Pink", "Dark Pink" -> LightPinkScheme
+                "Light Purple", "Dark Purple" -> LightPurpleScheme
+                "Light Red", "Dark Red" -> LightRedScheme
+                "Light Green", "Dark Green" -> LightGreenScheme
+                else -> LightColorScheme
             }
         }
-        darkTheme -> when (appPreferences.colorScheme) {
-            "Light", "Dark" -> DarkColorScheme
-            "Light Grey", "Dark Grey" -> DarkGreyScheme
-            "Light Sepia", "Dark Sepia" -> DarkSepiaScheme
-            "Light Parchment", "Dark Parchment" -> DarkParchmentScheme
-            "Light Yellow", "Dark Yellow" -> DarkYellowScheme
-            "Light Teal", "Dark Teal" -> DarkTealScheme
-            "Light Blue", "Dark Blue" -> DarkBlueScheme
-            "Light Pink", "Dark Pink" -> DarkPinkScheme
-            "Light Purple", "Dark Purple" -> DarkPurpleScheme
-            "Light Red", "Dark Red" -> DarkRedScheme
-            "Light Green", "Dark Green" -> DarkGreenScheme
-            else -> DarkColorScheme
-        }
-        else -> when (appPreferences.colorScheme) {
-            "Light", "Dark" -> LightColorScheme
-            "Light Grey", "Dark Grey" -> LightGreyScheme
-            "Light Sepia", "Dark Sepia" -> LightSepiaScheme
-            "Light Parchment", "Dark Parchment" -> LightParchmentScheme
-            "Light Yellow", "Dark Yellow" -> LightYellowScheme
-            "Light Teal", "Dark Teal" -> LightTealScheme
-            "Light Blue", "Dark Blue" -> LightBlueScheme
-            "Light Pink", "Dark Pink" -> LightPinkScheme
-            "Light Purple", "Dark Purple" -> LightPurpleScheme
-            "Light Red", "Dark Red" -> LightRedScheme
-            "Light Green", "Dark Green" -> LightGreenScheme
-            else -> LightColorScheme
-        }
-    }
-
 
 
 //    // Set splash screen theme
@@ -92,31 +97,32 @@ fun ReadTheme(
 //        R.style.Theme_App_Starting_Light
 //    }
 //    activity.setTheme(splashScreenTheme)
-    // Set splash screen theme
-    val splashScreenTheme = if (darkTheme) {
-        R.style.Theme_App_Starting_Dark
-    } else {
-        R.style.Theme_App_Starting_Light
-    }
-    activity?.setTheme(splashScreenTheme)
+        // Set splash screen theme
+        val splashScreenTheme = if (darkTheme) {
+            R.style.Theme_App_Starting_Dark
+        } else {
+            R.style.Theme_App_Starting_Light
+        }
+        activity?.setTheme(splashScreenTheme)
 
-    if (!view.isInEditMode) {
-        SideEffect {
-            activity?.window?.let { window ->
-                // Use WindowCompat.getInsetsController instead of direct window manipulation
-                WindowCompat.getInsetsController(window, view).apply {
-                    isAppearanceLightStatusBars = !darkTheme
-                    isAppearanceLightNavigationBars = !darkTheme
+        if (!view.isInEditMode) {
+            SideEffect {
+                activity?.window?.let { window ->
+                    // Use WindowCompat.getInsetsController instead of direct window manipulation
+                    WindowCompat.getInsetsController(window, view).apply {
+                        isAppearanceLightStatusBars = !darkTheme
+                        isAppearanceLightNavigationBars = !darkTheme
+                    }
                 }
             }
         }
-    }
 
-    MaterialTheme(
-        colorScheme = colorScheme,
-        typography = Typography,
-        content = content
-    )
+        MaterialTheme(
+            colorScheme = colorScheme,
+            typography = Typography,
+            content = content
+        )
+    }
 }
 
 

@@ -8,9 +8,12 @@ import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.viewModelScope
 import com.wxn.base.bean.Book
+import com.wxn.base.util.Logger
 import com.wxn.reader.domain.model.ReadingActive
 import com.wxn.reader.data.dto.ReadingStatus
 import com.wxn.reader.data.dto.ReadingStatus.Companion.intToReadStatus
+import com.wxn.reader.data.model.AppPreferences
+import com.wxn.reader.data.source.local.AppPreferencesUtil
 import com.wxn.reader.domain.use_case.books.GetBookByIdUseCase
 import com.wxn.reader.domain.use_case.books.UpdateBookUseCase
 import com.wxn.reader.domain.use_case.reading_activity.AddReadingActivityUseCase
@@ -19,13 +22,16 @@ import com.wxn.reader.domain.use_case.reading_progress.GetReadingProgressUseCase
 import com.wxn.reader.util.PdfBitmapConverter
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import java.util.Calendar
 import javax.inject.Inject
 
 @HiltViewModel
 class PdfReaderViewModel @Inject constructor(
+    private val appPrefsUtil: AppPreferencesUtil,
     private val getBookByIdUseCase: GetBookByIdUseCase,
     private val pdfBitmapConverter: PdfBitmapConverter,
     private val updateBookUseCase: UpdateBookUseCase,
@@ -66,10 +72,19 @@ class PdfReaderViewModel @Inject constructor(
     private var readingStartTime: Long = 0
     private var lastSaveTime: Long = 0
 
+    private val _appPreferences = MutableStateFlow<AppPreferences?>(null)
+    val appPreferences: StateFlow<AppPreferences?> = _appPreferences.asStateFlow()
 
     init {
         val pdfId = savedStateHandle.get<String>("bookId")?.toLongOrNull()
         val pdfUri = savedStateHandle.get<String>("bookUri")
+
+        viewModelScope.launch {
+            appPrefsUtil.appPrefsFlow.stateIn(viewModelScope).collect { pref ->
+                _appPreferences.value = pref
+                Logger.d("MainReadViewModel::init appPreferences[$pref]")
+            }
+        }
 
         viewModelScope.launch {
             _isLoading.value = true
@@ -78,6 +93,17 @@ class PdfReaderViewModel @Inject constructor(
                 contentUri = Uri.parse(pdfUri)
                 initializePdfInfo()
                 _book.value = getBookByIdUseCase(pdfId)
+
+                if (pdfId >= 0) {
+                    _appPreferences.value?.let { pref ->
+                        if (pref.lastBookId != pdfId) {
+                            viewModelScope.launch {
+                                appPrefsUtil.updateAppPreferences(pref.copy(lastBookId = pdfId))
+                            }
+                        }
+                    }
+                }
+
                 startReadingSession()
             } else {
                 _errorMessage.value = "Invalid PDF ID or URI"
@@ -85,7 +111,6 @@ class PdfReaderViewModel @Inject constructor(
             }
         }
     }
-
 
     private suspend fun initializePdfInfo() {
         try {
@@ -211,9 +236,4 @@ class PdfReaderViewModel @Inject constructor(
             _book.value = updatedBook2
         }
     }
-
-
-
-
-
 }

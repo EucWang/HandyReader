@@ -55,152 +55,153 @@ fun CustomNavigationDrawer(
 //            viewModel.updatePremiumStatus(isPremium)
 //        }
 //    }
-
-    ModalNavigationDrawer(
-        drawerState = drawerState,
-        drawerContent = {
-            ModalDrawerSheet {
-                Spacer(Modifier.height(if (isPortrait) 24.dp else 0.dp))
-                Column(
-                    modifier = Modifier.width(200.dp),
-                    verticalArrangement = Arrangement.Center,
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                ) {
-                    if (appPreferences.isPremium) {
-                        Image(
-                            painter = painterResource(id = R.drawable.crown),
-                            contentDescription = "Crown",
-                            modifier = Modifier
-                                .size(if (isPortrait) 24.dp else 16.dp)
-                                .offset(y = (if (isPortrait) 36 else 18).dp)
-                        )
-//                        FilledTonalButton(
-//                                contentPadding = PaddingValues(8.dp),
-//                        onClick = {
-//                        },
-//                        modifier = Modifier
-//                            .offset(y = (if (isPortrait) 36 else 18).dp)
-//                        ) {
-//                                Text("Connect to Google Drive", fontSize = 12.sp)
-//                        }
-                    } else {
-                        FilledTonalButton(
-                            contentPadding = PaddingValues(8.dp),
-                            onClick = {
-                                navController.navigate(Screens.PremiumScreen.route)
-                            },
-                            modifier = Modifier
-                                .offset(y = (if (isPortrait) 36 else 18).dp)
-                        ) {
-                            Row(
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.spacedBy(4.dp)
+    if (appPreferences != null) {
+        ModalNavigationDrawer(
+            drawerState = drawerState,
+            drawerContent = {
+                ModalDrawerSheet {
+                    Spacer(Modifier.height(if (isPortrait) 24.dp else 0.dp))
+                    Column(
+                        modifier = Modifier.width(200.dp),
+                        verticalArrangement = Arrangement.Center,
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                    ) {
+                        if (appPreferences!!.isPremium) {
+                            Image(
+                                painter = painterResource(id = R.drawable.crown),
+                                contentDescription = "Crown",
+                                modifier = Modifier
+                                    .size(if (isPortrait) 24.dp else 16.dp)
+                                    .offset(y = (if (isPortrait) 36 else 18).dp)
+                            )
+    //                        FilledTonalButton(
+    //                                contentPadding = PaddingValues(8.dp),
+    //                        onClick = {
+    //                        },
+    //                        modifier = Modifier
+    //                            .offset(y = (if (isPortrait) 36 else 18).dp)
+    //                        ) {
+    //                                Text("Connect to Google Drive", fontSize = 12.sp)
+    //                        }
+                        } else {
+                            FilledTonalButton(
+                                contentPadding = PaddingValues(8.dp),
+                                onClick = {
+                                    navController.navigate(Screens.PremiumScreen.route)
+                                },
+                                modifier = Modifier
+                                    .offset(y = (if (isPortrait) 36 else 18).dp)
                             ) {
-                                Image(
-                                    painter = painterResource(id = R.drawable.crown),
-                                    contentDescription = "Crown",
-                                    modifier = Modifier.size(if (isPortrait) 16.dp else 8.dp)
-                                )
-                                Text(stringResource(R.string.unlock_premium), fontSize = 12.sp)
-                                Image(
-                                    painter = painterResource(id = R.drawable.crown),
-                                    contentDescription = "Crown",
-                                    modifier = Modifier.size(if (isPortrait) 16.dp else 8.dp)
-                                )
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(4.dp)
+                                ) {
+                                    Image(
+                                        painter = painterResource(id = R.drawable.crown),
+                                        contentDescription = "Crown",
+                                        modifier = Modifier.size(if (isPortrait) 16.dp else 8.dp)
+                                    )
+                                    Text(stringResource(R.string.unlock_premium), fontSize = 12.sp)
+                                    Image(
+                                        painter = painterResource(id = R.drawable.crown),
+                                        contentDescription = "Crown",
+                                        modifier = Modifier.size(if (isPortrait) 16.dp else 8.dp)
+                                    )
+                                }
                             }
                         }
+                        Image(
+                            painter = painterResource(id = R.mipmap.ic_launcher_foreground),
+                            contentDescription = "App Logo",
+                            modifier = Modifier.size(if (isPortrait) 150.dp else 100.dp)
+                        )
                     }
-                    Image(
-                        painter = painterResource(id = R.mipmap.ic_launcher_foreground),
-                        contentDescription = "App Logo",
-                        modifier = Modifier.size(if (isPortrait) 150.dp else 100.dp)
-                    )
-                }
-                HorizontalDivider()
-                Spacer(Modifier.height(if (isPortrait) 16.dp else 0.dp))
+                    HorizontalDivider()
+                    Spacer(Modifier.height(if (isPortrait) 16.dp else 0.dp))
 
-                LazyColumn(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(start = (if (isPortrait) 0 else 16).dp)
-                ) {
-                    item {
-                        NavigationItem(
-                            icon = Icons.Outlined.Home,
-                            label = stringResource(R.string.home),
-                            isSelected = currentRoute == Screens.HomeScreen.route,
-                            onClick = {
-                                navigateIfNeeded(
-                                    navController,
-                                    currentRoute,
-                                    drawerState,
-                                    Screens.HomeScreen.route,
-                                    scope
-                                )
-                            }
-                        )
-                        Spacer(Modifier.height(16.dp))
-                    }
-                    item {
-                        NavigationItem(
-                            icon = Icons.Outlined.QueryStats,
-                            label = stringResource(R.string.statistics),
-                            isSelected = currentRoute == Screens.StatisticsScreen.route,
-                            onClick = {
-                                navigateIfNeeded(
-                                    navController,
-                                    currentRoute,
-                                    drawerState,
-                                    Screens.StatisticsScreen.route,
-                                    scope
-                                )
-                            }
-                        )
-                        Spacer(Modifier.height(16.dp))
-                    }
-                    item {
-                        NavigationItem(
-                            icon = Icons.Outlined.FolderCopy,
-                            label = stringResource(R.string.shelves),
-                            isSelected = currentRoute == Screens.ShelvesScreen.route,
-                            onClick = {
-                                navigateIfNeeded(
-                                    navController,
-                                    currentRoute,
-                                    drawerState,
-                                    Screens.ShelvesScreen.route,
-                                    scope
-                                )
-                            }
-                        )
-                        Spacer(Modifier.height(16.dp))
-                    }
-                    item {
-                        NavigationItem(
-                            icon = Icons.AutoMirrored.Outlined.StickyNote2,
-                            label = stringResource(R.string.notes),
-                            isSelected = currentRoute == Screens.NotesScreen.route,
-                            onClick = {
-                                navigateIfNeeded(
-                                    navController,
-                                    currentRoute,
-                                    drawerState,
-                                    Screens.NotesScreen.route,
-                                    scope
-                                )
-                            }
-                        )
-                        Spacer(Modifier.height(16.dp))
+                    LazyColumn(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(start = (if (isPortrait) 0 else 16).dp)
+                    ) {
+                        item {
+                            NavigationItem(
+                                icon = Icons.Outlined.Home,
+                                label = stringResource(R.string.home),
+                                isSelected = currentRoute == Screens.HomeScreen.route,
+                                onClick = {
+                                    navigateIfNeeded(
+                                        navController,
+                                        currentRoute,
+                                        drawerState,
+                                        Screens.HomeScreen.route,
+                                        scope
+                                    )
+                                }
+                            )
+                            Spacer(Modifier.height(16.dp))
+                        }
+                        item {
+                            NavigationItem(
+                                icon = Icons.Outlined.QueryStats,
+                                label = stringResource(R.string.statistics),
+                                isSelected = currentRoute == Screens.StatisticsScreen.route,
+                                onClick = {
+                                    navigateIfNeeded(
+                                        navController,
+                                        currentRoute,
+                                        drawerState,
+                                        Screens.StatisticsScreen.route,
+                                        scope
+                                    )
+                                }
+                            )
+                            Spacer(Modifier.height(16.dp))
+                        }
+                        item {
+                            NavigationItem(
+                                icon = Icons.Outlined.FolderCopy,
+                                label = stringResource(R.string.shelves),
+                                isSelected = currentRoute == Screens.ShelvesScreen.route,
+                                onClick = {
+                                    navigateIfNeeded(
+                                        navController,
+                                        currentRoute,
+                                        drawerState,
+                                        Screens.ShelvesScreen.route,
+                                        scope
+                                    )
+                                }
+                            )
+                            Spacer(Modifier.height(16.dp))
+                        }
+                        item {
+                            NavigationItem(
+                                icon = Icons.AutoMirrored.Outlined.StickyNote2,
+                                label = stringResource(R.string.notes),
+                                isSelected = currentRoute == Screens.NotesScreen.route,
+                                onClick = {
+                                    navigateIfNeeded(
+                                        navController,
+                                        currentRoute,
+                                        drawerState,
+                                        Screens.NotesScreen.route,
+                                        scope
+                                    )
+                                }
+                            )
+                            Spacer(Modifier.height(16.dp))
+                        }
                     }
                 }
             }
+        ) {
+            content()
         }
-    ) {
-        content()
-    }
 
-   if (showPremiumScreen){
-      PremiumScreen()
+       if (showPremiumScreen){
+          PremiumScreen()
+       }
    }
 
 }

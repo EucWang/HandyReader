@@ -1,6 +1,7 @@
 package com.wxn.reader.presentation.home.components
 
 import android.content.Context
+import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.AnimatedVisibility
@@ -22,6 +23,7 @@ import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.FilterList
 import androidx.compose.material.icons.filled.ImageSearch
@@ -46,6 +48,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.TextField
 import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.material3.TopAppBar
@@ -93,6 +96,7 @@ fun CustomTopAppBar(
     totalBooks: Int,
     currentShelfBookCount: Int,
     toggleSearchMode: () -> Unit,
+    showOutAddDirDialog: ()->Unit
 //    openDrawer: () -> Unit,
 ) {
     var dropdownMenuExpanded by remember { mutableStateOf(false) }
@@ -270,6 +274,28 @@ fun CustomTopAppBar(
                             viewModel.updateAppPreferences(appPreferences.copy(homeBackgroundImage = path))
                         }
 
+
+                        DropdownMenuItem(onClick = {
+//                            viewModel.refreshBooks()
+                            dropdownMenuExpanded = false
+                            showOutAddDirDialog()
+                        },
+                            text  = {
+                                Row(
+                                    modifier = Modifier
+                                        .fillMaxWidth(),
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                ) {
+                                    Text(stringResource(R.string.add_scan_directory))
+                                    Spacer(modifier = Modifier.width(8.dp))
+                                    Icon(
+                                        imageVector = Icons.Default.Add,
+                                        contentDescription = "Add Scan Dir",
+                                    )
+                                }
+                            })
+
                         DropdownMenuItem(onClick = {
                             viewModel.refreshBooks()
                             dropdownMenuExpanded = false
@@ -292,6 +318,8 @@ fun CustomTopAppBar(
 
                             }
                         )
+
+
                     }
                 }
             }

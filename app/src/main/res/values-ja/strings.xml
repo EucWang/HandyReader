@@ -279,5 +279,6 @@
     <string name="page_trans_anim_slide_vertical">垂直スライド</string>
     <string name="page_trans_anim_cover_vertical">垂直カバー</string>
     <string name="dialog_content_to_out_href">外部リンク (%1$s) にジャンプしてもよろしいですか？</string>
+    <string name="auto_open_last_read_file">最後に読んだファイルを自動的に開く</string>
 
 </resources>

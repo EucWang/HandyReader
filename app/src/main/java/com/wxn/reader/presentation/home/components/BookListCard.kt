@@ -111,9 +111,6 @@ fun BookListCard(
         return sdf.format(Date(timestamp))
     }
 
-
-
-
     Card(
         modifier = Modifier
             .fillMaxWidth()
@@ -229,7 +226,7 @@ fun BookListCard(
                             text = book.title,
                             style = MaterialTheme.typography.titleMedium,
                             maxLines = 1,
-                            overflow = TextOverflow.Ellipsis,
+                            overflow = TextOverflow.MiddleEllipsis,
                             modifier = Modifier.weight(1f)
                         )
                         AnimatedVisibility(visible = appPreferences.showReadingStatus) {

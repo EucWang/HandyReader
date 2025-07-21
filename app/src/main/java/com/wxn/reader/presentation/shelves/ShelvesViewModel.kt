@@ -15,11 +15,9 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import javax.inject.Inject
-
 
 @HiltViewModel
 class ShelvesViewModel @Inject constructor(
@@ -34,19 +32,20 @@ class ShelvesViewModel @Inject constructor(
     private val _shelvesState = MutableStateFlow<ShelvesState>(ShelvesState.Loading)
     val shelvesState: StateFlow<ShelvesState> = _shelvesState.asStateFlow()
 
-    private val _appPreferences = MutableStateFlow(AppPreferencesUtil.defaultPreferences)
-    val appPreferences: StateFlow<AppPreferences> = _appPreferences.asStateFlow()
+    private val _appPreferences = MutableStateFlow<AppPreferences?>(null)
+    val appPreferences: StateFlow<AppPreferences?> = _appPreferences.asStateFlow()
 
     init {
         getShelves()
     }
-
 
     private fun getShelves() {
         viewModelScope.launch {
             appPreferencesUtil.appPrefsFlow.stateIn(viewModelScope).collect { initialPreferences ->
                 _appPreferences.value = initialPreferences
             }
+        }
+        viewModelScope.launch {
             try {
                 getShelvesUseCase().collect { shelf ->
                     _shelvesState.value = ShelvesState.Success(shelf)
@@ -54,13 +53,8 @@ class ShelvesViewModel @Inject constructor(
             } catch (e: Exception) {
                 _shelvesState.value = ShelvesState.Error(e.message ?: "Unknown error occurred")
             }
-            // Continue collecting preferences updates
-            appPreferencesUtil.appPrefsFlow.stateIn(viewModelScope).collect { preferences ->
-                _appPreferences.value = preferences
-            }
         }
     }
-
 
     fun addShelf(shelfName: String) {
         viewModelScope.launch {
@@ -134,7 +128,7 @@ class ShelvesViewModel @Inject constructor(
 
     fun updatePremiumStatus(isPremium: Boolean) {
         viewModelScope.launch {
-            val currentPreferences = appPreferences.value
+            val currentPreferences = _appPreferences.value ?: return@launch
             if (currentPreferences.isPremium != isPremium) {
                 val updatedPreferences = currentPreferences.copy(isPremium = isPremium)
                 appPreferencesUtil.updateAppPreferences(updatedPreferences)

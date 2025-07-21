@@ -127,401 +127,402 @@ fun ReaderView(
         context.startActivity(Intent.createChooser(intent, "Search with"))
     }
 
-    Box(
-        modifier = Modifier
-            .fillMaxSize()
-    ) {
-
-        AndroidView(
-            factory = { context ->
-                PageView(context).apply {
-                    layoutParams = FrameLayout.LayoutParams(FrameLayout.LayoutParams.MATCH_PARENT, FrameLayout.LayoutParams.MATCH_PARENT)
-                    viewModel.pageController.pageFactory = TextPageFactory(this, viewModel.pageController)
-                    this.dataProvider = viewModel.pageController
-                    viewModel.pageController.callBack = this
-                    viewModel.pageController.clickListener = viewModel
-                    setSelectTextCallback(viewModel.pageController)
+    if (appPreferences != null) {
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+        ) {
+            AndroidView(
+                factory = { context ->
+                    PageView(context).apply {
+                        layoutParams = FrameLayout.LayoutParams(FrameLayout.LayoutParams.MATCH_PARENT, FrameLayout.LayoutParams.MATCH_PARENT)
+                        viewModel.pageController.pageFactory = TextPageFactory(this, viewModel.pageController)
+                        this.dataProvider = viewModel.pageController
+                        viewModel.pageController.callBack = this
+                        viewModel.pageController.clickListener = viewModel
+                        setSelectTextCallback(viewModel.pageController)
+                    }
+                },
+                modifier = Modifier.fillMaxSize(),
+                update = { view ->
+                    Logger.d("ReaderView::update by AndroidView")
+                    view.dataProvider?.book = book
+                    view.upStyle()
+                    view.upTipStyle()
+                    view.upBg()
+                    view.upStatusBar()
+                    view.dataProvider?.loadContent(true)
                 }
-            },
-            modifier = Modifier.fillMaxSize(),
-            update = { view ->
-                Logger.d("ReaderView::update by AndroidView")
-                view.dataProvider?.book = book
-                view.upStyle()
-                view.upTipStyle()
-                view.upBg()
-                view.upStatusBar()
-                view.dataProvider?.loadContent(true)
-            }
-        )
-
-        val curChapterName by viewModel.curChapterName.collectAsStateWithLifecycle()
-
-        AnimatedVisibility(
-            visible = areToolbarsVisible,
-            enter = slideInVertically(initialOffsetY = { -it }),
-            exit = slideOutVertically(targetOffsetY = { -it })
-        ) {
-            TopToolbar(
-                isBookmarked = isBookmarked,
-                navController = navController,
-                book = book,
-                bookTitle = book?.title,
-                currentChapter = curChapterName,
-                onChaptersClick = { viewModel.chaptersDrawerOpen() },
-                onNotesDrawerToggle = { viewModel.notesDrawerOpen() },
-                onBookmarkDrawerToggle = { viewModel.bookmarksDrawerOpen() },
-                onHighlightsDrawerToggle = { viewModel.highlightsDrawerOpen() },
-                bookmark = {
-                    if (isBookmarked) {
-                        viewModel.deleteBookmark()
-                    } else {
-                        viewModel.addBookmark()
-                    }
-                },
-                textToSpeech = {
-                    viewModel.toggleTts()
-                },
-                enableTts = enableTts,
-                isTtsOn = isTtsOn,
             )
-        }
 
-        LaunchedEffect(isTtsOn) {
-            if (isTtsOn) {
-                viewModel.onToolbarsVisibilityChanged()
-            }
-        }
+            val curChapterName by viewModel.curChapterName.collectAsStateWithLifecycle()
 
-//        TtsPlayer(
-//            areToolbarsVisible = areToolbarsVisible,
-//            isTtsOn = isTtsOn,
-//            isTtsPlaying = isTtsPlaying,
-//            speed = ttsSpeed,
-//            pitch = ttsPitch,
-//            language = ttsLanguage,
-//            onPlay = {
-//                viewModel.setTtsPlaying(true)
-//            },
-//            onPause = {
-//                viewModel.setTtsPlaying(false)
-//            },
-//            onEnd = {
-//                viewModel.toggleTts()
-//            },
-//            onSpeedChange = { viewModel.setTtsSpeed(it.toDouble()) },
-//            onPitchChange = { viewModel.setTtsPitch(it.toDouble()) },
-//            onLanguageChange = { viewModel.setTtsLanguage(it) },
-//            onSkipToNextUtterance = { viewModel.skipToNextUtterance() },
-//            onSkipToPreviousUtterance = { viewModel.skipToPreviousUtterance() }
-//        )
-        // ActionModeLayout
-        if (showTextToolbar || isHighlightsDrawerOpen || isChaptersDrawerOpen || isNotesDrawerOpen || isBookmarksDrawerOpen) {
-            Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .clickable(
-                        interactionSource = remember { MutableInteractionSource() },
-                        indication = null
-                    ) {
-
-                        viewModel.notesDrawerOpen(false)
-                        viewModel.bookmarksDrawerOpen(false)
-                        viewModel.highlightsDrawerOpen(false)
-                        viewModel.chaptersDrawerOpen(false)
-
-                        if (showTextToolbar) {
-                            viewModel.textToolbarOpen(false)
-                            viewModel.cancelTextSelected()
-                        }
-                        viewModel.showColorSelectionPanel(false)
-                    }
-            )
-        }
-
-        Column(
-            modifier = Modifier.align(Alignment.BottomCenter)
-        ) {
             AnimatedVisibility(
-                visible = !showUISettings && !showFontSettings && !showPageSettings && !showReaderSettings,
+                visible = areToolbarsVisible,
+                enter = slideInVertically(initialOffsetY = { -it }),
+                exit = slideOutVertically(targetOffsetY = { -it })
             ) {
-                BottomToolbar(
-                    textPageFactory = viewModel.pageController.pageFactory,
-                    showToolbar = areToolbarsVisible,
-//                    progression = viewModel.pageController.progression,
-                    viewModel = viewModel,
-//                    onPageChange = ::onPageChange,
-                    onToggleFontSettings = { viewModel.fontSettingsOpen() },
-                    onTogglePageSettings = { viewModel.pageSettingsOpen() },
-                    onToggleReaderSettings = { viewModel.readerSettingsOpen() },
-                    onToggleUISettings = { viewModel.uiSettingsOpen() }
+                TopToolbar(
+                    isBookmarked = isBookmarked,
+                    navController = navController,
+                    book = book,
+                    bookTitle = book?.title,
+                    currentChapter = curChapterName,
+                    onChaptersClick = { viewModel.chaptersDrawerOpen() },
+                    onNotesDrawerToggle = { viewModel.notesDrawerOpen() },
+                    onBookmarkDrawerToggle = { viewModel.bookmarksDrawerOpen() },
+                    onHighlightsDrawerToggle = { viewModel.highlightsDrawerOpen() },
+                    bookmark = {
+                        if (isBookmarked) {
+                            viewModel.deleteBookmark()
+                        } else {
+                            viewModel.addBookmark()
+                        }
+                    },
+                    textToSpeech = {
+                        viewModel.toggleTts()
+                    },
+                    enableTts = enableTts,
+                    isTtsOn = isTtsOn,
                 )
             }
-        }
 
-        ChaptersDrawer2(
-            isOpen = isChaptersDrawerOpen,
-            viewModel = viewModel,
-            tableOfContents = viewModel.showOutChapters,
-            onChapterSelect = { selectedChapter ->
-                viewModel.onChapterClick(selectedChapter)
-                viewModel.chaptersDrawerOpen(false)
-//                val locator = publication.locatorFromLink(selectedChapter)
-//                locator?.let {
-//                    onChapterChange(it)
-//                    isChaptersDrawerOpen = false
-//                }
-            },
-            onClose = { viewModel.chaptersDrawerOpen(false) }
-        )
-
-        NotesDrawer(
-            navController = navController,
-            appPreferences = appPreferences,
-            isOpen = isNotesDrawerOpen,
-            onClose = { viewModel.notesDrawerOpen(false) },
-            notes = notes,
-            onNoteClick = { note ->
-                // Handle note click, e.g., navigate to the note's location in the book
-                viewModel.viewModelScope.launch {
-                    viewModel.notesDrawerOpen(false)
-                    viewModel.navigateTo(note.locatorInfo)
+            LaunchedEffect(isTtsOn) {
+                if (isTtsOn) {
+                    viewModel.onToolbarsVisibilityChanged()
                 }
-            },
-            onUpdateNote = { updatedNote ->
-                viewModel.updateNote(updatedNote)
-            },
-            onRemoveNote = { note ->
-                viewModel.deleteNote(note)
             }
-        )
 
-        BookmarksDrawer(
-            navController = navController,
-            appPreferences = appPreferences,
-            isOpen = isBookmarksDrawerOpen,
-            onClose = { viewModel.bookmarksDrawerOpen(false) },
-            bookmarks = bookmarks,
-            onBookmarkClick = { bookmark ->
-                viewModel.viewModelScope.launch {
-                    viewModel.bookmarksDrawerOpen(false)
-                    viewModel.navigateTo(bookmark.locatorInfo)
-                }
-            },
-            onRemoveBookmark = { bookmark ->
-                viewModel.deleteBookmark(bookmark)
-            }
-        )
-
-        AnnotationsDrawer(
-            navController = navController,
-            appPreferences = appPreferences,
-            annotations = annotations,
-            onRemoveAnnotation = viewModel::deleteAnnotation,
-            onUpdateAnnotation = viewModel::updateAnnotation,
-            onClickAnnotation = { annotation ->
-                viewModel.navigateTo(annotation.locatorInfo)
-            },
-            isOpen = isHighlightsDrawerOpen,
-            onClose = { viewModel.highlightsDrawerOpen(false) }
-        )
-
-        if (showNoteDialog) {
-            NoteDialog(
-                appPreferences = appPreferences,
-                selectedText = noteDialogSelectedText,
-                onSave = { noteText, selectedColor ->
-                    viewModel.viewModelScope.launch {
-                        viewModel.addNote(noteText, selectedColor)
-                    }
-                    viewModel.noteDialogOpen(false)
-                },
-                onDismiss = {
-                    viewModel.noteDialogOpen(false)
-                    viewModel.cancelTextSelected()
-                },
-                showPremiumModal = {
-                    viewModel.noteDialogOpen(false)
-                    navController.navigate(Screens.PremiumScreen.route)
-//                    viewModel.purchasePremium(purchaseHelper)
-//                    showPremiumModal = true
-                }
-            )
-        }
-
-        //选中的笔记
-        selectedNote?.let { note ->
-            NoteContent(
-                appPreferences = appPreferences,
-                note = note,
-                onDismiss = {
-                    viewModel.clearSelectedNote()
-                    viewModel.cancelTextSelected()
-                },
-                onEdit = { editedNote ->
-                    viewModel.updateNote(editedNote)
-                    viewModel.clearSelectedNote()
-                },
-                onDelete = { noteToDelete ->
-                    viewModel.deleteNote(noteToDelete)
-                    viewModel.clearSelectedNote()
-                },
-                showPremiumModal = {
-//                    viewModel.clearSelectedNote()
-//                    viewModel.purchasePremium(purchaseHelper)
-//                    navController.navigate(Screens.PremiumScreen.route)
-                }
-            )
-        }
-
-        //字体设置
-        if (showFontSettings) {
-            FontSettings(
-                viewModel = viewModel,
-                readerPreferences = readerPreferences,
-                onDismiss = { viewModel.fontSettingsOpen(false) },
-            )
-        }
-
-        //页面设置
-        if (showPageSettings) {
-            PageSettings(
-                viewModel = viewModel,
-                readerPreferences = readerPreferences,
-                onDismiss = { viewModel.pageSettingsOpen(false) },
-            )
-        }
-
-        //UI 设置
-        if (showUISettings) {
-            UiSettings(
-                navController = navController,
-//                purchaseHelper = purchaseHelper,
-                appPreferences = appPreferences,
-                viewModel = viewModel,
-                readerPreferences = readerPreferences,
-                onDismiss = { viewModel.uiSettingsOpen(false) }
-            )
-        }
-
-        //阅读设置
-        if (showReaderSettings) {
-            ReaderSettings(
-                viewModel = viewModel,
-                readerPreferences = readerPreferences,
-                onDismiss = { viewModel.readerSettingsOpen(false) }
-            )
-        }
-
-        var dp16 = remember { 0f }
-        with(LocalDensity.current) {
-            dp16 = 16.dp.toPx()
-        }
-
-        if (clickedLinkContent != null) { //点击的链接内容popup
-            Popup(
-                popupPositionProvider = TopPopupPositionProvider(
-                    Alignment.TopStart,
-                    IntOffset(0, dp16.toInt()),
-                    anchor = IntOffset(clickedLinkContent?.clickX?.toInt() ?: 0, clickedLinkContent?.clickY?.toInt() ?: 0)
-                ),
-                onDismissRequest = {
-                    viewModel.clearClickedLinkContent()
-                }
-            ) {
-
+    //        TtsPlayer(
+    //            areToolbarsVisible = areToolbarsVisible,
+    //            isTtsOn = isTtsOn,
+    //            isTtsPlaying = isTtsPlaying,
+    //            speed = ttsSpeed,
+    //            pitch = ttsPitch,
+    //            language = ttsLanguage,
+    //            onPlay = {
+    //                viewModel.setTtsPlaying(true)
+    //            },
+    //            onPause = {
+    //                viewModel.setTtsPlaying(false)
+    //            },
+    //            onEnd = {
+    //                viewModel.toggleTts()
+    //            },
+    //            onSpeedChange = { viewModel.setTtsSpeed(it.toDouble()) },
+    //            onPitchChange = { viewModel.setTtsPitch(it.toDouble()) },
+    //            onLanguageChange = { viewModel.setTtsLanguage(it) },
+    //            onSkipToNextUtterance = { viewModel.skipToNextUtterance() },
+    //            onSkipToPreviousUtterance = { viewModel.skipToPreviousUtterance() }
+    //        )
+            // ActionModeLayout
+            if (showTextToolbar || isHighlightsDrawerOpen || isChaptersDrawerOpen || isNotesDrawerOpen || isBookmarksDrawerOpen) {
                 Box(
-                    modifier = Modifier.padding(horizontal = 32.dp).fillMaxWidth().background(Color.Yellow)
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .clickable(
+                            interactionSource = remember { MutableInteractionSource() },
+                            indication = null
+                        ) {
+
+                            viewModel.notesDrawerOpen(false)
+                            viewModel.bookmarksDrawerOpen(false)
+                            viewModel.highlightsDrawerOpen(false)
+                            viewModel.chaptersDrawerOpen(false)
+
+                            if (showTextToolbar) {
+                                viewModel.textToolbarOpen(false)
+                                viewModel.cancelTextSelected()
+                            }
+                            viewModel.showColorSelectionPanel(false)
+                        }
+                )
+            }
+
+            Column(
+                modifier = Modifier.align(Alignment.BottomCenter)
+            ) {
+                AnimatedVisibility(
+                    visible = !showUISettings && !showFontSettings && !showPageSettings && !showReaderSettings,
                 ) {
-                    IconButton(
-                        onClick = {
-                            viewModel.clearClickedLinkContent()
-                        },
-                        modifier = Modifier.align(Alignment.TopEnd).padding(top = 4.dp, end = 4.dp)
-                    ) {
-                        Icon(
-                            Icons.Default.Close,
-                            contentDescription = "Close Popup"
-                        )
+                    BottomToolbar(
+                        textPageFactory = viewModel.pageController.pageFactory,
+                        showToolbar = areToolbarsVisible,
+    //                    progression = viewModel.pageController.progression,
+                        viewModel = viewModel,
+    //                    onPageChange = ::onPageChange,
+                        onToggleFontSettings = { viewModel.fontSettingsOpen() },
+                        onTogglePageSettings = { viewModel.pageSettingsOpen() },
+                        onToggleReaderSettings = { viewModel.readerSettingsOpen() },
+                        onToggleUISettings = { viewModel.uiSettingsOpen() }
+                    )
+                }
+            }
+
+            ChaptersDrawer2(
+                isOpen = isChaptersDrawerOpen,
+                viewModel = viewModel,
+                tableOfContents = viewModel.showOutChapters,
+                onChapterSelect = { selectedChapter ->
+                    viewModel.onChapterClick(selectedChapter)
+                    viewModel.chaptersDrawerOpen(false)
+    //                val locator = publication.locatorFromLink(selectedChapter)
+    //                locator?.let {
+    //                    onChapterChange(it)
+    //                    isChaptersDrawerOpen = false
+    //                }
+                },
+                onClose = { viewModel.chaptersDrawerOpen(false) }
+            )
+
+            NotesDrawer(
+                navController = navController,
+                appPreferences = appPreferences!!,
+                isOpen = isNotesDrawerOpen,
+                onClose = { viewModel.notesDrawerOpen(false) },
+                notes = notes,
+                onNoteClick = { note ->
+                    // Handle note click, e.g., navigate to the note's location in the book
+                    viewModel.viewModelScope.launch {
+                        viewModel.notesDrawerOpen(false)
+                        viewModel.navigateTo(note.locatorInfo)
                     }
-                    Column(Modifier.padding(8.dp, 36.dp, 8.dp, 8.dp)) {
-                        Text(text = clickedLinkContent?.content.orEmpty(), fontSize = 14.sp)
+                },
+                onUpdateNote = { updatedNote ->
+                    viewModel.updateNote(updatedNote)
+                },
+                onRemoveNote = { note ->
+                    viewModel.deleteNote(note)
+                }
+            )
+
+            BookmarksDrawer(
+                navController = navController,
+                appPreferences = appPreferences!!,
+                isOpen = isBookmarksDrawerOpen,
+                onClose = { viewModel.bookmarksDrawerOpen(false) },
+                bookmarks = bookmarks,
+                onBookmarkClick = { bookmark ->
+                    viewModel.viewModelScope.launch {
+                        viewModel.bookmarksDrawerOpen(false)
+                        viewModel.navigateTo(bookmark.locatorInfo)
+                    }
+                },
+                onRemoveBookmark = { bookmark ->
+                    viewModel.deleteBookmark(bookmark)
+                }
+            )
+
+            AnnotationsDrawer(
+                navController = navController,
+                appPreferences = appPreferences!!,
+                annotations = annotations,
+                onRemoveAnnotation = viewModel::deleteAnnotation,
+                onUpdateAnnotation = viewModel::updateAnnotation,
+                onClickAnnotation = { annotation ->
+                    viewModel.navigateTo(annotation.locatorInfo)
+                },
+                isOpen = isHighlightsDrawerOpen,
+                onClose = { viewModel.highlightsDrawerOpen(false) }
+            )
+
+            if (showNoteDialog) {
+                NoteDialog(
+                    appPreferences = appPreferences!!,
+                    selectedText = noteDialogSelectedText,
+                    onSave = { noteText, selectedColor ->
+                        viewModel.viewModelScope.launch {
+                            viewModel.addNote(noteText, selectedColor)
+                        }
+                        viewModel.noteDialogOpen(false)
+                    },
+                    onDismiss = {
+                        viewModel.noteDialogOpen(false)
+                        viewModel.cancelTextSelected()
+                    },
+                    showPremiumModal = {
+                        viewModel.noteDialogOpen(false)
+                        navController.navigate(Screens.PremiumScreen.route)
+    //                    viewModel.purchasePremium(purchaseHelper)
+    //                    showPremiumModal = true
+                    }
+                )
+            }
+
+            //选中的笔记
+            selectedNote?.let { note ->
+                NoteContent(
+                    appPreferences = appPreferences!!,
+                    note = note,
+                    onDismiss = {
+                        viewModel.clearSelectedNote()
+                        viewModel.cancelTextSelected()
+                    },
+                    onEdit = { editedNote ->
+                        viewModel.updateNote(editedNote)
+                        viewModel.clearSelectedNote()
+                    },
+                    onDelete = { noteToDelete ->
+                        viewModel.deleteNote(noteToDelete)
+                        viewModel.clearSelectedNote()
+                    },
+                    showPremiumModal = {
+    //                    viewModel.clearSelectedNote()
+    //                    viewModel.purchasePremium(purchaseHelper)
+    //                    navController.navigate(Screens.PremiumScreen.route)
+                    }
+                )
+            }
+
+            //字体设置
+            if (showFontSettings) {
+                FontSettings(
+                    viewModel = viewModel,
+                    readerPreferences = readerPreferences,
+                    onDismiss = { viewModel.fontSettingsOpen(false) },
+                )
+            }
+
+            //页面设置
+            if (showPageSettings) {
+                PageSettings(
+                    viewModel = viewModel,
+                    readerPreferences = readerPreferences,
+                    onDismiss = { viewModel.pageSettingsOpen(false) },
+                )
+            }
+
+            //UI 设置
+            if (showUISettings) {
+                UiSettings(
+                    navController = navController,
+    //                purchaseHelper = purchaseHelper,
+                    appPreferences = appPreferences!!,
+                    viewModel = viewModel,
+                    readerPreferences = readerPreferences,
+                    onDismiss = { viewModel.uiSettingsOpen(false) }
+                )
+            }
+
+            //阅读设置
+            if (showReaderSettings) {
+                ReaderSettings(
+                    viewModel = viewModel,
+                    readerPreferences = readerPreferences,
+                    onDismiss = { viewModel.readerSettingsOpen(false) }
+                )
+            }
+
+            var dp16 = remember { 0f }
+            with(LocalDensity.current) {
+                dp16 = 16.dp.toPx()
+            }
+
+            if (clickedLinkContent != null) { //点击的链接内容popup
+                Popup(
+                    popupPositionProvider = TopPopupPositionProvider(
+                        Alignment.TopStart,
+                        IntOffset(0, dp16.toInt()),
+                        anchor = IntOffset(clickedLinkContent?.clickX?.toInt() ?: 0, clickedLinkContent?.clickY?.toInt() ?: 0)
+                    ),
+                    onDismissRequest = {
+                        viewModel.clearClickedLinkContent()
+                    }
+                ) {
+
+                    Box(
+                        modifier = Modifier.padding(horizontal = 32.dp).fillMaxWidth().background(Color.Yellow)
+                    ) {
+                        IconButton(
+                            onClick = {
+                                viewModel.clearClickedLinkContent()
+                            },
+                            modifier = Modifier.align(Alignment.TopEnd).padding(top = 4.dp, end = 4.dp)
+                        ) {
+                            Icon(
+                                Icons.Default.Close,
+                                contentDescription = "Close Popup"
+                            )
+                        }
+                        Column(Modifier.padding(8.dp, 36.dp, 8.dp, 8.dp)) {
+                            Text(text = clickedLinkContent?.content.orEmpty(), fontSize = 14.sp)
+                        }
                     }
                 }
             }
         }
-    }
 
-    if (showTextToolbar) {
-        TextToolbar(
-            navController = navController,
-            viewModel = viewModel,
-            selectedText = "", // actionSelectedText,
-            rect = textToolbarRect,
-            onHighlight = { color ->    //高亮
-                viewModel.handleHighlight(color)
-            },
-            onUnderline = { color ->    //下划线
-                viewModel.handleUnderline(color)
-            },
-            onNote = {                  //新增笔记
-                viewModel.handleNote()
-                viewModel.textToolbarOpen(false)
-//                showTextToolbar = false
-            },
-            onDismiss = {
-                viewModel.textToolbarOpen(false)
-                viewModel.cancelTextSelected()
-            },
-            appPreferences = appPreferences,
-            selectedAnnotation = selectedAnnotation,
-            onRemoveAnnotation = {
-                viewModel.deleteAnnotation(it)
-            },
-            colorHistory = readerPreferences.colorHistory.map { it ->
-                Color(it.toCompatibleArgb())
-            },
-            onColorHistoryUpdated = { newHistory ->
-//                Logger.d("TextToolbar::onColorHistoryUpdated")
-                viewModel.updateReaderPreferences(readerPreferences.copy(colorHistory = newHistory.mapNotNull { it ->
-                    it.toAndroidColor()
-                }), false)
-            },
-            showColorSelectionPanel = showColorSelectionPanel
-        )
-    }
+        if (showTextToolbar) {
+            TextToolbar(
+                navController = navController,
+                viewModel = viewModel,
+                selectedText = "", // actionSelectedText,
+                rect = textToolbarRect,
+                onHighlight = { color ->    //高亮
+                    viewModel.handleHighlight(color)
+                },
+                onUnderline = { color ->    //下划线
+                    viewModel.handleUnderline(color)
+                },
+                onNote = {                  //新增笔记
+                    viewModel.handleNote()
+                    viewModel.textToolbarOpen(false)
+    //                showTextToolbar = false
+                },
+                onDismiss = {
+                    viewModel.textToolbarOpen(false)
+                    viewModel.cancelTextSelected()
+                },
+                appPreferences = appPreferences!!,
+                selectedAnnotation = selectedAnnotation,
+                onRemoveAnnotation = {
+                    viewModel.deleteAnnotation(it)
+                },
+                colorHistory = readerPreferences.colorHistory.map { it ->
+                    Color(it.toCompatibleArgb())
+                },
+                onColorHistoryUpdated = { newHistory ->
+    //                Logger.d("TextToolbar::onColorHistoryUpdated")
+                    viewModel.updateReaderPreferences(readerPreferences.copy(colorHistory = newHistory.mapNotNull { it ->
+                        it.toAndroidColor()
+                    }), false)
+                },
+                showColorSelectionPanel = showColorSelectionPanel
+            )
+        }
 
-    if (showOutHrefDialog) {
-        AlertDialog(
-            onDismissRequest = {
-                viewModel.hideOutHrefDialog()
+        if (showOutHrefDialog) {
+            AlertDialog(
+                onDismissRequest = {
+                    viewModel.hideOutHrefDialog()
 
-           },
-            title = { Text("") },
-            text = { Text(stringResource(R.string.dialog_content_to_out_href, outHref)) },
-            dismissButton = {
-                Button(
-                    onClick = {
-                        viewModel.hideOutHrefDialog()
+               },
+                title = { Text("") },
+                text = { Text(stringResource(R.string.dialog_content_to_out_href, outHref)) },
+                dismissButton = {
+                    Button(
+                        onClick = {
+                            viewModel.hideOutHrefDialog()
+                        }
+                    ) {
+                        Text(stringResource(R.string.cancel))
                     }
-                ) {
-                    Text(stringResource(R.string.cancel))
-                }
-            },
-            confirmButton = {
-                Button(
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = MaterialTheme.colorScheme.error,
-                        contentColor = MaterialTheme.colorScheme.onError,
-                    ),
-                    onClick = {
-                        navigateToHref(outHref)
-                        viewModel.hideOutHrefDialog()
+                },
+                confirmButton = {
+                    Button(
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = MaterialTheme.colorScheme.error,
+                            contentColor = MaterialTheme.colorScheme.onError,
+                        ),
+                        onClick = {
+                            navigateToHref(outHref)
+                            viewModel.hideOutHrefDialog()
+                        }
+                    ) {
+                        Text(stringResource(R.string.navigate_to))
                     }
-                ) {
-                    Text(stringResource(R.string.navigate_to))
-                }
-            },
-        )
+                },
+            )
+        }
     }
 }

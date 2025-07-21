@@ -7,13 +7,10 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.statusBars
-import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.List
 import androidx.compose.material.icons.automirrored.filled.VolumeOff
@@ -26,6 +23,7 @@ import androidx.compose.material.icons.outlined.BookmarkBorder
 import androidx.compose.material.icons.outlined.BorderColor
 import androidx.compose.material.icons.outlined.Info
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.DrawerDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -44,6 +42,8 @@ import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
 import com.wxn.base.bean.Book
 import com.wxn.reader.navigation.Screens
+import com.wxn.reader.util.consumeClick
+
 //import org.readium.r2.shared.publication.Publication
 
 @Composable
@@ -73,9 +73,10 @@ fun TopToolbar(
         modifier = Modifier
             .fillMaxWidth()
             .shadow(8.dp)
-            .background(Color.White)
+            .background(DrawerDefaults.modalContainerColor)
             .padding(bottom = 12.dp)
-            .windowInsetsPadding(WindowInsets.statusBars)
+            .consumeClick()
+//            .windowInsetsPadding(WindowInsets.statusBars)
     ) {
         Row(
             modifier = Modifier

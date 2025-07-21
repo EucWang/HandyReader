@@ -18,8 +18,8 @@ class GettingStartedViewModel @Inject constructor(
     application: Application,
 ) : AndroidViewModel(application) {
 
-    private val _appPreferences = MutableStateFlow(AppPreferencesUtil.defaultPreferences)
-    val appPreferences: StateFlow<AppPreferences> = _appPreferences.asStateFlow()
+    private val _appPreferences = MutableStateFlow<AppPreferences?>(null)
+    val appPreferences: StateFlow<AppPreferences?> = _appPreferences.asStateFlow()
 
     private val _isButtonsEnabled = MutableStateFlow(true)
     val isButtonsEnabled: StateFlow<Boolean> = _isButtonsEnabled.asStateFlow()
@@ -46,13 +46,10 @@ class GettingStartedViewModel @Inject constructor(
         }
     }
 
-
-
-
-
     fun skipGettingStarted() {
         viewModelScope.launch {
-            val updatedPreferences = appPreferences.value.copy(isFirstLaunch = false)
+            val prefs = _appPreferences.value ?: return@launch
+            val updatedPreferences = prefs.copy(isFirstLaunch = false)
             updateAppPreferences(updatedPreferences)
         }
     }

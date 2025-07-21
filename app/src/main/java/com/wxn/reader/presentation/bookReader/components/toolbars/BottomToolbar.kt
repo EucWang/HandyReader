@@ -28,6 +28,7 @@ import androidx.compose.material.icons.automirrored.sharp.ArrowForward
 import androidx.compose.material.icons.filled.FormatSize
 import androidx.compose.material.icons.filled.SettingsBrightness
 import androidx.compose.material.icons.filled.TextFormat
+import androidx.compose.material3.DrawerDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -54,6 +55,7 @@ import com.wxn.bookread.ui.TextPageFactory
 import com.wxn.reader.presentation.mainReader.MainReadViewModel
 import com.wxn.reader.util.LogCompositions
 import com.wxn.reader.util.OnLaunchFlow
+import com.wxn.reader.util.consumeClick
 import com.wxn.reader.util.format
 
 //
@@ -251,7 +253,7 @@ fun BottomToolbar(
             modifier = Modifier
                 .fillMaxWidth()
                 .background(Color.Transparent)
-
+                .consumeClick()
         ) {
             Row(
                 modifier = Modifier
@@ -265,7 +267,8 @@ fun BottomToolbar(
                     modifier = Modifier
                         .size(40.dp)
                         .shadow(elevation = 8.dp, shape = RoundedCornerShape(50.dp))
-                        .background(Color.White.copy(alpha = 1f), RoundedCornerShape(50.dp))
+//                        .background(Color.White.copy(alpha = 1f), RoundedCornerShape(50.dp))
+                        .background(DrawerDefaults.modalContainerColor.copy(alpha = 1f), RoundedCornerShape(50.dp))
                         .padding(0.dp)
                 ) {
                     Icon(
@@ -278,7 +281,8 @@ fun BottomToolbar(
                     modifier = Modifier
                         .height(46.dp)
                         .shadow(elevation = 8.dp, shape = RoundedCornerShape(50.dp))
-                        .background(Color.White.copy(alpha = 0.95f), RoundedCornerShape(50.dp))
+//                        .background(Color.White.copy(alpha = 0.95f), RoundedCornerShape(50.dp))
+                        .background(DrawerDefaults.modalContainerColor.copy(alpha = 0.95f), RoundedCornerShape(50.dp))
                         .border(
                             width = 1.dp,
                             color = Color.Transparent,
@@ -329,7 +333,8 @@ fun BottomToolbar(
                     modifier = Modifier
                         .size(40.dp)
                         .shadow(elevation = 8.dp, shape = RoundedCornerShape(50.dp))
-                        .background(Color.White.copy(alpha = 1f), RoundedCornerShape(50.dp))
+//                        .background(Color.White.copy(alpha = 1f), RoundedCornerShape(50.dp))
+                        .background(DrawerDefaults.modalContainerColor.copy(alpha = 1f), RoundedCornerShape(50.dp))
                         .padding(0.dp)
 
                 ) {
@@ -348,7 +353,8 @@ fun BottomToolbar(
                     )
                     .offset(y = (15).dp)
                     .padding(bottom = 8.dp)
-                    .background(Color.White.copy(alpha = 1f))
+//                    .background(Color.White.copy(alpha = 1f))
+                    .background(DrawerDefaults.modalContainerColor)
                     .fillMaxWidth()
                     .windowInsetsPadding(WindowInsets.navigationBars)
                     .padding(vertical = 10.dp),

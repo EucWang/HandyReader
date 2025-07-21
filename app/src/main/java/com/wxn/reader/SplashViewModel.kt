@@ -21,8 +21,8 @@ class SplashViewModel @Inject constructor(
     application: Application,
 ) : AndroidViewModel(application) {
 
-    private val _appPreferences = MutableStateFlow(AppPreferencesUtil.defaultPreferences)
-    val appPreferences: StateFlow<AppPreferences> = _appPreferences.asStateFlow()
+    private val _appPreferences = MutableStateFlow<AppPreferences?>(null)
+    val appPreferences: StateFlow<AppPreferences?> = _appPreferences.asStateFlow()
 
     private val _startDestination = MutableStateFlow<String?>(null)
     val startDestination: StateFlow<String?> = _startDestination.asStateFlow()

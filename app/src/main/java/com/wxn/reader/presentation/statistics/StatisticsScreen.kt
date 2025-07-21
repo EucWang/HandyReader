@@ -1,14 +1,11 @@
 package com.wxn.reader.presentation.statistics
 
-
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.Menu
-import androidx.compose.material.icons.filled.Navigation
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -26,7 +23,6 @@ import com.wxn.reader.navigation.LocalNavController
 import com.wxn.reader.navigation.PurchaseHelperController
 import com.wxn.reader.R
 import com.wxn.reader.navigation.Screens
-import com.wxn.reader.presentation.sharedComponents.CustomNavigationDrawer
 import com.wxn.reader.presentation.statistics.components.ReadingGraph
 import com.wxn.reader.presentation.statistics.components.ReadingHeatmap
 import com.wxn.reader.presentation.statistics.components.StatColumn
@@ -44,14 +40,12 @@ fun StatisticsScreen(
     val navController: NavHostController = LocalNavController.current
     val statistics by viewModel.statistics.collectAsStateWithLifecycle()
     val appPreferences by viewModel.appPreferences.collectAsStateWithLifecycle()
-    val scope = rememberCoroutineScope()
 //    val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
+    val scope = rememberCoroutineScope()
+
+    if (appPreferences != null) {
 
 
-
-//    CustomNavigationDrawer(
-//        drawerState = drawerState,
-//    ) {
         Box(modifier = Modifier.fillMaxSize()) {
             Scaffold(
                 topBar = {
@@ -75,7 +69,7 @@ fun StatisticsScreen(
                         .fillMaxSize()
                         .padding(innerPadding)
                         .padding(horizontal = 16.dp)
-                        .then(if (appPreferences.isPremium) Modifier.verticalScroll(rememberScrollState()) else Modifier)
+                        .then(if (appPreferences!!.isPremium) Modifier.verticalScroll(rememberScrollState()) else Modifier)
                         //.verticalScroll(rememberScrollState())
                         .padding(vertical = 16.dp),
                     verticalArrangement = Arrangement.spacedBy(16.dp)
@@ -523,10 +517,7 @@ fun StatisticsScreen(
                 }
             }
 
-
-
-
-            if(!appPreferences.isPremium) {
+            if(!appPreferences!!.isPremium) {
                 Box(
                     modifier = Modifier
                         .fillMaxSize()
@@ -567,15 +558,8 @@ fun StatisticsScreen(
                     }
                 }
             }
-
-
-
-
-
-
-
         }
-//    }
+    }
 }
 
 

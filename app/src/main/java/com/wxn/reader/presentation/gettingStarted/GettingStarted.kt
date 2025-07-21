@@ -48,14 +48,17 @@ fun GettingStartedScreen(
 
     val getDirectoryPermissionLauncher =
         rememberLauncherForActivityResult(ActivityResultContracts.OpenDocumentTree()) { uri: Uri? ->
+            val prefs = appPreferences
+            prefs ?: return@rememberLauncherForActivityResult
             uri?.let {
                 context.contentResolver.takePersistableUriPermission(
                     it,
                     Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_GRANT_WRITE_URI_PERMISSION
                 )
-                val updatedDirectories = appPreferences.scanDirectories + it.toString()
+
+                val updatedDirectories = prefs.scanDirectories + it.toString()
                 viewModel.updateAppPreferences(
-                    appPreferences.copy(
+                    prefs.copy(
                         isFirstLaunch = false,
                         scanDirectories = updatedDirectories
                     )
@@ -203,8 +206,10 @@ fun GettingStartedScreen(
                 message = stringResource(R.string.please_select_a_directory_where_your_ebooks_are_stored_you_can_edit_this_later_in_settings),
                 confirmButtonText = stringResource(R.string.select),
                 onConfirm = {
-                    showSelectDirectoryDialog = false
-                    getDirectoryPermissionLauncher.launch(null)
+                    if (appPreferences != null) {
+                        showSelectDirectoryDialog = false
+                        getDirectoryPermissionLauncher.launch(null)
+                    }
                 },
                 onDismiss = { showSelectDirectoryDialog = false },
             )

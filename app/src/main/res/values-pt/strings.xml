@@ -279,5 +279,6 @@
     <string name="page_trans_anim_slide_vertical">Deslize vertical</string>
     <string name="page_trans_anim_cover_vertical">Cobertura vertical</string>
     <string name="dialog_content_to_out_href">Tem certeza de que deseja ir para o link externo (%1$s)?</string>
+    <string name="auto_open_last_read_file">Abrir automaticamente o último arquivo lido</string>
 
 </resources>

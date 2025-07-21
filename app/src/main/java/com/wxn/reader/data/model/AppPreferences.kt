@@ -30,7 +30,9 @@ data class AppPreferences(
     val fileTypes: Set<FileType> = emptySet(),
 
     // premium unlocked
-    val isPremium: Boolean = true
+    val isPremium: Boolean,
+    val autoOpenLastRead : Boolean,
+    val lastBookId : Long,
 )
 
 

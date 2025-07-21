@@ -39,145 +39,147 @@ fun ThemeScreen(
     val navController: NavHostController = LocalNavController.current
     val appPreferences by viewModel.appPreferences.collectAsStateWithLifecycle()
 
-    val isDarkTheme = when (appPreferences.appTheme) {
-        AppTheme.SYSTEM -> isSystemInDarkTheme()
-        AppTheme.LIGHT -> false
-        AppTheme.DARK -> true
-    }
-
-    val context = LocalContext.current
-    val dynamicColorScheme = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-        if (isDarkTheme) dynamicDarkColorScheme(context) else dynamicLightColorScheme(context)
-    } else null
-
-
-    val colorSchemes = listOf(
-        "Dynamic" to dynamicColorScheme,
-        "Light Default" to LightColorScheme,
-        "Dark Default" to DarkColorScheme,
-        "Light Grey" to LightGreyScheme,
-        "Dark Grey" to DarkGreyScheme,
-        "Light Sepia" to LightSepiaScheme,
-        "Dark Sepia" to DarkSepiaScheme,
-        "Light Parchment" to LightParchmentScheme,
-        "Dark Parchment" to DarkParchmentScheme,
-        "Light Yellow" to LightYellowScheme,
-        "Dark Yellow" to DarkYellowScheme,
-        "Light Teal" to LightTealScheme,
-        "Dark Teal" to DarkTealScheme,
-        "Light Blue" to LightBlueScheme,
-        "Dark Blue" to DarkBlueScheme,
-        "Light Pink" to LightPinkScheme,
-        "Dark Pink" to DarkPinkScheme,
-        "Light Purple" to LightPurpleScheme,
-        "Dark Purple" to DarkPurpleScheme,
-        "Light Red" to LightRedScheme,
-        "Dark Red" to DarkRedScheme,
-        "Light Green" to LightGreenScheme,
-        "Dark Green" to DarkGreenScheme,
-        ).filter { (name, _) ->
-        when {
-            name == "Dynamic" -> true
-            isDarkTheme -> name.startsWith("Dark")
-            else -> name.startsWith("Light")
+    if (appPreferences != null) {
+        val isDarkTheme = when (appPreferences!!.appTheme) {
+            AppTheme.SYSTEM -> isSystemInDarkTheme()
+            AppTheme.LIGHT -> false
+            AppTheme.DARK -> true
         }
-    }
 
-    val displayNameMapping = mapOf(
-        "Light Default" to "Monochrome",
-        "Dark Default" to "Monochrome",
-        "Light Grey" to "Twilight",
-        "Dark Grey" to "Twilight",
-        "Light Sepia" to "Sepia",
-        "Dark Sepia" to "Sepia",
-        "Light Parchment" to "Parchment",
-        "Dark Parchment" to "Parchment",
-        "Light Yellow" to "Pastel Yellow",
-        "Dark Yellow" to "Pastel Yellow",
-        "Light Teal" to "Teal",
-        "Dark Teal" to "Teal",
-        "Light Purple" to "Violet",
-        "Dark Purple" to "Violet",
-        "Light Pink" to "Pastel Pink",
-        "Dark Pink" to "Pastel Pink",
-        "Light Red" to "Crimson Red",
-        "Dark Red" to "Crimson Red",
-        "Light Green" to "Emerald Green",
-        "Dark Green" to "Emerald Green",
-        "Light Blue" to "Lavender Blue",
-        "Dark Blue" to "Lavender Blue",
-    )
+        val context = LocalContext.current
+        val dynamicColorScheme = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            if (isDarkTheme) dynamicDarkColorScheme(context) else dynamicLightColorScheme(context)
+        } else null
 
 
-    LaunchedEffect(isDarkTheme) {
-        val currentScheme = appPreferences.colorScheme
-        val newScheme = when {
-            currentScheme == "Dynamic" -> currentScheme
-            isDarkTheme && currentScheme.startsWith("Light") -> "Dark ${
-                currentScheme.split(" ").last()
-            }"
-
-            !isDarkTheme && currentScheme.startsWith("Dark") -> "Light ${
-                currentScheme.split(" ").last()
-            }"
-
-            else -> currentScheme
+        val colorSchemes = listOf(
+            "Dynamic" to dynamicColorScheme,
+            "Light Default" to LightColorScheme,
+            "Dark Default" to DarkColorScheme,
+            "Light Grey" to LightGreyScheme,
+            "Dark Grey" to DarkGreyScheme,
+            "Light Sepia" to LightSepiaScheme,
+            "Dark Sepia" to DarkSepiaScheme,
+            "Light Parchment" to LightParchmentScheme,
+            "Dark Parchment" to DarkParchmentScheme,
+            "Light Yellow" to LightYellowScheme,
+            "Dark Yellow" to DarkYellowScheme,
+            "Light Teal" to LightTealScheme,
+            "Dark Teal" to DarkTealScheme,
+            "Light Blue" to LightBlueScheme,
+            "Dark Blue" to DarkBlueScheme,
+            "Light Pink" to LightPinkScheme,
+            "Dark Pink" to DarkPinkScheme,
+            "Light Purple" to LightPurpleScheme,
+            "Dark Purple" to DarkPurpleScheme,
+            "Light Red" to LightRedScheme,
+            "Dark Red" to DarkRedScheme,
+            "Light Green" to LightGreenScheme,
+            "Dark Green" to DarkGreenScheme,
+            ).filter { (name, _) ->
+            when {
+                name == "Dynamic" -> true
+                isDarkTheme -> name.startsWith("Dark")
+                else -> name.startsWith("Light")
+            }
         }
-        if (currentScheme != newScheme) {
-            viewModel.updateAppPreferences(appPreferences.copy(colorScheme = newScheme))
+
+        val displayNameMapping = mapOf(
+            "Light Default" to "Monochrome",
+            "Dark Default" to "Monochrome",
+            "Light Grey" to "Twilight",
+            "Dark Grey" to "Twilight",
+            "Light Sepia" to "Sepia",
+            "Dark Sepia" to "Sepia",
+            "Light Parchment" to "Parchment",
+            "Dark Parchment" to "Parchment",
+            "Light Yellow" to "Pastel Yellow",
+            "Dark Yellow" to "Pastel Yellow",
+            "Light Teal" to "Teal",
+            "Dark Teal" to "Teal",
+            "Light Purple" to "Violet",
+            "Dark Purple" to "Violet",
+            "Light Pink" to "Pastel Pink",
+            "Dark Pink" to "Pastel Pink",
+            "Light Red" to "Crimson Red",
+            "Dark Red" to "Crimson Red",
+            "Light Green" to "Emerald Green",
+            "Dark Green" to "Emerald Green",
+            "Light Blue" to "Lavender Blue",
+            "Dark Blue" to "Lavender Blue",
+        )
+
+
+        LaunchedEffect(isDarkTheme) {
+            val currentScheme = appPreferences!!.colorScheme
+            val newScheme = when {
+                currentScheme == "Dynamic" -> currentScheme
+                isDarkTheme && currentScheme.startsWith("Light") -> "Dark ${
+                    currentScheme.split(" ").last()
+                }"
+
+                !isDarkTheme && currentScheme.startsWith("Dark") -> "Light ${
+                    currentScheme.split(" ").last()
+                }"
+
+                else -> currentScheme
+            }
+            if (currentScheme != newScheme) {
+                viewModel.updateAppPreferences(appPreferences!!.copy(colorScheme = newScheme))
+            }
         }
-    }
 
-    Scaffold(
-        topBar = {
-            TopAppBar(
-                title = { Text(stringResource(R.string.theme)) },
-                navigationIcon = {
-                    IconButton(onClick = { navController.navigateUp() }) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
-                    }
-                },
-            )
-        },
-    ) { paddingValues ->
-        Column(
-            modifier = Modifier
-                .padding(paddingValues)
-                .padding(16.dp),
-        ) {
-
-            LazyColumn(
+        Scaffold(
+            topBar = {
+                TopAppBar(
+                    title = { Text(stringResource(R.string.theme)) },
+                    navigationIcon = {
+                        IconButton(onClick = { navController.navigateUp() }) {
+                            Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                        }
+                    },
+                )
+            },
+        ) { paddingValues ->
+            Column(
                 modifier = Modifier
-                    .fillMaxWidth(),
-            ){
-               item {
-                   Text(stringResource(R.string.theme), style = MaterialTheme.typography.titleMedium)
-                   Spacer(modifier = Modifier.height(4.dp))
-                   SegmentedThemeControl(
-                       selectedTheme = appPreferences.appTheme,
-                       onThemeSelected = { theme ->
-                           viewModel.updateAppPreferences(appPreferences.copy(appTheme = theme))
-                       }
-                   )
-                   Spacer(modifier = Modifier.height(4.dp))
-                   Text(stringResource(R.string.color_scheme), style = MaterialTheme.typography.titleMedium)
-               }
+                    .padding(paddingValues)
+                    .padding(16.dp),
+            ) {
 
-                items(colorSchemes) { (name, scheme) ->
-                    val displayName = displayNameMapping[name] ?: name
-                    ColorSchemePreviewCard(
-                        name = displayName,
-                        colorScheme = scheme,
-                        isSelected = appPreferences.colorScheme == name,
-                        onSelect = {
-                            if (name == "Dynamic" || appPreferences.isPremium) {
-                                viewModel.updateAppPreferences(appPreferences.copy(colorScheme = name))
-                            } else {
-                                navController.navigate(Screens.PremiumScreen.route)
-                            }
-                        },
-                        isPremium = !appPreferences.isPremium && name != "Dynamic"
-                    )
+                LazyColumn(
+                    modifier = Modifier
+                        .fillMaxWidth(),
+                ){
+                   item {
+                       Text(stringResource(R.string.theme), style = MaterialTheme.typography.titleMedium)
+                       Spacer(modifier = Modifier.height(4.dp))
+                       SegmentedThemeControl(
+                           selectedTheme = appPreferences!!.appTheme,
+                           onThemeSelected = { theme ->
+                               viewModel.updateAppPreferences(appPreferences!!.copy(appTheme = theme))
+                           }
+                       )
+                       Spacer(modifier = Modifier.height(4.dp))
+                       Text(stringResource(R.string.color_scheme), style = MaterialTheme.typography.titleMedium)
+                   }
+
+                    items(colorSchemes) { (name, scheme) ->
+                        val displayName = displayNameMapping[name] ?: name
+                        ColorSchemePreviewCard(
+                            name = displayName,
+                            colorScheme = scheme,
+                            isSelected = appPreferences!!.colorScheme == name,
+                            onSelect = {
+                                if (name == "Dynamic" || appPreferences!!.isPremium) {
+                                    viewModel.updateAppPreferences(appPreferences!!.copy(colorScheme = name))
+                                } else {
+                                    navController.navigate(Screens.PremiumScreen.route)
+                                }
+                            },
+                            isPremium = !appPreferences!!.isPremium && name != "Dynamic"
+                        )
+                    }
                 }
             }
         }

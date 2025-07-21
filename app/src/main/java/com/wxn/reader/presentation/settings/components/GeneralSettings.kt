@@ -1,7 +1,6 @@
 package com.wxn.reader.presentation.settings.components
 
 
-import android.content.Intent
 import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -16,11 +15,10 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.ExpandLess
 import androidx.compose.material.icons.filled.ExpandMore
+import androidx.compose.material.icons.outlined.AutoStories
 import androidx.compose.material.icons.outlined.Delete
 import androidx.compose.material.icons.outlined.Folder
 import androidx.compose.material.icons.outlined.FolderCopy
-import androidx.compose.material.icons.outlined.PictureAsPdf
-import androidx.compose.material.icons.outlined.SmartToy
 import androidx.compose.material.icons.outlined.Translate
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
@@ -83,206 +81,224 @@ fun GeneralSettings(
             }
         }
 
-    Scaffold(
-        topBar = {
-            TopAppBar(
-                title = { Text(stringResource(R.string.general_settings)) },
-                navigationIcon = {
-                    IconButton(onClick = { navController.navigateUp() }) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
-                    }
-                },
-            )
-        },
-    ) { paddingValues ->
-        Column(
-            modifier = Modifier
-                .padding(paddingValues)
-                .verticalScroll(rememberScrollState()),
-        ) {
+    if (appPreferences != null) {
+        Scaffold(
+            topBar = {
+                TopAppBar(
+                    title = { Text(stringResource(R.string.general_settings)) },
+                    navigationIcon = {
+                        IconButton(onClick = { navController.navigateUp() }) {
+                            Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                        }
+                    },
+                )
+            },
+        ) { paddingValues ->
+            Column(
+                modifier = Modifier
+                    .padding(paddingValues)
+                    .verticalScroll(rememberScrollState()),
+            ) {
 
-            //Pdf support
-//            ListItem(
-//                modifier = Modifier.padding(vertical = 8.dp),
-//                leadingContent = {
-//                    Icon(
-//                        Icons.Outlined.PictureAsPdf,
-//                        contentDescription = "Enable pdf support"
-//                    )
-//                },
-//                headlineContent = { Text(stringResource(R.string.enable_pdf_support)) },
-//                supportingContent = { Text(stringResource(R.string.pdf_files_do_not_support_features_such_as_highlighting_annotations)) },
-//                trailingContent = {
-//                    Switch(
-//                        checked = appPreferences.enablePdfSupport,
-//                        onCheckedChange = { viewModel.updatePdfSupport(it) }
-//                    )
-//                }
-//            )
-//
-//            HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
+                //Pdf support
+    //            ListItem(
+    //                modifier = Modifier.padding(vertical = 8.dp),
+    //                leadingContent = {
+    //                    Icon(
+    //                        Icons.Outlined.PictureAsPdf,
+    //                        contentDescription = "Enable pdf support"
+    //                    )
+    //                },
+    //                headlineContent = { Text(stringResource(R.string.enable_pdf_support)) },
+    //                supportingContent = { Text(stringResource(R.string.pdf_files_do_not_support_features_such_as_highlighting_annotations)) },
+    //                trailingContent = {
+    //                    Switch(
+    //                        checked = appPreferences.enablePdfSupport,
+    //                        onCheckedChange = { viewModel.updatePdfSupport(it) }
+    //                    )
+    //                }
+    //            )
+    //
+    //            HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
 
 
-            // scan directories
-            ListItem(
-                leadingContent = {
-                    Icon(
-                        Icons.Outlined.FolderCopy,
-                        contentDescription = "scan directories"
-                    )
-                },
-                headlineContent = { Text(stringResource(R.string.scan_directories)) },
-                trailingContent = {
-                    IconButton(onClick = {
-                        isDirectorySectionExpanded = !isDirectorySectionExpanded
-                    }) {
+                // scan directories
+                ListItem(
+                    leadingContent = {
                         Icon(
-                            if (isDirectorySectionExpanded) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
-                            contentDescription = if (isDirectorySectionExpanded) "Collapse" else "Expand"
+                            Icons.Outlined.FolderCopy,
+                            contentDescription = "scan directories"
                         )
+                    },
+                    headlineContent = { Text(stringResource(R.string.scan_directories)) },
+                    trailingContent = {
+                        IconButton(onClick = {
+                            isDirectorySectionExpanded = !isDirectorySectionExpanded
+                        }) {
+                            Icon(
+                                if (isDirectorySectionExpanded) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
+                                contentDescription = if (isDirectorySectionExpanded) "Collapse" else "Expand"
+                            )
+                        }
+                    }
+                )
+                AnimatedVisibility(
+                    visible = isDirectorySectionExpanded
+                ) {
+                    Column {
+                        appPreferences!!.scanDirectories.forEach { directory ->
+                            val uri = Uri.parse(directory)
+                            val directoryName = uri.lastPathSegment?.substringAfter(":") ?: directory
+                            ListItem(
+                                modifier = Modifier.padding(start = 16.dp),
+                                leadingContent = {
+                                    Icon(
+                                        Icons.Outlined.Folder,
+                                        contentDescription = "directory"
+                                    )
+                                },
+                                headlineContent = { Text(directoryName) },
+                                trailingContent = {
+                                    IconButton(onClick = {
+                                        directoryToDelete = directory
+                                        showDeleteDirectoryDialog = true
+                                    }) {
+                                        Icon(
+                                            Icons.Outlined.Delete,
+                                            contentDescription = "Remove directory"
+                                        )
+                                    }
+                                }
+                            )
+                        }
+                        Button(
+                            onClick = { showSelectDirectoryDialog = true },
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 16.dp, vertical = 8.dp)
+                        ) {
+                            Text(stringResource(R.string.add_scan_directory))
+                        }
                     }
                 }
-            )
-            AnimatedVisibility(
-                visible = isDirectorySectionExpanded
-            ) {
-                Column {
-                    appPreferences.scanDirectories.forEach { directory ->
-                        val uri = Uri.parse(directory)
-                        val directoryName = uri.lastPathSegment?.substringAfter(":") ?: directory
-                        ListItem(
-                            modifier = Modifier.padding(start = 16.dp),
-                            leadingContent = {
-                                Icon(
-                                    Icons.Outlined.Folder,
-                                    contentDescription = "directory"
-                                )
-                            },
-                            headlineContent = { Text(directoryName) },
-                            trailingContent = {
-                                IconButton(onClick = {
-                                    directoryToDelete = directory
-                                    showDeleteDirectoryDialog = true
-                                }) {
-                                    Icon(
-                                        Icons.Outlined.Delete,
-                                        contentDescription = "Remove directory"
+
+                HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
+
+                ListItem(
+                    headlineContent = { Text(stringResource(R.string.language)) },
+                    leadingContent = {
+                        Icon(
+                            Icons.Outlined.Translate,
+                            contentDescription = "directory"
+                        )
+                    },
+                    trailingContent = {
+                        Column {
+                            Text(
+                                text = LanguageInfo.fromCode(appPreferences!!.language)?.displayName.orEmpty(),
+                                modifier = Modifier.clickable { isLanguageDropdownExpanded = true }
+                            )
+                            DropdownMenu(
+                                expanded = isLanguageDropdownExpanded,
+                                onDismissRequest = { isLanguageDropdownExpanded = false }
+                            ) {
+                                LanguageUtil.languageMaps.entries.forEach { entry ->
+                                    DropdownMenuItem(
+                                        text = { Text(entry.value.displayName) },
+                                        onClick = {
+                                            isLanguageDropdownExpanded = false
+                                            viewModel.updateLanguage(entry.value)
+                                        }
                                     )
                                 }
                             }
-                        )
-                    }
-                    Button(
-                        onClick = { showSelectDirectoryDialog = true },
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(horizontal = 16.dp, vertical = 8.dp)
-                    ) {
-                        Text(stringResource(R.string.add_scan_directory))
-                    }
-                }
-            }
-
-            HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
-
-            ListItem(
-                headlineContent = { Text(stringResource(R.string.language)) },
-                leadingContent = {
-                    Icon(
-                        Icons.Outlined.Translate,
-                        contentDescription = "directory"
-                    )
-                },
-                trailingContent = {
-                    Column {
-                        Text(
-                            text = LanguageInfo.fromCode(appPreferences.language)?.displayName.orEmpty(),
-                            modifier = Modifier.clickable { isLanguageDropdownExpanded = true }
-                        )
-                        DropdownMenu(
-                            expanded = isLanguageDropdownExpanded,
-                            onDismissRequest = { isLanguageDropdownExpanded = false }
-                        ) {
-                            LanguageUtil.languageMaps.entries.forEach { entry ->
-                                DropdownMenuItem(
-                                    text = { Text(entry.value.displayName) },
-                                    onClick = {
-                                        isLanguageDropdownExpanded = false
-                                        viewModel.updateLanguage(entry.value)
-                                    }
-                                )
-                            }
                         }
+                    },
+                    modifier = Modifier.clickable { isLanguageDropdownExpanded = true }
+                )
+
+                HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
+
+                ListItem(
+                    headlineContent = { Text(stringResource(R.string.auto_open_last_read_file)) },
+                    leadingContent = {
+                        Icon(Icons.Outlined.AutoStories,
+                            contentDescription = "Auto Open Last Read file")
+                    },
+                    trailingContent = {
+                        Switch(
+                            checked = appPreferences!!.autoOpenLastRead,
+                            onCheckedChange = { viewModel.updateAutoOpenLastRead(it) }
+                        )
+                    }
+                )
+
+                HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
+
+    //            ListItem(
+    //                headlineContent = { Text(stringResource(R.string.tts_set))},
+    //                leadingContent = { Icon(Icons.Outlined.SmartToy, contentDescription = "tts") },
+    //                trailingContent = {},
+    //                modifier = Modifier.clickable {
+    //                    navController.navigate(Screens.TtsSetScreen.route)
+    //                }
+    //            )
+                //TODO 采用Edge TTS
+            }
+        }
+
+        if (showSelectDirectoryDialog) {
+            AlertDialog(
+                onDismissRequest = { showSelectDirectoryDialog = false },
+                title = { Text(stringResource(R.string.select_directory)) },
+                text = { Text(stringResource(R.string.choose_a_directory_to_add_to_the_scan_list)) },
+                confirmButton = {
+                    Button(onClick = {
+                        showSelectDirectoryDialog = false
+                        getDirectoryPermissionLauncher.launch(null)
+
+                    }) {
+                        Text(stringResource(R.string.select))
                     }
                 },
-                modifier = Modifier.clickable { isLanguageDropdownExpanded = true }
+                dismissButton = {
+                    TextButton(onClick = { showSelectDirectoryDialog = false }) {
+                        Text(stringResource(R.string.cancel))
+                    }
+                }
             )
-
-            HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
-
-//            ListItem(
-//                headlineContent = { Text(stringResource(R.string.tts_set))},
-//                leadingContent = { Icon(Icons.Outlined.SmartToy, contentDescription = "tts") },
-//                trailingContent = {},
-//                modifier = Modifier.clickable {
-//                    navController.navigate(Screens.TtsSetScreen.route)
-//                }
-//            )
-            //TODO 采用Edge TTS
         }
-    }
 
-    if (showSelectDirectoryDialog) {
-        AlertDialog(
-            onDismissRequest = { showSelectDirectoryDialog = false },
-            title = { Text(stringResource(R.string.select_directory)) },
-            text = { Text(stringResource(R.string.choose_a_directory_to_add_to_the_scan_list)) },
-            confirmButton = {
-                Button(onClick = {
-                    showSelectDirectoryDialog = false
-                    getDirectoryPermissionLauncher.launch(null)
-
-                }) {
-                    Text(stringResource(R.string.select))
-                }
-            },
-            dismissButton = {
-                TextButton(onClick = { showSelectDirectoryDialog = false }) {
-                    Text(stringResource(R.string.cancel))
-                }
-            }
-        )
-    }
-
-    if (showDeleteDirectoryDialog) {
-        val uri = Uri.parse(directoryToDelete)
-        val directoryName = uri.lastPathSegment?.substringAfter(":") ?: directoryToDelete
-        AlertDialog(
-            onDismissRequest = { showDeleteDirectoryDialog = false },
-            title = { Text(stringResource(R.string.delete_directory, directoryName)) },
-            text = { Text(stringResource(R.string.are_you_sure_you_want_to_delete_this_directory_from_the_scan_list)) },
-            confirmButton = {
-                Button(
-                    colors = ButtonDefaults.buttonColors(
-                        contentColor = MaterialTheme.colorScheme.onErrorContainer,
-                        containerColor = MaterialTheme.colorScheme.errorContainer,
-                    ),
-                    onClick = {
-                        viewModel.removeScanDirectory(directoryToDelete)
-                        showDeleteDirectoryDialog = false
+        if (showDeleteDirectoryDialog) {
+            val uri = Uri.parse(directoryToDelete)
+            val directoryName = uri.lastPathSegment?.substringAfter(":") ?: directoryToDelete
+            AlertDialog(
+                onDismissRequest = { showDeleteDirectoryDialog = false },
+                title = { Text(stringResource(R.string.delete_directory, directoryName)) },
+                text = { Text(stringResource(R.string.are_you_sure_you_want_to_delete_this_directory_from_the_scan_list)) },
+                confirmButton = {
+                    Button(
+                        colors = ButtonDefaults.buttonColors(
+                            contentColor = MaterialTheme.colorScheme.onErrorContainer,
+                            containerColor = MaterialTheme.colorScheme.errorContainer,
+                        ),
+                        onClick = {
+                            viewModel.removeScanDirectory(directoryToDelete)
+                            showDeleteDirectoryDialog = false
+                            directoryToDelete = ""
+                        }) {
+                        Text(stringResource(R.string.delete))
+                    }
+                },
+                dismissButton = {
+                    TextButton(onClick = {
                         directoryToDelete = ""
+                        showDeleteDirectoryDialog = false
                     }) {
-                    Text(stringResource(R.string.delete))
+                        Text(stringResource(R.string.cancel))
+                    }
                 }
-            },
-            dismissButton = {
-                TextButton(onClick = {
-                    directoryToDelete = ""
-                    showDeleteDirectoryDialog = false
-                }) {
-                    Text(stringResource(R.string.cancel))
-                }
-            }
-        )
+            )
+        }
     }
 }

@@ -115,8 +115,8 @@ class MainReadViewModel @Inject constructor(
     savedStateHandle: SavedStateHandle,
 
     ) : AndroidViewModel(context), PageViewController.OnClickListener {
-    private val _appPreferences = MutableStateFlow(AppPreferencesUtil.defaultPreferences)
-    val appPreferences: StateFlow<AppPreferences> = _appPreferences.asStateFlow()
+    private val _appPreferences = MutableStateFlow<AppPreferences?>(null)
+    val appPreferences: StateFlow<AppPreferences?> = _appPreferences.asStateFlow()
 
     private val _readerPreferences = MutableStateFlow<ReaderPreferences>(ReaderPreferencesUtil.defaultPreferences)
     val readerPreferences: StateFlow<ReaderPreferences> = _readerPreferences.asStateFlow()
@@ -284,6 +284,9 @@ class MainReadViewModel @Inject constructor(
     }
 
     init {
+        val openedBookId = savedStateHandle.get<String>("bookId")?.toLongOrNull()
+        val bookUri = savedStateHandle.get<String>("bookUri")
+
         pageController.scope = viewModelScope
 
         viewModelScope.launch {
@@ -291,7 +294,9 @@ class MainReadViewModel @Inject constructor(
                 _readerPreferences.value = pref
                 Logger.d("MainReadViewModel::init readerPreferences[$pref]")
             }
+        }
 
+        viewModelScope.launch {
             appPrefsUtil.appPrefsFlow.stateIn(viewModelScope).collect { pref ->
                 _appPreferences.value = pref
                 Logger.d("MainReadViewModel::init appPreferences[$pref]")
@@ -299,8 +304,6 @@ class MainReadViewModel @Inject constructor(
         }
 
         ChapterProvider.init(context, readerTipPrefsUtil, readerPrefsUtil)
-        val openedBookId = savedStateHandle.get<String>("bookId")?.toLongOrNull()
-        val bookUri = savedStateHandle.get<String>("bookUri")
         resetCurrentDayStartTime()
 
         viewModelScope.launchIO {
@@ -327,6 +330,16 @@ class MainReadViewModel @Inject constructor(
 
             if (fetchBook(bookId)) {
                 val newBook = _book.value ?: return@launchIO
+                if (openedBookId >= 0) {
+                    _appPreferences.value?.let { pref ->
+                        if (pref.lastBookId != openedBookId) {
+                            viewModelScope.launch {
+                                appPrefsUtil.updateAppPreferences(pref.copy(lastBookId = openedBookId))
+                            }
+                        }
+                    }
+                }
+
                 Logger.d("MainReaderViewModel:load reset book to pageController:${System.currentTimeMillis()}")
                 pageController.resetBook(newBook) {//重新加载章节数
                     _uiState.value = LOAD_CHAPTER_SUCCESS(0)
@@ -337,6 +350,8 @@ class MainReadViewModel @Inject constructor(
                     if (newBook.wordCount == 0L) {
                         loadChapterWords(newBook)
                     }
+
+
                 }
             }
         }

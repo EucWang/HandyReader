@@ -12,12 +12,17 @@ import androidx.media3.common.PlaybackParameters
 import androidx.media3.common.Player
 import androidx.media3.exoplayer.ExoPlayer
 import com.wxn.base.bean.Book
+import com.wxn.base.util.Logger
+import com.wxn.reader.data.model.AppPreferences
+import com.wxn.reader.data.source.local.AppPreferencesUtil
 import com.wxn.reader.domain.use_case.books.GetBookByIdUseCase
 import com.wxn.reader.domain.use_case.books.UpdateBookUseCase
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 //import org.readium.r2.shared.publication.Publication
@@ -30,6 +35,7 @@ import javax.inject.Inject
 
 @HiltViewModel
 class AudiobookReaderViewModel @Inject constructor(
+    private val appPrefsUtil: AppPreferencesUtil,
     private val getBookByIdUseCase: GetBookByIdUseCase,
     private val updateBookUseCase: UpdateBookUseCase,
 //    private val assetRetriever: AssetRetriever,
@@ -37,6 +43,9 @@ class AudiobookReaderViewModel @Inject constructor(
     savedStateHandle: SavedStateHandle,
     context: Application,
 ) : AndroidViewModel(context) {
+    private val _appPreferences = MutableStateFlow<AppPreferences?>(null)
+    val appPreferences: StateFlow<AppPreferences?> = _appPreferences.asStateFlow()
+
     private val _loadingState = MutableStateFlow<LoadingState>(LoadingState.Loading)
     val loadingState = _loadingState.asStateFlow()
 
@@ -109,6 +118,14 @@ class AudiobookReaderViewModel @Inject constructor(
 //    private var publication: Publication? = null
 
     init {
+
+        viewModelScope.launch {
+            appPrefsUtil.appPrefsFlow.stateIn(viewModelScope).collect { pref ->
+                _appPreferences.value = pref
+                Logger.d("MainReadViewModel::init appPreferences[$pref]")
+            }
+        }
+
         val audiobookId = savedStateHandle.get<String>("bookId")?.toLongOrNull()
         val audiobookUri = savedStateHandle.get<String>("bookUri")
 
@@ -121,6 +138,16 @@ class AudiobookReaderViewModel @Inject constructor(
                 audiobookUri?.let { uri ->
                     Uri.parse(uri).toString().let {
                         prepareAudiobook(it)
+                    }
+                }
+
+                if (audiobookId != null && audiobookId >= 0) {
+                    _appPreferences.value?.let { pref ->
+                        if (pref.lastBookId != audiobookId) {
+                            viewModelScope.launch {
+                                appPrefsUtil.updateAppPreferences(pref.copy(lastBookId = audiobookId))
+                            }
+                        }
                     }
                 }
             } catch (e: Exception) {

@@ -281,5 +281,6 @@
     <string name="page_trans_anim_slide_vertical">ऊर्ध्वाधर स्लाइड</string>
     <string name="page_trans_anim_cover_vertical">ऊर्ध्वाधर कवर</string>
     <string name="dialog_content_to_out_href">क्या आप बाहरी लिंक (%1$s) पर जाना चाहते हैं?</string>
+    <string name="auto_open_last_read_file">अंतिम पढ़ी गई फ़ाइल स्वचालित रूप से खोलें</string>
 
 </resources>

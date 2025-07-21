@@ -57,98 +57,100 @@ import com.wxn.reader.navigation.Screens
     var showSortModal by viewModel.showSortModal
     var showMetadataModal by viewModel.showMetadataModal
 
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(innerPadding)
-    ) {
-        Shelves(
-            viewModel = viewModel,
-            appPreferences = appPreferences,
-            shelves = shelves,
-            selectedTab = selectedTab,
-            onTabSelected = { index ->
-                selectedTab = index
-            },
-            onAddShelf = { newShelfName ->
-                viewModel.addShelf(newShelfName)
-            },
-        )
-        val isAddingBook by viewModel.isAddingBooks.collectAsState()
-        HorizontalPager(
-            userScrollEnabled = !isAddingBook,
-            state = pagerState,
+    if (appPreferences != null) {
+        Column(
             modifier = Modifier
-                .fillMaxWidth()
-                .weight(1f)
-//                .background(color = MaterialTheme.colorScheme.background)
-        ) { index ->
-            Logger.d("HomeScreen:index=$index")
-            Box(modifier = Modifier.fillMaxSize()) {
-//                if (appPreferences.homeBackgroundImage.isNotEmpty()) { //自定义背景
-//                    Image(
-//                        painter = rememberAsyncImagePainter(appPreferences.homeBackgroundImage),
-//                        contentDescription = "Book cover",
-//                        modifier = Modifier
-//                            .fillMaxSize()
-//                            .alpha(0.7f),
-//                        contentScale = ContentScale.Crop
-//                    )
-//                }
-//
-//                // Gradient overlay
-//                Box(                    //默认背景
-//                    modifier = Modifier.fillMaxSize()
-//                        .background(
-//                            brush = Brush.verticalGradient(
-//                                colors = listOf(
-//                                    Color.Transparent,
-//                                    MaterialTheme.colorScheme.background.copy(alpha = 0.5f),
-//                                    MaterialTheme.colorScheme.background
-//                                ),
-//                                startY = 0f,
-//                                endY = 2000f
-//                            )
-//                        )
-//                )
+                .fillMaxSize()
+                .padding(innerPadding)
+        ) {
+            Shelves(
+                viewModel = viewModel,
+                appPreferences = appPreferences!!,
+                shelves = shelves,
+                selectedTab = selectedTab,
+                onTabSelected = { index ->
+                    selectedTab = index
+                },
+                onAddShelf = { newShelfName ->
+                    viewModel.addShelf(newShelfName)
+                },
+            )
+            val isAddingBook by viewModel.isAddingBooks.collectAsState()
+            HorizontalPager(
+                userScrollEnabled = !isAddingBook,
+                state = pagerState,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .weight(1f)
+    //                .background(color = MaterialTheme.colorScheme.background)
+            ) { index ->
+                Logger.d("HomeScreen:index=$index")
+                Box(modifier = Modifier.fillMaxSize()) {
+    //                if (appPreferences.homeBackgroundImage.isNotEmpty()) { //自定义背景
+    //                    Image(
+    //                        painter = rememberAsyncImagePainter(appPreferences.homeBackgroundImage),
+    //                        contentDescription = "Book cover",
+    //                        modifier = Modifier
+    //                            .fillMaxSize()
+    //                            .alpha(0.7f),
+    //                        contentScale = ContentScale.Crop
+    //                    )
+    //                }
+    //
+    //                // Gradient overlay
+    //                Box(                    //默认背景
+    //                    modifier = Modifier.fillMaxSize()
+    //                        .background(
+    //                            brush = Brush.verticalGradient(
+    //                                colors = listOf(
+    //                                    Color.Transparent,
+    //                                    MaterialTheme.colorScheme.background.copy(alpha = 0.5f),
+    //                                    MaterialTheme.colorScheme.background
+    //                                ),
+    //                                startY = 0f,
+    //                                endY = 2000f
+    //                            )
+    //                        )
+    //                )
 
-                Column {
-                    when (index) {
-                        0 -> {
-                            HomeMainPanel(viewModel)
-                        }
+                    Column {
+                        when (index) {
+                            0 -> {
+                                HomeMainPanel(viewModel)
+                            }
 
-                        1 -> {
-                            HomeVoiceBookPanel(1, viewModel)
+                            1 -> {
+                                HomeVoiceBookPanel(1, viewModel)
+                            }
                         }
                     }
                 }
             }
         }
-    }
 
-    if (showLayoutModal) {
-        LayoutModal(
-            appPreferences = appPreferences,
-            viewModel = viewModel,
-            onDismiss = { showLayoutModal = false },
-        )
-    }
-    if (showSortModal) {
-        SortFilterModal(
-            appPreferences = appPreferences,
-            viewModel = viewModel,
-            onDismiss = { showSortModal = false },
-        )
-    }
-    if (showMetadataModal) {
-        EditMetadataModal(
-            book = selectedBooks[0],
-            onDismiss = {
-                viewModel.toggleBookSelection(selectedBooks[0])
-                showMetadataModal = false
-            }
-        )
+        if (showLayoutModal) {
+            LayoutModal(
+                appPreferences = appPreferences!!,
+                viewModel = viewModel,
+                onDismiss = { showLayoutModal = false },
+            )
+        }
+        if (showSortModal) {
+            SortFilterModal(
+                appPreferences = appPreferences!!,
+                viewModel = viewModel,
+                onDismiss = { showSortModal = false },
+            )
+        }
+        if (showMetadataModal) {
+            EditMetadataModal(
+                book = selectedBooks[0],
+                onDismiss = {
+                    viewModel.toggleBookSelection(selectedBooks[0])
+                    showMetadataModal = false
+                }
+            )
+        }
     }
 }
 
@@ -162,7 +164,7 @@ fun HomeVoiceBookPanel(index: Int, viewModel: HomeViewModel) {
     val appPreferences by viewModel.appPreferences.collectAsStateWithLifecycle()
 
     val shelf = shelves.getOrNull(index - 1)
-    if (shelf != null) {
+    if (shelf != null && appPreferences != null) {
         BookShelfScreen(
             clearSearch = { viewModel.updateSearchQuery("") },
             shelf = shelf,
@@ -172,7 +174,7 @@ fun HomeVoiceBookPanel(index: Int, viewModel: HomeViewModel) {
             selectionMode = selectionMode,
             toggleSelection = { book -> viewModel.toggleBookSelection(book) },
             isLoading = isAddingBooks,
-            appPreferences = appPreferences,
+            appPreferences = appPreferences!!,
         )
     } else {
         Text(stringResource(R.string.shelf_not_found))
@@ -225,47 +227,49 @@ fun HomeMainPanel(viewModel: HomeViewModel) {
         }
     }
 
-    if (appPreferences.homeLayout == Layout.Grid || appPreferences.homeLayout == Layout.CoverOnly) {
-        AnimatedVisibility(
-            visible = visible,
-            enter = fadeIn(tweenInAnimationSpec) + slideInVertically(
-                animationSpec = slideInAnimationSpec,
-                initialOffsetY = { it })
-        ) {
-            GridLayout(
-                clearSearch = { viewModel.updateSearchQuery("") },
-                books = books,
-                selectedBooks = selectedBooks,
-                selectionMode = selectionMode,
-                toggleSelection = {
-                    viewModel.toggleBookSelection(it)
-                },
-                viewModel = viewModel,
-                isLoading = isAddingBooks,
-                appPreferences = appPreferences,
-                openBook = ::openBook,
-            )
-        }
-    } else {
-        AnimatedVisibility(
-            visible = visible,
-            enter = fadeIn(tweenInAnimationSpec) + slideInVertically(
-                animationSpec = slideInAnimationSpec,
-                initialOffsetY = { it })
-        ) {
-            ListLayout(
-                clearSearch = { viewModel.updateSearchQuery("") },
-                books = books,
-                selectedBooks = selectedBooks,
-                selectionMode = selectionMode,
-                toggleSelection = {
-                    viewModel.toggleBookSelection(it)
-                },
-                viewModel = viewModel,
-                isLoading = isAddingBooks,
-                appPreferences = appPreferences,
-                openBook = ::openBook
-            )
+    if (appPreferences != null) {
+        if (appPreferences!!.homeLayout == Layout.Grid || appPreferences!!.homeLayout == Layout.CoverOnly) {
+            AnimatedVisibility(
+                visible = visible,
+                enter = fadeIn(tweenInAnimationSpec) + slideInVertically(
+                    animationSpec = slideInAnimationSpec,
+                    initialOffsetY = { it })
+            ) {
+                GridLayout(
+                    clearSearch = { viewModel.updateSearchQuery("") },
+                    books = books,
+                    selectedBooks = selectedBooks,
+                    selectionMode = selectionMode,
+                    toggleSelection = {
+                        viewModel.toggleBookSelection(it)
+                    },
+                    viewModel = viewModel,
+                    isLoading = isAddingBooks,
+                    appPreferences = appPreferences!!,
+                    openBook = ::openBook,
+                )
+            }
+        } else {
+            AnimatedVisibility(
+                visible = visible,
+                enter = fadeIn(tweenInAnimationSpec) + slideInVertically(
+                    animationSpec = slideInAnimationSpec,
+                    initialOffsetY = { it })
+            ) {
+                ListLayout(
+                    clearSearch = { viewModel.updateSearchQuery("") },
+                    books = books,
+                    selectedBooks = selectedBooks,
+                    selectionMode = selectionMode,
+                    toggleSelection = {
+                        viewModel.toggleBookSelection(it)
+                    },
+                    viewModel = viewModel,
+                    isLoading = isAddingBooks,
+                    appPreferences = appPreferences!!,
+                    openBook = ::openBook
+                )
+            }
         }
     }
 }

@@ -110,126 +110,124 @@ fun NotesScreen(
         )
     }
 
-//    CustomNavigationDrawer(
-//        drawerState = drawerState,
-//    ) {
-        Scaffold(
-            topBar = {
-                TopAppBar(
-                    title = { Text(stringResource(R.string.notes)) },
-                    navigationIcon = {
-                        IconButton(onClick = {
-                            scope.launch {
-//                                drawerState.open()
-                                navController.popBackStack()
+    if (appPreferences != null) {
+            Scaffold(
+                topBar = {
+                    TopAppBar(
+                        title = { Text(stringResource(R.string.notes)) },
+                        navigationIcon = {
+                            IconButton(onClick = {
+                                scope.launch {
+    //                                drawerState.open()
+                                    navController.popBackStack()
+                                }
+                            }) {
+                                Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+
                             }
-                        }) {
-                            Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
-
+                        },
+                        actions = {
+                            IconButton(
+                                onClick = { isSearchActive = !isSearchActive }
+                            ) {
+                                Icon( if(isSearchActive) Icons.Default.Close else Icons.Default.Search, contentDescription = "Search Note")
+                            }
                         }
-                    },
-                    actions = {
-                        IconButton(
-                            onClick = { isSearchActive = !isSearchActive }
-                        ) {
-                            Icon( if(isSearchActive) Icons.Default.Close else Icons.Default.Search, contentDescription = "Search Note")
-                        }
-                    }
-                )
-            }
-        ) { innerPadding ->
-            Column(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(innerPadding)
-            ) {
-
-                AnimatedVisibility(visible = isSearchActive) {
-                    // Search bar
-                    TextField(
-                        value = searchQuery,
-                        onValueChange = { searchQuery = it },
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(16.dp),
-                        placeholder = { Text(stringResource(R.string.search_notes)) },
-                        leadingIcon = { Icon(Icons.Default.Search, contentDescription = "Search") }
                     )
                 }
+            ) { innerPadding ->
+                Column(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(innerPadding)
+                ) {
 
-
-                if (sortedBooksWithNotes.isEmpty()) {
-                    Column(
-                        modifier = Modifier.fillMaxSize(),
-                        horizontalAlignment = Alignment.CenterHorizontally,
-                        verticalArrangement = Arrangement.Center
-                    ) {
-                        Text(
-                            stringResource(R.string.no_notes_found),
-                            textAlign = TextAlign.Center
-                        )
-                        Text(
-                            stringResource(R.string.start_adding_notes_to_your_books),
-                            textAlign = TextAlign.Center
+                    AnimatedVisibility(visible = isSearchActive) {
+                        // Search bar
+                        TextField(
+                            value = searchQuery,
+                            onValueChange = { searchQuery = it },
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(16.dp),
+                            placeholder = { Text(stringResource(R.string.search_notes)) },
+                            leadingIcon = { Icon(Icons.Default.Search, contentDescription = "Search") }
                         )
                     }
-                } else {
-                    ScrollableTabRow(
-                        selectedTabIndex = selectedTabIndex,
-                        edgePadding = 16.dp
-                    ) {
-                        sortedBooksWithNotes.forEachIndexed { index, bookWithNotes ->
-                            Tab(
-                                selected = selectedTabIndex == index,
-                                onClick = { selectedTabIndex = index },
-                                text = {
-                                    Text(
-                                        text = bookWithNotes.book.title,
-                                        maxLines = 1,
-                                        overflow = TextOverflow.Ellipsis
-                                    )
-                                }
+
+
+                    if (sortedBooksWithNotes.isEmpty()) {
+                        Column(
+                            modifier = Modifier.fillMaxSize(),
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            verticalArrangement = Arrangement.Center
+                        ) {
+                            Text(
+                                stringResource(R.string.no_notes_found),
+                                textAlign = TextAlign.Center
+                            )
+                            Text(
+                                stringResource(R.string.start_adding_notes_to_your_books),
+                                textAlign = TextAlign.Center
                             )
                         }
-                    }
+                    } else {
+                        ScrollableTabRow(
+                            selectedTabIndex = selectedTabIndex,
+                            edgePadding = 16.dp
+                        ) {
+                            sortedBooksWithNotes.forEachIndexed { index, bookWithNotes ->
+                                Tab(
+                                    selected = selectedTabIndex == index,
+                                    onClick = { selectedTabIndex = index },
+                                    text = {
+                                        Text(
+                                            text = bookWithNotes.book.title,
+                                            maxLines = 1,
+                                            overflow = TextOverflow.Ellipsis
+                                        )
+                                    }
+                                )
+                            }
+                        }
 
-                    BookNotesContent(
-                        appPreferences = appPreferences,
-                        bookWithNotes = sortedBooksWithNotes[selectedTabIndex],
-                        searchQuery = searchQuery,
-                        onNoteClick = { note ->
-                            showNoteDialog = true
-                            selectedNote = note
+                        BookNotesContent(
+                            appPreferences = appPreferences!!,
+                            bookWithNotes = sortedBooksWithNotes[selectedTabIndex],
+                            searchQuery = searchQuery,
+                            onNoteClick = { note ->
+                                showNoteDialog = true
+                                selectedNote = note
+                            },
+                            onUpdateNote = { updatedNote -> viewModel.updateNote(updatedNote) },
+                            onRemoveNote = { note -> viewModel.deleteNote(note) },
+                            showPremiumModal = {
+                                navController.navigate(Screens.PremiumScreen.route)
+                            }
+                        )
+                    }
+                }
+
+                if (showNoteDialog) {
+                    NoteContent(
+                        appPreferences = appPreferences!!,
+                        note = selectedNote,
+                        onDismiss = { showNoteDialog = false },
+                        onEdit = { editedNote ->
+                            viewModel.updateNote(editedNote)
+                            showNoteDialog = false
                         },
-                        onUpdateNote = { updatedNote -> viewModel.updateNote(updatedNote) },
-                        onRemoveNote = { note -> viewModel.deleteNote(note) },
+                        onDelete = { note ->
+                            viewModel.deleteNote(note)
+                            showNoteDialog = false
+                        },
                         showPremiumModal = {
                             navController.navigate(Screens.PremiumScreen.route)
                         }
                     )
                 }
             }
-
-            if (showNoteDialog) {
-                NoteContent(
-                    appPreferences = appPreferences,
-                    note = selectedNote,
-                    onDismiss = { showNoteDialog = false },
-                    onEdit = { editedNote ->
-                        viewModel.updateNote(editedNote)
-                        showNoteDialog = false
-                    },
-                    onDelete = { note ->
-                        viewModel.deleteNote(note)
-                        showNoteDialog = false
-                    },
-                    showPremiumModal = {
-                        navController.navigate(Screens.PremiumScreen.route)
-                    }
-                )
-            }
         }
-//    }
 //    if (showPremiumModal) {
 //        PremiumModal(
 //            purchaseHelper = purchaseHelper,
