@@ -240,7 +240,7 @@
     <string name="model_dark">غامق</string>
     <string name="unknown_author" />
     <string name="adding_new_book_to_library">إضافة كتب جديدة إلى المكتبة</string>
-    <string name="adding_books_num">إضافة الكتب(%d/%d)</string>
+    <string name="adding_books_num">إضافة الكتب(%d%\/d)</string>
     <string name="added_books">تمت إضافة %1$d كتب\t</string>
     <string name="remove_nums_books">حذف %1$d كتب\t</string>
     <string name="error_updateing_library">خطأ في تحديث المكتبة: %1$s</string>

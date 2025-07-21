@@ -238,7 +238,7 @@
     <string name="model_dark">Тёмная</string>
     <string name="unknown_author" >" "</string>
     <string name="adding_new_book_to_library">Добавление новых книг в библиотеку</string>
-    <string name="adding_books_num">Добавление книг(%d\\/%d)</string>
+    <string name="adding_books_num">Добавление книг(%d\/%d)</string>
     <string name="added_books">%1$d книг добавлено</string>
     <string name="remove_nums_books">Удаление %1$d книг</string>
     <string name="error_updateing_library">Ошибка обновления библиотеки: %1$s</string>

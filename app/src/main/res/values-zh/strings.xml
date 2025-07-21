@@ -238,7 +238,7 @@
     <string name="model_dark">深色模式</string>
     <string name="unknown_author" />
     <string name="adding_new_book_to_library">正在添加新书到图书馆</string>
-    <string name="adding_books_num">正在添加图书(%d\\/%d)</string>
+    <string name="adding_books_num">正在添加图书(%d\/%d)</string>
     <string name="added_books">已添加%1$d本书</string>
     <string name="remove_nums_books">正在删除%1$d本书</string>
     <string name="error_updateing_library">更新图书馆错误:%1$s</string>

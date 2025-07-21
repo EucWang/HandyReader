@@ -238,7 +238,7 @@
         <string name="model_dark">Oscuro</string>
     <string name="unknown_author" >" "</string>
     <string name="adding_new_book_to_library">Añadiendo nuevos libros a la biblioteca</string>
-    <string name="adding_books_num">Añadiendo libros(%d/%d)</string>
+    <string name="adding_books_num">Añadiendo libros(%d\/%d)</string>
     <string name="added_books">%1$d libros añadidos</string>
     <string name="remove_nums_books">Eliminando %1$d libros</string>
     <string name="error_updateing_library">Error al actualizar la biblioteca:%1$s</string>

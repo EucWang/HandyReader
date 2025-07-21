@@ -240,7 +240,7 @@
     <string name="model_dark">गहरा</string>
     <string name="unknown_author" >" "</string>
     <string name="adding_new_book_to_library">लाइब्रेरी में नई पुस्तकें जोड़ना</string>
-    <string name="adding_books_num">पुस्तकें जोड़ी जा रही हैं(%d\\/%d)</string>
+    <string name="adding_books_num">पुस्तकें जोड़ी जा रही हैं(%d\/%d)</string>
     <string name="added_books">Added %1$d books(s)</string>
     <string name="remove_nums_books">%1$d पुस्तकें हटाई जा रही हैं</string>
     <string name="error_updateing_library">लाइब्रेरी अद्यतन त्रुटि: %1$s</string>
