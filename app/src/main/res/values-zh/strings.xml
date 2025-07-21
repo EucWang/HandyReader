@@ -236,7 +236,6 @@
     <string name="model_system">跟随系统</string>
     <string name="model_light">浅色模式</string>
     <string name="model_dark">深色模式</string>
-    <string name="unknown_author" />
     <string name="adding_new_book_to_library">正在添加新书到图书馆</string>
     <string name="adding_books_num">正在添加图书(%d\/%d)</string>
     <string name="added_books">已添加%1$d本书</string>

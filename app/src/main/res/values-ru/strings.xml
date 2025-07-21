@@ -236,7 +236,6 @@
     <string name="model_system">Система</string>
     <string name="model_light">Светлая</string>
     <string name="model_dark">Тёмная</string>
-    <string name="unknown_author" >" "</string>
     <string name="adding_new_book_to_library">Добавление новых книг в библиотеку</string>
     <string name="adding_books_num">Добавление книг(%d\/%d)</string>
     <string name="added_books">%1$d книг добавлено</string>

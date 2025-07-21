@@ -238,7 +238,6 @@
     <string name="model_system">सिस्टम</string>
     <string name="model_light">हल्का</string>
     <string name="model_dark">गहरा</string>
-    <string name="unknown_author" >" "</string>
     <string name="adding_new_book_to_library">लाइब्रेरी में नई पुस्तकें जोड़ना</string>
     <string name="adding_books_num">पुस्तकें जोड़ी जा रही हैं(%d\/%d)</string>
     <string name="added_books">Added %1$d books(s)</string>

@@ -41,7 +41,7 @@ android {
         //noinspection OldTargetApi
         targetSdk = 35
         versionCode = 1
-        versionName = "1.0.0"
+        versionName = "1.0.250721"
         multiDexEnabled = true
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
@@ -70,10 +70,28 @@ android {
         }
     }
 
-
-
     buildTypes {
         release {
+            buildConfigField("String", "RELEASE_DATE", "\"${SimpleDateFormat("yyyy-MM-dd HH:mm:ss").format(Date())}\"")
+            buildConfigField("String", "FULL_SCREEN_BOOK_READER_AD_UNIT", apikeyProperties["FULL_SCREEN_BOOK_READER_AD_UNIT"] as String)
+            buildConfigField("String", "OPEN_BOOK_GRID_AD_UNIT", apikeyProperties["OPEN_BOOK_GRID_AD_UNIT"] as String)
+            buildConfigField("String", "OPEN_BOOK_LIST_AD_UNIT", apikeyProperties["OPEN_BOOK_LIST_AD_UNIT"] as String)
+            buildConfigField("String", "READER_SCREEN_AD_UNIT", apikeyProperties["READER_SCREEN_AD_UNIT"] as String)
+            buildConfigField("String", "PRODUCT_ID", apikeyProperties["PRODUCT_ID"] as String)
+            buildConfigField("Boolean", "ENABLE_AD", apikeyProperties["enableAd"] as String)
+//            buildConfigField("String", "BASE_64_ENCODED_PUBLIC_KEY", apikeyProperties["BASE_64_ENCODED_PUBLIC_KEY"] as String)
+
+            isMinifyEnabled = true
+            isShrinkResources = true
+            ndk {
+                debugSymbolLevel = "FULL"
+            }
+            proguardFiles(
+                getDefaultProguardFile("proguard-android-optimize.txt"),
+                "proguard-rules.pro"
+            )
+        }
+        debug {
             buildConfigField("String", "RELEASE_DATE", "\"${SimpleDateFormat("yyyy-MM-dd HH:mm:ss").format(Date())}\"")
             buildConfigField("String", "FULL_SCREEN_BOOK_READER_AD_UNIT", apikeyProperties["FULL_SCREEN_BOOK_READER_AD_UNIT"] as String)
             buildConfigField("String", "OPEN_BOOK_GRID_AD_UNIT", apikeyProperties["OPEN_BOOK_GRID_AD_UNIT"] as String)

@@ -236,7 +236,6 @@
     <string name="model_system">システム</string>
     <string name="model_light">ライト</string>
     <string name="model_dark">ダーク</string>
-    <string name="unknown_author" >" "</string>
     <string name="adding_new_book_to_library">ライブラリに新しい本を追加中</string>
     <string name="adding_books_num">本を追加中(%d\/%d)</string>
     <string name="added_books">%1$d冊の本を追加しました</string>
