@@ -214,8 +214,6 @@
     <string name="navigate_to">Navigate to</string>
     <string name="back">Back</string>
 
-    <string name="admob_app_id" translatable="false">xxxxx</string> <!-- TODO -->
-
     <string name="ebooks">eBooks</string>
     <string name="audio_books">AudioBooks</string>
     <string name="mine">Mine</string>

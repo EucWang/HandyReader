@@ -40,8 +40,8 @@ android {
         minSdk = 24
         //noinspection OldTargetApi
         targetSdk = 35
-        versionCode = 1
-        versionName = "1.0.250721"
+        versionCode = 3
+        versionName = "1.2.250722"
         multiDexEnabled = true
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
@@ -101,15 +101,15 @@ android {
             buildConfigField("Boolean", "ENABLE_AD", apikeyProperties["enableAd"] as String)
 //            buildConfigField("String", "BASE_64_ENCODED_PUBLIC_KEY", apikeyProperties["BASE_64_ENCODED_PUBLIC_KEY"] as String)
 
-            isMinifyEnabled = true
-            isShrinkResources = true
+            isMinifyEnabled = false
+            isShrinkResources = false
             ndk {
                 debugSymbolLevel = "FULL"
             }
-            proguardFiles(
-                getDefaultProguardFile("proguard-android-optimize.txt"),
-                "proguard-rules.pro"
-            )
+//            proguardFiles(
+//                getDefaultProguardFile("proguard-android-optimize.txt"),
+//                "proguard-rules.pro"
+//            )
         }
     }
     compileOptions {

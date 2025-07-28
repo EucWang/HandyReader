@@ -1,7 +1,4 @@
 apply plugin: 'com.android.library'
-//apply plugin: 'maven-publish'
-//apply plugin: 'com.github.dcendents.android-maven'
-//apply plugin: 'com.jfrog.bintray'
 
 android {
     compileSdkVersion 36
@@ -9,7 +6,7 @@ android {
 
     namespace = "com.gemalto.jp2"
     defaultConfig {
-        minSdkVersion 23
+        minSdkVersion 24
         targetSdkVersion 36
         versionName "1.0.4"
         versionCode 4
@@ -45,56 +42,3 @@ dependencies {
     androidTestImplementation 'androidx.test.ext:junit:1.2.1'
     androidTestImplementation 'androidx.test.espresso:espresso-core:3.6.1'
 }
-
-/*************************************************************/
-/******************* PUBLISHING STUFF ************************/
-/*************************************************************/
-//create a sources jar
-//task sourceJar(type: Jar) {
-//    from android.sourceSets.main.java.srcDirs
-//    classifier 'sources'
-//}
-//
-////publish to a local Maven repository with the sources jar and all dependencies
-//publishing {
-//    publications {
-//        aarRelease(MavenPublication) {
-//            groupId 'com.gemalto.jp2'
-//            artifactId 'jp2-android'
-//            version "${android.defaultConfig.versionName}"
-//            artifact(sourceJar)
-//            artifact("build/outputs/aar/library-release.aar")
-//        }
-//    }
-//    repositories {
-//        maven {
-//            url 'build/repo'
-//        }
-//    }
-//}
-//
-//ext {
-//    bintrayRepo = 'maven'
-//    bintrayName = 'JP2ForAndroid'
-//
-//    publishedGroupId = 'com.gemalto.jp2'
-//    libraryName = 'JP2ForAndroid'
-//    artifact = 'jp2-android'
-//
-//    libraryDescription = 'A JPEG-2000 image encoder/decoder for Android'
-//
-//    siteUrl = 'https://github.com/gemalto/JP2ForAndroid'
-//    gitUrl = 'https://github.com/gemalto/JP2ForAndroid.git'
-//
-//    libraryVersion = "${android.defaultConfig.versionName}"
-//
-//    developerId = 'michal-dvorak-thales'
-//    developerName = 'Michal Dvorak'
-//    developerEmail = 'michal.dvorak@thalesgroup.com'
-//
-//    licenseName = 'The 2-Clause BSD License'
-//    licenseUrl = 'https://opensource.org/licenses/BSD-2-Clause'
-//    allLicenses = ["BSD-2-Clause"]
-//}
-
-//apply from: 'bintray.gradle'
