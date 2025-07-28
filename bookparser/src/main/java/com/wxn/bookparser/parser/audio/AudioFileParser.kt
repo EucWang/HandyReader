@@ -10,14 +10,13 @@ import com.anggrayudi.storage.file.baseName
 import com.anggrayudi.storage.file.extension
 import com.wxn.bookparser.FileParser
 import com.wxn.base.bean.Book
-import com.wxn.bookparser.domain.book.BookWithCover
 import com.wxn.bookparser.domain.file.CachedFile
 import com.wxn.bookparser.util.FileUtil
 import com.wxn.bookparser.util.getCoverPath
 import javax.inject.Inject
 
 class AudioFileParser @Inject constructor(val context: Context) : FileParser {
-    override suspend fun parse(cachedFile: CachedFile): BookWithCover? {
+    override suspend fun parse(cachedFile: CachedFile): Book? {
         val title = cachedFile.name.substringBeforeLast(".").trim()
         val uri = cachedFile.uri
         val format = cachedFile.extension
@@ -26,7 +25,7 @@ class AudioFileParser @Inject constructor(val context: Context) : FileParser {
         return innerParse(context, title, uri, format)
     }
 
-    override suspend fun parse(file: DocumentFile): BookWithCover? {
+    override suspend fun parse(file: DocumentFile): Book? {
         val title = file.baseName.orEmpty()
         val uri = file.uri
         val format = file.extension
@@ -34,7 +33,7 @@ class AudioFileParser @Inject constructor(val context: Context) : FileParser {
         return innerParse(context, title, uri, format)
     }
 
-    private suspend fun innerParse(context: Context, titleName: String, uri: Uri, format: String): BookWithCover? {
+    private suspend fun innerParse(context: Context, titleName: String, uri: Uri, format: String): Book? {
 //        val uri = documentFile.uri
         val mediaMetadataRetriever = MediaMetadataRetriever()
         return try {
@@ -64,64 +63,45 @@ class AudioFileParser @Inject constructor(val context: Context) : FileParser {
                         coverPath = ""
                     }
                 }
-//                val coverPath = coverArt?.let {
-
-//                    ImageUtils.saveCoverImage(
-//                        BitmapFactory.decodeByteArray(
-//                            it,
-//                            0,
-//                            it.size
-//                        ),
-////                        documentFile.uri.toString(),
-//                        uri.toString(),
-//                        context
-//                    )
-//                }
-
-                BookWithCover(
-                    Book(
-                        filePath = uri.toString(),
-                        fileType = format, //FileType.AUDIOBOOK.typeName(),
-                        title = title,
-                        author = artist ?: "",
-                        description = album,
-                        publishDate = null,
-                        publisher = null,
-                        language = null,
-                        numberOfPages = null,
-                        category = "",
-                        coverImage = coverPath,
-                        locator = "",
-                        duration = duration,
-                        narrator = artist,
-                        scrollIndex = 0,
-                        scrollOffset = 0,
-                        progress = 0f,
-                        lastOpened = 0,
-                    ),
-                    coverImage = coverPath
-                )
-            } ?: throw IllegalStateException("Unable to open audio file")
-        } catch (e: Exception) {
-            BookWithCover(
                 Book(
                     filePath = uri.toString(),
-                    fileType = format, // FileType.AUDIOBOOK.typeName(),
-                    title = titleName, // documentFile.name ?: "Unknown",
-                    author = "",
-                    description = null,
+                    fileType = format, //FileType.AUDIOBOOK.typeName(),
+                    title = title,
+                    author = artist ?: "",
+                    description = album,
                     publishDate = null,
                     publisher = null,
                     language = null,
                     numberOfPages = null,
                     category = "",
-                    coverImage = "",
+                    coverImage = coverPath,
                     locator = "",
+                    duration = duration,
+                    narrator = artist,
                     scrollIndex = 0,
                     scrollOffset = 0,
                     progress = 0f,
                     lastOpened = 0,
-                ), coverImage = ""
+                )
+            } ?: throw IllegalStateException("Unable to open audio file")
+        } catch (e: Exception) {
+            Book(
+                filePath = uri.toString(),
+                fileType = format, // FileType.AUDIOBOOK.typeName(),
+                title = titleName, // documentFile.name ?: "Unknown",
+                author = "",
+                description = null,
+                publishDate = null,
+                publisher = null,
+                language = null,
+                numberOfPages = null,
+                category = "",
+                coverImage = "",
+                locator = "",
+                scrollIndex = 0,
+                scrollOffset = 0,
+                progress = 0f,
+                lastOpened = 0,
             )
         } finally {
             mediaMetadataRetriever.release()

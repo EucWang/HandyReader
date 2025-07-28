@@ -103,3 +103,11 @@ std::string file_ext::get_img_path(long book_id, const std::string &imgSrc) {
 std::string file_ext::get_img_parent_path(long book_id) {
     return app_ext::appFileDir + separator + "resources" + separator + std::to_string(book_id);
 }
+
+std::string file_ext::get_file_suffix(std::string &path_name) {
+    auto index = path_name.find_last_of('.');
+    if (index != std::string::npos) {
+        return path_name.substr(index + 1);
+    }
+    return "";
+}

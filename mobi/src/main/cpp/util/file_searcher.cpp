@@ -62,7 +62,7 @@ void workerThread() {
         if (shouldSkipDirectory(currentDir)) {
             continue; // 跳过系统/无权限目录
         }
-//        LOGD("workerThread::currentDir:%s,%s,%ld", currentDir.c_str(), " thread : " , std::this_thread::get_id());
+        LOGD("workerThread::currentDir:%s,%s,%ld", currentDir.c_str(), " thread id:", std::this_thread::get_id());
         // 处理目录
         DIR* dir = opendir(currentDir.c_str());
         if (!dir) {
@@ -81,15 +81,16 @@ void workerThread() {
                 dirQueue.push(fullPath);
             } else {
                 for(const auto& pattern : patterns) {
-                    if (string_ext::endsWithIgnoreCase(name, pattern)) {
-                        if (pattern == ".txt") {
+                    std::string suffix = file_ext::get_file_suffix(name);
+                    if (!suffix.empty() && string_ext::endsWithIgnoreCase(suffix, pattern)) {
+                        if (pattern == "txt") {
                             struct stat file_info;
                             if (lstat(fullPath.c_str(), &file_info) == 0) {
                                 if (file_info.st_size <= maxTxtFileSize) { //txt  文件大小筛选
-//                                    LOGD("%s:file:[%s], size:[%lld], maxTxtFileSize:[%lld], so passed", __func__, fullPath.c_str(), file_info.st_size, maxTxtFileSize);
+                                    LOGD("%s:file:[%s], size:[%lld], maxTxtFileSize:[%lld], so passed", __func__, fullPath.c_str(), file_info.st_size, maxTxtFileSize);
                                     continue;
                                 } else {
-//                                    LOGD("%s:file[%s], size[%lld] add to result", __func__, fullPath.c_str(), file_info.st_size);
+                                    LOGD("%s:file[%s], size[%lld] add to result", __func__, fullPath.c_str(), file_info.st_size);
                                     results.push_front(fullPath);
                                 }
                             }

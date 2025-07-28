@@ -6,6 +6,7 @@ import android.net.Uri
 import android.provider.DocumentsContract
 import androidx.compose.runtime.Immutable
 import com.anggrayudi.storage.file.DocumentFileCompat
+import com.anggrayudi.storage.file.MimeType
 import com.anggrayudi.storage.file.getAbsolutePath
 import java.io.BufferedOutputStream
 import java.io.File
@@ -190,7 +191,18 @@ class CachedFile(
         if (isDirectory) return null
 
         val cacheDir = context.cacheDir
-        val fileName = path.replace("_", "-").replace("/", "_").take(80) + "_${path.length}"
+        var ext = MimeType.getExtensionFromFileName(path).orEmpty()
+        if (!ext.isEmpty()) {
+            ext = ".$ext"
+        }
+        val lastDotIndex = path.lastIndexOf(".")
+        val lastSlashIndex = path.lastIndexOf("/")
+        val pureName = if (lastDotIndex > 0 && lastDotIndex > 0 && lastDotIndex > lastSlashIndex) {
+            path.substring(lastSlashIndex + 1, lastDotIndex)
+        } else {
+            path
+        }
+        val fileName = pureName.replace("_", "-").replace("/", "_").takeLast(80) + "_${path.length}" + ext
         val cacheFile = File(cacheDir, fileName)
 
         if (cacheFile.exists() && cacheFile.length() > 0) {

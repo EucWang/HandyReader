@@ -11,6 +11,7 @@
 #include "util/app_ext.h"
 #include "util/epub_util.h"
 #include "util/fb2_util.h"
+#include "util/file_searcher.h"
 #include <memory>
 
 std::shared_ptr<mobi_util> mobiutil = nullptr;
@@ -291,7 +292,6 @@ Java_com_wxn_mobi_inative_NativeLib_loadEpub(
         env->ReleaseStringUTFChars(pathStr, appCacheDir);
     }
     std::string coverPath;
-//    std::string epubPath;
 
     std::string title;
     std::string author;
@@ -1027,4 +1027,55 @@ Java_com_wxn_mobi_inative_NativeLib_loadFb2(JNIEnv *env,
             env->NewStringUTF(coverPath.c_str())
     );
     return mobiInfoObj;
+}
+extern "C"
+JNIEXPORT jobjectArray JNICALL
+Java_com_wxn_mobi_inative_NativeLib_searchFiles(JNIEnv *env, jobject thiz, jstring root,
+                                                jobjectArray patterns) {
+    const char *strRoot = env->GetStringUTFChars(root, NULL);
+
+    jsize length = env->GetArrayLength(patterns);
+    std::vector<std::string> strPatterns;
+    if (length > 0) {
+        for (jsize i = 0; i < length; ++i) {
+            jstring jstr = static_cast<jstring>(env->GetObjectArrayElement(patterns, i));
+            if (jstr == nullptr) {
+                continue;
+            }
+            const char *str = env->GetStringUTFChars(jstr, nullptr);
+            if (str != nullptr) {
+                strPatterns.push_back(std::string(str));
+                env->ReleaseStringUTFChars(jstr, str);
+            }
+        }
+    }
+
+    std::vector<std::string> ss = startSearch(strRoot, strPatterns, 2);
+
+    env->ReleaseStringUTFChars(root, strRoot);
+
+    jclass stringClass = env->FindClass("java/lang/String");
+    if (stringClass == nullptr)
+    {
+        return nullptr;
+    }
+    length = ss.size();
+    if (length <= 0) {
+        return nullptr;
+    }
+
+    jobjectArray strArray = env->NewObjectArray(length, stringClass, nullptr);
+    if (strArray == nullptr) {
+        env->DeleteLocalRef(stringClass);
+        return nullptr;
+    }
+    for(size_t i=0; i<length; i++) {
+        jstring jstr = env->NewStringUTF(ss[i].c_str());
+        if (jstr == nullptr) {
+            continue;
+        }
+        env->SetObjectArrayElement(strArray, i, jstr);
+        env->DeleteLocalRef(jstr);
+    }
+    return strArray;
 }

@@ -329,7 +329,7 @@ class MainReadViewModel @Inject constructor(
             })
 
             if (fetchBook(bookId)) {
-                val newBook = _book.value ?: return@launchIO
+                var newBook = _book.value ?: return@launchIO
                 if (openedBookId >= 0) {
                     _appPreferences.value?.let { pref ->
                         if (pref.lastBookId != openedBookId) {
@@ -350,8 +350,6 @@ class MainReadViewModel @Inject constructor(
                     if (newBook.wordCount == 0L) {
                         loadChapterWords(newBook)
                     }
-
-
                 }
             }
         }
@@ -455,12 +453,16 @@ class MainReadViewModel @Inject constructor(
      * 滑动切换界面，或者跳转切换界面时，通知进度刷新
      */
     override fun onPageChange() {
-        Logger.d("MainReadViewModel:onPageChange:chapter.index=${pageController.durChapterIndex},page.index=${pageController.durPageIndex}")
+        val curChapter = pageController.textChapter(0) ?: return
+        val curChapterIndex = pageController.durChapterIndex
+        val curPageInChpaterIndex = pageController.durPageIndex
+        Logger.d("MainReadViewModel:onPageChange:chapter.index=${curChapterIndex},page.index=${pageController.durPageIndex}")
         val newProgression =  pageController.progression
         _readProgression.value = newProgression
-        _curChapterIndex.value = pageController.durChapterIndex
+        _curChapterIndex.value = curChapterIndex
         _curChapterPageIndex.value = pageController.durPageIndex
-        _curChapterName.value = pageController.curTextChapter?.title.orEmpty()
+        _curChapterName.value = curChapter.title.orEmpty()
+        val isLastPage = (curChapterIndex >= curChapter.chaptersSize - 1 && curPageInChpaterIndex >= curChapter.pageSize - 1)
 
         _isBookmarked.value = (pageController.textChapter(0)?.pages?.getOrNull(pageController.durPageIndex)?.bookmarkId ?: -1) > 0
         _enableTts.value = !pageController.currentPage()?.text.isNullOrEmpty()
@@ -476,6 +478,20 @@ class MainReadViewModel @Inject constructor(
 
             if (newProgression >= 0.99) {  //尝试更新结束阅读时间
                 updateEndReadingDate()
+            }
+
+            var curBook = _book.value ?: return@launch
+            val readingStatus = curBook.readingStatus ?: 0
+
+            //更新阅读状态
+            if (readingStatus == 0) {
+                curBook = curBook.copy(readingStatus = ReadingStatus.IN_PROGRESS.value)
+                _book.value = curBook
+                updateBookUseCase(curBook)
+            } else if (isLastPage && readingStatus != ReadingStatus.FINISHED.value) {
+                curBook = curBook.copy(readingStatus = ReadingStatus.FINISHED.value)
+                _book.value = curBook
+                updateBookUseCase(curBook)
             }
         }
     }

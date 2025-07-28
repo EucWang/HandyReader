@@ -3,7 +3,6 @@ package com.wxn.mobi.inative
 import android.content.Context
 import com.wxn.base.bean.BookChapter
 import com.wxn.base.bean.CssInfo
-import com.wxn.base.bean.ReaderText
 import com.wxn.mobi.data.model.CountPair
 import com.wxn.mobi.data.model.FileCrc
 import com.wxn.mobi.data.model.MetaInfo
@@ -14,6 +13,8 @@ object NativeLib {
     init {
         System.loadLibrary("appmobi")
     }
+
+    external fun searchFiles(root: String, patterns: Array<String>): Array<String>
 
     external fun nativeFilesCrc(paths: Array<String>): Array<FileCrc>?
 

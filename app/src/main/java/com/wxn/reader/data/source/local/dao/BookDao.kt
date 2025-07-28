@@ -50,7 +50,7 @@ interface BookDao {
         """
         SELECT * FROM books
         WHERE deleted = 0
-        AND (:readingStatuses IS NULL OR readingStatus IN (:readingStatuses))
+        AND (:allStatus == 1 OR readingStatus IN (:readingStatuses))
         AND (:fileTypes IS NULL OR fileType IN (:fileTypes))
         ORDER BY
         CASE WHEN :sortBy = 'last_opened' AND :isAsc = 1 THEN lastOpened END ASC,
@@ -71,7 +71,8 @@ interface BookDao {
         sortBy: String,
         isAsc: Boolean,
         readingStatuses: List<ReadingStatus>?,
-        fileTypes: List<FileType>?
+        allStatus: Int,
+        fileTypes: List<String>?
     ): Flow<List<BookEntity>>
 
     @Query(

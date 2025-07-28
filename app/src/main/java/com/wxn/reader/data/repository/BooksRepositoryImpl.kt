@@ -65,11 +65,13 @@ class BooksRepositoryImpl @Inject constructor(
         readingStatuses: Set<ReadingStatus>,
         fileTypes: Set<FileType>
     ): Flow<List<Book>> {
+        val status = readingStatuses.toList().takeIf { it.isNotEmpty() }
         val result = bookDao.getBooksSorted(
             sortOption.name.lowercase(),
             isAscending,
-            readingStatuses = readingStatuses.toList().takeIf { it.isNotEmpty() },
-            fileTypes = fileTypes.toList().takeIf { it.isNotEmpty() }
+            readingStatuses = status,
+            allStatus = if (status.isNullOrEmpty()) { 1 } else { 0 },
+            fileTypes = fileTypes.map { item -> item.typeName() }.toList().takeIf { it.isNotEmpty() }
         ).map { entities ->
             entities.map { entity ->
                 bookMapper.toBook(entity)

@@ -1,4 +1,4 @@
-package com.wxn.bookparser
+package com.wxn.base.util
 
 
 //fun provideExtensions() = listOf(

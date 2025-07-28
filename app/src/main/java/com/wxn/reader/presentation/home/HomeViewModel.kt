@@ -1,12 +1,7 @@
 package com.wxn.reader.presentation.home
 
-
 import android.app.Application
 import android.content.Context
-import android.graphics.Bitmap
-import android.graphics.BitmapFactory
-import android.graphics.pdf.PdfRenderer
-import android.media.MediaMetadataRetriever
 import android.net.Uri
 import android.provider.DocumentsContract
 import androidx.compose.runtime.mutableStateOf
@@ -24,7 +19,6 @@ import com.wxn.reader.data.dto.FileType
 import com.wxn.reader.data.dto.FileType.Companion.stringToFileType
 import com.wxn.reader.data.dto.ReadingStatus
 import com.wxn.reader.data.dto.ReadingStatus.Companion.intToReadStatus
-
 import com.wxn.reader.data.model.SortOption
 import com.wxn.reader.data.model.SortOrder
 import com.wxn.reader.data.source.local.AppPreferencesUtil
@@ -44,8 +38,8 @@ import com.wxn.reader.domain.use_case.shelves.RemoveShelfUseCase
 import com.wxn.reader.presentation.home.states.ImportProgressState
 import com.wxn.reader.presentation.home.states.SnackbarState
 import com.wxn.reader.ui.theme.stringResource
-import com.wxn.reader.util.ImageUtils
 import com.wxn.base.util.Logger
+import com.wxn.base.util.retry
 import com.wxn.reader.util.PurchaseHelper
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.CoroutineExceptionHandler
@@ -61,22 +55,14 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-//import org.readium.r2.shared.publication.Publication
-//import org.readium.r2.shared.publication.services.cover
-//import org.readium.r2.shared.util.AbsoluteUrl
-//import org.readium.r2.shared.util.ErrorException
-//import org.readium.r2.shared.util.asset.AssetRetriever
-//import org.readium.r2.shared.util.getOrElse
-//import org.readium.r2.shared.util.toAbsoluteUrl
-//import org.readium.r2.streamer.PublicationOpener
 import java.io.File
 import java.io.FileOutputStream
 import javax.inject.Inject
-import com.wxn.bookparser.exts.*
-import com.wxn.bookparser.supportedExtensions
 import com.wxn.reader.domain.repository.PermissionRepository
 import com.wxn.reader.domain.use_case.books.GetBookByIdUseCase
 import com.wxn.reader.navigation.Screens
+import com.wxn.reader.util.DocumentUtil
+import androidx.core.net.toUri
 
 @HiltViewModel
 class HomeViewModel
@@ -95,8 +81,6 @@ class HomeViewModel
     private val addBookToShelfUseCase: AddBookToShelfUseCase,
     private val removeBooksFromShelfUseCase: RemoveBooksFromShelfUseCase,
     private val getBooksForShelfUseCase: GetBooksForShelfUseCase,
-//    private val assetRetriever: AssetRetriever,
-//    private val publicationOpener: PublicationOpener,
     private val appPreferencesUtil: AppPreferencesUtil,
     private val fileParser: FileParser,
     private val permissionRepository: PermissionRepository,
@@ -188,15 +172,11 @@ class HomeViewModel
             val internalUri = Uri.fromFile(internalFile)
             if (!existingUris.contains(internalUri.toString())) {
                 getBookInfoFromInternalFile(internalFile)?.let { book ->
-//                    insertBookUseCase(book)
                     books.add(book)
                 }
             }
         }
         insertBookUseCase.insert(books)
-//        val initialPreferences = appPreferencesUtil.appPrefsFlow.first()
-//        val updatedAppPreferences = initialPreferences.copy(isAssetsBooksFetched = true)
-//        appPreferencesUtil.updateAppPreferences(updatedAppPreferences)
     }
 
     private fun copyAssetToInternalStorage(fileName: String): File {
@@ -216,12 +196,10 @@ class HomeViewModel
 
     private suspend fun getBookInfoFromInternalFile(file: File): Book? {
         val documentFile = DocumentFile.fromFile(file)
-        val bookWithCover = fileParser.parse(documentFile)
-//        return getBookInfo(documentFile)
-        return bookWithCover?.book
+        return fileParser.parse(documentFile)
     }
 
-    private fun loadBooks(preferences: AppPreferences) {
+    private suspend fun loadBooks(preferences: AppPreferences) {
         val sortBy = preferences.sortBy
         val sortOrder = preferences.sortOrder
         val readingStatus = preferences.readingStatus
@@ -231,45 +209,35 @@ class HomeViewModel
         val autoLoadLastBook = preferences.autoOpenLastRead
         val lastOpenBookId = preferences.lastBookId
 
-        viewModelScope.launch {
-            Logger.d("HomeViewModel::loadBooks::hasOpenedLastBook[$hasOpenedLastBook],lastOpenBookId=[$lastOpenBookId]:autoLoadLastBook[$autoLoadLastBook]")
-            val flag = hasOpenedLastBook
-            hasOpenedLastBook = true
-            if (!flag && autoLoadLastBook && lastOpenBookId > 0) {
-                openLastOpenBook(lastOpenBookId){ route ->
-                    _openLastBookRoute.value = route
-                }
+        Logger.d("HomeViewModel::loadBooks::hasOpenedLastBook[$hasOpenedLastBook],lastOpenBookId=[$lastOpenBookId]:autoLoadLastBook[$autoLoadLastBook]")
+        val flag = hasOpenedLastBook
+        hasOpenedLastBook = true
+        if (!flag && autoLoadLastBook && lastOpenBookId > 0) {
+            openLastOpenBook(lastOpenBookId){ route ->
+                _openLastBookRoute.value = route
             }
         }
 
-        viewModelScope.launch {
-            combine(
-//                getBooksUseCase(sortBy, isAscending, readingStatus, fileType).cachedIn(
-//                    viewModelScope
-//                ),
-                getBooksUseCase.getSortedBooks(sortBy, isAscending, readingStatus, fileType),
-                searchQuery,
-                currentShelf,
-                booksInShelfSet,
-                selectedTabRow
-            ) { books, query, shelf, shelfBookIds, selectedTabRow ->
-                books.filter { book ->
-//                    Logger.d("HomeViewModel:loadBooks:${book}")
-                    val matchesSearch =
-                        query.isBlank() || book.title.contains(query, ignoreCase = true)
-                    val matchesShelf = shelf == null || book.id in shelfBookIds
-                    val matchesTab = if (selectedTabRow == 1) {
-                        stringToFileType(book.fileType) == FileType.AUDIOBOOK
-                    } else {
-                        stringToFileType(book.fileType) != FileType.AUDIOBOOK
-                    }
-                    matchesSearch && matchesShelf && matchesTab
+        combine(
+            getBooksUseCase.getSortedBooks(sortBy, isAscending, readingStatus, fileType),
+            searchQuery,
+            currentShelf,
+            booksInShelfSet,
+            selectedTabRow
+        ) { books, query, shelf, shelfBookIds, selectedTabRow ->
+            books.filter { book ->
+                val matchesSearch =
+                    query.isBlank() || book.title.contains(query, ignoreCase = true)
+                val matchesShelf = shelf == null || book.id in shelfBookIds
+                val matchesTab = if (selectedTabRow == 1) {
+                    stringToFileType(book.fileType) == FileType.AUDIOBOOK
+                } else {
+                    stringToFileType(book.fileType) != FileType.AUDIOBOOK
                 }
-            }.collect { data ->
-//                Logger.d("HomeViewModel:loadBooks:${data.size}")
-                _books.value =  PagingData.from(data)
-//                _books.value = filteredPagingData
+                matchesSearch && matchesShelf && matchesTab
             }
+        }.collect { data ->
+            _books.value =  PagingData.from(data)
         }
     }
 
@@ -358,19 +326,23 @@ class HomeViewModel
                 message = "Error during import: ${throwable.message}",
             )
         }) {
+            val start = System.currentTimeMillis()
             try {
                 //已经存到数据库中的书籍
                 val existingUris = getBookUrisUseCase().toSet()
+                val step1 = System.currentTimeMillis()
+                Logger.d("HomeViewModel::observeBooks::step1=${step1 - start}")
 
                 //从用户目录中导入的书籍文件列表
                 val documentFiles = mutableListOf<DocumentFile>()
                 preferences.scanDirectories.forEach { directoryPath ->
                     Logger.d("HomeViewModel::observeBooks::directoryPath=$directoryPath")
-                    val uri = Uri.parse(directoryPath)
-                    val filesInDirectory = getBooksFromDirectory(context, uri)
-                    Logger.d("HomeViewModel::observeBooks::filesInDirectory=${filesInDirectory.size},")
+                    val filesInDirectory = DocumentUtil.getFilesFromDirectory(context, directoryPath.toUri())
+                    Logger.d("HomeViewModel::observeBooks::filesInDirectory=${filesInDirectory.size}")
                     documentFiles.addAll(filesInDirectory)
                 }
+                val step2 = System.currentTimeMillis()
+                Logger.d("HomeViewModel::observeBooks::step2=${step2 - step1}")
                 //从文件列表中的文件去重复
                 val uniqueFiles = documentFiles.distinctBy { it.uri.toString() } //去重复
 
@@ -391,7 +363,6 @@ class HomeViewModel
 //                Logger.d("HomeViewModel::observeBooks::assetBookUris=${assetBookUris},existingUris=${existingUris}")
                 //在数据库中， 但是不在用户的扫描目录中的uri，则是用户已经删除掉了的书籍
                 val deletedUris = existingUris.filter { it !in currentUris && it !in assetBookUris }
-
                 Logger.d("HomeViewModel::observeBooks::newBooks.size=${newBooks.size}")
                 if (newBooks.isNotEmpty()) {        //有新增加的，则将新增加的加入到数据库中
                     _isAddingBooks.value = true
@@ -399,7 +370,7 @@ class HomeViewModel
                     showSnackbar(
                         message = stringResource(R.string.adding_new_book_to_library)
                     )
-//
+
 //                    // Process books in smaller batches
                     newBooks.chunked(5).forEachIndexed { batchIndex, batch ->
                         // Add delay between batches to prevent overwhelming the system
@@ -416,46 +387,13 @@ class HomeViewModel
                                     message = stringResource(R.string.adding_books_num, totalProcessed, newBooks.size),
                                     unlimited = true
                                 )
-
                                 // Check if book already exists before adding
-//                                val bookUriString = documentFile.uri.toString()
-//                                if (!getBookUrisUseCase().toSet().contains(bookUriString)) {
-                                    addNewBook(documentFile)
-//                                } else {
-//                                    Logger.d("HomeViewModel::${bookUriString} already exists.")
-//                                }
+                                addNewBook(documentFile)
                             } catch (e: Exception) {
                                 Logger.e("HomeViewModel::Error adding book: ${documentFile.name}, ${e.message}")
                             }
                         }
                     }
-
-                    // Process books in smaller batches
-//                    newBooks.forEachIndexed { index, documentFile ->
-//                        try {
-//                            val totalProcessed = index + 1
-//                            _importProgressState.value =
-//                                ImportProgressState.InProgress(totalProcessed, newBooks.size)
-//
-//                            // Update snackbar with progress
-//                            showSnackbar(
-//                                message = stringResource(R.string.adding_books_num, totalProcessed, newBooks.size),
-//                                unlimited = true
-//                            )
-//
-//                            // Check if book already exists before adding
-//                            val bookUriString = documentFile.uri.toString()
-//                            if (!getBookUrisUseCase().toSet().contains(bookUriString)) {
-//                                addNewBook(documentFile)
-//                            } else {
-//                                Logger.d("HomeViewModel::${bookUriString} already exists.")
-//                            }
-//                        } catch (e: Exception) {
-//                            Logger.e("HomeViewModel::Error adding book: ${documentFile.name}, ${e.message}")
-//                        }
-//                    }
-
-
                     _importProgressState.value = ImportProgressState.Complete
                     showSnackbar(
                         message = stringResource(R.string.added_books, newBooks.size)
@@ -494,23 +432,22 @@ class HomeViewModel
                 )
             } finally {
                 _isAddingBooks.value = false
-//                val initialPreferences = appPreferencesUtil.appPrefsFlow.first()
-//                val updatedAppPreferences = initialPreferences.copy(isAssetsBooksFetched = true)
-//                appPreferencesUtil.updateAppPreferences(updatedAppPreferences)
             }
         }
     }
 
     fun updateAppPreferences(newPreferences: AppPreferences) {
         viewModelScope.launch {
-            Logger.d("HomeViewModel::updateAppPreferences:the home viewModel")
+//            Logger.d("HomeViewModel::updateAppPreferences:the home viewModel")
             appPreferencesUtil.updateAppPreferences(newPreferences)
+            _appPreferences.value = newPreferences
         }
     }
 
     fun resetLayoutPreferences() {
         viewModelScope.launch {
             appPreferencesUtil.resetLayoutPreferences()
+            _appPreferences.value = appPreferencesUtil.appPrefsFlow.first()
         }
     }
 
@@ -642,43 +579,6 @@ class HomeViewModel
         return booksList
     }
 
-    private suspend fun getBooksFromDirectory(context: Context, uri: Uri): List<DocumentFile> {
-        return withContext(Dispatchers.IO) {
-            try {
-                val documentFile = DocumentFile.fromTreeUri(context, uri)
-                documentFile?.let { scanDirectory(it) } ?: emptyList()
-            } catch (e: Exception) {
-                Logger.e("HomeViewModel::Error scanning directory: $uri, $e")
-                emptyList()
-            }
-        }
-    }
-
-    private fun scanDirectory(directory: DocumentFile): List<DocumentFile> {
-        return try {
-//            val allowedExtensions = listOf("epub", "pdf", "mp3", "m4a", "m4b", "aac").let {
-//                if (_appPreferences.value.enablePdfSupport) it else it - "pdf"
-//            }
-            val allowedExtensions =  supportedExtensions()
-
-            directory.listFiles().filter { file ->
-                when {
-                    file.isDirectory -> file.name?.let { !it.startsWith(".") } ?: false
-//                    file.isFile ->  file.name?.let { name ->
-//                        name.substringAfterLast('.', "").lowercase() in allowedExtensions
-//                    } ?: false
-                    file.isFile ->  file.mimeType in allowedExtensions && file.canRead()  //满足条件 支持的类型 可读
-
-                    else -> false
-                }
-            }.flatMap { file ->
-                if (file.isDirectory) scanDirectory(file) else listOf(file)
-            }
-        } catch (e: Exception) {
-            Logger.e("HomeViewModel:Error scanning directory: ${directory.name}, $e")
-            emptyList()
-        }
-    }
 
     fun toggleBookSelection(book: Book) {
         _selectedBooks.value = if (_selectedBooks.value.contains(book)) {
@@ -693,7 +593,6 @@ class HomeViewModel
         _selectedBooks.value = books
     }
 
-
     fun clearBookSelection() {
         _selectedBooks.value = emptyList()
         _selectionMode.value = false
@@ -702,26 +601,20 @@ class HomeViewModel
     private suspend fun addNewBook(documentFile: DocumentFile) {
         withContext(Dispatchers.IO) {
             try {
-//                val bookUriString = documentFile.uri.toString()
-//                if (!getBookUrisUseCase().toSet().contains(bookUriString)) {
-//                    val book = getBookInfo(documentFile)
-
                     val cachedFile = CachedFileCompat.fromUri(context,
                         documentFile.uri, CachedFileCompat.build(
                             name = documentFile.name,
                             path = documentFile.uri.path,
                             isDirectory = false
                         ))
-//
-                    val bookWithCover = fileParser.parse(cachedFile)
-//                    val bookWithCover = fileParser.parse(documentFile)
-                    bookWithCover?.book?.let {book ->
-                        // Add retry mechanism for database operations
+                    val book = fileParser.parse(cachedFile)
+                    if (book != null) {
                         retry {
                             insertBookUseCase(book)
                         }
+                    } else {
+                        Logger.e("HomeViewModel::Error add book: ${documentFile.name}")
                     }
-//                }
             } catch (e: Exception) {
                 Logger.e("HomeViewModel::Error adding book: ${documentFile.name}, ${e.message}")
                 throw e
@@ -729,287 +622,6 @@ class HomeViewModel
         }
     }
 
-    /****
-     * 如果block运行抛出异常，则尝试attempts次，每次间隔delayBetweenAttempts 毫秒
-     * 返回block运行的结果
-     */
-    private suspend fun <T> retry(
-        attempts: Int = 3,
-        delayBetweenAttempts: Long = 1000L,
-        block: suspend () -> T
-    ): T {
-        var lastException: Exception? = null
-        repeat(attempts) { attempt ->
-            try {
-                return block()
-            } catch (e: Exception) {
-                lastException = e
-                if (attempt < attempts - 1) {
-                    delay(delayBetweenAttempts)
-                }
-            }
-        }
-        throw lastException ?: IllegalStateException("Retry failed")
-    }
-
-//    private suspend fun getBookInfo(documentFile: DocumentFile): Book {
-//        var retVal:Book =
-//            try {
-//                val url = documentFile.uri.toAbsoluteUrl()
-//                val fileType: FileType = when {
-//                    documentFile.name?.endsWith(".pdf", ignoreCase = true) == true -> FileType.PDF
-//                    documentFile.name?.let {
-//                        it.endsWith(".mp3", ignoreCase = true) ||
-//                                it.endsWith(".m4a", ignoreCase = true) ||
-//                                it.endsWith(".m4b", ignoreCase = true) ||
-//                                it.endsWith(".aac", ignoreCase = true)
-//                    } == true -> FileType.AUDIOBOOK
-//
-//                    else -> FileType.EPUB
-//                }
-//
-//               getBookFromType(fileType, url, documentFile)
-//            } catch (e: Exception) {
-//                defaultBook(documentFile)
-//            }
-//        return retVal
-//    }
-
-    public class UnknownFileTypeException(val fileType:String) : Exception() {
-
-    }
-
-//    private suspend fun getBookFromType(type: FileType, url: AbsoluteUrl?, documentFile: DocumentFile):Book {
-//        return when (type) {
-//            FileType.EPUB -> {
-//                val asset = url?.let { it ->
-//                    assetRetriever.retrieve(it).getOrElse { throw ErrorException(it) }
-//                }
-//                val publication = asset?.let { it ->
-//                    publicationOpener.open(it, allowUserInteraction = false)
-//                        .getOrElse { throw ErrorException(it) }
-//                }
-//                extractEpubBookInfo(publication, documentFile)
-//            }
-//
-//            FileType.PDF -> extractPdfBookInfo(documentFile)
-//            FileType.AUDIOBOOK -> extractAudioBookInfo(documentFile)
-//            else -> throw UnknownFileTypeException(type.typeName())
-//        }
-//    }
-
-    private fun defaultBook(documentFile: DocumentFile) : Book{
-        return Book(
-            filePath = documentFile.uri.toString(),
-            fileType = when {
-                documentFile.name?.endsWith(
-                    ".pdf",
-                    ignoreCase = true
-                ) == true -> FileType.PDF.typeName()
-
-                documentFile.name?.let {
-                    it.endsWith(".mp3", ignoreCase = true) ||
-                            it.endsWith(".m4a", ignoreCase = true) ||
-                            it.endsWith(".m4b", ignoreCase = true) ||
-                            it.endsWith(".aac", ignoreCase = true)
-                } == true -> FileType.AUDIOBOOK.typeName()
-
-                else -> FileType.EPUB.typeName()
-            },
-            title = documentFile.name ?: "Unknown",
-            author = "",
-            description = null,
-            publishDate = null,
-            publisher = null,
-            language = null,
-            numberOfPages = null,
-            category = "",
-            coverImage = null,
-            locator = "",
-            scrollIndex = 0,
-            scrollOffset = 0,
-            progress = 0f,
-            lastOpened = 0,
-        )
-    }
-
-    private suspend fun extractAudioBookInfo(documentFile: DocumentFile): Book =
-        withContext(Dispatchers.IO) {
-            val uri = documentFile.uri
-            val mediaMetadataRetriever = MediaMetadataRetriever()
-
-            try {
-                context.contentResolver.openFileDescriptor(uri, "r")?.use { descriptor ->
-                    mediaMetadataRetriever.setDataSource(descriptor.fileDescriptor)
-
-                    val title =
-                        mediaMetadataRetriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_TITLE)
-                            ?: documentFile.name ?: "Unknown"
-                    val artist =
-                        mediaMetadataRetriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_ARTIST)
-                    val album =
-                        mediaMetadataRetriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_ALBUM)
-                    val duration =
-                        mediaMetadataRetriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_DURATION)
-                            ?.toLongOrNull()
-
-                    // Extract cover art
-                    val coverArt = mediaMetadataRetriever.embeddedPicture
-                    val coverPath = coverArt?.let {
-                        ImageUtils.saveCoverImage(
-                            BitmapFactory.decodeByteArray(
-                                it,
-                                0,
-                                it.size
-                            ),
-                            documentFile.uri.toString(),
-                            context
-                        )
-                    }
-
-                    Book(
-                        filePath = uri.toString(),
-                        fileType = FileType.AUDIOBOOK.typeName(),
-                        title = title,
-                        author = artist ?: "",
-                        description = album,
-                        publishDate = null,
-                        publisher = null,
-                        language = null,
-                        numberOfPages = null,
-                        category = "",
-                        coverImage = coverPath,
-                        locator = "",
-                        duration = duration,
-                        narrator = artist,
-                        scrollIndex = 0,
-                        scrollOffset = 0,
-                        progress = 0f,
-                        lastOpened = 0,
-                    )
-                } ?: throw IllegalStateException("Unable to open audio file")
-            } catch (e: Exception) {
-                Book(
-                    filePath = uri.toString(),
-                    fileType = FileType.AUDIOBOOK.typeName(),
-                    title = documentFile.name ?: "Unknown",
-                    author = "",
-                    description = null,
-                    publishDate = null,
-                    publisher = null,
-                    language = null,
-                    numberOfPages = null,
-                    category = "",
-                    coverImage = null,
-                    locator = "",
-                    scrollIndex = 0,
-                    scrollOffset = 0,
-                    progress = 0f,
-                    lastOpened = 0,
-                )
-            } finally {
-                mediaMetadataRetriever.release()
-            }
-        }
-
-
-    private suspend fun extractPdfBookInfo(documentFile: DocumentFile): Book =
-        withContext(Dispatchers.IO) {
-            val uri = documentFile.uri
-            var pdfRenderer: PdfRenderer? = null
-
-            try {
-                context.contentResolver.openFileDescriptor(uri, "r")?.use { descriptor ->
-                    pdfRenderer = PdfRenderer(descriptor)
-
-                    val pageCount = pdfRenderer?.pageCount ?: 0
-                    val firstPage = pdfRenderer?.openPage(0)
-
-                    // Extract basic info
-                    val title = documentFile.name ?: "Unknown"
-
-                    // Generate and save cover image
-                    val coverBitmap = firstPage?.let { page ->
-                        val bitmap =
-                            Bitmap.createBitmap(page.width, page.height, Bitmap.Config.ARGB_8888)
-                        page.render(bitmap, null, null, PdfRenderer.Page.RENDER_MODE_FOR_DISPLAY)
-                        bitmap
-                    }
-                    val coverPath = coverBitmap?.let { ImageUtils.saveCoverImage( it, documentFile.uri.toString(), context) }
-
-                    firstPage?.close()
-
-                    Book(
-                        filePath = uri.toString(),
-                        fileType = FileType.PDF.typeName(),
-                        title = title,
-                        author = "",
-                        description = null,
-                        publishDate = null,
-                        publisher = null,
-                        language = null,
-                        numberOfPages = pageCount,
-                        category = "",
-                        coverImage = coverPath,
-                        locator = "",
-                        scrollIndex = 0,
-                        scrollOffset = 0,
-                        progress = 0f,
-                        lastOpened = 0,
-                    )
-                } ?: throw IllegalStateException("Unable to open PDF file")
-            } catch (e: Exception) {
-                // Log the error or handle it as needed
-                Book(
-                    filePath = uri.toString(),
-                    fileType = FileType.PDF.typeName(),
-                    title = documentFile.name ?: "Unknown",
-                    author = "",
-                    description = null,
-                    publishDate = null,
-                    publisher = null,
-                    language = null,
-                    numberOfPages = null,
-                    category = "",
-                    coverImage = null,
-                    locator = "",
-                    scrollIndex = 0,
-                    scrollOffset = 0,
-                    progress = 0f,
-                    lastOpened = 0,
-                )
-            } finally {
-                pdfRenderer?.close()
-            }
-        }
-
-
-//    private suspend fun extractEpubBookInfo(
-//        publication: Publication?,
-//        documentFile: DocumentFile
-//    ): Book {
-//        val coverBitmap = publication?.cover()
-//        val coverPath = coverBitmap?.let { ImageUtils.saveCoverImage( it, documentFile.uri.toString(), context) }
-//
-//        return Book(
-//            filePath = documentFile.uri.toString(),
-//            fileType = FileType.EPUB.typeName(),
-//            title = publication?.metadata?.title ?: documentFile.name ?: "Unknown",
-//            author = publication?.metadata?.authors?.joinToString(", ") { it.name } ?: "",
-//            description = publication?.metadata?.description,
-//            publishDate = publication?.metadata?.published?.toString(),
-//            publisher = publication?.metadata?.publishers?.firstOrNull()?.name,
-//            language = publication?.metadata?.languages?.firstOrNull(),
-//            numberOfPages = publication?.metadata?.numberOfPages,
-//            category = (publication?.metadata?.subjects?.joinToString(", ") { it.name }.orEmpty()),
-//            coverImage = coverPath,
-//            locator = "",
-//            scrollIndex = 0,
-//            scrollOffset = 0,
-//            progress = 0f,
-//            lastOpened = 0,
-//        )
-//    }
     fun updateBook(updatedBook: Book, updatedReadingStatus: Boolean = false) {
         viewModelScope.launch {
             var updateBook: Book = updatedBook
@@ -1042,7 +654,6 @@ class HomeViewModel
         }
     }
 
-
     fun sortBooks(sortOption: SortOption, sortOrder: SortOrder) {
         viewModelScope.launch {
             val appPref = _appPreferences.value ?: return@launch
@@ -1061,7 +672,6 @@ class HomeViewModel
         }
     }
 
-
     fun filterBooks(option: Any) {
         viewModelScope.launch {
             val currentPreferences = _appPreferences.value ?: return@launch
@@ -1072,6 +682,7 @@ class HomeViewModel
                     } else {
                         currentPreferences.readingStatus + option
                     }
+                    Logger.d("HomeViewModel:filterBooks:readingStatus[${newStatuses}]")
                     currentPreferences.copy(readingStatus = newStatuses)
                 }
 
@@ -1081,6 +692,7 @@ class HomeViewModel
                     } else {
                         setOf(option)  // Select only this option
                     }
+                    Logger.d("HomeViewModel:filterBooks:fileType[${newFileTypes}]")
                     currentPreferences.copy(fileTypes = newFileTypes)
                 }
 
@@ -1088,19 +700,10 @@ class HomeViewModel
             }
 
             updateAppPreferences(newPreferences)
-            _appPreferences.value = newPreferences
 
-            getBooksUseCase(
-                sortOption = newPreferences.sortBy,
-                isAscending = newPreferences.sortOrder == SortOrder.ASCENDING,
-                readingStatuses = newPreferences.readingStatus,
-                fileTypes = newPreferences.fileTypes
-            ).collect { pagingData ->
-                _books.value = pagingData
-            }
+            loadBooks(newPreferences)
         }
     }
-
 
     fun purchasePremium(purchaseHelper: PurchaseHelper) {
         purchaseHelper.makePurchase()
@@ -1123,7 +726,6 @@ class HomeViewModel
         }
     }
 
-
     fun addScanDirectory(uri: Uri) {
         viewModelScope.launch {
             val appPref = _appPreferences.value
@@ -1133,8 +735,9 @@ class HomeViewModel
             if (!currentDirectories.contains(directory)) {
                 val updatedDirectories = currentDirectories + directory
                 Logger.d("SettingsViewModel:addScanDirectory:the Settings viewModel")
-                appPreferencesUtil.updateAppPreferences(appPref.copy(scanDirectories = updatedDirectories))
-
+                val newPrefs = appPref.copy(scanDirectories = updatedDirectories)
+                appPreferencesUtil.updateAppPreferences(newPrefs)
+                _appPreferences.value = newPrefs
                 refreshBooks()
             }
         }
@@ -1163,5 +766,4 @@ class HomeViewModel
             onRouteNav(route)
         }
     }
-
 }

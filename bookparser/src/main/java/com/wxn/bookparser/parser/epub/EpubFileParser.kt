@@ -5,10 +5,11 @@ import androidx.documentfile.provider.DocumentFile
 import com.anggrayudi.storage.file.baseName
 import com.anggrayudi.storage.file.extension
 import com.wxn.base.bean.Book
+import com.wxn.base.util.Logger
 import com.wxn.bookparser.FileParser
-import com.wxn.bookparser.domain.book.BookWithCover
 import com.wxn.bookparser.domain.file.CachedFile
 import com.wxn.bookparser.exts.rawFile
+import com.wxn.bookparser.util.fromMetaInfoToBook
 import com.wxn.mobi.EpubParser
 import com.wxn.mobi.data.model.MetaInfo
 import java.io.File
@@ -160,162 +161,33 @@ playOrder:          说明文档的阅读顺序。和 OPF spine 中 itemref 元�
 navLabel/text:      该章节的标题。通常是本章的标题或者数字。
 content:            其中的 src 属性指向包含这些内容的物理资源。为 OPF manifest 中声明的文件。
  */
-
-
 class EpubFileParser @Inject constructor(val context: Context) : FileParser {
-
-    override suspend fun parse(file: DocumentFile): BookWithCover? {
+    override suspend fun parse(file: DocumentFile): Book? {
         val rawFile = file.rawFile(context)
         val title = file.baseName
-        val path = file.uri.toString()
+        val path = rawFile?.absolutePath ?: file.uri.toString()
+//        val path = file.uri.toString()
         val format = file.extension
-
+        Logger.d("EpubFileParser::parse::path=[$path],\ntitle=[$title],\nformat=[$format]")
         return innerParse(rawFile, title, path, format)
     }
 
-    override suspend fun parse(cachedFile: CachedFile): BookWithCover? {
-        val rawFile = cachedFile.rawFile
+    override suspend fun parse(cachedFile: CachedFile): Book? {
         val title = cachedFile.name.substringBeforeLast(".").trim()
         val path = cachedFile.uri.toString()
+        val rawPath = cachedFile.rawFile?.absolutePath
+        Logger.d("EpubFileParser::parse::path=[$path],\ntitle=[$title],\nrawPath=[$rawPath],\ncachedFile[${cachedFile}]")
         val format = cachedFile.extension
-        return innerParse(rawFile, title, path, format)
+        return innerParse(cachedFile.rawFile, title, path, format)
     }
 
-//    private fun extractCoverImage(file: File, coverImagePath: String?): String? {
-//        if (coverImagePath.isNullOrBlank()) {
-//            return null
-//        }
-//
-//        ZipFile(file).use { zip ->
-//            zip.entries().asSequence().forEach { entry ->
-//                if (entry.name.endsWith(coverImagePath)) {
-//                    return try {
-//                        val inputStream = zip.getInputStream(entry)
-//                        val targetPath = getCoverPath(context, coverImagePath)
-//                        FileUtil.writeStreamToFile(inputStream, targetPath)
-//                        targetPath
-//                    } catch (ex: Exception) {
-//                        null
-//                    }
-////                    val imageBytes = zip.getInputStream(entry).readBytes()
-////                    return BitmapFactory.decodeByteArray(imageBytes, 0, imageBytes.size)
-//                }
-//            }
-//        }
-//
-//        return null
-//    }
-
-    private suspend fun innerParse(rawFile: File?, title: String, uriPath: String, format: String): BookWithCover? {
+    private suspend fun innerParse(rawFile: File?, title: String, uriPath: String, format: String): Book? {
         if (rawFile == null || !rawFile.isFile || !rawFile.exists() || !rawFile.canRead()) {
             return null
         }
         val path = rawFile.absolutePath
 
         val metaInfo: MetaInfo = EpubParser.getEpubInfo(context, path) ?: return null
-        return BookWithCover(
-            Book(
-                title = metaInfo.title ?: title ?: "",
-                author = metaInfo.author.orEmpty(),
-
-                publisher = metaInfo.publisher.orEmpty(),
-                description = metaInfo.description.orEmpty(),
-                language = metaInfo.language.orEmpty(),
-                review = metaInfo.review.orEmpty(),
-
-                scrollIndex = 0,
-                scrollOffset = 0,
-
-                progress = 0f,
-                filePath = uriPath,
-                lastOpened = null,
-                category = metaInfo.subject.orEmpty(),
-                coverImage = metaInfo.coverPath.orEmpty(),
-                fileType = format,
-                ),
-            coverImage = metaInfo.coverPath.orEmpty()
-        )
-//        return try {
-//            var book: BookWithCover? = null
-//
-//            if (rawFile == null || !rawFile.exists() || !rawFile.canRead()) return null
-//
-//            withContext(Dispatchers.IO) {
-//                ZipFile(rawFile).use { zip ->
-//                    val opfEntry = zip.entries().asSequence().find { entry ->
-//                        entry.name.endsWith(".opf", ignoreCase = true)
-//                    } ?: return@withContext
-//
-//                    val opfContent = zip
-//                        .getInputStream(opfEntry)
-//                        .bufferedReader()
-//                        .use { it.readText() }
-//                    val document = Jsoup.parse(opfContent)
-//
-//                    //解析得到书名
-//                    val title = document.select("metadata > dc|title").text().trim().run {
-//                        ifBlank {
-//                            baseName
-//                        }
-//                    }
-//
-//                    val author = document.select("metadata > dc|creator").text().trim().run {
-//                        if (isBlank()) {
-//                            "" // stringResource(R.string.unknown_author)
-//                        } else {
-//                            this
-//                        }
-//                    }
-//
-//                    val description = Jsoup.parse(
-//                        document.select("metadata > dc|description").text()
-//                    ).text().run {
-//                        ifBlank {
-//                            null
-//                        }
-//                    }
-//
-//                    val coverImage = document
-//                        .select("metadata > meta[name=cover]")
-//                        .attr("content")
-//                        .run {
-//                            if (isNotBlank()) {
-//                                document
-//                                    .select("manifest > item[id=$this]")
-//                                    .attr("href")
-//                                    .apply { if (isNotBlank()) return@run this }
-//                            }
-//
-//                            document
-//                                .select("manifest > item[media-type*=image]")
-//                                .firstOrNull()?.attr("href")
-//                        }
-//                    val coverImagePath = extractCoverImage(rawFile, coverImage)
-//                    Log.d("EpubFileParser", "coverImage=${coverImage}, coverImagePath=${coverImagePath},book.name=${title},author=${author}")
-//
-//                    book = BookWithCover(
-//                        book = Book(
-//                            title = title,
-//                            author = author,
-//                            description = description,
-//                            scrollIndex = 0,
-//                            scrollOffset = 0,
-//                            progress = 0f,
-//                            filePath = absolutePath,
-//                            lastOpened = null,
-//                            category = "",
-//                            coverImage = coverImagePath,
-//
-//                            fileType = "epub",
-//                        ),
-//                        coverImage = coverImagePath
-//                    )
-//                }
-//            }
-//            book
-//        } catch (e: Exception) {
-//            e.printStackTrace()
-//            null
-//        }
+        return fromMetaInfoToBook(metaInfo, title, uriPath, format)
     }
 }

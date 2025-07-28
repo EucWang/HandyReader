@@ -6,6 +6,7 @@
 #define SIMPLEREADER2_FILE_SEARCHER_H
 
 #include "log.h"
+#include "file_ext.h"
 #include <dirent.h>
 #include <mutex>
 #include <queue>

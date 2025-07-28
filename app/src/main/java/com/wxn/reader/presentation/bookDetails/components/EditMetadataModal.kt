@@ -67,7 +67,6 @@ fun EditMetadataModal(
 ) {
     if (book == null) return
 
-
     val initialBook = remember { book.copy() }
     val context = LocalContext.current
     val updateError by viewModel.updateError.collectAsStateWithLifecycle()

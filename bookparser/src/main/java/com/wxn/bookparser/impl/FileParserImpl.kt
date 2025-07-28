@@ -4,8 +4,8 @@ import android.content.Context
 import android.util.Log
 import androidx.documentfile.provider.DocumentFile
 import com.anggrayudi.storage.file.extension
+import com.wxn.base.bean.Book
 import com.wxn.bookparser.FileParser
-import com.wxn.bookparser.domain.book.BookWithCover
 import com.wxn.bookparser.domain.file.CachedFile
 import com.wxn.bookparser.exts.rawFile
 import com.wxn.bookparser.parser.audio.AudioFileParser
@@ -31,14 +31,14 @@ class FileParserImpl @Inject constructor(
     private val mobiFileParser: MobiFileParser,
 ) : FileParser {
 
-    override suspend fun parse(file: DocumentFile): BookWithCover? {
+    override suspend fun parse(file: DocumentFile): Book? {
         if (!file.isFile || !file.canRead()) {
             Log.e(FILE_PARSER, "File does not exist or no read access is granted.")
             return null
         }
 
         val fileFormat = file.extension
-        var bookWithCover = when (fileFormat) {
+        var book = when (fileFormat) {
             "pdf" -> {
                 pdfFileParser.parse(file)
             }
@@ -88,18 +88,18 @@ class FileParserImpl @Inject constructor(
 
         file.rawFile(context)?.absoluteFile?.absolutePath?.let { filePath ->
             val crc = MobiParser.getFileCrc(filePath)
-            bookWithCover?.book?.crc = crc?.crc ?: 0
+            book?.crc = crc?.crc ?: 0
         }
-        return bookWithCover
+        return book
     }
 
-    override suspend fun parse(cachedFile: CachedFile): BookWithCover? {
+    override suspend fun parse(cachedFile: CachedFile): Book? {
         if (!cachedFile.canAccess()) {
             Log.e(FILE_PARSER, "File does not exist or no read access is granted.")
             return null
         }
 
-        val bookWithCover = when (cachedFile.extension) {
+        val book = when (cachedFile.extension) {
             "pdf" -> {
                 pdfFileParser.parse(cachedFile)
             }
@@ -140,9 +140,9 @@ class FileParserImpl @Inject constructor(
 
         cachedFile.rawFile?.absoluteFile?.absolutePath?.let { filePath ->
             val crc = MobiParser.getFileCrc(filePath)
-            bookWithCover?.book?.crc = crc?.crc ?: 0
+            book?.crc = crc?.crc ?: 0
         }
 
-        return bookWithCover
+        return book
     }
 }

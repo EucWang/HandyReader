@@ -61,6 +61,13 @@ public:
     static std::string get_img_path(long book_id, const std::string &imgSrc);
 
     static std::string get_img_parent_path(long book_id);
+
+    /****
+     * 获取文件名的后缀字符串
+     * @param path_name
+     * @return
+     */
+    static std::string get_file_suffix(std::string &path_name);
 };
 
 
