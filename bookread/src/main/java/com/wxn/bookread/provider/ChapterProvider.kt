@@ -249,6 +249,8 @@ object ChapterProvider {
         Logger.d("ChapterProvider::upVisibleSize::viewWidth=$viewWidth, viewHeight=$viewHeight, visibleWidth=$visibleWidth,visibleHeight=$visibleHeight,visibleRight=$visibleRight,visibleBottom=$visibleBottom")
     }
 
+    var imgScale = 1.0f
+
     /**
      * 更新样式
      */
@@ -266,6 +268,8 @@ object ChapterProvider {
         //https://hyperos.mi.com/font-download/MiSans_Lao.zip           // 老挝
         //https://hyperos.mi.com/font-download/MiSans_Myanmar.zip       // Myanmar" 是一个国家的名称，位于东南亚，其官方全称为 "Republic of the Union of Myanmar"（缅甸联邦共和国）
         //https://hyperos.mi.com/font-download/MiSans_Khmer.zip         // “Khmer”指的是柬埔寨的民族群体，即高棉人
+
+        imgScale = context.resources.displayMetrics.density
 
 //        oneWordWidth = 0f
         Logger.i("ChapterProvider::upStyle")
@@ -552,15 +556,15 @@ object ChapterProvider {
         val imgVerticalMargin = contentPaint.textHeight * 1.2f
         var width = 0
         var height = 0
-        var originWidth = imgWidth  //图片的实际宽高
-        var originHeight = imgHeight
+        var originWidth = imgWidth * imgScale  //图片的实际宽高
+        var originHeight = imgHeight * imgScale
         if (originWidth <= 0 || originHeight <= 0) {
             val options: BitmapFactory.Options = BitmapFactory.Options()
             options.inJustDecodeBounds = true // 不加载图片像素，只获取宽高
             options.inSampleSize = 2
             BitmapFactory.decodeFile(imgSrc, options)
-            val bmpOriginWidth = options.outWidth
-            val bmpOriginHeight = options.outHeight
+            val bmpOriginWidth = options.outWidth * imgScale
+            val bmpOriginHeight = options.outHeight * imgScale
             if (originWidth < bmpOriginWidth || originHeight < bmpOriginHeight) {
                 originWidth = bmpOriginWidth
                 originHeight = bmpOriginHeight
@@ -577,23 +581,23 @@ object ChapterProvider {
         }
 
         var usableHeight = (visibleHeight - durY).toInt()   //图片显示可用高度
-        width = originWidth
-        height = originHeight
+        width = originWidth.toInt()
+        height = originHeight.toInt()
 
         //页面宽高和图片宽高的适配
         when (imageStyles.uppercase()) {
             "FULL" -> {                                         //占满宽度
                 width = visibleWidth
-                height = originHeight * width / originWidth
+                height = (originHeight * width / originWidth).toInt()
                 if (height > usableHeight) {
                     height = usableHeight
-                    width = (usableHeight / originHeight) * originWidth
+                    width = ((usableHeight / originHeight) * originWidth).toInt()
                 }
             }
 
             else -> {                                           //适配
                 if (originWidth > visibleWidth) {
-                    height = originHeight * visibleWidth / originWidth
+                    height = (originHeight * visibleWidth / originWidth).toInt()
                     width = visibleWidth
                 }
 
@@ -609,7 +613,7 @@ object ChapterProvider {
 
                     usableHeight = (visibleHeight - 2 * imgVerticalMargin).toInt()  //可用高度重新计算
                     if (originWidth > visibleWidth) {                               //重新计算显示宽高
-                        height = originHeight * visibleWidth / originWidth
+                        height = (originHeight * visibleWidth / originWidth).toInt()
                         width = visibleWidth
                     }
 

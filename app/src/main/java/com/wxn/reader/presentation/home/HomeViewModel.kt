@@ -164,19 +164,15 @@ class HomeViewModel
     }
 
     private suspend fun addPublicDomainBooksIfNeeded() {
-        val publicDomainBooks = listOf("alice_in_wonderlands.epub")
+        val publicDomainBook = "alice_in_wonderlands.epub"
         val existingUris = getBookUrisUseCase().toSet()
-        var books = arrayListOf<Book>()
-        publicDomainBooks.forEach { fileName ->
-            val internalFile = copyAssetToInternalStorage(fileName)
-            val internalUri = Uri.fromFile(internalFile)
-            if (!existingUris.contains(internalUri.toString())) {
-                getBookInfoFromInternalFile(internalFile)?.let { book ->
-                    books.add(book)
-                }
+        val internalFile = copyAssetToInternalStorage(publicDomainBook)
+        val internalUri = Uri.fromFile(internalFile).toString()
+        if (!existingUris.contains(internalUri)) {
+            getBookInfoFromInternalFile(internalFile)?.let { book ->
+                insertBookUseCase.insert(arrayListOf(book.copy(filePath = internalUri)))
             }
         }
-        insertBookUseCase.insert(books)
     }
 
     private fun copyAssetToInternalStorage(fileName: String): File {
@@ -362,7 +358,10 @@ class HomeViewModel
 
 //                Logger.d("HomeViewModel::observeBooks::assetBookUris=${assetBookUris},existingUris=${existingUris}")
                 //在数据库中， 但是不在用户的扫描目录中的uri，则是用户已经删除掉了的书籍
-                val deletedUris = existingUris.filter { it !in currentUris && it !in assetBookUris }
+                val totalUris = hashSetOf<String>()
+                totalUris.addAll(currentUris)
+                totalUris.addAll(assetBookUris)
+                val deletedUris = existingUris.filter { it !in totalUris }
                 Logger.d("HomeViewModel::observeBooks::newBooks.size=${newBooks.size}")
                 if (newBooks.isNotEmpty()) {        //有新增加的，则将新增加的加入到数据库中
                     _isAddingBooks.value = true
@@ -601,20 +600,20 @@ class HomeViewModel
     private suspend fun addNewBook(documentFile: DocumentFile) {
         withContext(Dispatchers.IO) {
             try {
-                    val cachedFile = CachedFileCompat.fromUri(context,
-                        documentFile.uri, CachedFileCompat.build(
-                            name = documentFile.name,
-                            path = documentFile.uri.path,
-                            isDirectory = false
-                        ))
-                    val book = fileParser.parse(cachedFile)
-                    if (book != null) {
-                        retry {
-                            insertBookUseCase(book)
-                        }
-                    } else {
-                        Logger.e("HomeViewModel::Error add book: ${documentFile.name}")
+                val cachedFile = CachedFileCompat.fromUri(context,
+                    documentFile.uri, CachedFileCompat.build(
+                        name = documentFile.name,
+                        path = documentFile.uri.path,
+                        isDirectory = false
+                    ))
+                val book = fileParser.parse(cachedFile)
+                if (book != null) {
+                    retry {
+                        insertBookUseCase(book)
                     }
+                } else {
+                    Logger.e("HomeViewModel::Error add book: ${documentFile.name}")
+                }
             } catch (e: Exception) {
                 Logger.e("HomeViewModel::Error adding book: ${documentFile.name}, ${e.message}")
                 throw e

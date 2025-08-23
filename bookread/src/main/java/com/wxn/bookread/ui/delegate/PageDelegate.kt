@@ -179,8 +179,9 @@ abstract class PageDelegate(protected val pageView: PageView) {
         val hasPrev = pageView.dataProvider?.pageFactory?.hasPrev() == true
         if (!hasPrev) {
             if (!snackBar.isShown) {
-                snackBar.setText(R.string.no_prev_page)
-                snackBar.show()
+                //没有上一页
+//                snackBar.setText(R.string.no_prev_page)
+//                snackBar.show()
             }
         }
         return hasPrev
@@ -193,8 +194,9 @@ abstract class PageDelegate(protected val pageView: PageView) {
         val hasNext = pageView.dataProvider?.pageFactory?.hasNext() == true
         if (!hasNext) {
             if (!snackBar.isShown) {
-                snackBar.setText(R.string.no_next_page)
-                snackBar.show()
+                //没有下一页
+//                snackBar.setText(R.string.no_next_page)
+//                snackBar.show()
             }
         }
         return hasNext

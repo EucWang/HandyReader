@@ -36,7 +36,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.shadow
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
@@ -44,14 +43,11 @@ import com.wxn.base.bean.Book
 import com.wxn.reader.navigation.Screens
 import com.wxn.reader.util.consumeClick
 
-//import org.readium.r2.shared.publication.Publication
-
 @Composable
 fun TopToolbar(
     isBookmarked: Boolean,
     navController: NavController,
     book: Book?,
-//    publication: Publication,
     bookTitle: String?,
     currentChapter: String,
     onChaptersClick: () -> Unit,
@@ -67,7 +63,6 @@ fun TopToolbar(
     val backDispatcher = LocalOnBackPressedDispatcherOwner.current?.onBackPressedDispatcher
 
     var isTtsToggled by remember { mutableStateOf(false) }
-
 
     Column(
         modifier = Modifier
@@ -90,22 +85,32 @@ fun TopToolbar(
                 onClick = {
                     backDispatcher?.onBackPressed()
                 }) {
-                Icon(Icons.AutoMirrored.Sharp.ArrowBack, contentDescription = "Back")
+                Icon(Icons.AutoMirrored.Sharp.ArrowBack,
+                    tint = MaterialTheme.colorScheme.onSurface,
+                    contentDescription = "Back")
             }
 
             // Toolbar actions
             Row {
                 IconButton(onClick = { onChaptersClick() }) {
-                    Icon(Icons.AutoMirrored.Filled.List, contentDescription = "Chapters")
+                    Icon(Icons.AutoMirrored.Filled.List,
+                        tint = MaterialTheme.colorScheme.onSurface,
+                        contentDescription = "Chapters")
                 }
                 IconButton(onClick = { onNotesDrawerToggle() }) {
-                    Icon(Icons.AutoMirrored.Outlined.StickyNote2, contentDescription = "Notes")
+                    Icon(Icons.AutoMirrored.Outlined.StickyNote2,
+                        tint = MaterialTheme.colorScheme.onSurface,
+                        contentDescription = "Notes")
                 }
                 IconButton(onClick = { onHighlightsDrawerToggle() }) {
-                    Icon(Icons.Outlined.BorderColor, contentDescription = "Highlights")
+                    Icon(Icons.Outlined.BorderColor,
+                        tint = MaterialTheme.colorScheme.onSurface,
+                        contentDescription = "Highlights")
                 }
                 IconButton(onClick = { onBookmarkDrawerToggle() }) {
-                    Icon(Icons.Outlined.BookmarkBorder, contentDescription = "Bookmarks")
+                    Icon(Icons.Outlined.BookmarkBorder,
+                        tint = MaterialTheme.colorScheme.onSurface,
+                        contentDescription = "Bookmarks")
                 }
                 IconButton(onClick = {
                     if (book != null) {
@@ -115,7 +120,9 @@ fun TopToolbar(
                         )
                     }
                 }) {
-                    Icon(Icons.Outlined.Info, contentDescription = "About")
+                    Icon(Icons.Outlined.Info,
+                        tint = MaterialTheme.colorScheme.onSurface,
+                        contentDescription = "About")
                 }
             }
         }
@@ -138,7 +145,7 @@ fun TopToolbar(
                 ) {
                     if (isTtsToggled && !isTtsOn) {
                         CircularProgressIndicator(
-                            color = Color.Black,
+                            color = MaterialTheme.colorScheme.onSurface,
                             modifier = Modifier.size(24.dp),
                             strokeWidth = 2.dp
                         )
@@ -147,6 +154,7 @@ fun TopToolbar(
                             imageVector = if (isTtsOn)
                                 Icons.AutoMirrored.Filled.VolumeOff
                             else Icons.AutoMirrored.Filled.VolumeUp,
+                            tint = MaterialTheme.colorScheme.onSurface,
                             contentDescription = "text to speech"
                         )
                     }
@@ -160,19 +168,20 @@ fun TopToolbar(
                     .padding(horizontal = 8.dp),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
-//                publication.metadata.title?.let {
                 bookTitle?.let {
                     Text(
                         maxLines = 1,
                         text = it,
                         style = MaterialTheme.typography.titleMedium,
-                        overflow = TextOverflow.Ellipsis
-                    )
+                        overflow = TextOverflow.Ellipsis,
+                        color = MaterialTheme.colorScheme.onSurface
+                        )
                 }
                 Text(
                     text = currentChapter,
                     style = MaterialTheme.typography.bodySmall,
                     maxLines = 1,
+                    color = MaterialTheme.colorScheme.onSurface,
                     overflow = TextOverflow.Ellipsis
                 )
             }
@@ -184,6 +193,7 @@ fun TopToolbar(
             ) {
                 Icon(
                     if (isBookmarked) Icons.Default.BookmarkAdded else Icons.Outlined.BookmarkAdd,
+                    tint = MaterialTheme.colorScheme.onSurface,
                     contentDescription = "Bookmarks",
                 )
             }
