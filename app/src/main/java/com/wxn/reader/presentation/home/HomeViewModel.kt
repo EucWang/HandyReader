@@ -277,6 +277,7 @@ class HomeViewModel
         refreshJob = viewModelScope.launch {
             delay(500)
             showSnackbar("Refreshing Library" )
+                _appPreferences.value = appPreferencesUtil.appPrefsFlow.first()
             val appPref = _appPreferences.value ?: return@launch
             val scanDirectory = appPref.scanDirectories
             if (scanDirectory.isNotEmpty()) {

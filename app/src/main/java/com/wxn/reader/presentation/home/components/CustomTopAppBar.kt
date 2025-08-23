@@ -298,7 +298,6 @@ fun CustomTopAppBar(
                             dropdownMenuExpanded = false
                         },
                             text = {
-
                                 Row(
                                     modifier = Modifier
                                         .fillMaxWidth(),
