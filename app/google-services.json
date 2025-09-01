@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "435196011437",
+    "project_id": "handyreader-e3ff6",
+    "storage_bucket": "handyreader-e3ff6.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:435196011437:android:36cb965541ed5f9e94f724",
+        "android_client_info": {
+          "package_name": "com.wxn.reader"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBDKsUT-uH9YGi4xFXj261la_Q0k10MDf0"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

@@ -1,0 +1,80 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <queries>
+        <intent>
+            <action android:name="android.intent.action.TTS_SERVICE" />
+        </intent>
+    </queries>
+    <!-- Devices running Android 12L (API level 32) or lower  -->
+    <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" android:maxSdkVersion="32" />
+    <!-- Devices running Android 13 (API level 33) or higher -->
+    <uses-permission android:name="android.permission.READ_MEDIA_IMAGES" />
+    <!-- To handle the reselection within the app on devices running Android 14
+         or higher if your app targets Android 14 (API level 34) or higher.  -->
+    <uses-permission android:name="android.permission.READ_MEDIA_VISUAL_USER_SELECTED" />
+    <uses-permission android:name="android.permission.INTERNET" />
+    <application
+        android:name="com.wxn.reader.BookApplication"
+        android:allowBackup="false"
+        android:fullBackupOnly="false"
+        android:dataExtractionRules="@xml/data_extraction_rules"
+        android:fullBackupContent="@xml/backup_rules"
+        android:icon="@mipmap/ic_launcher"
+        android:label="@string/app_name"
+        android:supportsRtl="true"
+        android:theme="@style/Theme.App.Starting"
+        android:localeConfig="@xml/locales_config"
+        android:hardwareAccelerated="true">
+
+        <!-- Add this meta-data for Chaquopy -->
+        <!-- <meta-data
+            android:name="com.chaquo.python.python_version"
+            android:value="3.8" /> -->
+
+        <activity
+            android:name="com.wxn.reader.MainActivity"
+            android:exported="true"
+            android:launchMode="singleInstance"
+            android:theme="@style/Theme.App.Starting">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity>
+
+        <!-- TODO -->
+<!--        <service-->
+<!--            android:name=".service.AudioPlaybackService"-->
+<!--            android:foregroundServiceType="mediaPlayback"-->
+<!--            android:exported="true">-->
+<!--            <intent-filter>-->
+<!--                <action android:name="androidx.media3.session.MediaSessionService"/>-->
+<!--                <action android:name="android.media.browse.MediaBrowserService"/>-->
+<!--            </intent-filter>-->
+<!--        </service>-->
+
+<!--        android:theme="@style/Theme.App.Starting">-->
+
+
+<!-- TTS service for Edge -->
+        <!--        <service-->
+<!--            android:name="com.wxn.reader.util.tts.service.EdgeTTSService"-->
+<!--            android:exported="true"-->
+<!--            android:permission="android.permission.BIND_TEXT_TO_SPEECH_SERVICE">-->
+<!--            <intent-filter>-->
+<!--                <action android:name="android.intent.action.TTS_SERVICE" />-->
+<!--                <category android:name="android.intent.category.DEFAULT" />-->
+<!--            </intent-filter>-->
+<!--        </service>-->
+
+        <service
+            android:name="androidx.appcompat.app.AppLocalesMetadataHolderService"
+            android:enabled="false"
+            android:exported="false">
+            <meta-data
+                android:name="autoStoreLocales"
+                android:value="true" /> <!-- 关键配置 -->
+        </service>
+
+    </application>
+</manifest>
