@@ -1,6 +1,6 @@
 ![banner](./resources/商店横幅图.png)
 ---
-[google play](https://play.google.com/store/apps/details?id=com.wxn.reader)
+[download](https://play.google.com/store/apps/details?id=com.wxn.reader)
 ---
 
 ## 👀 Overview 
