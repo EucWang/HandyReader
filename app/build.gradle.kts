@@ -18,7 +18,6 @@ plugins {
     // Add the Crashlytics Gradle plugin
     id("com.google.firebase.crashlytics")
 
-//    apply plugin: 'kotlin-kapt'
     id("androidx.room")
 }
 
@@ -38,7 +37,6 @@ android {
     defaultConfig {
         applicationId = "com.wxn.reader"
         minSdk = 24
-        //noinspection OldTargetApi
         targetSdk = 35
         versionCode = 5
         versionName = "1.4.250823"
@@ -48,14 +46,6 @@ android {
         vectorDrawables {
             useSupportLibrary = true
         }
-//        ksp {
-//            arg("room.schemaLocation", "$projectDir/schemas")
-//        }
-
-//        ndk {
-//            abiFilters += listOf("arm64-v8a", "x86_64", "x86", "armeabi-v7a")
-//        }
-
 
         buildConfigField("String", "RELEASE_DATE", "\"${SimpleDateFormat("yyyy-MM-dd HH:mm:ss").format(Date())}\"")
         buildConfigField("String", "FULL_SCREEN_BOOK_READER_AD_UNIT", apikeyProperties["FULL_SCREEN_BOOK_READER_AD_UNIT"] as String)
@@ -64,7 +54,6 @@ android {
         buildConfigField("String", "READER_SCREEN_AD_UNIT", apikeyProperties["READER_SCREEN_AD_UNIT"] as String)
         buildConfigField("String", "PRODUCT_ID", apikeyProperties["PRODUCT_ID"] as String)
         buildConfigField("Boolean", "ENABLE_AD", apikeyProperties["enableAd"] as String)
-//        buildConfigField("String", "BASE_64_ENCODED_PUBLIC_KEY", apikeyProperties["BASE_64_ENCODED_PUBLIC_KEY"] as String)
         vectorDrawables {
             useSupportLibrary = true
         }
@@ -79,7 +68,6 @@ android {
             buildConfigField("String", "READER_SCREEN_AD_UNIT", apikeyProperties["READER_SCREEN_AD_UNIT"] as String)
             buildConfigField("String", "PRODUCT_ID", apikeyProperties["PRODUCT_ID"] as String)
             buildConfigField("Boolean", "ENABLE_AD", apikeyProperties["enableAd"] as String)
-//            buildConfigField("String", "BASE_64_ENCODED_PUBLIC_KEY", apikeyProperties["BASE_64_ENCODED_PUBLIC_KEY"] as String)
 
             isMinifyEnabled = true
             isShrinkResources = true
@@ -99,17 +87,12 @@ android {
             buildConfigField("String", "READER_SCREEN_AD_UNIT", apikeyProperties["READER_SCREEN_AD_UNIT"] as String)
             buildConfigField("String", "PRODUCT_ID", apikeyProperties["PRODUCT_ID"] as String)
             buildConfigField("Boolean", "ENABLE_AD", apikeyProperties["enableAd"] as String)
-//            buildConfigField("String", "BASE_64_ENCODED_PUBLIC_KEY", apikeyProperties["BASE_64_ENCODED_PUBLIC_KEY"] as String)
 
             isMinifyEnabled = false
             isShrinkResources = false
             ndk {
                 debugSymbolLevel = "FULL"
             }
-//            proguardFiles(
-//                getDefaultProguardFile("proguard-android-optimize.txt"),
-//                "proguard-rules.pro"
-//            )
         }
     }
     compileOptions {
@@ -130,7 +113,6 @@ android {
     }
     composeOptions {
         kotlinCompilerExtensionVersion = "1.5.15"
-//        kotlinCompilerExtensionVersion = "1.5.1"
     }
     packaging {
         resources {
@@ -155,20 +137,7 @@ android {
     }
 }
 
-//chaquopy {
-//    defaultConfig {
-//        version = "3.8"
-//        pip {
-//            install("ebooklib")
-//        }
-//        pyc {
-//            src = false
-//        }
-//    }
-//}
-
 dependencies {
-//    implementation (fileTree(dir: 'libs', include: ['*.aar']))
     implementation(fileTree("libs"))
 
     implementation(libs.androidx.core.ktx)
@@ -182,14 +151,6 @@ dependencies {
     implementation(libs.androidx.material3)
     implementation(libs.androidx.material.icons.extended)
     implementation(libs.androidx.navigation.compose)
-
-//    debugImplementation(libs.androidx.ui.tooling)
-//    debugImplementation(libs.androidx.ui.test.manifest)
-//    testImplementation(libs.junit)
-//    androidTestImplementation(libs.androidx.junit)
-//    androidTestImplementation(libs.androidx.espresso.core)
-//    androidTestImplementation(platform(libs.androidx.compose.bom))
-//    androidTestImplementation(libs.androidx.ui.test.junit4)
 
     //androidx.documentfile 是 Android 开发中用于访问和操作文件系统的一个库，它基于 Android 的 Storage Access Framework（SAF），
     // 允许应用程序在不直接访问系统权限的情况下，对设备上的文件和目录进行读写操作。
@@ -208,16 +169,11 @@ dependencies {
     implementation(libs.androidx.media3.session)
 
     implementation(platform(libs.firebase.bom))
-//    implementation(libs.firebase.crashlytics)
     implementation(libs.firebase.analytics)
-    // Add the dependencies for the Crashlytics NDK and Analytics libraries
-    // When using the BoM, you don't specify versions in Firebase library dependencies
     implementation(libs.firebase.crashlytics.ndk)
 
 
     coreLibraryDesugaring(libs.desugar.jdk.libs)
-//    implementation(libs.coil.compose)       // for images
-//    implementation(libs.coil.network.okhttp)
     implementation("io.coil-kt.coil3:coil-compose:3.2.0")
     implementation("io.coil-kt.coil3:coil-network-okhttp:3.2.0")
 
@@ -251,31 +207,8 @@ dependencies {
     implementation(libs.aboutlibraries.core)
     implementation(libs.aboutlibraries.compose)
 
-//    implementation(platform("io.github.jan-tennert.supabase:bom:3.1.1"))
-//    implementation("io.github.jan-tennert.supabase:postgrest-kt")
-//    implementation("io.github.jan-tennert.supabase:auth-kt")
-//    implementation("io.github.jan-tennert.supabase:realtime-kt")
-
-//    implementation(libs.ketch)
-//    implementation(libs.retrofit)
-
-//    implementation("com.google.android.gms:play-services-auth:21.3F.0")
-//    implementation("com.google.apis:google-api-services-drive:v3-rev197-1.25.0")
-//    implementation("com.google.api-client:google-api-client-android:2.2.0")
-//    implementation("com.google.oauth-client:google-oauth-client-jetty:1.34.1")
-//
-//    implementation("androidx.credentials:credentials-play-services-auth:1.5.0-rc01")
-//    implementation("androidx.credentials:credentials:1.5.0-rc01")
-//
-//    // optional - needed for credentials support from play services, for devices running
-//    // Android 13 and below.
-//    implementation("androidx.credentials:credentials-play-services-auth:1.5.0-rc01")
-//
-//    implementation("com.google.android.libraries.identity.googleid:googleid:1.1.1")
-
     implementation(libs.kotlinx.serialization.json)
     implementation(libs.ktor.client.okhttp)
-//    implementation(libs.speech)
 
     implementation(project(":bookparser"))
     implementation(project(":bookread"))
