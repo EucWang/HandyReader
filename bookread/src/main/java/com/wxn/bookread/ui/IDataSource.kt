@@ -33,4 +33,8 @@ interface PageChangeCallback {
     fun upBg()
 
     fun cancelTextSelected()
+
+    fun moveToPrevPage()
+
+    fun moveToNextPage()
 }

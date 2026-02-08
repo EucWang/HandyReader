@@ -96,6 +96,13 @@ class PageView : FrameLayout, IDataSource, PageCallback {
         return retVal
     }
 
+    override fun moveToNextPage() {
+        pageDelegate?.nextPageByAnim(defaultAnimationSpeed)
+    }
+
+    override fun moveToPrevPage() {
+        pageDelegate?.prevPageByAnim(defaultAnimationSpeed)
+    }
 
     var pageDelegate: PageDelegate? = null
         private set(value) {

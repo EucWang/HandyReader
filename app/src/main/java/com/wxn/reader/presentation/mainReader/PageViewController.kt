@@ -1105,4 +1105,12 @@ open class PageViewController @Inject constructor(
         isScroll = false
         Logger.i("PageViewController:clear()")
     }
+
+    fun animToNext() {
+        callBack?.moveToNextPage()
+    }
+
+    fun animToPrev() {
+        callBack?.moveToPrevPage()
+    }
 }

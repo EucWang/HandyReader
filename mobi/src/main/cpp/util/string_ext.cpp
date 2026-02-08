@@ -49,7 +49,7 @@ size_t string_ext::utf8Count(const std::string &utf8_str) {
         strlist.push_front(utf8_str);
         size_t count = 0;
         do {
-            std::string &item = strlist.back();
+            std::string item = strlist.back();
             strlist.pop_back();
             if (utf8::is_valid(item)) {
                 count += utf8::distance(item.begin(), item.end());
@@ -80,8 +80,7 @@ size_t string_ext::utf8Count(const std::string &utf8_str) {
     }
 }
 
-/****
- * 创建随机的UUID
+/**** * 创建随机的UUID
  * @return
  */
 std::string string_ext::generate_uuid() {

@@ -42,24 +42,4 @@ class ThemeViewModel @Inject constructor(
             _appPreferences.value = newPreferences
         }
     }
-
-    fun purchasePremium(purchaseHelper: PurchaseHelper) {
-        purchaseHelper.makePurchase()
-        viewModelScope.launch {
-            purchaseHelper.isPremium.collect { isPremium ->
-                updatePremiumStatus(isPremium)
-            }
-        }
-    }
-
-    fun updatePremiumStatus(isPremium: Boolean) {
-        viewModelScope.launch {
-            val currentPreferences = _appPreferences.value ?: return@launch
-            if (currentPreferences.isPremium != isPremium) {
-                val updatedPreferences = currentPreferences.copy(isPremium = isPremium)
-                appPreferencesUtil.updateAppPreferences(updatedPreferences)
-                _appPreferences.value = updatedPreferences
-            }
-        }
-    }
 }

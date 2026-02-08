@@ -156,8 +156,11 @@ class HomeViewModel
                 launch { loadShelves() }
                 launch { observeBooks(preferences) }
                 launch { observeAppPreferences() }
-                if (preferences.scanDirectories.isEmpty()) {
-                    launch { addPublicDomainBooksIfNeeded() }
+                if (preferences.scanDirectories.isEmpty() && !preferences.hasInitScanDirs) {
+                    launch {
+                        addPublicDomainBooksIfNeeded()
+                        appPreferencesUtil.updateAppPreferences(preferences.copy(hasInitScanDirs = true))
+                    }
                 }
             }
         }
@@ -705,26 +708,26 @@ class HomeViewModel
         }
     }
 
-    fun purchasePremium(purchaseHelper: PurchaseHelper) {
-        purchaseHelper.makePurchase()
-        viewModelScope.launch {
-            purchaseHelper.isPremium.collect { isPremium ->
-                updatePremiumStatus(isPremium)
-            }
-        }
-    }
-
-    fun updatePremiumStatus(isPremium: Boolean) {
-        viewModelScope.launch {
-            val currentPreferences = appPreferencesUtil.appPrefsFlow.first()
-            if (currentPreferences.isPremium != isPremium) {
-                val updatedPreferences = currentPreferences.copy(isPremium = isPremium)
-                Logger.d("HomeViewModel:updatePremiumStatus:the home viewModel")
-                appPreferencesUtil.updateAppPreferences(updatedPreferences)
-                _appPreferences.value = updatedPreferences
-            }
-        }
-    }
+//    fun purchasePremium(purchaseHelper: PurchaseHelper) {
+//        purchaseHelper.makePurchase()
+//        viewModelScope.launch {
+//            purchaseHelper.isPremium.collect { isPremium ->
+//                updatePremiumStatus(isPremium)
+//            }
+//        }
+//    }
+//
+//    fun updatePremiumStatus(isPremium: Boolean) {
+//        viewModelScope.launch {
+//            val currentPreferences = appPreferencesUtil.appPrefsFlow.first()
+//            if (currentPreferences.isPremium != isPremium) {
+//                val updatedPreferences = currentPreferences.copy(isPremium = isPremium)
+//                Logger.d("HomeViewModel:updatePremiumStatus:the home viewModel")
+//                appPreferencesUtil.updateAppPreferences(updatedPreferences)
+//                _appPreferences.value = updatedPreferences
+//            }
+//        }
+//    }
 
     fun addScanDirectory(uri: Uri) {
         viewModelScope.launch {

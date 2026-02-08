@@ -94,26 +94,6 @@ class SettingsViewModel @Inject constructor(
         }
     }
 
-    fun purchasePremium(purchaseHelper: PurchaseHelper) {
-        purchaseHelper.makePurchase()
-        viewModelScope.launch {
-            purchaseHelper.isPremium.collect { isPremium ->
-                updatePremiumStatus(isPremium)
-            }
-        }
-    }
-
-    private fun updatePremiumStatus(isPremium: Boolean) {
-        viewModelScope.launch {
-            val prefs = _appPreferences.value ?: return@launch
-            if (prefs.isPremium != isPremium) {
-                val updatedPreferences = prefs.copy(isPremium = isPremium)
-                appPreferencesUtil.updateAppPreferences(updatedPreferences)
-                _appPreferences.value = updatedPreferences
-            }
-        }
-    }
-
     fun updateAutoOpenLastRead(autoOpen:Boolean) {
         viewModelScope.launch {
             val currentPreferences = _appPreferences.value ?: return@launch

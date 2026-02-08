@@ -48,66 +48,9 @@ fun ListLayout(
     appPreferences: AppPreferences,
     openBook: (Book) -> Unit
 ) {
-    val listAdUnit = BuildConfig.OPEN_BOOK_LIST_AD_UNIT
     val navController: NavHostController = LocalNavController.current
 
     val context = LocalContext.current
-//    var mInterstitialAd by remember { mutableStateOf<InterstitialAd?>(null) }
-
-    fun loadInterstitialAd() {
-        if (!BuildConfig.ENABLE_AD) {
-            return
-        }
-//        if (!appPreferences.isPremium) {//TODO
-//            InterstitialAd.load(
-//                context,
-//                listAdUnit,
-//                AdRequest.Builder().build(),
-//                object : InterstitialAdLoadCallback() {
-//                    override fun onAdLoaded(interstitialAd: InterstitialAd) {
-//                        mInterstitialAd = interstitialAd
-//                    }
-//
-//                    override fun onAdFailedToLoad(loadAdError: LoadAdError) {
-//                        mInterstitialAd = null
-//                    }
-//                }
-//            )
-//        }
-    }
-
-    fun showInterstitialAd(onAdDismissed: () -> Unit) {
-        if (!BuildConfig.ENABLE_AD) {
-            return
-        }//TODO
-//        if (!appPreferences.isPremium && mInterstitialAd != null) {
-//            mInterstitialAd?.let { ad ->
-//                ad.fullScreenContentCallback = object : FullScreenContentCallback() {
-//                    override fun onAdDismissedFullScreenContent() {
-//                        mInterstitialAd = null
-//                        loadInterstitialAd()
-//                        onAdDismissed()
-//                    }
-//
-//                    override fun onAdFailedToShowFullScreenContent(adError: AdError) {
-//                        mInterstitialAd = null
-//                        onAdDismissed()
-//                    }
-//                }
-//                ad.show(context as Activity)
-//            }
-//        } else {
-//            onAdDismissed()
-//        }
-    }
-
-    // Load the ad when the composable is first created
-    LaunchedEffect(Unit) {
-        if (!appPreferences.isPremium) {
-            loadInterstitialAd()
-        }
-    }
-
 
     val isAddingBook by viewModel.isAddingBooks.collectAsState()
 

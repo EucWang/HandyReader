@@ -31,6 +31,7 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.wxn.base.util.Logger
+import com.wxn.reader.MainActivity
 import com.wxn.reader.R
 import com.wxn.reader.presentation.bookReader.BookReaderUiState
 import com.wxn.reader.util.ImagePanel
@@ -62,6 +63,7 @@ fun MainReadScreen(
             val curMillis = System.currentTimeMillis()
             Logger.d("MainReadScreen::show cover, load book spend:${curMillis - loadTimemillis}")
             loadTimemillis = curMillis
+            MainActivity.inReadPage = true
         } else if (uiState is BookReaderUiState.LOAD_CHAPTER_SUCCESS) {
             showState = 2
             val curMillis = System.currentTimeMillis()
@@ -72,6 +74,7 @@ fun MainReadScreen(
     DisposableEffect(Unit) {
         onDispose {
             viewModel.resetReadingSession()
+            MainActivity.inReadPage = false
         }
     }
 

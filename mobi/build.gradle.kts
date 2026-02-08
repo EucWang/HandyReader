@@ -21,7 +21,7 @@ android {
                 arguments += listOf("-DANDROID_SUPPORT_FLEXIBLE_PAGE_SIZES=ON")
             }
             ndk {
-                abiFilters += setOf("armeabi-v7a", "arm64-v8a")
+                abiFilters += setOf("armeabi-v7a", "arm64-v8a", "x86", "x86_64")
             }
         }
     }

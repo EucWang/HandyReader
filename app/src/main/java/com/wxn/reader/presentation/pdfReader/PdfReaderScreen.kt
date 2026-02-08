@@ -44,6 +44,7 @@ import androidx.navigation.NavHostController
 import coil3.compose.AsyncImage
 import coil3.request.ImageRequest
 import coil3.size.Scale
+import com.wxn.reader.MainActivity
 import com.wxn.reader.navigation.LocalNavController
 import com.wxn.reader.presentation.pdfReader.components.PdfReaderBottomBar
 import com.wxn.reader.presentation.pdfReader.components.PdfReaderTopBar
@@ -71,9 +72,9 @@ fun PdfReaderScreen(
     val backgroundColor by viewModel.backgroundColor.collectAsStateWithLifecycle()
     val pageCount by viewModel.pageCount.collectAsStateWithLifecycle()
     val initialPage by viewModel.initialPage.collectAsStateWithLifecycle()
+    val pageOffset by viewModel.pageOffset.collectAsStateWithLifecycle()
 
     var currentPage by remember { mutableIntStateOf(initialPage) }
-
 
     var scale by remember { mutableFloatStateOf(1f) }
     var offsetX by remember { mutableFloatStateOf(0f) }
@@ -84,7 +85,6 @@ fun PdfReaderScreen(
     var readerAlpha by remember { mutableFloatStateOf(0f) }
 
     var pagerState = rememberPagerState(initialPage = initialPage) { pageCount }
-
 
     LaunchedEffect(Unit) {
         viewModel.loadInitialPages()
@@ -99,13 +99,13 @@ fun PdfReaderScreen(
         }
     }
 
-
     DisposableEffect(currentPage) {
+        MainActivity.inReadPage = true
         onDispose {
             viewModel.saveReadingProgress(currentPage)
+            MainActivity.inReadPage = false
         }
     }
-
 
     Box(
         modifier = Modifier
@@ -175,6 +175,18 @@ fun PdfReaderScreen(
                 else -> {
                     pagerState = rememberPagerState(initialPage = initialPage) { pageCount }
 
+                    LaunchedEffect(pageOffset) {
+                        if (pageOffset != 0) {
+                            if (pagerState.currentPage > 0 && pageOffset < 0) {
+                                pagerState.animateScrollToPage(pagerState.currentPage - 1)
+                            }
+                            if (pagerState.currentPage < pagerState.pageCount - 1 && pageOffset > 0) {
+                                pagerState.animateScrollToPage(pagerState.currentPage + 1)
+                            }
+                            viewModel.resetPageOffset()
+                        }
+                    }
+
                     LaunchedEffect(pagerState) {
                         snapshotFlow { pagerState.currentPage }.collect { page ->
                             currentPage = page
@@ -233,11 +245,6 @@ fun PdfReaderScreen(
             }
         }
 
-
-
-
-
-
         AnimatedVisibility(
             modifier = Modifier
                 .align(Alignment.TopCenter),
@@ -252,9 +259,6 @@ fun PdfReaderScreen(
                 }
             )
         }
-
-
-
 
         AnimatedVisibility(
             modifier = Modifier
@@ -274,8 +278,6 @@ fun PdfReaderScreen(
                 },
             )
         }
-
-
     }
 }
 

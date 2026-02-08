@@ -48,13 +48,7 @@ fun CustomNavigationDrawer(
     val isPortrait = configuration.orientation == Configuration.ORIENTATION_PORTRAIT
 
     val appPreferences by viewModel.appPreferences.collectAsStateWithLifecycle()
-    val showPremiumScreen by remember { mutableStateOf(false) }
 
-//    LaunchedEffect(purchaseHelper) {
-//        purchaseHelper.isPremium.collect { isPremium ->
-//            viewModel.updatePremiumStatus(isPremium)
-//        }
-//    }
     if (appPreferences != null) {
         ModalNavigationDrawer(
             drawerState = drawerState,
@@ -198,12 +192,7 @@ fun CustomNavigationDrawer(
         ) {
             content()
         }
-
-       if (showPremiumScreen){
-          PremiumScreen()
-       }
    }
-
 }
 
 @Composable

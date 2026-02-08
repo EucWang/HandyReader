@@ -54,6 +54,7 @@ import com.wxn.reader.domain.use_case.reading_activity.AddReadingActivityUseCase
 import com.wxn.reader.domain.use_case.reading_activity.GetReadingActivityByDateUseCase
 import com.wxn.reader.domain.use_case.reading_progress.GetReadingProgressUseCase
 import com.wxn.reader.domain.use_case.reading_progress.SetReadingProgressUseCase
+import com.wxn.reader.events.VolumeEventBus
 import com.wxn.reader.presentation.bookReader.BookReaderUiState
 import com.wxn.reader.presentation.bookReader.BookReaderUiState.LOAD_CHAPTER_SUCCESS
 import com.wxn.reader.ui.theme.stringResource
@@ -353,6 +354,26 @@ class MainReadViewModel @Inject constructor(
                 }
             }
         }
+
+        viewModelScope.launch {
+            VolumeEventBus.volumeUpEvents.collect {
+                onVolumeUp()
+            }
+        }
+
+        viewModelScope.launch {
+            VolumeEventBus.volumeDownEvents.collect {
+                onVolumeDown()
+            }
+        }
+    }
+
+    private fun onVolumeUp() {
+        pageController.animToPrev()
+    }
+
+    private fun onVolumeDown() {
+        pageController.animToNext()
     }
 
     private fun loadChapterWords(book: Book) {

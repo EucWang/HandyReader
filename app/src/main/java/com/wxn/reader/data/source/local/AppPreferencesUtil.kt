@@ -55,6 +55,8 @@ class AppPreferencesUtil @Inject constructor(context: Context) {
 
         val LAST_OPEN_BOOK_ID = longPreferencesKey("last_open_book_id")
 
+        val HAS_INIT_SCAN_DIRS = booleanPreferencesKey("has_init_scan_dirs")
+
         // Default values
         val defaultPreferences = AppPreferences(
             isFirstLaunch = true,
@@ -79,6 +81,7 @@ class AppPreferencesUtil @Inject constructor(context: Context) {
             isPremium = true,
             autoOpenLastRead = false,
             lastBookId = 0L,
+            hasInitScanDirs = false
         )
     }
 
@@ -114,6 +117,7 @@ class AppPreferencesUtil @Inject constructor(context: Context) {
                 prefs[IS_PREMIUM] = defaultPreferences.isPremium
                 prefs[AUTO_OPEN_LAST_READ] = defaultPreferences.autoOpenLastRead
                 prefs[LAST_OPEN_BOOK_ID] = defaultPreferences.lastBookId
+                prefs[HAS_INIT_SCAN_DIRS] = defaultPreferences.hasInitScanDirs
             }
         }
     }
@@ -142,7 +146,8 @@ class AppPreferencesUtil @Inject constructor(context: Context) {
             fileTypes = preferences[FILE_TYPE]?.map { FileType.valueOf(it) }?.toSet() ?: defaultPreferences.fileTypes,
             isPremium = preferences[IS_PREMIUM] ?: defaultPreferences.isPremium,
             autoOpenLastRead = preferences[AUTO_OPEN_LAST_READ] ?: defaultPreferences.autoOpenLastRead,
-            lastBookId = preferences[LAST_OPEN_BOOK_ID] ?: defaultPreferences.lastBookId
+            lastBookId = preferences[LAST_OPEN_BOOK_ID] ?: defaultPreferences.lastBookId,
+            hasInitScanDirs = preferences[HAS_INIT_SCAN_DIRS] ?: defaultPreferences.hasInitScanDirs
         )
     }
 
@@ -193,6 +198,7 @@ class AppPreferencesUtil @Inject constructor(context: Context) {
             preferences[IS_PREMIUM] = newPreferences.isPremium
             preferences[AUTO_OPEN_LAST_READ] = newPreferences.autoOpenLastRead
             preferences[LAST_OPEN_BOOK_ID] = newPreferences.lastBookId
+            preferences[HAS_INIT_SCAN_DIRS] = newPreferences.hasInitScanDirs
         }
     }
 

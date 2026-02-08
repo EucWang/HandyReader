@@ -33,6 +33,8 @@ data class AppPreferences(
     val isPremium: Boolean,
     val autoOpenLastRead : Boolean,
     val lastBookId : Long,
+
+    val hasInitScanDirs : Boolean,
 )
 
 

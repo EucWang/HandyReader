@@ -48,12 +48,6 @@ android {
         }
 
         buildConfigField("String", "RELEASE_DATE", "\"${SimpleDateFormat("yyyy-MM-dd HH:mm:ss").format(Date())}\"")
-        buildConfigField("String", "FULL_SCREEN_BOOK_READER_AD_UNIT", apikeyProperties["FULL_SCREEN_BOOK_READER_AD_UNIT"] as String)
-        buildConfigField("String", "OPEN_BOOK_GRID_AD_UNIT", apikeyProperties["OPEN_BOOK_GRID_AD_UNIT"] as String)
-        buildConfigField("String", "OPEN_BOOK_LIST_AD_UNIT", apikeyProperties["OPEN_BOOK_LIST_AD_UNIT"] as String)
-        buildConfigField("String", "READER_SCREEN_AD_UNIT", apikeyProperties["READER_SCREEN_AD_UNIT"] as String)
-        buildConfigField("String", "PRODUCT_ID", apikeyProperties["PRODUCT_ID"] as String)
-        buildConfigField("Boolean", "ENABLE_AD", apikeyProperties["enableAd"] as String)
         vectorDrawables {
             useSupportLibrary = true
         }
@@ -62,12 +56,6 @@ android {
     buildTypes {
         release {
             buildConfigField("String", "RELEASE_DATE", "\"${SimpleDateFormat("yyyy-MM-dd HH:mm:ss").format(Date())}\"")
-            buildConfigField("String", "FULL_SCREEN_BOOK_READER_AD_UNIT", apikeyProperties["FULL_SCREEN_BOOK_READER_AD_UNIT"] as String)
-            buildConfigField("String", "OPEN_BOOK_GRID_AD_UNIT", apikeyProperties["OPEN_BOOK_GRID_AD_UNIT"] as String)
-            buildConfigField("String", "OPEN_BOOK_LIST_AD_UNIT", apikeyProperties["OPEN_BOOK_LIST_AD_UNIT"] as String)
-            buildConfigField("String", "READER_SCREEN_AD_UNIT", apikeyProperties["READER_SCREEN_AD_UNIT"] as String)
-            buildConfigField("String", "PRODUCT_ID", apikeyProperties["PRODUCT_ID"] as String)
-            buildConfigField("Boolean", "ENABLE_AD", apikeyProperties["enableAd"] as String)
 
             isMinifyEnabled = true
             isShrinkResources = true
@@ -81,12 +69,6 @@ android {
         }
         debug {
             buildConfigField("String", "RELEASE_DATE", "\"${SimpleDateFormat("yyyy-MM-dd HH:mm:ss").format(Date())}\"")
-            buildConfigField("String", "FULL_SCREEN_BOOK_READER_AD_UNIT", apikeyProperties["FULL_SCREEN_BOOK_READER_AD_UNIT"] as String)
-            buildConfigField("String", "OPEN_BOOK_GRID_AD_UNIT", apikeyProperties["OPEN_BOOK_GRID_AD_UNIT"] as String)
-            buildConfigField("String", "OPEN_BOOK_LIST_AD_UNIT", apikeyProperties["OPEN_BOOK_LIST_AD_UNIT"] as String)
-            buildConfigField("String", "READER_SCREEN_AD_UNIT", apikeyProperties["READER_SCREEN_AD_UNIT"] as String)
-            buildConfigField("String", "PRODUCT_ID", apikeyProperties["PRODUCT_ID"] as String)
-            buildConfigField("Boolean", "ENABLE_AD", apikeyProperties["enableAd"] as String)
 
             isMinifyEnabled = false
             isShrinkResources = false
@@ -98,7 +80,6 @@ android {
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17
-
 
         isCoreLibraryDesugaringEnabled = true
     }
@@ -172,7 +153,6 @@ dependencies {
     implementation(libs.firebase.analytics)
     implementation(libs.firebase.crashlytics.ndk)
 
-
     coreLibraryDesugaring(libs.desugar.jdk.libs)
     implementation("io.coil-kt.coil3:coil-compose:3.2.0")
     implementation("io.coil-kt.coil3:coil-network-okhttp:3.2.0")
@@ -193,14 +173,8 @@ dependencies {
     implementation(libs.androidx.core.splashscreen)
     implementation(libs.multiplatform.markdown.renderer.m3)
 
-    // for ads TODO
-//    implementation(libs.play.services.ads)
-
     // for in app reviews  应用内点赞
     implementation(libs.play.review.ktx)
-
-    // for in app purchases
-//    implementation(libs.billing.ktx)
 
     //这个库用于在 Android 应用中自动收集和展示项目的依赖信息，
     // 包括依赖项的名称、版本、许可证等信息。它提供了易于集成的 UI 组件，使得开发者可以轻松地在应用中展示这些信息 。

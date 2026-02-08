@@ -11,7 +11,6 @@ import com.wxn.base.bean.Book
 import com.wxn.base.util.Logger
 import com.wxn.reader.domain.model.ReadingActive
 import com.wxn.reader.data.dto.ReadingStatus
-import com.wxn.reader.data.dto.ReadingStatus.Companion.intToReadStatus
 import com.wxn.reader.data.model.AppPreferences
 import com.wxn.reader.data.source.local.AppPreferencesUtil
 import com.wxn.reader.domain.use_case.books.GetBookByIdUseCase
@@ -19,6 +18,7 @@ import com.wxn.reader.domain.use_case.books.UpdateBookUseCase
 import com.wxn.reader.domain.use_case.reading_activity.AddReadingActivityUseCase
 import com.wxn.reader.domain.use_case.reading_activity.GetReadingActivityByDateUseCase
 import com.wxn.reader.domain.use_case.reading_progress.GetReadingProgressUseCase
+import com.wxn.reader.events.VolumeEventBus
 import com.wxn.reader.util.PdfBitmapConverter
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -60,12 +60,15 @@ class PdfReaderViewModel @Inject constructor(
     private val _pageCount = MutableStateFlow(0)
     val pageCount = _pageCount.asStateFlow()
 
+    private val _pageOffset = MutableStateFlow(0)
+    var pageOffset = _pageOffset.asStateFlow()
+
+
     private val _initialPage = MutableStateFlow(0)
     val initialPage = _initialPage.asStateFlow()
 
     private val _pdfId = MutableStateFlow<Long>(-1)
 //    val pdfId = _pdfId.asStateFlow()
-
 
     private lateinit var contentUri: Uri
     private val pageCache = mutableMapOf<Int, Bitmap>()
@@ -110,6 +113,30 @@ class PdfReaderViewModel @Inject constructor(
                 _isLoading.value = false
             }
         }
+
+        viewModelScope.launch {
+            VolumeEventBus.volumeUpEvents.collect {
+                onVolumeUp()
+            }
+        }
+
+        viewModelScope.launch {
+            VolumeEventBus.volumeDownEvents.collect {
+                onVolumeDown()
+            }
+        }
+    }
+
+    private fun onVolumeUp() {
+        _pageOffset.value = -1
+    }
+
+    private fun onVolumeDown() {
+        _pageOffset.value = 1
+    }
+
+    fun resetPageOffset() {
+        _pageOffset.value = 0
     }
 
     private suspend fun initializePdfInfo() {
