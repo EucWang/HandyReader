@@ -2,7 +2,9 @@ package com.wxn.reader.presentation.bookDetails.components
 
 import android.Manifest
 import android.net.Uri
+import android.os.Build
 import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
@@ -56,6 +58,7 @@ import com.wxn.reader.R
 import com.wxn.reader.data.dto.FileType
 import com.wxn.reader.data.dto.FileType.Companion.stringToFileType
 import com.wxn.reader.presentation.bookDetails.BookDetailsViewModel
+import com.wxn.reader.util.ImageUtils
 import com.wxn.reader.util.PermissionHandler
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -91,6 +94,17 @@ fun EditMetadataModal(
     val imagePicker = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.GetContent()
     ) { uri: Uri? ->
+        uri?.let {
+            val coverPath = viewModel.updateCoverImage(context, uri)
+            if (coverPath != null) {
+                coverImage = coverPath
+            }
+        }
+    }
+    // 1. 注册一个用于选择单个图片/视频的启动器
+    val pickMedia = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.PickVisualMedia()) { uri ->
+        // 回调：用户选择后的处理
         uri?.let {
             val coverPath = viewModel.updateCoverImage(context, uri)
             if (coverPath != null) {
@@ -157,8 +171,6 @@ fun EditMetadataModal(
                     .verticalScroll(rememberScrollState()),
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
-
-
                     Box(
                         modifier = Modifier
                             .height(200.dp)
@@ -166,10 +178,14 @@ fun EditMetadataModal(
                             .clip(RoundedCornerShape(8.dp))
                             .clickable(
                                 onClick = {
-                                    if (PermissionHandler.hasPermissions(context)) {
-                                        imagePicker.launch("image/*")
+                                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                                        pickMedia.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly))
                                     } else {
-                                        PermissionHandler.requestPermissions(permissionLauncher)
+                                        if (PermissionHandler.hasPermissions(context)) {
+                                            imagePicker.launch("image/*")
+                                        } else {
+                                            PermissionHandler.requestPermissions(permissionLauncher)
+                                        }
                                     }
                                 }
                             )

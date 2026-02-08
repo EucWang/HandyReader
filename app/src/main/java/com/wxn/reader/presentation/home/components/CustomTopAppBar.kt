@@ -1,7 +1,9 @@
 package com.wxn.reader.presentation.home.components
 
 import android.content.Context
+import android.os.Build
 import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.background
@@ -451,6 +453,16 @@ fun ImagePicker(onImageSelected: (String) -> Unit) {
     val context = LocalContext.current
     var showDialog by remember { mutableStateOf(false) }
 
+
+    // 1. 注册一个用于选择单个图片/视频的启动器
+    val pickMedia = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.PickVisualMedia()) { uri ->
+        // 回调：用户选择后的处理
+        uri?.let {
+            onImageSelected(ImageUtils.saveHomeBackgroundImage(context, it).orEmpty())
+        }
+    }
+
     // GetContent launcher
     val imagePicker = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.GetContent()
@@ -492,10 +504,14 @@ fun ImagePicker(onImageSelected: (String) -> Unit) {
             onDismiss = { showDialog = false },
             onSelectBookCover = onImageSelected,
             onSelectImagePicker = {
-                if (PermissionHandler.hasPermissions(context)) {
-                    imagePicker.launch("image/*")
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                    pickMedia.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly))
                 } else {
-                    PermissionHandler.requestPermissions(permissionLauncher)
+                    if (PermissionHandler.hasPermissions(context)) {
+                        imagePicker.launch("image/*")
+                    } else {
+                        PermissionHandler.requestPermissions(permissionLauncher)
+                    }
                 }
             }
         )
