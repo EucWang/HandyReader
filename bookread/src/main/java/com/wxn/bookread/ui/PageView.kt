@@ -132,7 +132,7 @@ class PageView : FrameLayout, IDataSource, PageCallback {
     /***
      * 默认的动画播放速度
      */
-    val defaultAnimationSpeed = 200
+    val defaultAnimationSpeed = 320
 
     /***
      * 是否按下
