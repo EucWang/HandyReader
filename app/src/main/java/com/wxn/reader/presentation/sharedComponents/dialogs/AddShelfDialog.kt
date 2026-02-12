@@ -43,7 +43,7 @@ fun AddShelfDialog(
             TextButton(
                 onClick = {
                     when {
-                        newShelfName.isBlank() -> {
+                        newShelfName.isEmpty() || newShelfName.isBlank() -> {
                             Toast.makeText(context, "Shelf name is required", Toast.LENGTH_SHORT)
                                 .show()
                         }
@@ -54,7 +54,7 @@ fun AddShelfDialog(
                         }
 
                         else -> {
-                            onAddShelf(newShelfName)
+                            onAddShelf(newShelfName.replace("\n", " ").trim())
                             onShelfNameChange("")
                             onDismiss()
                         }
