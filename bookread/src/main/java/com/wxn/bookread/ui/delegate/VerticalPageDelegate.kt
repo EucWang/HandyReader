@@ -40,17 +40,32 @@ abstract class VerticalPageDelegate(pageView: PageView) : PageDelegate(pageView)
     override fun onTouch(event: MotionEvent) {
         when (event.action) {
             MotionEvent.ACTION_DOWN -> {
+                Logger.d("${this.javaClass.name}::onTouch():ACTION_DOWN:isStarted($isStarted),isMoved($isMoved),isRunning($isRunning),isDeprecatedAction($isDeprecatedAction)")
                 val curTimestamp = System.currentTimeMillis()
-                if (curTimestamp - lastActionDown > pageView.slopTapDuration) {
-                    abortAnim()
-                    lastActionDown = curTimestamp
+                if (curTimestamp - lastActionDown <= pageView.slopTapDuration) {
+                    isDeprecatedAction = true
+//                    abortAnim()
+                }
+                if (isRunning || isMoved || isRunning) {
+                    isDeprecatedAction = true
+                }
+                lastActionDown = curTimestamp
+                if (!isDeprecatedAction) {
+                    onDown()
                 }
             }
             MotionEvent.ACTION_MOVE -> {
-                onScroll(event)
+                Logger.d("${this.javaClass.name}::onTouch():ACTION_MOVE:isStarted($isStarted),isMoved($isMoved),isRunning($isRunning),isDeprecatedAction($isDeprecatedAction)")
+                if (!isDeprecatedAction) {
+                    onScroll(event)
+                }
             }
             MotionEvent.ACTION_CANCEL, MotionEvent.ACTION_UP -> {
-                onAnimStart(pageView.defaultAnimationSpeed)
+                Logger.d("${this.javaClass.name}::onTouch():ACTION_UP:isStarted($isStarted),isMoved($isMoved),isRunning($isRunning),isDeprecatedAction($isDeprecatedAction)")
+                if (!isDeprecatedAction) {
+                    onAnimStart(pageView.defaultAnimationSpeed)
+                }
+                isDeprecatedAction = false
             }
         }
     }
@@ -124,7 +139,11 @@ abstract class VerticalPageDelegate(pageView: PageView) : PageDelegate(pageView)
     }
 
     override fun nextPageByAnim(animationSpeed: Int) {
-        Logger.d("${this.javaClass.name}::nextPageByAnim()")
+        Logger.d("${this.javaClass.name}::nextPageByAnim():isRunning($isRunning),isMoved($isMoved),isStarted($isStarted)")
+        if (isRunning || isMoved || isStarted) {
+            Logger.d("HorizontalPageDelegate::nextPageByAnim():passed")
+            return
+        }
         abortAnim()
         if (!hasNext()) return
         setDirection(Direction.NEXT)
@@ -133,7 +152,11 @@ abstract class VerticalPageDelegate(pageView: PageView) : PageDelegate(pageView)
     }
 
     override fun prevPageByAnim(animationSpeed: Int) {
-        Logger.d("${this.javaClass.name}::prevPageByAnim()")
+        Logger.d("${this.javaClass.name}::prevPageByAnim():isRunning($isRunning),isMoved($isMoved),isStarted($isStarted)")
+        if (isRunning || isMoved || isStarted) {
+            Logger.d("${this.javaClass.name}::prevPageByAnim():passed")
+            return
+        }
         abortAnim()
         if (!hasPrev()) return
         setDirection(Direction.PREV)

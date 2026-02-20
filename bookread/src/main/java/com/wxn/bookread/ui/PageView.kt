@@ -140,10 +140,9 @@ class PageView : FrameLayout, IDataSource, PageCallback {
     private var pressDown = false
 
     /***
-     * 是否移动
+     * touch with moving some distance
      */
     private var isMove = false
-
 
     //起始点
     var startX: Float = 0f
@@ -296,8 +295,9 @@ class PageView : FrameLayout, IDataSource, PageCallback {
                 pressDown = true
                 isMove = false
                 pageDelegate?.onTouch(event)
-                pageDelegate?.onDown()
-                setStartPoint(event.x, event.y)
+                if (pageDelegate?.isRunning != true && pageDelegate?.isStarted != true) {
+                    setStartPoint(event.x, event.y)
+                }
             }
 
             MotionEvent.ACTION_MOVE -> {
@@ -328,8 +328,12 @@ class PageView : FrameLayout, IDataSource, PageCallback {
                 if (!pressDown) return true
                 if (!isMove) {
                     if (!longPressed && !pressOnTextSelected) {
-                        onSingleTapUp()
-                        return true
+                        val curTimestamp = System.currentTimeMillis()
+                        if (curTimestamp - lastActionDown > slopTapDuration) {
+                            onSingleTapUp()
+                            lastActionDown = curTimestamp
+                            return true
+                        }
                     }
                 }
                 if (isTextSelected) {
@@ -343,6 +347,7 @@ class PageView : FrameLayout, IDataSource, PageCallback {
         return true
     }
 
+    private var lastActionDown : Long = 0L
     override fun detachAllViewsFromParent() {
         super.detachAllViewsFromParent()
         Logger.d("PageView::detachAllViewsFromParent")
@@ -524,7 +529,9 @@ class PageView : FrameLayout, IDataSource, PageCallback {
             }
         }
 
-        if (centerRectF.contains(clickX, clickY)) {
+        val isClickCenter = centerRectF.contains(clickX, clickY)
+        Logger.d("${this.javaClass.name}:onSingleTapUp::isClickCenter=${isClickCenter},clickTurnPage=${clickTurnPage},clickX>width/2=${clickX>width/2}, clickAllNext=${clickAllNext}")
+        if (isClickCenter) {
             if (!isAbortAnim) {
                 dataProvider?.clickCenter()
             }

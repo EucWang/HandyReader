@@ -4,10 +4,10 @@ import android.content.Context
 import android.graphics.Canvas
 import android.view.MotionEvent
 import android.view.animation.DecelerateInterpolator
+import android.view.animation.LinearInterpolator
 import android.widget.Scroller
 import androidx.annotation.CallSuper
-import com.google.android.material.snackbar.Snackbar
-import com.wxn.bookread.R
+import com.wxn.base.util.Logger
 import com.wxn.bookread.ui.ContentView
 import com.wxn.bookread.ui.PageView
 import kotlin.math.abs
@@ -42,9 +42,6 @@ abstract class PageDelegate(protected val pageView: PageView) {
         Scroller(pageView.context, DecelerateInterpolator())
     }
 
-    private val snackBar: Snackbar by lazy {
-        Snackbar.make(pageView, "", Snackbar.LENGTH_SHORT)
-    }
 
     var isMoved = false
 
@@ -58,6 +55,8 @@ abstract class PageDelegate(protected val pageView: PageView) {
     var isRunning = false
 
     var isStarted = false
+
+    var isDeprecatedAction = false
 
     private var selectedOnDown = false
 
@@ -133,15 +132,6 @@ abstract class PageDelegate(protected val pageView: PageView) {
 
     abstract fun prevPageByAnim(animationSpeed: Int)
 
-    open fun keyTurnPage(direction: Direction) {
-        if (isRunning) return
-        when (direction) {
-            Direction.NEXT -> nextPageByAnim(100)
-            Direction.PREV -> prevPageByAnim(100)
-            else -> return
-        }
-    }
-
     @CallSuper
     open fun setDirection(direction: Direction) {
         mDirection = direction
@@ -177,13 +167,6 @@ abstract class PageDelegate(protected val pageView: PageView) {
      */
     fun hasPrev(): Boolean {
         val hasPrev = pageView.dataProvider?.pageFactory?.hasPrev() == true
-        if (!hasPrev) {
-            if (!snackBar.isShown) {
-                //没有上一页
-//                snackBar.setText(R.string.no_prev_page)
-//                snackBar.show()
-            }
-        }
         return hasPrev
     }
 
@@ -192,13 +175,6 @@ abstract class PageDelegate(protected val pageView: PageView) {
      */
     fun hasNext(): Boolean {
         val hasNext = pageView.dataProvider?.pageFactory?.hasNext() == true
-        if (!hasNext) {
-            if (!snackBar.isShown) {
-                //没有下一页
-//                snackBar.setText(R.string.no_next_page)
-//                snackBar.show()
-            }
-        }
         return hasNext
     }
 

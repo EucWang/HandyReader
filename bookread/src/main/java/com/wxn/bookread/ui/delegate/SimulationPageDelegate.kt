@@ -130,6 +130,9 @@ class SimulationPageDelegate(pageView: PageView) : HorizontalPageDelegate(pageVi
         super.onTouch(event)
         when (event.action) {
             MotionEvent.ACTION_DOWN -> {
+                if (isRunning || isMoved || isStarted) {
+                    return
+                }
 //                val curTimestamp = System.currentTimeMillis()
 //                if (curTimestamp - lastActionDown > pageView.slopTapDuration) {
                     calcCornerXY(event.x, event.y)
