@@ -4,10 +4,21 @@ import android.graphics.Bitmap
 import android.view.MotionEvent
 import com.wxn.base.ext.screenshot
 import com.wxn.base.util.Logger
+import com.wxn.bookread.data.beans.PageKey
+import com.wxn.bookread.ui.ContentView
 import com.wxn.bookread.ui.PageView
+import com.wxn.bookread.ui.lru.PageBitmapCache
 import kotlin.math.sqrt
 
 abstract class HorizontalPageDelegate(pageView: PageView) : PageDelegate(pageView) {
+
+    //bitmap caches
+    private val bitmapCache = PageBitmapCache(pageView.context)
+
+    //page cache keys
+    private var currentPrevKey: PageKey? = null
+    private var currentCurKey: PageKey? = null
+    private var currentNextKey: PageKey? = null
 
     protected var curBitmap: Bitmap? = null
     protected var prevBitmap: Bitmap? = null
@@ -15,26 +26,74 @@ abstract class HorizontalPageDelegate(pageView: PageView) : PageDelegate(pageVie
 
     override fun setDirection(direction: Direction) {
         super.setDirection(direction)
-        setBitmap()
+        setBitmapWithCache()
     }
 
-    private fun setBitmap() {
-        when (mDirection) {
+    private fun setBitmapWithCache() {
+        when(mDirection) {
             Direction.PREV -> {
-                prevBitmap?.recycle()
-                prevBitmap = prevPage.screenshot()
-                curBitmap?.recycle()
-                curBitmap = curPage.screenshot()
+                currentPrevKey = createPageKey(prevPage)
+                currentCurKey = createPageKey(curPage)
+
+                prevBitmap = getBitmapFromCache(currentPrevKey, prevPage)
+                curBitmap = getBitmapFromCache(currentCurKey, curPage)
             }
             Direction.NEXT -> {
-                nextBitmap?.recycle()
-                nextBitmap = nextPage.screenshot()
-                curBitmap?.recycle()
-                curBitmap = curPage.screenshot()
+                currentNextKey = createPageKey(nextPage)
+                currentCurKey = createPageKey(curPage)
+
+                nextBitmap = getBitmapFromCache(currentNextKey, nextPage)
+                curBitmap = getBitmapFromCache(currentCurKey, curPage)
             }
             else -> Unit
         }
     }
+
+    /**
+     * 从缓存获取bitmap，如果没有则创建并缓存
+     */
+    private fun getBitmapFromCache(pageKey: PageKey?, contentView: ContentView): Bitmap? {
+        pageKey ?: return null
+        return bitmapCache.getBitmap(pageKey) ?: run {
+            val bitmap = contentView.screenshot()
+            if (bitmap != null) {
+                bitmapCache.putBitmap(pageKey, bitmap)
+            }
+            bitmap
+        }
+    }
+
+    /**
+     * 创建页面缓存键
+     */
+    private fun createPageKey(contentView: ContentView): PageKey? {
+        val textPage = pageView.dataProvider?.pageFactory?.currentPage ?: return null
+        return PageKey(
+            chapterIndex = textPage.chapterIndex,
+            pageIndex = textPage.index,
+            contentHash = textPage.text.hashCode(),
+            viewWidth = viewWidth,
+            viewHeight = viewHeight
+        )
+    }
+
+//    private fun setBitmap() {
+//        when (mDirection) {
+//            Direction.PREV -> {
+//                prevBitmap?.recycle()
+//                prevBitmap = prevPage.screenshot()
+//                curBitmap?.recycle()
+//                curBitmap = curPage.screenshot()
+//            }
+//            Direction.NEXT -> {
+//                nextBitmap?.recycle()
+//                nextBitmap = nextPage.screenshot()
+//                curBitmap?.recycle()
+//                curBitmap = curPage.screenshot()
+//            }
+//            else -> Unit
+//        }
+//    }
 
     override fun onTouch(event: MotionEvent) {
         when (event.action) {
@@ -163,12 +222,10 @@ abstract class HorizontalPageDelegate(pageView: PageView) : PageDelegate(pageVie
 
     override fun onDestroy() {
         super.onDestroy()
-        prevBitmap?.recycle()
         prevBitmap = null
-        curBitmap?.recycle()
         curBitmap = null
-        nextBitmap?.recycle()
         nextBitmap = null
+        bitmapCache.clearCache()
         Logger.d("HorizontalPageDelegate::onDestroy()")
     }
 }

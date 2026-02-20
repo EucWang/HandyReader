@@ -20,3 +20,4 @@ pdfium/build
 pdfium/.cxx
 jp2forandroid/build
 .idea
+/.kotlin
