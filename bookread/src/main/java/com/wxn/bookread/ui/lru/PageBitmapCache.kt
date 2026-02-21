@@ -97,10 +97,14 @@ class PageBitmapCache(
     }
 
     private fun getCacheSize(): Int {
-        // 使用应用可用内存的1/8作为缓存大小
         val memInfo = ActivityManager.MemoryInfo()
         (context.getSystemService(Context.ACTIVITY_SERVICE) as ActivityManager).getMemoryInfo(memInfo)
-        return (memInfo.availMem / 8).toInt()
+
+        return when {
+            memInfo.totalMem >= 4 * 1024 * 1024 * 1024L -> (memInfo.availMem / 4).toInt() // 使用应用可用内存的1/4作为缓存大小
+            memInfo.totalMem >= 2 * 1024 * 1024 * 1024L -> (memInfo.availMem / 6).toInt()
+            else -> (memInfo.availMem / 8).toInt() // 使用应用可用内存的1/8作为缓存大小
+        }
     }
 
     private fun PageKey.toCacheKey(): String {
