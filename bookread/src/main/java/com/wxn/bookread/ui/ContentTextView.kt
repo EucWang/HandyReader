@@ -103,7 +103,7 @@ class ContentTextView(context: Context, attrs: AttributeSet?) : View(context, at
     /**
      * 当前显示的TextPage
      */
-    private var textPage: TextPage = TextPage()
+    var textPage: TextPage = TextPage()
 
     //滚动参数
     private val pageFactory: TextPageFactory? get() = callback?.pageFactory

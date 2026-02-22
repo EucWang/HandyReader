@@ -427,6 +427,8 @@ class ContentView(context: Context) : FrameLayout(context) {
      */
     val selectedText: String get() = binding.contentTextView.selectText
 
+    val textPage: TextPage get() = binding.contentTextView.textPage
+
     override fun onDetachedFromWindow() {
         Logger.i("ContentView::onDetachedFromWindow")
         callback = null

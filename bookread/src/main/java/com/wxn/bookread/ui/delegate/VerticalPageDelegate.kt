@@ -62,7 +62,7 @@ abstract class VerticalPageDelegate(pageView: PageView) : PageDelegate(pageView)
      * 创建页面缓存键
      */
     private fun createPageKey(contentView: ContentView): PageKey? {
-        val textPage = pageView.dataProvider?.pageFactory?.currentPage ?: return null
+        val textPage = contentView.textPage
         return PageKey(
             chapterIndex = textPage.chapterIndex,
             pageIndex = textPage.index,

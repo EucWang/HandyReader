@@ -67,11 +67,10 @@ abstract class HorizontalPageDelegate(pageView: PageView) : PageDelegate(pageVie
      * 创建页面缓存键
      */
     private fun createPageKey(contentView: ContentView): PageKey? {
-        val textPage = pageView.dataProvider?.pageFactory?.currentPage ?: return null
         return PageKey(
-            chapterIndex = textPage.chapterIndex,
-            pageIndex = textPage.index,
-            contentHash = textPage.text.hashCode(),
+            chapterIndex = contentView.textPage.chapterIndex,
+            pageIndex = contentView.textPage.index,
+            contentHash = contentView.textPage.text.hashCode(),
             viewWidth = viewWidth,
             viewHeight = viewHeight
         )
