@@ -288,7 +288,7 @@ fun HomeMinePanel(innerPadding: PaddingValues, viewModel: HomeViewModel) {
                             } else {
                                 // There was some problem, log or handle the error code.
                                 @ReviewErrorCode val reviewErrorCode =
-                                    (task.exception as ReviewException).errorCode
+                                    (task.exception as? ReviewException?)?.errorCode
                                 Logger.e("Review:Error code: $reviewErrorCode")
                             }
                         }
