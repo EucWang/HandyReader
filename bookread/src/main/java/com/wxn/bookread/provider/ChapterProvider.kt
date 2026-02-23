@@ -1099,18 +1099,30 @@ object ChapterProvider {
                         var percents = arrayListOf<Int>()
                         percents.add(0)
                         percents.addAll(tablePercents)
-                        for (percent in percents) {
-                            leftPercent += percent
-                            val left = fullWidth * (leftPercent / 100f)
-                            lastPage.textLines.add(
-                                TextLine(
-                                    isLine = true,
-                                    lineStart = Pair(left + paddingLeft + marginLeft, durY),
-                                    lineEnd = Pair(left + paddingLeft + marginLeft, durY + lineHeight),
-                                    lineBorder = 1f,
-                                    lineColor = "#333333"
+                        for ((iline, percent) in percents.withIndex()) {
+                            if (iline == percents.size -1) {
+                                lastPage.textLines.add(
+                                    TextLine(
+                                        isLine = true,
+                                        lineStart = Pair(visibleRight - marginRight, durY),
+                                        lineEnd = Pair(visibleRight - marginRight, durY + lineHeight),
+                                        lineBorder = 1f,
+                                        lineColor = "#333333"
+                                    )
                                 )
-                            )
+                            } else {
+                                leftPercent += percent
+                                val left = fullWidth * (leftPercent / 100f)
+                                lastPage.textLines.add(
+                                    TextLine(
+                                        isLine = true,
+                                        lineStart = Pair(left + paddingLeft + marginLeft, durY),
+                                        lineEnd = Pair(left + paddingLeft + marginLeft, durY + lineHeight),
+                                        lineBorder = 1f,
+                                        lineColor = "#333333"
+                                    )
+                                )
+                            }
                         }
 
                         if (rowIndex == rows - 1 && index == lines.size - 1) { //最后一条数据的底部的横线
