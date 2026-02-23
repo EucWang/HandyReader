@@ -9,8 +9,8 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.AddToPhotos
 import androidx.compose.material.icons.outlined.Delete
-import androidx.compose.material.icons.outlined.FolderCopy
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.BottomAppBar
 import androidx.compose.material3.ButtonDefaults
@@ -78,7 +78,7 @@ fun CustomBottomAppBar(
                     IconButton(onClick = { showAddBookToShelfDialog = true }) {
                         Icon(
                             modifier = Modifier.size(24.dp),
-                            imageVector = Icons.Outlined.FolderCopy,
+                            imageVector = Icons.Outlined.AddToPhotos,
                             contentDescription = "Add book to shelf"
                         )
                     }
