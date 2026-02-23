@@ -259,6 +259,7 @@ open class PageViewController @Inject constructor(
         isInitFinish = true
         onInitChapterLoadListener = initChapterLoadListener
         Logger.d("PageViewController::resetBook:isInitFinish=$isInitFinish")
+        loadContent(true)
     }
 
     /**
