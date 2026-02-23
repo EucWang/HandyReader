@@ -172,6 +172,7 @@ MOBI_RET mobi_load_rec(MOBIData *m, FILE *file) {
  @return MOBI_RET status code (on success MOBI_SUCCESS)
  */
 MOBI_RET mobi_load_recdata(MOBIPdbRecord *rec, FILE *file) {
+    clearerr(file);
     const int ret = fseek(file, rec->offset, SEEK_SET);
     if (ret != 0) {
         debug_print("Record %i not found\n", rec->uid);
@@ -184,6 +185,11 @@ MOBI_RET mobi_load_recdata(MOBIPdbRecord *rec, FILE *file) {
     }
     const size_t len = fread(rec->data, 1, rec->size, file);
     if (len < rec->size) {
+        if (feof(file)) {
+            debug_print("reach the file end at record %i\n", rec->uid);
+        } else if (ferror(file)) {
+            debug_print("read error at record %i\n", rec->uid);
+        }
         debug_print("Truncated data in record %i\n", rec->uid);
         return MOBI_DATA_CORRUPT;
     }
