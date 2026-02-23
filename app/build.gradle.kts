@@ -38,8 +38,8 @@ android {
         applicationId = "com.wxn.reader"
         minSdk = 24
         targetSdk = 35
-        versionCode = 8
-        versionName = "1.6.260212"
+        versionCode = 9
+        versionName = "1.7.260223"
         multiDexEnabled = true
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
