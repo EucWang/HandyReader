@@ -48,15 +48,14 @@ std::string xml_ext::getEleText(const tinyxml2::XMLElement *elem) {
 }
 
 std::string xml_ext::getEleAttr(const tinyxml2::XMLNode *node, const char *attr_name) {
-    std::string attr_value;
-    if (node != nullptr && attr_name != nullptr) {
-        auto ele = node->ToElement();
-        if (ele != nullptr) {
-            attr_value = getEleAttr(ele, attr_name);
-        }
+    if (node == nullptr || attr_name == nullptr || strlen(attr_name) == 0) {
+        return "";
     }
-
-    return attr_value;
+    const tinyxml2::XMLElement* ele = node->ToElement();
+    if (ele == nullptr) {
+        return "";
+    }
+    return getEleAttr(ele, attr_name);
 }
 
 std::string xml_ext::getEleAttr(const tinyxml2::XMLElement *elem, const char *attr_name) {

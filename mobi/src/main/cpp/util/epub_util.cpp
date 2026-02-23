@@ -424,20 +424,21 @@ int epub_util::parseOpfData(std::vector<NavPoint> &points) {
         }
     }
 
-
     //指向相同位置的章节合并
     std::vector<NavPoint> tmp;
-    for (int i = 0; i < points.size() - 1; ++i) {
-        auto &point = points[i];
-        auto &nextPoint = points[i + 1];
-        if (point.src == nextPoint.src) {
-            point.text.append(" ").append(nextPoint.text);
-            tmp.push_back(point);
-            i++;
-        } else {
-            tmp.push_back(point);
-            if (i == points.size() - 2) {
-                tmp.push_back(nextPoint);
+    if (!points.empty()) {
+        for (int i = 0; i < points.size() - 1; ++i) {
+            auto &point = points[i];
+            auto &nextPoint = points[i + 1];
+            if (point.src == nextPoint.src) {
+                point.text.append(" ").append(nextPoint.text);
+                tmp.push_back(point);
+                i++;
+            } else {
+                tmp.push_back(point);
+                if (i == points.size() - 2) {
+                    tmp.push_back(nextPoint);
+                }
             }
         }
     }
@@ -454,81 +455,83 @@ int epub_util::parseOpfData(std::vector<NavPoint> &points) {
     int index = 0;
     int startOpfIndex = 0;
     std::vector<NavPoint> newPoints;
-    while (index < points.size() && startOpfIndex < orderedItemSrc.size()) {
-        auto &point = points[index];
-        auto &opf = orderedItemSrc[startOpfIndex];
+    if (!points.empty()) {
+        while (index < points.size() && startOpfIndex < orderedItemSrc.size()) {
+            auto &point = points[index];
+            auto &opf = orderedItemSrc[startOpfIndex];
 
-        if (point.src.find(opf) != std::string::npos) { //找到了
-            if (startOpfIndex < orderedItemSrc.size() - 1) {
-                startOpfIndex++;
-            }
-        } else {
-            //没有找到, 则在opf中往前找
-            int opfIndex = startOpfIndex - 1;
-            bool found = false;
-            while (opfIndex >= 0) {
-                auto &prevOpf = orderedItemSrc[opfIndex];
-                if (point.src.find(prevOpf) != std::string::npos) { //在上一个找到了
-                    found = true;
-                    break;
-                } else {
-                    opfIndex--;
+            if (point.src.find(opf) != std::string::npos) { //找到了
+                if (startOpfIndex < orderedItemSrc.size() - 1) {
+                    startOpfIndex++;
                 }
-            }
-
-            if (!found) {    //往前找，没有找到了, 即表示 ncx是新的，opf也是新的， 则往后找opf,
-                opfIndex = startOpfIndex + 1;
-                found = false;
-                while (opfIndex < orderedItemSrc.size()) {
-                    auto &nextOpf = orderedItemSrc[opfIndex];
-                    if (point.src.find(nextOpf) != std::string::npos) { //在下一个找到了
+            } else {
+                //没有找到, 则在opf中往前找
+                int opfIndex = startOpfIndex - 1;
+                bool found = false;
+                while (opfIndex >= 0) {
+                    auto &prevOpf = orderedItemSrc[opfIndex];
+                    if (point.src.find(prevOpf) != std::string::npos) { //在上一个找到了
                         found = true;
                         break;
                     } else {
-                        opfIndex++;
+                        opfIndex--;
                     }
                 }
-                if (found) {    //往后找，找到了，则将没有放入到ncx中的opf作为一个新的point，放入points中
-                    for (int i = startOpfIndex; i < opfIndex; i++) {
-                        NavPoint newpoint;
-                        newpoint.src = orderedItemSrc[i];
-                        newpoint.text = "";
-                        newpoint.parentId = "";
-                        newpoint.id = string_ext::generate_uuid();
-                        newPoints.push_back(newpoint);
-                    }
-                    startOpfIndex = opfIndex + 1;
-                } else {    //往后找，也没有找到，则有问题
-                    LOGE("%s:cannot match ncx and opf data", __func__);
-                    return 0;
-                }
-            } else {        //往前找，找到了,则继续遍历points
-                /* do nothing */
-            }
-        }
-        newPoints.push_back(point);
-        index++;
-    }
 
-    if (index >= points.size() && startOpfIndex < orderedItemSrc.size()) { //还有没有分配完的资源
-        auto &lastPoint = points[points.size() - 1];
-        int opfIndex = startOpfIndex;
-        for (int i = opfIndex; i < orderedItemSrc.size(); i++) {
-            auto &opf = orderedItemSrc[i];
-            if (lastPoint.src.find(opf) != std::string::npos) {
-                continue;
-            } else {
-                NavPoint point;
-                point.src = opf;
-                point.text = "";
-                point.id = string_ext::generate_uuid();
-                point.parentId = "";
-                newPoints.push_back(point);
+                if (!found) {    //往前找，没有找到了, 即表示 ncx是新的，opf也是新的， 则往后找opf,
+                    opfIndex = startOpfIndex + 1;
+                    found = false;
+                    while (opfIndex < orderedItemSrc.size()) {
+                        auto &nextOpf = orderedItemSrc[opfIndex];
+                        if (point.src.find(nextOpf) != std::string::npos) { //在下一个找到了
+                            found = true;
+                            break;
+                        } else {
+                            opfIndex++;
+                        }
+                    }
+                    if (found) {    //往后找，找到了，则将没有放入到ncx中的opf作为一个新的point，放入points中
+                        for (int i = startOpfIndex; i < opfIndex; i++) {
+                            NavPoint newpoint;
+                            newpoint.src = orderedItemSrc[i];
+                            newpoint.text = "";
+                            newpoint.parentId = "";
+                            newpoint.id = string_ext::generate_uuid();
+                            newPoints.push_back(newpoint);
+                        }
+                        startOpfIndex = opfIndex + 1;
+                    } else {    //往后找，也没有找到，则有问题
+                        LOGE("%s:cannot match ncx and opf data", __func__);
+                        return 0;
+                    }
+                } else {        //往前找，找到了,则继续遍历points
+                    /* do nothing */
+                }
             }
+            newPoints.push_back(point);
+            index++;
         }
-    } else if (index < points.size() && startOpfIndex >= orderedItemSrc.size()) {
-        for (int i = index; i < points.size(); i++) {
-            newPoints.push_back(points[i]);
+
+        if (index >= points.size() && startOpfIndex < orderedItemSrc.size()) { //还有没有分配完的资源
+            auto &lastPoint = points[points.size() - 1];
+            int opfIndex = startOpfIndex;
+            for (int i = opfIndex; i < orderedItemSrc.size(); i++) {
+                auto &opf = orderedItemSrc[i];
+                if (lastPoint.src.find(opf) != std::string::npos) {
+                    continue;
+                } else {
+                    NavPoint point;
+                    point.src = opf;
+                    point.text = "";
+                    point.id = string_ext::generate_uuid();
+                    point.parentId = "";
+                    newPoints.push_back(point);
+                }
+            }
+        } else if (index < points.size() && startOpfIndex >= orderedItemSrc.size()) {
+            for (int i = index; i < points.size(); i++) {
+                newPoints.push_back(points[i]);
+            }
         }
     }
 
@@ -539,46 +542,50 @@ int epub_util::parseOpfData(std::vector<NavPoint> &points) {
     }
 
     //遍历的路径，如果某几个章节对应同一个资源，但是这些章节都不包含这个资源的开头部分
-    for(int i = 0; i< newPoints.size(); ++i) {
-        auto &point = newPoints[i];
-        if (point.src.find("#") != std::string::npos) { //章节链接中有锚点
-            //当前章节对应的资源和锚点
-            std::string cur_src;
-            std::string cur_anchor;
-            std::vector<std::string> parts = string_ext::split(point.src, '#');
-            if (parts.size() == 2) {
-                cur_src = parts[0];
-                cur_anchor = parts[1];
-            }
-            //上一个章节对应的资源和锚点
-            std::string pre_src;
-            std::string pre_anchor;
-            if (i > 0) {
-                auto &pre_point = newPoints[i - 1];
-                if (pre_point.src.find("#") != std::string::npos) {
-                    std::vector<std::string> pre_parts = string_ext::split(pre_point.src, '#');
-                    if (pre_parts.size() == 2) {
-                        pre_src = pre_parts[0];
-                        pre_anchor = pre_parts[1];
-                    }
-                } else {
-                    pre_src = pre_point.src;
+    if (!newPoints.empty()) {
+        for(int i = 0; i< newPoints.size(); ++i) {
+            auto &point = newPoints[i];
+            if (point.src.find("#") != std::string::npos) { //章节链接中有锚点
+                //当前章节对应的资源和锚点
+                std::string cur_src;
+                std::string cur_anchor;
+                std::vector<std::string> parts = string_ext::split(point.src, '#');
+                if (parts.size() == 2) {
+                    cur_src = parts[0];
+                    cur_anchor = parts[1];
                 }
-            }
-            //当前章节对应的资源是否是一个新的资源
-            bool new_src = false;
-            if (pre_src != cur_src) {
-                new_src = true;
-            }
-            if (new_src) {
-                point.src = cur_src;
+                //上一个章节对应的资源和锚点
+                std::string pre_src;
+                std::string pre_anchor;
+                if (i > 0) {
+                    auto &pre_point = newPoints[i - 1];
+                    if (pre_point.src.find("#") != std::string::npos) {
+                        std::vector<std::string> pre_parts = string_ext::split(pre_point.src, '#');
+                        if (pre_parts.size() == 2) {
+                            pre_src = pre_parts[0];
+                            pre_anchor = pre_parts[1];
+                        }
+                    } else {
+                        pre_src = pre_point.src;
+                    }
+                }
+                //当前章节对应的资源是否是一个新的资源
+                bool new_src = false;
+                if (pre_src != cur_src) {
+                    new_src = true;
+                }
+                if (new_src) {
+                    point.src = cur_src;
+                }
             }
         }
     }
 
     int order = 1;
-    for (auto &point: newPoints) {
-        point.playOrder = order++;
+    if (!newPoints.empty()) {
+        for (auto &point: newPoints) {
+            point.playOrder = order++;
+        }
     }
 
     points.clear();
