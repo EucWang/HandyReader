@@ -21,7 +21,7 @@ plugins {
     id("androidx.room")
 }
 
-val apikeyPropertiesFile = rootProject.file("apikey.properties")
+val apikeyPropertiesFile = rootProject.file("key.properties")
 val apikeyProperties = Properties().apply {
     load(FileInputStream(apikeyPropertiesFile))
 }

@@ -13,9 +13,10 @@
 .externalNativeBuild
 .cxx
 local.properties
-apikey.properties
+key.properties
 app/src/main/res/values/appId.xml
 app/google-services.json
+app/keystore.jks
 pdfium/build
 pdfium/.cxx
 jp2forandroid/build
