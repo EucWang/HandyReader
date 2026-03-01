@@ -21,6 +21,24 @@
 
 --- 
 
+## TODO
+
+- [ ] Add page-turning animation speed control option
+- [ ] Add volume key page-turning feature toggle
+- [ ] Modify color selection panel
+- [ ] Add font selection
+- [ ] Control the maximum height of popup for in-page annotation content
+- [ ] Continuous vertical scrolling
+- [ ] Add welcome guide on first app launch
+- [ ] Add control guide on first entering the reading interface
+- [ ] Modify storage directory and file loading method
+- [ ] Add WebDAV synchronization
+- [ ] UI redesign and optimization
+- [ ] Add in-app third-party translation display
+- [ ]  Add WebView to display web content
+
+---
+
 ## License
 
 [![GNU GPLv3 License](https://raw.githubusercontent.com/Rics-Dev/uRead/main/.github/Licence.svg)](https://www.gnu.org/licenses/gpl-3.0.en.html)
