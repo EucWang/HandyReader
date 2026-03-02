@@ -52,6 +52,8 @@ data class ReaderPreferences(
      */
     val scroll: Int,                            //滚动模式
 
+    val animationSpeed: Int,            //页面切换动画速度, 取值 50 ~ 1000, default 320
+
     val readingProgression: ConfigReadingProgression,       //阅读方向/从左向右/从右向左
     val verticalText: Boolean,                      //垂直文本
     val publisherStyles: Boolean,                   //出版商样式

@@ -99,6 +99,7 @@
     <string name="justify">两端对齐</string>
     <string name="right">靠右</string>
     <string name="reader_settings">阅读器设置</string>
+    <string name="animation_speed">翻页动画速度</string>
     <string name="scroll_mode">滚动模式</string>
     <string name="tap_navigation">点击导航</string>
     <string name="reading_progression">阅读进度</string>

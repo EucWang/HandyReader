@@ -11,40 +11,26 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowForward
-import androidx.compose.material.icons.automirrored.filled.VolumeDown
-import androidx.compose.material.icons.filled.ArrowDownward
-import androidx.compose.material.icons.filled.ArrowForward
-import androidx.compose.material.icons.filled.Close
-import androidx.compose.material.icons.filled.KeyboardArrowDown
-import androidx.compose.material.icons.filled.KeyboardArrowRight
-import androidx.compose.material.icons.filled.Search
-import androidx.compose.material.icons.filled.SubdirectoryArrowRight
+import androidx.compose.foundation.layout.wrapContentWidth
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilledTonalButton
-import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Switch
+import androidx.compose.material3.Slider
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.wxn.reader.R
 import com.wxn.bookread.data.model.preference.ReaderPreferences
-//import com.wxn.reader.data.model.toConfig
-//import com.wxn.reader.data.model.toRedium
-//import com.wxn.reader.presentation.bookReader.BookReaderViewModel
 import com.wxn.reader.presentation.mainReader.MainReadViewModel
-//import org.readium.r2.navigator.preferences.ReadingProgression
-//import org.readium.r2.shared.ExperimentalReadiumApi
-import com.wxn.bookread.data.model.config.ConfigReadingProgression
 
 //@OptIn(ExperimentalMaterial3Api::class, ExperimentalReadiumApi::class)
 //@Composable
@@ -322,6 +308,21 @@ fun ReaderSettings(
                 }
             }
 
+            Spacer(modifier = Modifier.height(12.dp))
+
+            // Animation Speed
+            SettingsSlider(
+                title = stringResource(R.string.animation_speed),
+                value = readerPreferences.animationSpeed.toFloat(),
+                onValueChange = { newValue ->
+                    viewModel.updateReaderPreferences(
+                        readerPreferences.copy(animationSpeed = newValue.toInt())
+                    )
+                },
+                valueRange = 50f..1000f,
+                valueDisplay = { "${it.toInt()}ms" }
+            )
+
             // Tap Navigation
 //            SettingsSwitch(
 //                title = stringResource(R.string.tap_navigation),
@@ -416,4 +417,46 @@ fun SettingsSwitch(
         )
     }
     Spacer(modifier = Modifier.height(4.dp))
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun SettingsSlider(
+    title: String,
+    value: Float,
+    onValueChange: (Float) -> Unit,
+    valueRange: ClosedFloatingPointRange<Float>,
+    valueDisplay: (Float) -> String
+) {
+    Column(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalAlignment = Alignment.CenterHorizontally,
+    ) {
+        Text(
+            text = title,
+            style = MaterialTheme.typography.titleMedium
+        )
+        Spacer(modifier = Modifier.height(8.dp))
+
+        Row(modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            Slider(
+                value = value,
+                onValueChange = onValueChange,
+                valueRange = valueRange,
+                modifier = Modifier.weight(1f).height(32.dp),
+            )
+
+            Text(
+                text = valueDisplay(value),
+                style = MaterialTheme.typography.bodyMedium,
+                modifier = Modifier.wrapContentWidth(),
+                textAlign = TextAlign.Center,
+                maxLines = 1
+            )
+        }
+
+        Spacer(modifier = Modifier.height(16.dp))
+    }
 }

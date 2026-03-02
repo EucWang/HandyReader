@@ -99,6 +99,7 @@
     <string name="justify">Blocksatz</string>
     <string name="right">Rechts</string>
     <string name="reader_settings">Lesereinstellungen</string>
+    <string name="animation_speed">Animationsgeschwindigkeit</string>
     <string name="scroll_mode">Scroll-Modus</string>
     <string name="tap_navigation">Tippen-Navigation</string>
     <string name="reading_progression">Lesefortschritt</string>

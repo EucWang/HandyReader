@@ -97,11 +97,11 @@ class PageView : FrameLayout, IDataSource, PageCallback {
     }
 
     override fun moveToNextPage() {
-        pageDelegate?.nextPageByAnim(defaultAnimationSpeed)
+        pageDelegate?.nextPageByAnim(animationSpeed)
     }
 
     override fun moveToPrevPage() {
-        pageDelegate?.prevPageByAnim(defaultAnimationSpeed)
+        pageDelegate?.prevPageByAnim(animationSpeed)
     }
 
     var pageDelegate: PageDelegate? = null
@@ -132,7 +132,7 @@ class PageView : FrameLayout, IDataSource, PageCallback {
     /***
      * 默认的动画播放速度
      */
-    val defaultAnimationSpeed = 320
+    var animationSpeed = 320  //页面切换动画速度(ms), 从配置中读取
 
     /***
      * 是否按下
@@ -537,9 +537,9 @@ class PageView : FrameLayout, IDataSource, PageCallback {
             }
         } else if (clickTurnPage) {
             if (clickX > width / 2 || clickAllNext) {
-                pageDelegate?.nextPageByAnim(defaultAnimationSpeed)
+                pageDelegate?.nextPageByAnim(animationSpeed)
             } else {
-                pageDelegate?.prevPageByAnim(defaultAnimationSpeed)
+                pageDelegate?.prevPageByAnim(animationSpeed)
             }
         }
         return true
@@ -638,6 +638,8 @@ class PageView : FrameLayout, IDataSource, PageCallback {
     override fun upPageAnim() {
         Coroutines.mainScope().launch {
             ChapterProvider.readerPreferencesUtil?.readerPrefsFlow?.firstOrNull()?.let { preference ->
+                animationSpeed = preference.animationSpeed  //从配置中读取动画速度
+//                isScroll = (pageAnim == 4)
                 val pageAnim = preference.scroll
 //                isScroll = (pageAnim == 4)
                 when (pageAnim) {

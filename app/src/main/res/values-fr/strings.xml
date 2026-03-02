@@ -99,6 +99,7 @@
     <string name="justify">Justifier</string>
     <string name="right">Droite</string>
     <string name="reader_settings">Paramètres du lecteur</string>
+    <string name="animation_speed">Vitesse de l\'animation</string>
     <string name="scroll_mode">Mode de défilement</string>
     <string name="tap_navigation">Navigation par tapotement</string>
     <string name="reading_progression">Progression de lecture</string>

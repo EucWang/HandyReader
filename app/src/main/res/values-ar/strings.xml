@@ -100,6 +100,7 @@
     <string name="justify">توسيط</string>
     <string name="right">يمين</string>
     <string name="reader_settings">إعدادات القارئ</string>
+    <string name="animation_speed">سرعة الرسوم المتحركة</string>
     <string name="scroll_mode">وضع التمرير</string>
     <string name="tap_navigation">التنقل باللمس</string>
     <string name="reading_progression">تقدم القراءة</string>

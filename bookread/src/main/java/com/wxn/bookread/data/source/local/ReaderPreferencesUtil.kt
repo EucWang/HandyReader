@@ -61,6 +61,7 @@ class ReaderPreferencesUtil @Inject constructor(context: Context) {
         val KEEP_SCREEN_ON = booleanPreferencesKey("keep_screen_on")                        //保持屏幕常亮
         val TAP_NAVIGATION = booleanPreferencesKey("tap_navigation")                        //点击导航
         val SCROLL = intPreferencesKey("scroll")                                        //滚动
+        val ANIMATION_SPEED = intPreferencesKey("animation_speed")                      //翻页动画速度
         val PUBLISHER_STYLES = booleanPreferencesKey("publisher_styles")                    //出版商样式
         val TEXT_NORMALIZATION = booleanPreferencesKey("text_normalization")                //文字标准化
 
@@ -88,6 +89,7 @@ class ReaderPreferencesUtil @Inject constructor(context: Context) {
             keepScreenOn = true,
             tapNavigation = false,
             scroll = 1,
+            animationSpeed = 320,
             readingProgression = ConfigReadingProgression.LTR,
             verticalText = false,
             publisherStyles = false,
@@ -118,6 +120,7 @@ class ReaderPreferencesUtil @Inject constructor(context: Context) {
 
                 pref[KEEP_SCREEN_ON] = defaultPreferences.keepScreenOn
                 pref[SCROLL] = defaultPreferences.scroll
+                pref[ANIMATION_SPEED] = defaultPreferences.animationSpeed
                 pref[TAP_NAVIGATION] = defaultPreferences.tapNavigation
                 pref[READING_PROGRESSION] = defaultPreferences.readingProgression.name
                 pref[VERTICAL_TEXT] = defaultPreferences.verticalText
@@ -158,6 +161,7 @@ class ReaderPreferencesUtil @Inject constructor(context: Context) {
             keepScreenOn = preferences[KEEP_SCREEN_ON] ?: defaultPreferences.keepScreenOn,
             tapNavigation = preferences[TAP_NAVIGATION] ?: defaultPreferences.tapNavigation,
             scroll = preferences[SCROLL] ?: defaultPreferences.scroll,
+            animationSpeed = preferences[ANIMATION_SPEED] ?: defaultPreferences.animationSpeed,
             readingProgression = ConfigReadingProgression.valueOf(
                 preferences[READING_PROGRESSION] ?: defaultPreferences.readingProgression.name
             ),
@@ -195,6 +199,7 @@ class ReaderPreferencesUtil @Inject constructor(context: Context) {
 
             preferences[KEEP_SCREEN_ON] = newPreferences.keepScreenOn
             preferences[SCROLL] = newPreferences.scroll
+            preferences[ANIMATION_SPEED] = newPreferences.animationSpeed
             preferences[TAP_NAVIGATION] = newPreferences.tapNavigation
             preferences[READING_PROGRESSION] = newPreferences.readingProgression.name
             preferences[VERTICAL_TEXT] = newPreferences.verticalText
@@ -253,6 +258,7 @@ class ReaderPreferencesUtil @Inject constructor(context: Context) {
         dataStore.edit { preferences ->
             preferences[KEEP_SCREEN_ON] = defaultPreferences.keepScreenOn
             preferences[SCROLL] = defaultPreferences.scroll
+            preferences[ANIMATION_SPEED] = defaultPreferences.animationSpeed
             preferences[TAP_NAVIGATION] = defaultPreferences.tapNavigation
             preferences[READING_PROGRESSION] = defaultPreferences.readingProgression.name
             preferences[VERTICAL_TEXT] = defaultPreferences.verticalText
