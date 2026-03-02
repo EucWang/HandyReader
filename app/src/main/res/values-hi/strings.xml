@@ -100,6 +100,7 @@
     <string name="justify">समायोजित</string>
     <string name="right">दाएँ</string>
     <string name="reader_settings">रीडर सेटिंग्स</string>
+    <string name="animation_speed">एनीमेशन गति</string>
     <string name="scroll_mode">स्क्रॉल मोड</string>
     <string name="tap_navigation">टैप नेविगेशन</string>
     <string name="reading_progression">पढ़ने की प्रगति</string>

@@ -116,7 +116,7 @@ abstract class VerticalPageDelegate(pageView: PageView) : PageDelegate(pageView)
             MotionEvent.ACTION_CANCEL, MotionEvent.ACTION_UP -> {
                 Logger.d("${this.javaClass.name}::onTouch():ACTION_UP:isStarted($isStarted),isMoved($isMoved),isRunning($isRunning),isDeprecatedAction($isDeprecatedAction)")
                 if (!isDeprecatedAction) {
-                    onAnimStart(pageView.defaultAnimationSpeed)
+                    onAnimStart(pageView.animationSpeed)
                 }
                 isDeprecatedAction = false
             }

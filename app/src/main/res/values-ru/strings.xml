@@ -99,6 +99,7 @@
     <string name="justify">По ширине</string>
     <string name="right">По правому краю</string>
     <string name="reader_settings">Настройки читателя</string>
+    <string name="animation_speed">Скорость анимации</string>
     <string name="scroll_mode">Режим прокрутки</string>
     <string name="tap_navigation">Навигация по нажатию</string>
     <string name="reading_progression">Прогресс чтения</string>

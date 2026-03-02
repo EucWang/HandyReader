@@ -99,6 +99,7 @@
     <string name="justify">Justificar</string>
     <string name="right">Derecha</string>
     <string name="reader_settings">Configuración del Lector</string>
+    <string name="animation_speed">Velocidad de Animación</string>
     <string name="scroll_mode">Modo Desplazamiento</string>
     <string name="tap_navigation">Navegación por Toque</string>
     <string name="reading_progression">Progresión de Lectura</string>

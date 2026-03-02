@@ -99,6 +99,7 @@
     <string name="justify">均等割付</string>
     <string name="right">右揃え</string>
     <string name="reader_settings">リーダー設定</string>
+    <string name="animation_speed">アニメーション速度</string>
     <string name="scroll_mode">スクロールモード</string>
     <string name="tap_navigation">タップナビゲーション</string>
     <string name="reading_progression">読書の進行</string>

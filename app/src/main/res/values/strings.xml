@@ -99,6 +99,7 @@
     <string name="justify">Justify</string>
     <string name="right">Right</string>
     <string name="reader_settings">Reader Settings</string>
+    <string name="animation_speed">Animation Speed</string>
     <string name="scroll_mode">Scroll Mode</string>
     <string name="tap_navigation">Tap Navigation</string>
     <string name="reading_progression">Reading Progression</string>

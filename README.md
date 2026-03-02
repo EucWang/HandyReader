@@ -35,7 +35,9 @@
 - [ ] Add WebDAV synchronization
 - [ ] UI redesign and optimization
 - [ ] Add in-app third-party translation display
-- [ ]  Add WebView to display web content
+- [ ] Add WebView to display web content
+- [ ] support two column page diaplay on tablet
+- [ ] support open mobi/epub.. file from third app
 
 ---
 
