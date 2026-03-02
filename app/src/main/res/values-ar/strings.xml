@@ -102,8 +102,8 @@
     <string name="reader_settings">إعدادات القارئ</string>
     <string name="animation_speed">سرعة الرسوم المتحركة</string>
     <string name="scroll_mode">وضع التمرير</string>
+    <string name="volume_key_page_turning">قلب الصفحات بأزرار الصوت</string>
     <string name="tap_navigation">التنقل باللمس</string>
-    <string name="reading_progression">تقدم القراءة</string>
     <string name="left_to_right">من اليسار إلى اليمين</string>
     <string name="right_to_left">من اليمين إلى اليسار</string>
     <string name="vertical_text">نص عمودي</string>

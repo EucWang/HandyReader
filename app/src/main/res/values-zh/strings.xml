@@ -101,8 +101,8 @@
     <string name="reader_settings">阅读器设置</string>
     <string name="animation_speed">翻页动画速度</string>
     <string name="scroll_mode">滚动模式</string>
+    <string name="volume_key_page_turning">音量键翻页</string>
     <string name="tap_navigation">点击导航</string>
-    <string name="reading_progression">阅读进度</string>
     <string name="left_to_right">从左到右</string>
     <string name="right_to_left">从右到左</string>
     <string name="vertical_text">垂直文本</string>

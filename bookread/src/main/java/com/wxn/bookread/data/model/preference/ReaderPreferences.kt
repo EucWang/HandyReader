@@ -58,4 +58,5 @@ data class ReaderPreferences(
     val verticalText: Boolean,                      //垂直文本
     val publisherStyles: Boolean,                   //出版商样式
     val textNormalization: Boolean,                 //文字格式化
+    val volumeKeyPageTurning: Boolean = true,       //音量键翻页，默认开启
 )

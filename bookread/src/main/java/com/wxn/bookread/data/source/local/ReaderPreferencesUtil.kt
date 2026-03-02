@@ -64,6 +64,7 @@ class ReaderPreferencesUtil @Inject constructor(context: Context) {
         val ANIMATION_SPEED = intPreferencesKey("animation_speed")                      //翻页动画速度
         val PUBLISHER_STYLES = booleanPreferencesKey("publisher_styles")                    //出版商样式
         val TEXT_NORMALIZATION = booleanPreferencesKey("text_normalization")                //文字标准化
+        val VOLUME_KEY_PAGE_TURNING = booleanPreferencesKey("volume_key_page_turning")      //音量键翻页
 
         // Default values
 //        @OptIn(ExperimentalReadiumApi::class)
@@ -94,6 +95,7 @@ class ReaderPreferencesUtil @Inject constructor(context: Context) {
             verticalText = false,
             publisherStyles = false,
             textNormalization = false,
+            volumeKeyPageTurning = true,
         )
     }
 
@@ -126,6 +128,7 @@ class ReaderPreferencesUtil @Inject constructor(context: Context) {
                 pref[VERTICAL_TEXT] = defaultPreferences.verticalText
                 pref[PUBLISHER_STYLES] = defaultPreferences.publisherStyles
                 pref[TEXT_NORMALIZATION] = defaultPreferences.textNormalization
+                pref[VOLUME_KEY_PAGE_TURNING] = defaultPreferences.volumeKeyPageTurning
 
                 pref[FONT_FAMILY] = defaultPreferences.font
                 pref[FONT_BOLD] = defaultPreferences.fontBold
@@ -168,6 +171,7 @@ class ReaderPreferencesUtil @Inject constructor(context: Context) {
             verticalText = preferences[VERTICAL_TEXT] ?: defaultPreferences.verticalText,
             publisherStyles = preferences[PUBLISHER_STYLES] ?: defaultPreferences.publisherStyles,
             textNormalization = preferences[TEXT_NORMALIZATION] ?: defaultPreferences.textNormalization,
+            volumeKeyPageTurning = preferences[VOLUME_KEY_PAGE_TURNING] ?: defaultPreferences.volumeKeyPageTurning,
 
             font = if (preferences[FONT_FAMILY].isNullOrEmpty()) { defaultPreferences.font } else { preferences[FONT_FAMILY].orEmpty() },
             fontBold = preferences[FONT_BOLD] ?: defaultPreferences.fontBold,
@@ -205,6 +209,7 @@ class ReaderPreferencesUtil @Inject constructor(context: Context) {
             preferences[VERTICAL_TEXT] = newPreferences.verticalText
             preferences[PUBLISHER_STYLES] = newPreferences.publisherStyles
             preferences[TEXT_NORMALIZATION] = newPreferences.textNormalization
+            preferences[VOLUME_KEY_PAGE_TURNING] = newPreferences.volumeKeyPageTurning
 
             preferences[FONT_FAMILY] = newPreferences.font
             preferences[FONT_BOLD] = newPreferences.fontBold
@@ -264,6 +269,7 @@ class ReaderPreferencesUtil @Inject constructor(context: Context) {
             preferences[VERTICAL_TEXT] = defaultPreferences.verticalText
             preferences[PUBLISHER_STYLES] = defaultPreferences.publisherStyles
             preferences[TEXT_NORMALIZATION] = defaultPreferences.textNormalization
+            preferences[VOLUME_KEY_PAGE_TURNING] = defaultPreferences.volumeKeyPageTurning
         }
     }
 
