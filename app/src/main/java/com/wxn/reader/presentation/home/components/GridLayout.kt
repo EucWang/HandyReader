@@ -51,15 +51,15 @@ fun GridLayout(
 ) {
     val navController = LocalNavController.current
 
-    val gridAdUnit = BuildConfig.OPEN_BOOK_GRID_AD_UNIT
+//    val gridAdUnit = BuildConfig.OPEN_BOOK_GRID_AD_UNIT
 
     val context = LocalContext.current
     var isBookOpen by remember { mutableStateOf(false) }
 //    var mInterstitialAd by remember { mutableStateOf<InterstitialAd?>(null) }
-    fun loadInterstitialAd() {
-        if (!BuildConfig.ENABLE_AD) {
-            return
-        }
+//    fun loadInterstitialAd() {
+//        if (!BuildConfig.ENABLE_AD) {
+//            return
+//        }
 
 //        if (!appPreferences.isPremium) {//TODO
 //            InterstitialAd.load(
@@ -77,12 +77,12 @@ fun GridLayout(
 //                }
 //            )
 //        }
-    }
+//    }
 
-    fun showInterstitialAd(onAdDismissed: () -> Unit) {
-        if (!BuildConfig.ENABLE_AD) {
-            return
-        }
+//    fun showInterstitialAd(onAdDismissed: () -> Unit) {
+//        if (!BuildConfig.ENABLE_AD) {
+//            return
+//        }
 //TODO
 //        if (!appPreferences.isPremium && mInterstitialAd != null) {
 //            mInterstitialAd?.let { ad ->
@@ -103,14 +103,14 @@ fun GridLayout(
 //        } else {
 //            onAdDismissed()
 //        }
-    }
+//    }
 
     // Load the ad when the composable is first created
-    LaunchedEffect(Unit) {
-        if (!appPreferences.isPremium) {
-            loadInterstitialAd()
-        }
-    }
+//    LaunchedEffect(Unit) {
+//        if (!appPreferences.isPremium) {
+//            loadInterstitialAd()
+//        }
+//    }
 
 
     val configuration = LocalConfiguration.current
