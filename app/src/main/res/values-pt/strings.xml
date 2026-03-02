@@ -101,8 +101,8 @@
     <string name="reader_settings">Configurações do Leitor</string>
     <string name="animation_speed">Velocidade da Animação</string>
     <string name="scroll_mode">Modo de Rolagem</string>
+    <string name="volume_key_page_turning">Virar páginas com teclas de volume</string>
     <string name="tap_navigation">Navegação por Toque</string>
-    <string name="reading_progression">Progressão da Leitura</string>
     <string name="left_to_right">Da Esquerda para a Direita</string>
     <string name="right_to_left">Da Direita para a Esquerda</string>
     <string name="vertical_text">Texto Vertical</string>

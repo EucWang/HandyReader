@@ -101,8 +101,8 @@
     <string name="reader_settings">リーダー設定</string>
     <string name="animation_speed">アニメーション速度</string>
     <string name="scroll_mode">スクロールモード</string>
+    <string name="volume_key_page_turning">音量キーでページめくり</string>
     <string name="tap_navigation">タップナビゲーション</string>
-    <string name="reading_progression">読書の進行</string>
     <string name="left_to_right">左から右</string>
     <string name="right_to_left">右から左</string>
     <string name="vertical_text">縦書き</string>

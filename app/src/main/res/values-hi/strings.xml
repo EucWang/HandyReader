@@ -102,8 +102,8 @@
     <string name="reader_settings">रीडर सेटिंग्स</string>
     <string name="animation_speed">एनीमेशन गति</string>
     <string name="scroll_mode">स्क्रॉल मोड</string>
+    <string name="volume_key_page_turning">वॉल्यूम कुंजियों से पेज बदलें</string>
     <string name="tap_navigation">टैप नेविगेशन</string>
-    <string name="reading_progression">पढ़ने की प्रगति</string>
     <string name="left_to_right">बाएँ से दाएँ</string>
     <string name="right_to_left">दाएँ से बाएँ</string>
     <string name="vertical_text">ऊर्ध्वाधर टेक्स्ट</string>

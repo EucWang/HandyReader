@@ -369,11 +369,15 @@ class MainReadViewModel @Inject constructor(
     }
 
     private fun onVolumeUp() {
-        pageController.animToPrev()
+        if (_readerPreferences.value.volumeKeyPageTurning) {
+            pageController.animToPrev()
+        }
     }
 
     private fun onVolumeDown() {
-        pageController.animToNext()
+        if (_readerPreferences.value.volumeKeyPageTurning) {
+            pageController.animToNext()
+        }
     }
 
     private fun loadChapterWords(book: Book) {

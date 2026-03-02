@@ -256,6 +256,19 @@ fun ReaderSettings(
                 }
             )
 
+            // Volume Key Page Turning
+            SettingsSwitch(
+                title = stringResource(R.string.volume_key_page_turning),
+                checked = readerPreferences.volumeKeyPageTurning,
+                onCheckedChange = { isVolumeKeyPageTurning ->
+                    viewModel.updateReaderPreferences(
+                        readerPreferences.copy(
+                            volumeKeyPageTurning = isVolumeKeyPageTurning,
+                        )
+                    )
+                }
+            )
+
             // Scroll Mode
 //            SettingsSwitch(
 //                title = stringResource(R.string.scroll_mode),
