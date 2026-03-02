@@ -14,7 +14,9 @@ object ImageProvider {
      */
     fun getImage(context: Context, book:Book, imgSrc: String, onUi:Boolean = false): Bitmap? {
         return try {
-            BitmapFactory.decodeStream(FileInputStream(File(imgSrc)))
+            FileInputStream(File(imgSrc)).use { fileInputStream ->
+                BitmapFactory.decodeStream(fileInputStream)
+            }
         }catch (ex : Exception) {
             null
         }

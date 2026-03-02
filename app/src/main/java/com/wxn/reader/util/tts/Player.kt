@@ -46,15 +46,25 @@ class Player {
         CoroutineScope(Dispatchers.IO).launch {
             flow.collect { frame ->
                 if (frame.endOfFrame) {
-                    a!!.close()
-                    a = null
+                    val channel = a
+                    if (channel != null) {
+                        channel.close()
+                        a = null
+                    }
                     return@collect
                 }
-                if (a == null) {
-                    a = Channel()
-                    jobChannel.send(a!!)
+                val data = frame.data
+                if (data == null) {
+                    return@collect
                 }
-                a!!.send(frame.data!!)
+                
+                var channel = a
+                if (channel == null) {
+                    channel = Channel()
+                    a = channel
+                    jobChannel.send(channel)
+                }
+                channel.send(data)
             }
             jobChannel.close()
         }

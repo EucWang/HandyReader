@@ -15,8 +15,6 @@ import com.wxn.reader.util.tts.EdgeTTS
 import com.wxn.reader.util.tts.Player
 import com.wxn.reader.util.tts.repository.SpeakerRepository
 import com.wxn.reader.util.tts.repository.SpeakerRepositoryDelegate
-import kotlinx.coroutines.CancellationException
-import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.channels.Channel
@@ -24,7 +22,6 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.transform
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.runBlocking
 
 val Context.repositorySpeaker by SpeakerRepositoryDelegate()
 
@@ -86,7 +83,8 @@ class EdgeTTSService : TextToSpeechService() {
     }
 
     override fun onDestroy() {
-        runBlocking {
+        // 使用launch而不是runBlocking，避免阻塞主线程
+        scope.launch(Dispatchers.IO) {
             engine?.close()
         }
         scope.cancel()
@@ -152,46 +150,61 @@ class EdgeTTSService : TextToSpeechService() {
         val text = request.charSequenceText.toString()
         val pitch = request.pitch - 100
         val rate = request.speechRate - 100
-//        val pitch = request.pitch
-//        val rate = request.speechRate
 
         Logger.d("EdgeTtsService::start synthesizing text: $text, picth=$pitch,rate=$rate")
 
-        runBlocking {
-            callback.start(sampleRate, AudioFormat.ENCODING_PCM_16BIT, 1)
-
-            player.play()
-
-            // 1. input text
-            val metadata = AudioMetaData(
-                locale = locale!!,
-                voiceName = voiceName!!,
-                volume = "+0%",
-                outputFormat = outputFormat!!,
-                pitch = "${pitch}Hz",
-                rate = "${rate}%",
-            )
+        // 使用协程在IO线程处理，避免阻塞主线程
+        scope.launch(Dispatchers.IO) {
             try {
-                engine?.input(text, metadata)
-            } catch (e: Throwable) {
-                callback.error()
-                error("synthesize text error: $e")
-                return@runBlocking
-            }
+                callback.start(sampleRate, AudioFormat.ENCODING_PCM_16BIT, 1)
 
-            // 2. wait result
-            for (result in resultChannel) {
-                when {
-                    result.isSuccess -> {
-                        callback.done()
-                        break
-                    }
+                player.play()
 
-                    result.isFailure -> {
-                        callback.error()
-                        break
+                // 1. input text
+                val locale = locale
+                val voiceName = voiceName
+                val outputFormat = outputFormat
+                
+                if (locale == null || voiceName == null || outputFormat == null) {
+                    callback.error()
+                    Logger.e("EdgeTtsService::onSynthesizeText::Required parameters are null")
+                    return@launch
+                }
+                
+                val metadata = AudioMetaData(
+                    locale = locale,
+                    voiceName = voiceName,
+                    volume = "+0%",
+                    outputFormat = outputFormat,
+                    pitch = "${pitch}Hz",
+                    rate = "${rate}%",
+                )
+                
+                try {
+                    engine?.input(text, metadata)
+                } catch (e: Throwable) {
+                    callback.error()
+                    Logger.e("synthesize text error: $e")
+                    return@launch
+                }
+
+                // 2. wait result
+                for (result in resultChannel) {
+                    when {
+                        result.isSuccess -> {
+                            callback.done()
+                            break
+                        }
+
+                        result.isFailure -> {
+                            callback.error()
+                            break
+                        }
                     }
                 }
+            } catch (e: Exception) {
+                Logger.e("EdgeTtsService::onSynthesizeText error: $e")
+                callback.error()
             }
         }
     }

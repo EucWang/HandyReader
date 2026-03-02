@@ -54,8 +54,12 @@ class EdgeTTS {
 
     suspend fun run() {
         try {
+            val client = client
+            if (client == null) {
+                throw IllegalStateException("HttpClient is not initialized")
+            }
 
-            session = client!!.webSocketSession {
+            session = client.webSocketSession {
                 makeHttpRequestBuilder(this)
             }
 
@@ -64,7 +68,10 @@ class EdgeTTS {
                     resultChannel.send(AudioFrame(null, textCompleted = true))
                     continue
                 }
-                val md = currentMetadata!!
+                val md = currentMetadata
+                if (md == null) {
+                    throw IllegalStateException("Metadata is not set before use")
+                }
                 val ssml = buildSSML(chunk, metadata = md)
                 val speech = buildSpeechConfig(md.outputFormat)
                 communicate(speech, ssml) {
@@ -78,7 +85,8 @@ class EdgeTTS {
         } catch (_: CancellationException) {
 
         } catch (ex: Throwable) {
-            if (ex.message != null && ex.message!!.contains("403") && errCount < 3) {
+            val message = ex.message
+            if (message != null && message.contains("403") && errCount < 3) {
                 delay(500L)
                 errCount += 1
                 resolveHttp403()
@@ -172,7 +180,11 @@ class EdgeTTS {
 
     private suspend fun resolveHttp403() {
         val builder = makeHttpRequestBuilder(HttpRequestBuilder(), useWs = false)
-        val res = client!!.request(builder)
+        val client = client
+        if (client == null) {
+            throw IllegalStateException("HttpClient is not initialized")
+        }
+        val res = client.request(builder)
         val date = res.headers["Date"]
         if (date != null) {
             DRM.adjustClockSkew(date)
@@ -184,8 +196,13 @@ class EdgeTTS {
     }
 
     private suspend fun communicate(speech: String, ssml: String, onReceived: suspend (ByteArray?) -> Unit) {
-        val session = session!!
+        val session = session
+        if (session == null) {
+            throw IllegalStateException("WebSocket session is not established")
+        }
 
+        session.send(speech)
+        session.send(ssml)
         session.send(speech)
         session.send(ssml)
 
