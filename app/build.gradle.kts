@@ -33,6 +33,7 @@ room {
 android {
     namespace = "com.wxn.reader"
     compileSdk = 36
+    buildToolsVersion = "36.0.0"
 
     defaultConfig {
         applicationId = "com.wxn.reader"
@@ -93,7 +94,7 @@ android {
         viewBinding = true
     }
     composeOptions {
-        kotlinCompilerExtensionVersion = "1.5.15"
+        kotlinCompilerExtensionVersion = "1.5.17"
     }
     packaging {
         resources {
