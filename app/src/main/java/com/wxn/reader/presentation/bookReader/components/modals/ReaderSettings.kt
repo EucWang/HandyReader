@@ -332,7 +332,7 @@ fun ReaderSettings(
                         readerPreferences.copy(animationSpeed = newValue.toInt())
                     )
                 },
-                valueRange = 50f..1000f,
+                valueRange = 50f..800f,
                 valueDisplay = { "${it.toInt()}ms" }
             )
 
