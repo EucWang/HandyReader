@@ -28,9 +28,15 @@ jobs:
           distribution: 'temurin'
           cache: gradle
 
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v3
+
       - name: Accept Android SDK Licenses
         run: |
-          yes | sdkmanager --licenses || true
+          # 使用绝对路径确保调用的是正确的 sdkmanager
+          yes | $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager --licenses
+          # 尝试预安装该 NDK 版本以触发许可接受
+          $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager --install "ndk;29.0.13599879"
 
       - name: Decode Secrets
         run: |
