@@ -45,6 +45,10 @@
 #include "j2k.h"
 #include <string.h>
 
+#ifdef USE_JPIP
+#include "indexbox_manager.h"
+#endif
+
 /** @defgroup JP2 JP2 - JPEG-2000 file format reader/writer */
 /*@{*/
 

@@ -413,6 +413,7 @@ Java_com_wxn_mobi_inative_NativeLib_getChapters(JNIEnv *env, jobject thiz, jobje
     const char *nativeStr = env->GetStringUTFChars(path, NULL);
 
     if (create_util(book_id, nativeStr, type) != 1) {
+        env->ReleaseStringUTFChars(path, nativeStr);
         return nullptr;
     }
 
@@ -426,24 +427,29 @@ Java_com_wxn_mobi_inative_NativeLib_getChapters(JNIEnv *env, jobject thiz, jobje
         ret = fb2util->getChapters(vectors);
     } else {
         LOGE("%s unknown type[%d]", __func__, type);
+        env->ReleaseStringUTFChars(path, nativeStr);
         return nullptr;
     }
     if (ret != 1) {
+        env->ReleaseStringUTFChars(path, nativeStr);
         return nullptr;
     }
     jclass objClass = env->FindClass("com/wxn/base/bean/BookChapter");
     if (objClass == nullptr || env->ExceptionCheck()) {
+        env->ReleaseStringUTFChars(path, nativeStr);
         return nullptr;
     }
     int length = vectors.size();
     if (length <= 0) {
         LOGE("%s failed, vectors is empty", __func__);
+        env->ReleaseStringUTFChars(path, nativeStr);
         return nullptr;
     }
 
     jobjectArray result = env->NewObjectArray(length, objClass, nullptr);
     if (result == nullptr) {
         LOGE("%s failed, jArray is null", __func__);
+        env->ReleaseStringUTFChars(path, nativeStr);
         return nullptr;
     }
 
@@ -451,6 +457,7 @@ Java_com_wxn_mobi_inative_NativeLib_getChapters(JNIEnv *env, jobject thiz, jobje
                                              "(JLjava/lang/String;Ljava/lang/String;JILjava/lang/String;JLjava/lang/String;JLjava/lang/String;Ljava/lang/String;IJJJF)V");
     if (constructor == nullptr) {
         LOGE("%s failed, BookChapter's constructor is null", __func__);
+        env->ReleaseStringUTFChars(path, nativeStr);
         return nullptr;
     }
 
@@ -484,6 +491,7 @@ Java_com_wxn_mobi_inative_NativeLib_getChapters(JNIEnv *env, jobject thiz, jobje
         );
         if (item == nullptr) {
             LOGE("%s create BookChapter failed", __func__);
+            env->ReleaseStringUTFChars(path, nativeStr);
             return nullptr;
         }
         env->SetObjectArrayElement(result, index, item);
@@ -561,6 +569,11 @@ Java_com_wxn_mobi_inative_NativeLib_getChapter(JNIEnv *env, jobject thiz, jobjec
          chapter_size);
 
     if (create_util(book_id, nativeStr, type) != 1) {
+        env->ReleaseStringUTFChars(path, nativeStr);
+        env->ReleaseStringUTFChars(chapterId, chapterIdStr);
+        env->ReleaseStringUTFChars(parentChapterId, parentChapterIdStr);
+        env->ReleaseStringUTFChars(chapterName, chapterNameStr);
+        env->ReleaseStringUTFChars(src, srcStr);
         return nullptr;
     }
 
@@ -574,48 +587,98 @@ Java_com_wxn_mobi_inative_NativeLib_getChapter(JNIEnv *env, jobject thiz, jobjec
         ret = fb2util->getChapter(env, book_id, nativeStr, point, docTexts);
     }
     if (ret != 1) {
+        env->ReleaseStringUTFChars(path, nativeStr);
+        env->ReleaseStringUTFChars(chapterId, chapterIdStr);
+        env->ReleaseStringUTFChars(parentChapterId, parentChapterIdStr);
+        env->ReleaseStringUTFChars(chapterName, chapterNameStr);
+        env->ReleaseStringUTFChars(src, srcStr);
         return nullptr;
     }
 
     if (docTexts.empty()) {
+        env->ReleaseStringUTFChars(path, nativeStr);
+        env->ReleaseStringUTFChars(chapterId, chapterIdStr);
+        env->ReleaseStringUTFChars(parentChapterId, parentChapterIdStr);
+        env->ReleaseStringUTFChars(chapterName, chapterNameStr);
+        env->ReleaseStringUTFChars(src, srcStr);
         return nullptr;
     }
 
     jclass objClass = env->FindClass("com/wxn/mobi/data/model/ParagraphData");
     if (objClass == nullptr || env->ExceptionCheck()) {
+        env->ReleaseStringUTFChars(path, nativeStr);
+        env->ReleaseStringUTFChars(chapterId, chapterIdStr);
+        env->ReleaseStringUTFChars(parentChapterId, parentChapterIdStr);
+        env->ReleaseStringUTFChars(chapterName, chapterNameStr);
+        env->ReleaseStringUTFChars(src, srcStr);
         return nullptr;
     }
 
     int length = docTexts.size();
     jobjectArray result = env->NewObjectArray(length, objClass, nullptr);
     if (result == nullptr) {
+        env->ReleaseStringUTFChars(path, nativeStr);
+        env->ReleaseStringUTFChars(chapterId, chapterIdStr);
+        env->ReleaseStringUTFChars(parentChapterId, parentChapterIdStr);
+        env->ReleaseStringUTFChars(chapterName, chapterNameStr);
+        env->ReleaseStringUTFChars(src, srcStr);
         return nullptr;
     }
     jmethodID constructor = env->GetMethodID(objClass, "<init>", "([BLjava/util/List;)V");
     if (constructor == nullptr) {
+        env->ReleaseStringUTFChars(path, nativeStr);
+        env->ReleaseStringUTFChars(chapterId, chapterIdStr);
+        env->ReleaseStringUTFChars(parentChapterId, parentChapterIdStr);
+        env->ReleaseStringUTFChars(chapterName, chapterNameStr);
+        env->ReleaseStringUTFChars(src, srcStr);
         return nullptr;
     }
 
     jclass listClass = env->FindClass("java/util/ArrayList");
     if (listClass == nullptr || env->ExceptionCheck()) {
+        env->ReleaseStringUTFChars(path, nativeStr);
+        env->ReleaseStringUTFChars(chapterId, chapterIdStr);
+        env->ReleaseStringUTFChars(parentChapterId, parentChapterIdStr);
+        env->ReleaseStringUTFChars(chapterName, chapterNameStr);
+        env->ReleaseStringUTFChars(src, srcStr);
         return nullptr;
     }
     jmethodID listConstructor = env->GetMethodID(listClass, "<init>", "()V");
     if (listConstructor == nullptr) {
+        env->ReleaseStringUTFChars(path, nativeStr);
+        env->ReleaseStringUTFChars(chapterId, chapterIdStr);
+        env->ReleaseStringUTFChars(parentChapterId, parentChapterIdStr);
+        env->ReleaseStringUTFChars(chapterName, chapterNameStr);
+        env->ReleaseStringUTFChars(src, srcStr);
         return nullptr;
     }
     jmethodID listAdd = env->GetMethodID(listClass, "add", "(Ljava/lang/Object;)Z");
     if (listAdd == nullptr) {
+        env->ReleaseStringUTFChars(path, nativeStr);
+        env->ReleaseStringUTFChars(chapterId, chapterIdStr);
+        env->ReleaseStringUTFChars(parentChapterId, parentChapterIdStr);
+        env->ReleaseStringUTFChars(chapterName, chapterNameStr);
+        env->ReleaseStringUTFChars(src, srcStr);
         return nullptr;
     }
 
     jclass textTagClass = env->FindClass("com/wxn/base/bean/TextTag");
     if (textTagClass == nullptr || env->ExceptionCheck()) {
+        env->ReleaseStringUTFChars(path, nativeStr);
+        env->ReleaseStringUTFChars(chapterId, chapterIdStr);
+        env->ReleaseStringUTFChars(parentChapterId, parentChapterIdStr);
+        env->ReleaseStringUTFChars(chapterName, chapterNameStr);
+        env->ReleaseStringUTFChars(src, srcStr);
         return nullptr;
     }
     jmethodID textTagConstructor = env->GetMethodID(textTagClass, "<init>",
                                                     "(Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;IILjava/lang/String;Ljava/lang/String;)V");
     if (textTagConstructor == nullptr) {
+        env->ReleaseStringUTFChars(path, nativeStr);
+        env->ReleaseStringUTFChars(chapterId, chapterIdStr);
+        env->ReleaseStringUTFChars(parentChapterId, parentChapterIdStr);
+        env->ReleaseStringUTFChars(chapterName, chapterNameStr);
+        env->ReleaseStringUTFChars(src, srcStr);
         return nullptr;
     }
 
@@ -642,10 +705,20 @@ Java_com_wxn_mobi_inative_NativeLib_getChapter(JNIEnv *env, jobject thiz, jobjec
 
         jbyteArray byteArray = env->NewByteArray(length);
         if (byteArray == nullptr) {
+            env->ReleaseStringUTFChars(path, nativeStr);
+            env->ReleaseStringUTFChars(chapterId, chapterIdStr);
+            env->ReleaseStringUTFChars(parentChapterId, parentChapterIdStr);
+            env->ReleaseStringUTFChars(chapterName, chapterNameStr);
+            env->ReleaseStringUTFChars(src, srcStr);
             return nullptr;
         }
         jbyte *bytes = env->GetByteArrayElements(byteArray, nullptr);
         if (bytes == nullptr) {
+            env->ReleaseStringUTFChars(path, nativeStr);
+            env->ReleaseStringUTFChars(chapterId, chapterIdStr);
+            env->ReleaseStringUTFChars(parentChapterId, parentChapterIdStr);
+            env->ReleaseStringUTFChars(chapterName, chapterNameStr);
+            env->ReleaseStringUTFChars(src, srcStr);
             return nullptr;
         }
         memcpy(bytes, ch_text, length);
@@ -850,18 +923,22 @@ Java_com_wxn_mobi_inative_NativeLib_getWordCount(JNIEnv *env, jobject thiz, jlon
 
     jclass listClass = env->FindClass("java/util/ArrayList");
     if (listClass == nullptr || env->ExceptionCheck()) {
+        env->ReleaseStringUTFChars(path, nativeStr);
         return nullptr;
     }
     jmethodID listConstructor = env->GetMethodID(listClass, "<init>", "()V");
     if (listConstructor == nullptr) {
+        env->ReleaseStringUTFChars(path, nativeStr);
         return nullptr;
     }
     jmethodID listAdd = env->GetMethodID(listClass, "add", "(Ljava/lang/Object;)Z");
     if (listAdd == nullptr) {
+        env->ReleaseStringUTFChars(path, nativeStr);
         return nullptr;
     }
     jclass pairClass = env->FindClass("com/wxn/mobi/data/model/CountPair");
     if (pairClass == nullptr || env->ExceptionCheck()) {
+        env->ReleaseStringUTFChars(path, nativeStr);
         return nullptr;
     }
     jmethodID pairConstructor = env->GetMethodID(pairClass, "<init>", "(III)V");
