@@ -13,6 +13,10 @@
 #include "util/fb2_util.h"
 #include "util/file_searcher.h"
 #include <memory>
+#include <mutex>
+
+// 全局互斥锁，保护 util 对象的创建和销毁
+static std::mutex g_util_mutex;
 
 std::shared_ptr<mobi_util> mobiutil = nullptr;
 std::shared_ptr<epub_util> epubutil = nullptr;
@@ -82,36 +86,52 @@ Java_com_wxn_mobi_inative_NativeLib_nativeFilesCrc(
 }
 
 void create_mobi_util(long book_id, const char *path) {
+    // 使用锁保护全局变量的访问
+    std::lock_guard<std::mutex> lock(g_util_mutex);
+    
     if (mobiutil == nullptr) {
         long bookid = book_id;
         std::string bookpath = path;
         mobiutil = std::shared_ptr<mobi_util>(new mobi_util(bookid, bookpath));
+        LOGD("%s: created new mobiutil for book_id=%ld", __func__, book_id);
     } else {
         if (mobiutil->bookid() != book_id || mobiutil->bookpath() != path) {
+            LOGD("%s: resetting mobiutil for new book_id=%ld (old=%ld)", 
+                 __func__, book_id, mobiutil->bookid());
             mobiutil.reset(new mobi_util(book_id, path));
         }
     }
 }
 
 void create_epub_util(long book_id, const char *path) {
+    std::lock_guard<std::mutex> lock(g_util_mutex);
+    
     if (epubutil == nullptr) {
         long bookid = book_id;
         std::string bookpath = path;
         epubutil = std::shared_ptr<epub_util>(new epub_util(bookid, bookpath));
+        LOGD("%s: created new epubutil for book_id=%ld", __func__, book_id);
     } else {
         if (epubutil->bookid() != book_id || epubutil->bookpath() != path) {
+            LOGD("%s: resetting epubutil for new book_id=%ld (old=%ld)", 
+                 __func__, book_id, epubutil->bookid());
             epubutil.reset(new epub_util(book_id, path));
         }
     }
 }
 
 void create_fb2_util(long book_id, const char *path) {
+    std::lock_guard<std::mutex> lock(g_util_mutex);
+    
     if (fb2util == nullptr) {
         long bookid = book_id;
         std::string bookpath = path;
         fb2util = std::shared_ptr<fb2_util>(new fb2_util(bookid, bookpath));
+        LOGD("%s: created new fb2util for book_id=%ld", __func__, book_id);
     } else {
         if (fb2util->bookid() != book_id || fb2util->bookpath() != path) {
+            LOGD("%s: resetting fb2util for new book_id=%ld (old=%ld)", 
+                 __func__, book_id, fb2util->bookid());
             fb2util.reset(new fb2_util(book_id, path));
         }
     }
@@ -564,14 +584,39 @@ Java_com_wxn_mobi_inative_NativeLib_getChapter(JNIEnv *env, jobject thiz, jobjec
         return nullptr;
     }
 
+    // 创建局部 shared_ptr 副本，防止在 getChapter 执行期间对象被 reset
+    std::shared_ptr<mobi_util> local_mobiutil;
+    std::shared_ptr<epub_util> local_epubutil;
+    std::shared_ptr<fb2_util> local_fb2util;
+    
+    {
+        // 使用锁保护全局变量的访问
+        std::lock_guard<std::mutex> lock(g_util_mutex);
+        if (type == 1 && mobiutil) {
+            local_mobiutil = mobiutil;  // 增加引用计数
+        } else if (type == 2 && epubutil) {
+            local_epubutil = epubutil;  // 增加引用计数
+        } else if (type == 3 && fb2util) {
+            local_fb2util = fb2util;  // 增加引用计数
+        }
+    }
+    
+    // 验证对象是否有效
+    if ((type == 1 && !local_mobiutil) ||
+        (type == 2 && !local_epubutil) ||
+        (type == 3 && !local_fb2util)) {
+        LOGE("%s: util object is null for type=%d", __func__, type);
+        return nullptr;
+    }
+
     std::vector<DocText> docTexts;
     int ret = 0;
     if (type == 1) {
-        ret = mobiutil->getChapter(env, book_id, nativeStr, point, docTexts);
+        ret = local_mobiutil->getChapter(env, book_id, nativeStr, point, docTexts);
     } else if (type == 2) {
-        ret = epubutil->getChapter(env, book_id, nativeStr, point, docTexts);
+        ret = local_epubutil->getChapter(env, book_id, nativeStr, point, docTexts);
     } else if (type == 3) {
-        ret = fb2util->getChapter(env, book_id, nativeStr, point, docTexts);
+        ret = local_fb2util->getChapter(env, book_id, nativeStr, point, docTexts);
     }
     if (ret != 1) {
         return nullptr;

@@ -40,9 +40,9 @@ object NativeLib {
      * @param path
      * @param chapter
      * @param type 1: mobi/azw3; 2: epub; 3: fb2
-     * @return
+     * @return 章节内容数组，如果失败返回 null
      */
-    external fun getChapter(context: Context, path: String, chapter: BookChapter, type: Int): Array<ParagraphData>
+    external fun getChapter(context: Context, path: String, chapter: BookChapter, type: Int): Array<ParagraphData>?
 
     external fun getCssInfo(context: Context, book_id: Long, cssNames: Array<String>, tagNames: Array<String>,ids: Array<String>, type: Int): Array<CssInfo>?
 
