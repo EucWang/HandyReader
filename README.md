@@ -23,19 +23,21 @@
 
 ## TODO
 
-- [ ] Add page-turning animation speed control option
-- [ ] Add volume key page-turning feature toggle
+- [√] Add page-turning animation speed control option
+- [√] Add volume key page-turning feature toggle
 - [ ] Modify color selection panel
 - [ ] Add font selection
 - [ ] Control the maximum height of popup for in-page annotation content
 - [ ] Continuous vertical scrolling
 - [ ] Add welcome guide on first app launch
-- [ ] Add control guide on first entering the reading interface
+- [√] Add control guide on first entering the reading interface
 - [ ] Modify storage directory and file loading method
 - [ ] Add WebDAV synchronization
 - [ ] UI redesign and optimization
 - [ ] Add in-app third-party translation display
-- [ ]  Add WebView to display web content
+- [ ] Add WebView to display web content
+- [ ] support two column page diaplay on tablet
+- [ ] support open mobi/epub.. file from third app
 
 ---
 
