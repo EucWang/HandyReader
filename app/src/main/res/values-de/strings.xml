@@ -282,5 +282,11 @@
     <string name="page_trans_anim_cover_vertical">Vertikale Deckung</string>
     <string name="dialog_content_to_out_href">Sind Sie sicher, dass Sie zum externen Link springen möchten (%1$s)?</string>
     <string name="auto_open_last_read_file">Zuletzt gelesene Datei automatisch öffnen</string>
-
+    
+    <!-- Reader Guide Overlay -->
+    <string name="reader_guide_tap_here">Hier tippen</string>
+    <string name="reader_guide_prev_page">Vorherige Seite</string>
+    <string name="reader_guide_toggle_menu">Menü ein/ausblenden</string>
+    <string name="reader_guide_next_page">Nächste Seite</string>
+    <string name="reader_guide_close">Schließen</string>
 </resources>

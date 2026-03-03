@@ -65,6 +65,7 @@ import com.wxn.reader.presentation.bookReader.components.modals.ReaderSettings
 import com.wxn.reader.presentation.bookReader.components.modals.UiSettings
 import com.wxn.reader.presentation.bookReader.components.toolbars.BottomToolbar
 import com.wxn.reader.presentation.bookReader.components.toolbars.TopToolbar
+import com.wxn.reader.presentation.bookReader.components.ReaderGuideOverlay
 import com.wxn.reader.util.LogCompositions
 import com.wxn.reader.util.TopPopupPositionProvider
 import kotlinx.coroutines.launch
@@ -81,6 +82,7 @@ fun ReaderView(
     val book by viewModel.book.collectAsStateWithLifecycle()
     val areToolbarsVisible by viewModel.showMenu.collectAsStateWithLifecycle()
     val appPreferences by viewModel.appPreferences.collectAsStateWithLifecycle()
+    val showReaderGuide by viewModel.showReaderGuide.collectAsStateWithLifecycle()
 
     val isChaptersDrawerOpen by viewModel.isChaptersDrawerOpen.collectAsStateWithLifecycle()
     val isNotesDrawerOpen by viewModel.isNotesDrawerOpen.collectAsStateWithLifecycle()
@@ -121,6 +123,11 @@ fun ReaderView(
     val showOutHrefDialog by viewModel.showOutHrefDialog.collectAsStateWithLifecycle()
 
     val context = LocalContext.current
+
+    // 检查是否需要显示阅读引导页
+    LaunchedEffect(Unit) {
+        viewModel.checkAndShowReaderGuide()
+    }
 
     fun navigateToHref(href: String) {
         val intent = Intent(Intent.ACTION_VIEW, Uri.parse(href))
@@ -525,6 +532,13 @@ fun ReaderView(
                         Text(stringResource(R.string.navigate_to))
                     }
                 },
+            )
+        }
+
+        // 阅读引导页覆盖层
+        if (showReaderGuide) {
+            ReaderGuideOverlay(
+                onDismiss = { viewModel.markReaderGuideShown() }
             )
         }
     }

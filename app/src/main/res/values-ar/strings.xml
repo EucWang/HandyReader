@@ -281,6 +281,12 @@
     <string name="page_trans_anim_slide_vertical">انزلاق عمودي</string>
     <string name="page_trans_anim_cover_vertical">غطاء عمودي</string>
     <string name="dialog_content_to_out_href">هل أنت متأكد أنك تريد الانتقال إلى الرابط الخارجي (%1$s)؟</string>
-    <string name="auto_open_last_read_file">فتح آخر ملف تمت قراءته تلقائيًا\t</string>
-
+    <string name="auto_open_last_read_file">فتح آخر ملف تمت قراءته تلقائيًا	</string>
+    
+    <!-- Reader Guide Overlay -->
+    <string name="reader_guide_tap_here">اضغط هنا</string>
+    <string name="reader_guide_prev_page">الصفحة السابقة</string>
+    <string name="reader_guide_toggle_menu">إظهار/إخفاء القائمة</string>
+    <string name="reader_guide_next_page">الصفحة التالية</string>
+    <string name="reader_guide_close">إغلاق</string>
 </resources>

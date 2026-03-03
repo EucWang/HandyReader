@@ -280,5 +280,11 @@
     <string name="page_trans_anim_cover_vertical">Couverture verticale</string>
     <string name="dialog_content_to_out_href">Êtes-vous sûr de vouloir accéder au lien externe (%1$s) ?</string>
     <string name="auto_open_last_read_file">Ouvrir automatiquement le dernier fichier lu</string>
-
+    
+    <!-- Reader Guide Overlay -->
+    <string name="reader_guide_tap_here">Appuyez ici</string>
+    <string name="reader_guide_prev_page">Page précédente</string>
+    <string name="reader_guide_toggle_menu">Afficher/Masquer le menu</string>
+    <string name="reader_guide_next_page">Page suivante</string>
+    <string name="reader_guide_close">Fermer</string>
 </resources>

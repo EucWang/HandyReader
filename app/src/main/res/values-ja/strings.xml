@@ -280,5 +280,11 @@
     <string name="page_trans_anim_cover_vertical">垂直カバー</string>
     <string name="dialog_content_to_out_href">外部リンク (%1$s) にジャンプしてもよろしいですか？</string>
     <string name="auto_open_last_read_file">最後に読んだファイルを自動的に開く</string>
-
+    
+    <!-- Reader Guide Overlay -->
+    <string name="reader_guide_tap_here">ここをタップ</string>
+    <string name="reader_guide_prev_page">前のページ</string>
+    <string name="reader_guide_toggle_menu">メニュー表示/非表示</string>
+    <string name="reader_guide_next_page">次のページ</string>
+    <string name="reader_guide_close">閉じる</string>
 </resources>

@@ -280,5 +280,11 @@
     <string name="page_trans_anim_cover_vertical">垂直覆盖</string>
     <string name="dialog_content_to_out_href">确定要跳转到外部链接(%1$s)吗？</string>
     <string name="auto_open_last_read_file">自动打开上次阅读文件</string>
-
+    
+    <!-- Reader Guide Overlay -->
+    <string name="reader_guide_tap_here">点击此处</string>
+    <string name="reader_guide_prev_page">翻到上一页</string>
+    <string name="reader_guide_toggle_menu">显示/隐藏菜单</string>
+    <string name="reader_guide_next_page">翻到下一页</string>
+    <string name="reader_guide_close">关闭</string>
 </resources>

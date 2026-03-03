@@ -280,5 +280,11 @@
     <string name="page_trans_anim_cover_vertical">Вертикальное перекрытие</string>
     <string name="dialog_content_to_out_href">Вы уверены, что хотите перейти по внешней ссылке (%1$s)?</string>
     <string name="auto_open_last_read_file">Автоматически открыть последний прочитанный файл</string>
-
+    
+    <!-- Reader Guide Overlay -->
+    <string name="reader_guide_tap_here">Нажмите здесь</string>
+    <string name="reader_guide_prev_page">Предыдущая страница</string>
+    <string name="reader_guide_toggle_menu">Показать/Скрыть меню</string>
+    <string name="reader_guide_next_page">Следующая страница</string>
+    <string name="reader_guide_close">Закрыть</string>
 </resources>

@@ -254,6 +254,10 @@ class MainReadViewModel @Inject constructor(
     private val _ttsLanguage = MutableStateFlow(LanguageUtil.languageMaps[1])
     val ttsLanguage: StateFlow<LanguageInfo?> = _ttsLanguage.asStateFlow()
 
+    // 阅读引导页显示状态
+    private val _showReaderGuide = MutableStateFlow(false)
+    val showReaderGuide: StateFlow<Boolean> = _showReaderGuide.asStateFlow()
+
     private suspend fun fetchBook(bookId: Long): Boolean {
         try {
             val theBook = getBookByIdUseCase(bookId)
@@ -1233,7 +1237,34 @@ class MainReadViewModel @Inject constructor(
         _showOutHrefDialog.value = false
     }
 
+    /***
+     * 检查是否需要显示阅读引导页
+     * 如果用户从未看过引导页，则显示
+     */
+    fun checkAndShowReaderGuide() {
+        viewModelScope.launch {
+            val prefs = appPrefsUtil.appPrefsFlow.firstOrNull()
+            if (prefs != null && !prefs.isReaderGuideShown) {
+                _showReaderGuide.value = true
+            }
+        }
+    }
 
+    /***
+     * 标记阅读引导页已显示
+     * 点击引导页后调用此方法
+     */
+    fun markReaderGuideShown() {
+        _showReaderGuide.value = false
+        viewModelScope.launch {
+            val prefs = appPrefsUtil.appPrefsFlow.firstOrNull()
+            if (prefs != null) {
+                appPrefsUtil.updateAppPreferences(prefs.copy(isReaderGuideShown = true))
+            }
+        }
+    }
+
+//    fun setTtsSpeed(speed: Double) {
 //    fun setTtsSpeed(speed: Double) {
 //        _ttsSpeed.value = speed
 //        ttsNavigator.setSpeed(speed.toFloat())

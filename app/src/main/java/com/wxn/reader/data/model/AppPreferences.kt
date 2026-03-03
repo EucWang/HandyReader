@@ -35,6 +35,7 @@ data class AppPreferences(
     val lastBookId : Long,
 
     val hasInitScanDirs : Boolean,
+    val isReaderGuideShown: Boolean = false,  // 阅读界面引导页是否已显示过
 )
 
 

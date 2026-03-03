@@ -56,7 +56,7 @@ class AppPreferencesUtil @Inject constructor(context: Context) {
         val LAST_OPEN_BOOK_ID = longPreferencesKey("last_open_book_id")
 
         val HAS_INIT_SCAN_DIRS = booleanPreferencesKey("has_init_scan_dirs")
-
+        val IS_READER_GUIDE_SHOWN = booleanPreferencesKey("is_reader_guide_shown")
         // Default values
         val defaultPreferences = AppPreferences(
             isFirstLaunch = true,
@@ -81,7 +81,8 @@ class AppPreferencesUtil @Inject constructor(context: Context) {
             isPremium = true,
             autoOpenLastRead = false,
             lastBookId = 0L,
-            hasInitScanDirs = false
+            hasInitScanDirs = false,
+            isReaderGuideShown = false
         )
     }
 
@@ -118,6 +119,7 @@ class AppPreferencesUtil @Inject constructor(context: Context) {
                 prefs[AUTO_OPEN_LAST_READ] = defaultPreferences.autoOpenLastRead
                 prefs[LAST_OPEN_BOOK_ID] = defaultPreferences.lastBookId
                 prefs[HAS_INIT_SCAN_DIRS] = defaultPreferences.hasInitScanDirs
+                prefs[IS_READER_GUIDE_SHOWN] = defaultPreferences.isReaderGuideShown
             }
         }
     }
@@ -147,7 +149,8 @@ class AppPreferencesUtil @Inject constructor(context: Context) {
             isPremium = preferences[IS_PREMIUM] ?: defaultPreferences.isPremium,
             autoOpenLastRead = preferences[AUTO_OPEN_LAST_READ] ?: defaultPreferences.autoOpenLastRead,
             lastBookId = preferences[LAST_OPEN_BOOK_ID] ?: defaultPreferences.lastBookId,
-            hasInitScanDirs = preferences[HAS_INIT_SCAN_DIRS] ?: defaultPreferences.hasInitScanDirs
+            hasInitScanDirs = preferences[HAS_INIT_SCAN_DIRS] ?: defaultPreferences.hasInitScanDirs,
+            isReaderGuideShown = preferences[IS_READER_GUIDE_SHOWN] ?: defaultPreferences.isReaderGuideShown
         )
     }
 
@@ -199,6 +202,7 @@ class AppPreferencesUtil @Inject constructor(context: Context) {
             preferences[AUTO_OPEN_LAST_READ] = newPreferences.autoOpenLastRead
             preferences[LAST_OPEN_BOOK_ID] = newPreferences.lastBookId
             preferences[HAS_INIT_SCAN_DIRS] = newPreferences.hasInitScanDirs
+            preferences[IS_READER_GUIDE_SHOWN] = newPreferences.isReaderGuideShown
         }
     }
 

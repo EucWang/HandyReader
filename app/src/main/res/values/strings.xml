@@ -282,4 +282,11 @@
     <string name="page_trans_anim_cover_vertical">Cover in vertical</string>
     <string name="dialog_content_to_out_href">Are you sure you want to jump to external link (%1$s)?</string>
     <string name="auto_open_last_read_file">Automatically open last read file</string>
+    
+    <!-- Reader Guide Overlay -->
+    <string name="reader_guide_tap_here">Tap Here</string>
+    <string name="reader_guide_prev_page">Previous Page</string>
+    <string name="reader_guide_toggle_menu">Toggle Menu</string>
+    <string name="reader_guide_next_page">Next Page</string>
+    <string name="reader_guide_close">Close</string>
 </resources>
