@@ -59,4 +59,6 @@ data class ReaderPreferences(
     val publisherStyles: Boolean,                   //出版商样式
     val textNormalization: Boolean,                 //文字格式化
     val volumeKeyPageTurning: Boolean = true,       //音量键翻页，默认开启
+    val clickAreaMode: Int = 0,                     //点击区域模式: 0=中间区域(centerRectF), 1=顶部区域(topRectF)
+    val leftHandedMode: Boolean = false,            //左手操作模式: true=左半部下一页,右半部上一页; false=左半部上一页,右半部下一页
 )

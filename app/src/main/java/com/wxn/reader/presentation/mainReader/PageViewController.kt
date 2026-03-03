@@ -94,6 +94,7 @@ open class PageViewController @Inject constructor(
 
     interface OnClickListener {
         fun onCenterClick()
+        fun hideMenu()
         fun onLinkClick(href: String?, clickX: Float, clickY: Float)
         fun onPageChange()
         fun onSelectedText(startX: Float, startY : Float, endX : Float, endY : Float)
@@ -830,6 +831,11 @@ open class PageViewController @Inject constructor(
         clickListener?.onCenterClick()
     }
 
+    override fun hideMenu() {
+        Logger.i("PageViewController::hideMenu")
+        clickListener?.hideMenu()
+    }
+
     fun getSelectedText(): String {
         return callBack?.getSelectedText().orEmpty()
     }
@@ -1117,6 +1123,7 @@ open class PageViewController @Inject constructor(
             callBack?.upTipStyle()
             callBack?.upBg()
             callBack?.upPageAnim()
+            callBack?.upPageControl()
         }
     }
 

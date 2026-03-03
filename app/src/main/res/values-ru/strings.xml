@@ -287,4 +287,13 @@
     <string name="reader_guide_toggle_menu">Показать/Скрыть меню</string>
     <string name="reader_guide_next_page">Следующая страница</string>
     <string name="reader_guide_close">Закрыть</string>
+    
+    <!-- Reader Settings - Click Area Mode -->
+    <string name="click_area_mode">Режим области нажатия</string>
+    <string name="click_area_center">Центральная область</string>
+    <string name="click_area_top">Верхняя область</string>
+    
+    <!-- Reader Settings - Left Handed Mode -->
+    <string name="left_handed_mode">Режим для левшей</string>
+    <string name="left_handed_mode_description">Изменить направление перелистывания для левшей</string>
 </resources>

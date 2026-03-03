@@ -8,10 +8,13 @@ import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.wrapContentWidth
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilledTonalButton
@@ -239,66 +242,126 @@ fun ReaderSettings(
                 }
             }
 
-            Spacer(modifier = Modifier.height(16.dp))
-
-
-
-            // Keep Screen On
-            SettingsSwitch(
-                title = stringResource(R.string.keep_screen_on),
-                checked = readerPreferences.keepScreenOn,
-                onCheckedChange = { isKeepScreenOn ->
-                    viewModel.updateReaderPreferences(
-                        readerPreferences.copy(
-                            keepScreenOn = isKeepScreenOn,
-                        )
-                    )
-                }
-            )
-
-            // Volume Key Page Turning
-            SettingsSwitch(
-                title = stringResource(R.string.volume_key_page_turning),
-                checked = readerPreferences.volumeKeyPageTurning,
-                onCheckedChange = { isVolumeKeyPageTurning ->
-                    viewModel.updateReaderPreferences(
-                        readerPreferences.copy(
-                            volumeKeyPageTurning = isVolumeKeyPageTurning,
-                        )
-                    )
-                }
-            )
-
-            // Scroll Mode
-//            SettingsSwitch(
-//                title = stringResource(R.string.scroll_mode),
-//                checked = readerPreferences.scroll,
-//                onCheckedChange = { isScrollMode ->
-//                    viewModel.updateReaderPreferences(
-//                        readerPreferences.copy(
-//                            scroll = isScrollMode,
-//                            tapNavigation = if (isScrollMode) false else readerPreferences.tapNavigation
-//                        )
-//                    )
-//                }
-//            )
             Column(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.spacedBy(6.dp)
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .fillMaxHeight(0.5f)
+                    .verticalScroll(rememberScrollState()),
+                horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                Text(stringResource(R.string.scroll_mode), style = MaterialTheme.typography.titleMedium)
+                Spacer(modifier = Modifier.height(16.dp))
 
-                FlowRow(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                    listOf(
-                        0 to stringResource(R.string.no_page_trans_anim),
-                        1 to stringResource(R.string.page_trans_anim_cover_horizontal),
-                        2 to stringResource(R.string.page_trans_anim_slide_horizontal),
-                        3 to stringResource(R.string.page_trans_anim_simulation),
-                        4 to stringResource(R.string.page_trans_anim_cover_vertical),
-                        5 to stringResource(R.string.page_trans_anim_slide_vertical),
-                    ) .forEach {  (id, label) ->
-                        FilledTonalButton(
+                // Keep Screen On
+                SettingsSwitch(
+                    title = stringResource(R.string.keep_screen_on),
+                    checked = readerPreferences.keepScreenOn,
+                    onCheckedChange = { isKeepScreenOn ->
+                        viewModel.updateReaderPreferences(
+                            readerPreferences.copy(
+                                keepScreenOn = isKeepScreenOn,
+                            )
+                        )
+                    }
+                )
+
+                // Volume Key Page Turning
+                SettingsSwitch(
+                    title = stringResource(R.string.volume_key_page_turning),
+                    checked = readerPreferences.volumeKeyPageTurning,
+                    onCheckedChange = { isVolumeKeyPageTurning ->
+                        viewModel.updateReaderPreferences(
+                            readerPreferences.copy(
+                                volumeKeyPageTurning = isVolumeKeyPageTurning,
+                            )
+                        )
+                    }
+                )
+
+
+                // Scroll Mode
+    //                title = stringResource(R.string.scroll_mode),
+    //                checked = readerPreferences.scroll,
+    //                onCheckedChange = { isScrollMode ->
+    //                    viewModel.updateReaderPreferences(
+    //                        readerPreferences.copy(
+    //                            scroll = isScrollMode,
+    //                            tapNavigation = if (isScrollMode) false else readerPreferences.tapNavigation
+    //                        )
+    //                    )
+    //                }
+    //            )
+                Column(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.spacedBy(6.dp)
+                ) {
+                    Text(stringResource(R.string.scroll_mode), style = MaterialTheme.typography.titleMedium)
+
+                    FlowRow(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                        listOf(
+                            0 to stringResource(R.string.no_page_trans_anim),
+                            1 to stringResource(R.string.page_trans_anim_cover_horizontal),
+                            2 to stringResource(R.string.page_trans_anim_slide_horizontal),
+                            3 to stringResource(R.string.page_trans_anim_simulation),
+                            4 to stringResource(R.string.page_trans_anim_cover_vertical),
+                            5 to stringResource(R.string.page_trans_anim_slide_vertical),
+                        ) .forEach {  (id, label) ->
+                            FilledTonalButton(
+                                colors = ButtonDefaults.buttonColors(
+                                    containerColor = if (readerPreferences.scroll == id) {
+                                        MaterialTheme.colorScheme.primaryContainer
+                                    } else {
+                                        MaterialTheme.colorScheme.surfaceVariant
+                                    },
+                                    contentColor = if (readerPreferences.scroll == id) {
+                                        MaterialTheme.colorScheme.onPrimaryContainer
+                                    } else {
+                                        MaterialTheme.colorScheme.onSurfaceVariant
+                                    }
+                                ),
+                                onClick = {
+                                    viewModel.updateReaderPreferences(readerPreferences.copy(scroll = id))
+                                }
+                            ) {
+                                Text(text = label, style = MaterialTheme.typography.bodySmall)
+                            }
+                        }
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(12.dp))
+
+                // Animation Speed
+                SettingsSlider(
+                    title = stringResource(R.string.animation_speed),
+                    value = readerPreferences.animationSpeed.toFloat(),
+                    onValueChange = { newValue ->
+                        viewModel.updateReaderPreferences(
+                            readerPreferences.copy(animationSpeed = newValue.toInt())
+                        )
+                    },
+                    valueRange = 50f..800f,
+                    valueDisplay = { "${it.toInt()}ms" }
+                )
+
+                // Click Area Mode
+                Column(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.Top
+                ) {
+                    Text(
+                        text = stringResource(R.string.click_area_mode),
+                        style = MaterialTheme.typography.titleMedium,
+                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
+                    )
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 16.dp),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        /**FilledTonalButton(
                             colors = ButtonDefaults.buttonColors(
                                 containerColor = if (readerPreferences.scroll == id) {
                                     MaterialTheme.colorScheme.primaryContainer
@@ -316,98 +379,146 @@ fun ReaderSettings(
                             }
                         ) {
                             Text(text = label, style = MaterialTheme.typography.bodySmall)
+                        }*/
+
+                        FilledTonalButton(
+                            onClick = {
+                                viewModel.updateReaderPreferences(
+                                    readerPreferences.copy(clickAreaMode = 0)
+                                )
+                                viewModel.showClickAreaMode(0)
+                            },
+                            modifier = Modifier.weight(1f),
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = if (readerPreferences.clickAreaMode == 0) {
+                                        MaterialTheme.colorScheme.primaryContainer
+                                    } else {
+                                        MaterialTheme.colorScheme.surfaceVariant
+                                    },
+                                contentColor = if (readerPreferences.clickAreaMode == 0) {
+                                    MaterialTheme.colorScheme.onPrimaryContainer
+                                } else {
+                                    MaterialTheme.colorScheme.onSurfaceVariant
+                                }
+                            ),
+                        ) {
+                            Text(stringResource(R.string.click_area_center), style = MaterialTheme.typography.bodySmall)
+                        }
+                        FilledTonalButton(
+                            onClick = {
+                                viewModel.updateReaderPreferences(
+                                    readerPreferences.copy(clickAreaMode = 1)
+                                )
+                                viewModel.showClickAreaMode(1)
+                            },
+                            modifier = Modifier.weight(1f),
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = if (readerPreferences.clickAreaMode == 1) {
+                                        MaterialTheme.colorScheme.primaryContainer
+                                    } else {
+                                        MaterialTheme.colorScheme.surfaceVariant
+                                    },
+                                contentColor = if (readerPreferences.clickAreaMode == 1) {
+                                    MaterialTheme.colorScheme.onPrimaryContainer
+                                } else {
+                                    MaterialTheme.colorScheme.onSurfaceVariant
+                                }
+                            )
+                        ) {
+                            Text(stringResource(R.string.click_area_top), style = MaterialTheme.typography.bodySmall)
                         }
                     }
                 }
+
+                Spacer(modifier = Modifier.height(12.dp))
+
+                // Left-handed Mode
+                SettingsSwitch(
+                    title = stringResource(R.string.left_handed_mode),
+                    checked = readerPreferences.leftHandedMode,
+                    onCheckedChange = { isLeftHandedMode ->
+                        viewModel.updateReaderPreferences(
+                            readerPreferences.copy(
+                                leftHandedMode = isLeftHandedMode,
+                            )
+                        )
+                        val clickAreadMode = readerPreferences.clickAreaMode
+                        viewModel.showClickAreaMode(clickAreadMode, isLeftHandedMode)
+                    }
+                )
+                // Tap Navigation
+    //            SettingsSwitch(
+    //                title = stringResource(R.string.tap_navigation),
+    //                checked = readerPreferences.tapNavigation,
+    //                onCheckedChange = { isTapNavigation ->
+    //                    viewModel.updateReaderPreferences(
+    //                        readerPreferences.copy(
+    //                            tapNavigation = isTapNavigation,
+    ////                            scroll = if (isTapNavigation) false else readerPreferences.scroll
+    //                        )
+    //                    )
+    //                }
+    //            )
+
+                //Reading Progression
+    //            Column(
+    //                modifier = Modifier.fillMaxWidth(),
+    //                horizontalAlignment = Alignment.CenterHorizontally,
+    //                verticalArrangement = Arrangement.spacedBy(6.dp)
+    //            ) {
+    //                Text(stringResource(R.string.reading_progression), style = MaterialTheme.typography.titleMedium)
+    //                Row(
+    //                    modifier = Modifier,
+    //                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+    //                ) {
+    //                    listOf(
+    //                        ConfigReadingProgression.LTR to stringResource(R.string.left_to_right),
+    //                        ConfigReadingProgression.RTL to stringResource(R.string.right_to_left),
+    //                    ).forEach { (readingProgression, label) ->
+    //                        FilledTonalButton(
+    //                            colors = ButtonDefaults.buttonColors(
+    //                                containerColor = if (readerPreferences.readingProgression == readingProgression) {
+    //                                    MaterialTheme.colorScheme.primaryContainer
+    //                                } else {
+    //                                    MaterialTheme.colorScheme.surfaceVariant
+    //                                },
+    //                                contentColor = if (readerPreferences.readingProgression == readingProgression) {
+    //                                    MaterialTheme.colorScheme.onPrimaryContainer
+    //                                } else {
+    //                                    MaterialTheme.colorScheme.onSurfaceVariant
+    //                                }
+    //                            ),
+    //                            onClick = {
+    //                                viewModel.updateReaderPreferences(readerPreferences.copy(readingProgression = readingProgression))
+    //                            }
+    //                        ) {
+    //                            Text(text = label, style = MaterialTheme.typography.bodySmall)
+    //                        }
+    //                    }
+    //                }
+    //            }
+
+    //            // Vertical Text
+    //            SettingsSwitch(
+    //                title = stringResource(R.string.vertical_text),
+    //                checked = readerPreferences.verticalText,
+    //                onCheckedChange = { viewModel.updateReaderPreferences(readerPreferences.copy(verticalText = it)) }
+    //            )
+    //
+    //            // Publisher Styles
+    //            SettingsSwitch(
+    //                title = stringResource(R.string.publisher_styles),
+    //                checked = readerPreferences.publisherStyles,
+    //                onCheckedChange = { viewModel.updateReaderPreferences(readerPreferences.copy(publisherStyles = it)) }
+    //            )
+    //
+    //            // Text Normalisation
+    //            SettingsSwitch(
+    //                title = stringResource(R.string.text_normalization),
+    //                checked = readerPreferences.textNormalization,
+    //                onCheckedChange = { viewModel.updateReaderPreferences(readerPreferences.copy(textNormalization = it)) }
+    //            )
             }
-
-            Spacer(modifier = Modifier.height(12.dp))
-
-            // Animation Speed
-            SettingsSlider(
-                title = stringResource(R.string.animation_speed),
-                value = readerPreferences.animationSpeed.toFloat(),
-                onValueChange = { newValue ->
-                    viewModel.updateReaderPreferences(
-                        readerPreferences.copy(animationSpeed = newValue.toInt())
-                    )
-                },
-                valueRange = 50f..800f,
-                valueDisplay = { "${it.toInt()}ms" }
-            )
-
-            // Tap Navigation
-//            SettingsSwitch(
-//                title = stringResource(R.string.tap_navigation),
-//                checked = readerPreferences.tapNavigation,
-//                onCheckedChange = { isTapNavigation ->
-//                    viewModel.updateReaderPreferences(
-//                        readerPreferences.copy(
-//                            tapNavigation = isTapNavigation,
-////                            scroll = if (isTapNavigation) false else readerPreferences.scroll
-//                        )
-//                    )
-//                }
-//            )
-
-            //Reading Progression
-//            Column(
-//                modifier = Modifier.fillMaxWidth(),
-//                horizontalAlignment = Alignment.CenterHorizontally,
-//                verticalArrangement = Arrangement.spacedBy(6.dp)
-//            ) {
-//                Text(stringResource(R.string.reading_progression), style = MaterialTheme.typography.titleMedium)
-//                Row(
-//                    modifier = Modifier,
-//                    horizontalArrangement = Arrangement.spacedBy(8.dp)
-//                ) {
-//                    listOf(
-//                        ConfigReadingProgression.LTR to stringResource(R.string.left_to_right),
-//                        ConfigReadingProgression.RTL to stringResource(R.string.right_to_left),
-//                    ).forEach { (readingProgression, label) ->
-//                        FilledTonalButton(
-//                            colors = ButtonDefaults.buttonColors(
-//                                containerColor = if (readerPreferences.readingProgression == readingProgression) {
-//                                    MaterialTheme.colorScheme.primaryContainer
-//                                } else {
-//                                    MaterialTheme.colorScheme.surfaceVariant
-//                                },
-//                                contentColor = if (readerPreferences.readingProgression == readingProgression) {
-//                                    MaterialTheme.colorScheme.onPrimaryContainer
-//                                } else {
-//                                    MaterialTheme.colorScheme.onSurfaceVariant
-//                                }
-//                            ),
-//                            onClick = {
-//                                viewModel.updateReaderPreferences(readerPreferences.copy(readingProgression = readingProgression))
-//                            }
-//                        ) {
-//                            Text(text = label, style = MaterialTheme.typography.bodySmall)
-//                        }
-//                    }
-//                }
-//            }
-
-//            // Vertical Text
-//            SettingsSwitch(
-//                title = stringResource(R.string.vertical_text),
-//                checked = readerPreferences.verticalText,
-//                onCheckedChange = { viewModel.updateReaderPreferences(readerPreferences.copy(verticalText = it)) }
-//            )
-//
-//            // Publisher Styles
-//            SettingsSwitch(
-//                title = stringResource(R.string.publisher_styles),
-//                checked = readerPreferences.publisherStyles,
-//                onCheckedChange = { viewModel.updateReaderPreferences(readerPreferences.copy(publisherStyles = it)) }
-//            )
-//
-//            // Text Normalisation
-//            SettingsSwitch(
-//                title = stringResource(R.string.text_normalization),
-//                checked = readerPreferences.textNormalization,
-//                onCheckedChange = { viewModel.updateReaderPreferences(readerPreferences.copy(textNormalization = it)) }
-//            )
         }
     }
 }

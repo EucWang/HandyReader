@@ -287,4 +287,13 @@
     <string name="reader_guide_toggle_menu">Afficher/Masquer le menu</string>
     <string name="reader_guide_next_page">Page suivante</string>
     <string name="reader_guide_close">Fermer</string>
+    
+    <!-- Reader Settings - Click Area Mode -->
+    <string name="click_area_mode">Mode de zone de clic</string>
+    <string name="click_area_center">Zone centrale</string>
+    <string name="click_area_top">Zone supérieure</string>
+    
+    <!-- Reader Settings - Left Handed Mode -->
+    <string name="left_handed_mode">Mode gaucher</string>
+    <string name="left_handed_mode_description">Changer la direction de tournage de page pour les gauchers</string>
 </resources>

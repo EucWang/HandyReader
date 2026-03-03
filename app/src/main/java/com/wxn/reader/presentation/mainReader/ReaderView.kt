@@ -66,6 +66,7 @@ import com.wxn.reader.presentation.bookReader.components.modals.UiSettings
 import com.wxn.reader.presentation.bookReader.components.toolbars.BottomToolbar
 import com.wxn.reader.presentation.bookReader.components.toolbars.TopToolbar
 import com.wxn.reader.presentation.bookReader.components.ReaderGuideOverlay
+import com.wxn.reader.presentation.bookReader.components.ReaderGuideOverlay2
 import com.wxn.reader.util.LogCompositions
 import com.wxn.reader.util.TopPopupPositionProvider
 import kotlinx.coroutines.launch
@@ -83,6 +84,9 @@ fun ReaderView(
     val areToolbarsVisible by viewModel.showMenu.collectAsStateWithLifecycle()
     val appPreferences by viewModel.appPreferences.collectAsStateWithLifecycle()
     val showReaderGuide by viewModel.showReaderGuide.collectAsStateWithLifecycle()
+    val showClickAreaReaderGuide by viewModel.showClickAreaMode.collectAsStateWithLifecycle()
+    val leftHandMode by viewModel.leftHandMode.collectAsStateWithLifecycle()
+    val readerPreferences by viewModel.readerPreferences.collectAsStateWithLifecycle()
 
     val isChaptersDrawerOpen by viewModel.isChaptersDrawerOpen.collectAsStateWithLifecycle()
     val isNotesDrawerOpen by viewModel.isNotesDrawerOpen.collectAsStateWithLifecycle()
@@ -539,6 +543,19 @@ fun ReaderView(
         if (showReaderGuide) {
             ReaderGuideOverlay(
                 onDismiss = { viewModel.markReaderGuideShown() }
+            )
+        }
+        //show when toggling
+        when(showClickAreaReaderGuide) {
+            0 -> ReaderGuideOverlay(
+                leftHandMode = leftHandMode,
+                onDismiss = { viewModel.showClickAreaMode(-1, leftHandMode)}
+            )
+            1 -> ReaderGuideOverlay2(
+                leftHandMode = leftHandMode,
+                onDismiss = {
+                    viewModel.showClickAreaMode(-1, leftHandMode)
+                }
             )
         }
     }

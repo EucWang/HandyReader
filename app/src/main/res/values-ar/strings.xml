@@ -289,4 +289,13 @@
     <string name="reader_guide_toggle_menu">إظهار/إخفاء القائمة</string>
     <string name="reader_guide_next_page">الصفحة التالية</string>
     <string name="reader_guide_close">إغلاق</string>
+    
+    <!-- Reader Settings - Click Area Mode -->
+    <string name="click_area_mode">وضع منطقة النقر</string>
+    <string name="click_area_center">المنطقة المركزية</string>
+    <string name="click_area_top">المنطقة العلوية</string>
+    
+    <!-- Reader Settings - Left Handed Mode -->
+    <string name="left_handed_mode">وضع اليد اليسرى</string>
+    <string name="left_handed_mode_description">تغيير اتجاه تقليب الصفحات للاستخدام باليد اليسرى</string>
 </resources>

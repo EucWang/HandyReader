@@ -287,4 +287,13 @@
     <string name="reader_guide_toggle_menu">メニュー表示/非表示</string>
     <string name="reader_guide_next_page">次のページ</string>
     <string name="reader_guide_close">閉じる</string>
+    
+    <!-- Reader Settings - Click Area Mode -->
+    <string name="click_area_mode">タップエリアモード</string>
+    <string name="click_area_center">中央エリア</string>
+    <string name="click_area_top">上部エリア</string>
+    
+    <!-- Reader Settings - Left Handed Mode -->
+    <string name="left_handed_mode">左利きモード</string>
+    <string name="left_handed_mode_description">左利き用にページめくりの方向を変更</string>
 </resources>

@@ -24,6 +24,8 @@ interface PageViewCallback  : TextPageFactoryCallback {
      */
     fun clickCenter()
 
+    fun hideMenu()
+
     /***
      *
      */

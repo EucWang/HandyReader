@@ -65,6 +65,8 @@ class ReaderPreferencesUtil @Inject constructor(context: Context) {
         val PUBLISHER_STYLES = booleanPreferencesKey("publisher_styles")                    //出版商样式
         val TEXT_NORMALIZATION = booleanPreferencesKey("text_normalization")                //文字标准化
         val VOLUME_KEY_PAGE_TURNING = booleanPreferencesKey("volume_key_page_turning")      //音量键翻页
+        val CLICK_AREA_MODE = intPreferencesKey("click_area_mode")                           //点击区域模式
+        val LEFT_HANDED_MODE = booleanPreferencesKey("left_handed_mode")                     //左手操作模式
 
         // Default values
 //        @OptIn(ExperimentalReadiumApi::class)
@@ -96,6 +98,8 @@ class ReaderPreferencesUtil @Inject constructor(context: Context) {
             publisherStyles = false,
             textNormalization = false,
             volumeKeyPageTurning = true,
+            clickAreaMode = 0,
+            leftHandedMode = false,
         )
     }
 
@@ -129,6 +133,8 @@ class ReaderPreferencesUtil @Inject constructor(context: Context) {
                 pref[PUBLISHER_STYLES] = defaultPreferences.publisherStyles
                 pref[TEXT_NORMALIZATION] = defaultPreferences.textNormalization
                 pref[VOLUME_KEY_PAGE_TURNING] = defaultPreferences.volumeKeyPageTurning
+                pref[CLICK_AREA_MODE] = defaultPreferences.clickAreaMode
+                pref[LEFT_HANDED_MODE] = defaultPreferences.leftHandedMode
 
                 pref[FONT_FAMILY] = defaultPreferences.font
                 pref[FONT_BOLD] = defaultPreferences.fontBold
@@ -172,6 +178,8 @@ class ReaderPreferencesUtil @Inject constructor(context: Context) {
             publisherStyles = preferences[PUBLISHER_STYLES] ?: defaultPreferences.publisherStyles,
             textNormalization = preferences[TEXT_NORMALIZATION] ?: defaultPreferences.textNormalization,
             volumeKeyPageTurning = preferences[VOLUME_KEY_PAGE_TURNING] ?: defaultPreferences.volumeKeyPageTurning,
+            clickAreaMode = preferences[CLICK_AREA_MODE] ?: defaultPreferences.clickAreaMode,
+            leftHandedMode = preferences[LEFT_HANDED_MODE] ?: defaultPreferences.leftHandedMode,
 
             font = if (preferences[FONT_FAMILY].isNullOrEmpty()) { defaultPreferences.font } else { preferences[FONT_FAMILY].orEmpty() },
             fontBold = preferences[FONT_BOLD] ?: defaultPreferences.fontBold,
@@ -210,6 +218,8 @@ class ReaderPreferencesUtil @Inject constructor(context: Context) {
             preferences[PUBLISHER_STYLES] = newPreferences.publisherStyles
             preferences[TEXT_NORMALIZATION] = newPreferences.textNormalization
             preferences[VOLUME_KEY_PAGE_TURNING] = newPreferences.volumeKeyPageTurning
+            preferences[CLICK_AREA_MODE] = newPreferences.clickAreaMode
+            preferences[LEFT_HANDED_MODE] = newPreferences.leftHandedMode
 
             preferences[FONT_FAMILY] = newPreferences.font
             preferences[FONT_BOLD] = newPreferences.fontBold
@@ -270,6 +280,8 @@ class ReaderPreferencesUtil @Inject constructor(context: Context) {
             preferences[PUBLISHER_STYLES] = defaultPreferences.publisherStyles
             preferences[TEXT_NORMALIZATION] = defaultPreferences.textNormalization
             preferences[VOLUME_KEY_PAGE_TURNING] = defaultPreferences.volumeKeyPageTurning
+            preferences[CLICK_AREA_MODE] = defaultPreferences.clickAreaMode
+            preferences[LEFT_HANDED_MODE] = defaultPreferences.leftHandedMode
         }
     }
 

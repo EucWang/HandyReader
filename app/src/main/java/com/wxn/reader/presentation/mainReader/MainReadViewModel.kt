@@ -254,6 +254,12 @@ class MainReadViewModel @Inject constructor(
     private val _ttsLanguage = MutableStateFlow(LanguageUtil.languageMaps[1])
     val ttsLanguage: StateFlow<LanguageInfo?> = _ttsLanguage.asStateFlow()
 
+    private val _showClickAreaMode = MutableStateFlow(-1)
+    val showClickAreaMode : StateFlow<Int> = _showClickAreaMode.asStateFlow()
+
+    private val _leftHandMode = MutableStateFlow(false)
+    val leftHandMode : StateFlow<Boolean> = _leftHandMode.asStateFlow()
+
     // 阅读引导页显示状态
     private val _showReaderGuide = MutableStateFlow(false)
     val showReaderGuide: StateFlow<Boolean> = _showReaderGuide.asStateFlow()
@@ -413,6 +419,10 @@ class MainReadViewModel @Inject constructor(
 
     override fun onCenterClick() {
         _showMenu.value = !_showMenu.value
+    }
+
+    override fun hideMenu() {
+        _showMenu.value = false
     }
 
     fun onChapterClick(chapter: BookChapter) {
@@ -1247,6 +1257,11 @@ class MainReadViewModel @Inject constructor(
             if (prefs != null && !prefs.isReaderGuideShown) {
                 _showReaderGuide.value = true
             }
+
+            val readerPrefs = readerPrefsUtil.readerPrefsFlow.firstOrNull()
+            if (readerPrefs != null) {
+                _leftHandMode.value = readerPrefs.leftHandedMode
+            }
         }
     }
 
@@ -1262,6 +1277,14 @@ class MainReadViewModel @Inject constructor(
                 appPrefsUtil.updateAppPreferences(prefs.copy(isReaderGuideShown = true))
             }
         }
+    }
+
+    fun showClickAreaMode(mode: Int) {
+        _showClickAreaMode.value = mode
+    }
+    fun showClickAreaMode(mode: Int, isLeftHandMode:Boolean) {
+        _showClickAreaMode.value = mode
+        _leftHandMode.value = isLeftHandMode
     }
 
 //    fun setTtsSpeed(speed: Double) {

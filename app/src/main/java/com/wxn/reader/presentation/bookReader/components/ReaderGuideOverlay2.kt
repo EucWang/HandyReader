@@ -21,6 +21,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.PathEffect
 import androidx.compose.ui.graphics.StrokeCap
@@ -38,7 +39,7 @@ import com.wxn.reader.R
  * 显示三个点击区域的说明：左侧翻上一页，中间显示菜单，右侧翻下一页
  */
 @Composable
-fun ReaderGuideOverlay(
+fun ReaderGuideOverlay2(
     onDismiss: () -> Unit,
     leftHandMode: Boolean = false,
     modifier: Modifier = Modifier
@@ -61,7 +62,7 @@ fun ReaderGuideOverlay(
         val screenHeightPx = with(density) { 2400.dp.toPx() }
 
         // 绘制虚线框和说明文字
-        GuideOverlayContent(
+        GuideOverlayContent2(
             leftHandMode,
             modifier = Modifier.fillMaxSize()
         )
@@ -88,8 +89,8 @@ fun ReaderGuideOverlay(
 }
 
 @Composable
-private fun GuideOverlayContent(
-    leftHandMode: Boolean = false,
+private fun GuideOverlayContent2(
+    leftHandMode: Boolean,
     modifier: Modifier = Modifier
 ) {
     Box(modifier = modifier) {
@@ -99,11 +100,11 @@ private fun GuideOverlayContent(
             val width = size.width
             val height = size.height
 
-            // centerRectF 的定义: RectF(width * 0.33f, height * 0.33f, width * 0.66f, height * 0.66f)
-            val centerLeft = width * 0.33f
-            val centerTop = height * 0.33f
-            val centerRight = width * 0.66f
-            val centerBottom = height * 0.66f
+            // topRectF 的定义: RectF(width * 0.33f, height * 0.33f, width * 0.66f, height * 0.66f)
+            val topLeft = 0f
+            val topTop = 0f
+            val topRight = width
+            val topBottom = height * 0.4f
 
             // 虚线样式
             val dashEffect =  PathEffect.dashPathEffect(floatArrayOf(10f, 20f), 25f)// PathEffect.dashPathEffect(floatArrayOf(20f, 10f), 25f)
@@ -112,17 +113,16 @@ private fun GuideOverlayContent(
                 pathEffect = dashEffect
             )
 
-            // 中间区域 (centerLeft ~ centerRight)
             drawRoundRect(
                 color = Color.White,
                 style = stroke,
                 topLeft = Offset(
-                    x = centerLeft + width * 0.01f,
-                    y = centerTop + height * 0.01f
+                    x = topLeft + width * 0.01f,
+                    y = topTop + height * 0.01f
                 ),
-                size = androidx.compose.ui.geometry.Size(
-                    width = (centerRight - centerLeft) * 0.98f,
-                    height = (centerBottom - centerTop) * 0.98f
+                size = Size(
+                    width = (topRight - topLeft) * 0.98f,
+                    height = (topBottom - topTop) * 0.98f
                 ),
                 cornerRadius = CornerRadius(8.dp.toPx(), 8.dp.toPx()),
             )
@@ -130,72 +130,18 @@ private fun GuideOverlayContent(
             drawLine(
                 cap = StrokeCap.Round,
                 color = Color.White,
-                start = Offset(width/2f, 0f),
-                end = Offset(width /2f, centerTop + width * 0.01f),
-                strokeWidth = 8f,
-                pathEffect = dashEffect
-            )
-
-            drawLine(
-                cap = StrokeCap.Round,
-                color = Color.White,
-                start = Offset(width/2f, centerBottom + width * 0.01f),
+                start = Offset(width/2f, topBottom),
                 end = Offset(width /2f, height),
                 strokeWidth = 8f,
                 pathEffect = dashEffect
             )
         }
 
-        // 说明文字
-        Row(
-            modifier = Modifier.fillMaxSize(),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
 
-            Column(modifier = Modifier.weight(1f).fillMaxSize(),
-                horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.Center) {
-
-                // 左侧说明
-                Box(
-                    modifier = Modifier
-                        .weight(1f)
-                        .fillMaxSize(),
-                    contentAlignment = Alignment.Center,
-                ) {
-                    Column(
-                        horizontalAlignment = Alignment.CenterHorizontally,
-                        verticalArrangement = Arrangement.Center
-                    ) {
-                        Text(
-                            text = stringResource(R.string.reader_guide_tap_here),
-                            color = Color.White,
-                            fontSize = 24.sp,
-                            fontWeight = FontWeight.Bold,
-                            textAlign = TextAlign.Center
-                        )
-                        Text(
-                            text = stringResource(
-                                if (leftHandMode) {
-                                    R.string.reader_guide_next_page
-                                } else {
-                                    R.string.reader_guide_prev_page
-                                }),
-                            color = Color.White,
-                            fontSize = 20.sp,
-                            textAlign = TextAlign.Center,
-                            modifier = Modifier.padding(top = 8.dp)
-                        )
-                    }
-                }
-                Box(
-                    modifier = Modifier
-                        .weight(1f)
-                        .fillMaxSize(),
-                    contentAlignment = Alignment.Center
-                ){}
-            }
-
+        Column(modifier = Modifier.fillMaxSize(),
+            verticalArrangement = Arrangement.Top,
+            horizontalAlignment = Alignment.CenterHorizontally
+            ) {
             // 中间说明
             Box(
                 modifier = Modifier
@@ -224,18 +170,46 @@ private fun GuideOverlayContent(
                 }
             }
 
-            // 右侧说明
-            Column(modifier = Modifier.weight(1f).fillMaxSize(),
-                horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.Center) {
-
+            // 说明文字
+            Row(
+                modifier = Modifier.fillMaxSize().weight(1f),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                // 左侧说明
                 Box(
                     modifier = Modifier
                         .weight(1f)
                         .fillMaxSize(),
                     contentAlignment = Alignment.Center
-                ){}
+                ) {
+                    Column(
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.Center
+                    ) {
+                        Text(
+                            text = stringResource(R.string.reader_guide_tap_here),
+                            color = Color.White,
+                            fontSize = 24.sp,
+                            fontWeight = FontWeight.Bold,
+                            textAlign = TextAlign.Center
+                        )
+                        Text(
+                            text = stringResource(
+                                if (leftHandMode) {
+                                    R.string.reader_guide_next_page
+                                } else {
+                                    R.string.reader_guide_prev_page
+                                }),
+                            color = Color.White,
+                            fontSize = 20.sp,
+                            textAlign = TextAlign.Center,
+                            modifier = Modifier.padding(top = 8.dp)
+                        )
+                    }
+                }
 
+
+                // 右侧说明
                 Box(
                     modifier = Modifier
                         .weight(1f)

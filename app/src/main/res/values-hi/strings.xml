@@ -289,4 +289,13 @@
     <string name="reader_guide_toggle_menu">मेनू दिखाएँ/छिपाएँ</string>
     <string name="reader_guide_next_page">अगला पृष्ठ</string>
     <string name="reader_guide_close">बंद करें</string>
+    
+    <!-- Reader Settings - Click Area Mode -->
+    <string name="click_area_mode">टैप क्षेत्र मोड</string>
+    <string name="click_area_center">केंद्रीय क्षेत्र</string>
+    <string name="click_area_top">शीर्ष क्षेत्र</string>
+    
+    <!-- Reader Settings - Left Handed Mode -->
+    <string name="left_handed_mode">बाएं हाथ मोड</string>
+    <string name="left_handed_mode_description">बाएं हाथ उपयोग के लिए पेज टर्निंग दिशा बदलें</string>
 </resources>

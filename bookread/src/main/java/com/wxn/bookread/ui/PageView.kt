@@ -197,6 +197,7 @@ class PageView : FrameLayout, IDataSource, PageCallback {
     val slopTapDuration by lazy { ViewConfiguration.getTapTimeout() }
 
     private val centerRectF = RectF(width * 0.33f, height * 0.33f, width * 0.66f, height * 0.66f)   //中间矩形区域
+    private val topRectF = RectF(0f, 0f, width.toFloat(), height * 0.4f)   //顶部矩形区域
 
     private val autoPageRect by lazy { Rect() }
 
@@ -209,6 +210,8 @@ class PageView : FrameLayout, IDataSource, PageCallback {
 
     private var clickTurnPage: Boolean = true //从配置里得到的控制变量
     private var clickAllNext: Boolean = false //从配置里得到的控制变量
+    private var clickAreaMode: Int = 0 //0=中间区域模式, 1=顶部区域模式
+    private var leftHandedMode: Boolean = false //左手操作模式
 
     init {
         Logger.d("PageView::init")
@@ -218,6 +221,7 @@ class PageView : FrameLayout, IDataSource, PageCallback {
         upBg()                          //更新背景
         setWillNotDraw(false)           //init时不绘制自身
         upPageAnim()
+        upPageControl()
 
         Coroutines.mainScope().launch {
             ChapterProvider.readTipPreferencesUtil?.readTIpPreferencesFlow?.firstOrNull()?.let { preference ->
@@ -237,6 +241,7 @@ class PageView : FrameLayout, IDataSource, PageCallback {
         super.onSizeChanged(w, h, oldw, oldh)
         Logger.d("PageView::onSizeChanged:w=$w,h=$h,oldw=$oldw,oldh=$oldh")
         centerRectF.set(width * 0.33f, height * 0.33f, width * 0.66f, height * 0.66f)
+        topRectF.set(0f, 0f, width.toFloat(), height * 0.4f)
         prevPage.x = -w.toFloat()
         pageDelegate?.setViewSize(w, h)
         
@@ -532,18 +537,37 @@ class PageView : FrameLayout, IDataSource, PageCallback {
             }
         }
 
-        val isClickCenter = centerRectF.contains(clickX, clickY)
-        Logger.d("${this.javaClass.name}:onSingleTapUp::isClickCenter=${isClickCenter},clickTurnPage=${clickTurnPage},clickX>width/2=${clickX>width/2}, clickAllNext=${clickAllNext}")
-        if (isClickCenter) {
+        // 根据点击区域模式决定使用哪个区域
+        val isClickMenuArea = when (clickAreaMode) {
+            0 -> centerRectF.contains(clickX, clickY)  // 中间区域模式
+            1 -> topRectF.contains(clickX, clickY)      // 顶部区域模式
+            else -> centerRectF.contains(clickX, clickY) // 默认中间区域模式
+        }
+        
+        Logger.d("${this.javaClass.name}:onSingleTapUp::isClickMenuArea=${isClickMenuArea},clickAreaMode=${clickAreaMode},leftHandedMode=${leftHandedMode},clickTurnPage=${clickTurnPage},clickX>width/2=${clickX>width/2}, clickAllNext=${clickAllNext}")
+        
+        if (isClickMenuArea) {
             if (!isAbortAnim) {
                 dataProvider?.clickCenter()
             }
         } else if (clickTurnPage) {
-            if (clickX > width / 2 || clickAllNext) {
-                pageDelegate?.nextPageByAnim(animationSpeed)
+            // 根据左右手模式决定翻页方向
+            if (leftHandedMode) {
+                // 左手模式：左侧下一页，右侧上一页
+                if (clickX > width / 2 || clickAllNext) {
+                    pageDelegate?.prevPageByAnim(animationSpeed)
+                } else {
+                    pageDelegate?.nextPageByAnim(animationSpeed)
+                }
             } else {
-                pageDelegate?.prevPageByAnim(animationSpeed)
+                // 右手模式（默认）：左侧上一页，右侧下一页
+                if (clickX > width / 2 || clickAllNext) {
+                    pageDelegate?.nextPageByAnim(animationSpeed)
+                } else {
+                    pageDelegate?.prevPageByAnim(animationSpeed)
+                }
             }
+            dataProvider?.hideMenu()
         }
         return true
     }
@@ -633,6 +657,15 @@ class PageView : FrameLayout, IDataSource, PageCallback {
 //            ReadBook.readAloud()
 //        }
 //        loadStates = true
+    }
+
+    override fun upPageControl() {
+        Coroutines.mainScope().launch {
+            ChapterProvider.readerPreferencesUtil?.readerPrefsFlow?.firstOrNull()?.let { preference ->
+                clickAreaMode = preference.clickAreaMode
+                leftHandedMode = preference.leftHandedMode
+            }
+        }
     }
 
     /***
