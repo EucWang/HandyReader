@@ -41,7 +41,8 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.firstOrNull
-import java.io.Reader
+import kotlinx.coroutines.isActive
+import java.util.concurrent.atomic.AtomicInteger
 import javax.inject.Inject
 import kotlin.collections.firstOrNull
 import kotlin.collections.iterator
@@ -117,8 +118,19 @@ open class PageViewController @Inject constructor(
     @Volatile
     override var isInitFinish: Boolean = false
 
-    override var isAutoPage: Boolean = false
+    /**
+     * 版本锁：使用 AtomicInteger 保证原子递增操作
+     * 防止多线程竞态条件导致的重复加载问题
+     */
+    private val contentLoadVersion = AtomicInteger(0)
 
+    /**
+     * 追踪当前正在执行的内容加载任务
+     * 用于在新加载请求到来时取消之前的任务，避免重复工作和内存泄漏
+     */
+    private var loadContentJob: kotlinx.coroutines.Job? = null
+
+    override var isAutoPage: Boolean = false
     override var autoPageProgress: Int = 0
 
     override var pageFactory: TextPageFactory? = null
@@ -210,6 +222,9 @@ open class PageViewController @Inject constructor(
 
     suspend fun resetBook(book: Book, initChapterLoadListener: ((Boolean) -> Unit)) {
         Logger.i("PageViewController::resetBook:book=$book")
+        contentLoadVersion.set(0)  // 原子操作重置版本锁
+        loadContentJob?.cancel()  // 取消之前的加载任务
+        loadContentJob = null
         this.prevTextChapter = null
         this.curTextChapter = null
         this.nextTextChapter = null
@@ -344,13 +359,35 @@ open class PageViewController @Inject constructor(
     }
 
     override fun loadContent(resetPageOffset: Boolean) {
-        Logger.i("PageViewController::loadContent:resetPageOffset=$resetPageOffset,durChapterIndex=$durChapterIndex, isInitFinish=$isInitFinish")
-        if (isInitFinish) {
-            scope?.launchIO {
-                loadContent(durChapterIndex, resetPageOffset = resetPageOffset)
-                loadContent(durChapterIndex + 1, resetPageOffset = resetPageOffset)
-                loadContent(durChapterIndex - 1, resetPageOffset = resetPageOffset)
+        Logger.i("PageViewController::loadContent:resetPageOffset=$resetPageOffset,durChapterIndex=$durChapterIndex, isInitFinish=$isInitFinish, contentLoadVersion=$contentLoadVersion")
+        if (!isInitFinish) {
+            Logger.w("PageViewController::loadContent skipped - not initialized")
+            return
+        }
+        
+        // 版本锁机制：先取消旧任务，再原子递增版本号，保证线程安全
+        loadContentJob?.cancel()  // 先取消，避免与新任务冲突
+        loadContentJob = null
+        
+        val currentVersion = contentLoadVersion.incrementAndGet()  // 原子递增，线程安全
+        Logger.d("PageViewController::loadContent cancelled previous job, version=$currentVersion")
+        
+        // 使用 launchIO 而不是 launch(Dispatchers.IO)，保持与现有代码一致
+        loadContentJob = scope?.launchIO {
+            // 双重检查：协程活性 + 版本号验证
+            if (!isActive) {
+                Logger.d("PageViewController::loadContent cancelled - coroutine not active")
+                return@launchIO
             }
+            if (currentVersion != contentLoadVersion.get()) {
+                Logger.d("PageViewController::loadContent cancelled - newer version pending (current=$currentVersion, latest=${contentLoadVersion.get()})")
+                return@launchIO
+            }
+            
+            Logger.d("PageViewController::loadContent executing - version=$currentVersion")
+            loadContent(durChapterIndex, resetPageOffset = resetPageOffset)
+            loadContent(durChapterIndex + 1, resetPageOffset = resetPageOffset)
+            loadContent(durChapterIndex - 1, resetPageOffset = resetPageOffset)
         }
     }
 
@@ -1100,6 +1137,9 @@ open class PageViewController @Inject constructor(
         headerHeight = 0
         chapterSize = 0
         isInitFinish = false
+        contentLoadVersion.set(0)  // 原子操作重置版本锁
+        loadContentJob?.cancel()  // 取消正在进行的加载任务
+        loadContentJob = null
         isAutoPage = false
         autoPageProgress = 0
         pageFactory = null

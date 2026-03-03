@@ -146,12 +146,17 @@ fun ReaderView(
                 modifier = Modifier.fillMaxSize(),
                 update = { view ->
                     Logger.d("ReaderView::update by AndroidView")
-                    view.dataProvider?.book = book
-                    view.upStyle()
-                    view.upTipStyle()
-                    view.upBg()
-                    view.upStatusBar()
-                    view.dataProvider?.loadContent(true)
+                    
+                    // 只在 book 对象改变时更新，避免每次重组都触发 loadContent
+                    val currentBook = view.dataProvider?.book
+                    if (currentBook != book) {
+                        Logger.d("ReaderView::book changed, updating view")
+                        view.dataProvider?.book = book
+                        view.upStyle()
+                        view.upTipStyle()
+                        view.upBg()
+                        view.upStatusBar()
+                    }
                 }
             )
 

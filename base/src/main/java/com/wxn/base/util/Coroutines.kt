@@ -4,6 +4,7 @@ import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.CoroutineExceptionHandler
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
@@ -31,7 +32,7 @@ object Coroutines {
 
 }
 
-fun CoroutineScope.launchIO(exceptionHandler: ((Throwable)->Unit)? = null, block: suspend CoroutineScope.() -> Unit) {
+fun CoroutineScope.launchIO(exceptionHandler: ((Throwable)->Unit)? = null, block: suspend CoroutineScope.() -> Unit): Job {
     val job = SupervisorJob()
     val dispatcher = Dispatchers.IO
     val exceptionHandler = CoroutineExceptionHandler{
@@ -41,9 +42,10 @@ fun CoroutineScope.launchIO(exceptionHandler: ((Throwable)->Unit)? = null, block
     }
     val context = this.coroutineContext + dispatcher + exceptionHandler + job
     launch(context = context, block = block)
+    return job
 }
 
-fun CoroutineScope.launchMain(exceptionHandler: ((Throwable)->Unit)? = null, block: suspend CoroutineScope.() -> Unit) {
+fun CoroutineScope.launchMain(exceptionHandler: ((Throwable)->Unit)? = null, block: suspend CoroutineScope.() -> Unit): Job {
     val job = SupervisorJob()
     val dispatcher = Dispatchers.Main
     val exceptionHandler = CoroutineExceptionHandler{
@@ -53,6 +55,7 @@ fun CoroutineScope.launchMain(exceptionHandler: ((Throwable)->Unit)? = null, blo
     }
     val context = this.coroutineContext + dispatcher + exceptionHandler + job
     launch(context = context, block = block)
+    return job
 }
 
 /****

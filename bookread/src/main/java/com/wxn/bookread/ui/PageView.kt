@@ -239,7 +239,10 @@ class PageView : FrameLayout, IDataSource, PageCallback {
         centerRectF.set(width * 0.33f, height * 0.33f, width * 0.66f, height * 0.66f)
         prevPage.x = -w.toFloat()
         pageDelegate?.setViewSize(w, h)
-        if (oldw != 0 && oldh != 0) {
+        
+        // 任何尺寸变化都需要重新计算显示（包括首次旋转）
+        // isInitFinish 检查会防止过早调用
+        if (dataProvider?.isInitFinish == true) {
             dataProvider?.loadContent(resetPageOffset = false)
         }
     }
