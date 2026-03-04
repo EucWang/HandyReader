@@ -4,6 +4,7 @@ import android.net.Uri
 import androidx.activity.compose.LocalOnBackPressedDispatcherOwner
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -71,8 +72,10 @@ fun TopToolbar(
             .background(DrawerDefaults.modalContainerColor)
             .padding(bottom = 12.dp)
             .consumeClick()
-//            .windowInsetsPadding(WindowInsets.statusBars)
     ) {
+        Box(modifier = Modifier.fillMaxWidth()
+            .height(24.dp)) {}
+
         Row(
             modifier = Modifier
                 .fillMaxWidth()
