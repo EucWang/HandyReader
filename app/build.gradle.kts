@@ -37,7 +37,7 @@ android {
 
     defaultConfig {
         applicationId = "com.wxn.reader"
-        minSdk = 24
+        minSdk = 23
         targetSdk = 35
         versionCode = 10
         versionName = "1.8.260303"

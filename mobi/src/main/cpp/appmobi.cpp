@@ -491,26 +491,42 @@ Java_com_wxn_mobi_inative_NativeLib_getChapters(JNIEnv *env, jobject thiz, jobje
         std::string src = (*point).src;
         std::string parentId = (*point).parentId;
 
-        jobject item = env->NewObject(objClass, constructor,
-                                      0L,
-                                      env->NewStringUTF(id.c_str()),
-                                      env->NewStringUTF(parentId.c_str()),
-                                      book_id,
-                                      playOrder - 1,
-                                      env->NewStringUTF(content.c_str()),
-                                      0L,
-                                      env->NewStringUTF(""),
-                                      0L,
-                                      env->NewStringUTF(""),
-                                      env->NewStringUTF(src.c_str()),
-                                      length,
-                                      0L,
-                                      0L,
-                                      0L,
-                                      0.0f
-        );
+        jvalue args[16];
+        args[0].j = 0LL;
+        args[1].l = env->NewStringUTF(id.c_str());
+        args[2].l = env->NewStringUTF(parentId.c_str());
+        args[3].j = book_id;
+        args[4].i = playOrder - 1;
+        args[5].l = env->NewStringUTF(content.c_str());
+        args[6].j = 0LL;
+        args[7].l = env->NewStringUTF("");
+        args[8].j = 0LL;
+        args[9].l = env->NewStringUTF("");
+        args[10].l = env->NewStringUTF(src.c_str());
+        args[11].i = length;
+        args[12].j = 0LL;
+        args[13].j = 0LL;
+        args[14].j = 0LL;
+        args[15].f = 0.0f;  // 直接使用 float，不会提升
+        // 检查每个 NewStringUTF 返回值
+        for (int i = 1; i <= 10; i += 2) { // 检查所有 l 字段
+            if (args[i].l == nullptr) {
+                LOGE("%s Failed to create string at index %d", __func__, i);
+                // 清理已创建的字符串并返回
+                // 注意：需要释放之前创建的局部引用，但简单返回可能泄漏少量内存，建议用 PushLocalFrame
+                env->ReleaseStringUTFChars(path, nativeStr);
+                return nullptr;
+            }
+        }
+        jobject item = env->NewObjectA(objClass, constructor, args);
+
         if (item == nullptr) {
             LOGE("%s create BookChapter failed", __func__);
+            // 处理异常
+            if (env->ExceptionCheck()) {
+                env->ExceptionDescribe();
+                env->ExceptionClear();
+            }
             env->ReleaseStringUTFChars(path, nativeStr);
             return nullptr;
         }
@@ -732,16 +748,30 @@ Java_com_wxn_mobi_inative_NativeLib_getChapter(JNIEnv *env, jobject thiz, jobjec
         jobject list = env->NewObject(listClass, listConstructor);
         if (!item.tagInfos.empty()) {
             for (auto &tag: item.tagInfos) {
+                // 创建临时字符串（均为局部引用）
+                jstring uuid = env->NewStringUTF(tag.uuid.c_str());
+                jstring anchor_id = env->NewStringUTF(tag.anchor_id.c_str());
+                jstring name = env->NewStringUTF(tag.name.c_str());
+                jstring parent_uuid = env->NewStringUTF(tag.parent_uuid.c_str());
+                jstring params = env->NewStringUTF(tag.params.c_str());
+
+                // 创建 TextTag 对象
                 jobject textTag = env->NewObject(textTagClass, textTagConstructor,
-                                                 env->NewStringUTF(tag.uuid.c_str()),
-                                                 env->NewStringUTF(tag.anchor_id.c_str()),
-                                                 env->NewStringUTF(tag.name.c_str()),
-                                                 tag.startPos,
-                                                 tag.endPos,
-                                                 env->NewStringUTF(tag.parent_uuid.c_str()),
-                                                 env->NewStringUTF(tag.params.c_str())
-                );
-                env->CallBooleanMethod(list, listAdd, textTag);
+                                                 uuid, anchor_id, name,
+                                                 tag.startPos, tag.endPos,
+                                                 parent_uuid, params);
+                if (textTag) {
+                    // 添加到 ArrayList
+                    env->CallBooleanMethod(list, listAdd, textTag);
+                    // 立即删除 TextTag 局部引用（ArrayList 已持有它）
+                    env->DeleteLocalRef(textTag);
+                }
+                // 删除临时字符串局部引用（TextTag 构造函数已复制或持有引用）
+                env->DeleteLocalRef(uuid);
+                env->DeleteLocalRef(anchor_id);
+                env->DeleteLocalRef(name);
+                env->DeleteLocalRef(parent_uuid);
+                env->DeleteLocalRef(params);
             }
         }
 
@@ -768,13 +798,12 @@ Java_com_wxn_mobi_inative_NativeLib_getChapter(JNIEnv *env, jobject thiz, jobjec
         }
         memcpy(bytes, ch_text, length);
         env->ReleaseByteArrayElements(byteArray, bytes, 0);
-
-//        jobject readerText = env->NewObject(objClass, constructor,
-//                                            clientStringFromStdString(env, item.text),
-//                                            list);
         jobject paragraph_data = env->NewObject(objClass, constructor, byteArray, list);
 
         env->SetObjectArrayElement(result, i, paragraph_data);
+
+        env->DeleteLocalRef(byteArray);
+        env->DeleteLocalRef(list);
     }
 
     env->ReleaseStringUTFChars(path, nativeStr);

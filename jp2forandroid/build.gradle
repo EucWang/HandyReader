@@ -6,7 +6,7 @@ android {
 
     namespace = "com.gemalto.jp2"
     defaultConfig {
-        minSdkVersion 24
+        minSdkVersion 23
         targetSdkVersion 36
         versionName "1.0.4"
         versionCode 4
