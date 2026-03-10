@@ -22,3 +22,4 @@ pdfium/.cxx
 jp2forandroid/build
 .idea
 /.kotlin
+/package-lock.json
