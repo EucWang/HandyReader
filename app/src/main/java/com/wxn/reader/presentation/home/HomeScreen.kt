@@ -129,7 +129,7 @@ fun HomeScreen(
             viewModel.updateCurrentShelf(null)
         } else {
             val shelf = shelves.getOrNull(selectedTab - 1)
-            viewModel.updateCurrentShelf(shelf)
+            viewModel.updateCurrentShelf(shelf, selectedTab)
             shelf?.let { viewModel.getBooksForShelf(it.id) }
         }
     }

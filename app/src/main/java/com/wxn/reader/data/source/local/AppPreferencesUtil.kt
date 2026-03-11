@@ -57,6 +57,8 @@ class AppPreferencesUtil @Inject constructor(context: Context) {
 
         val HAS_INIT_SCAN_DIRS = booleanPreferencesKey("has_init_scan_dirs")
         val IS_READER_GUIDE_SHOWN = booleanPreferencesKey("is_reader_guide_shown")
+
+        val LAST_OPEN_SHELF_TAB_INDEX = intPreferencesKey("last_open_shelf_tab_index")
         // Default values
         val defaultPreferences = AppPreferences(
             isFirstLaunch = true,
@@ -82,7 +84,8 @@ class AppPreferencesUtil @Inject constructor(context: Context) {
             autoOpenLastRead = false,
             lastBookId = 0L,
             hasInitScanDirs = false,
-            isReaderGuideShown = false
+            isReaderGuideShown = false,
+            lastOpenShelfTabIndex = 0
         )
     }
 
@@ -120,6 +123,7 @@ class AppPreferencesUtil @Inject constructor(context: Context) {
                 prefs[LAST_OPEN_BOOK_ID] = defaultPreferences.lastBookId
                 prefs[HAS_INIT_SCAN_DIRS] = defaultPreferences.hasInitScanDirs
                 prefs[IS_READER_GUIDE_SHOWN] = defaultPreferences.isReaderGuideShown
+                prefs[LAST_OPEN_SHELF_TAB_INDEX] = defaultPreferences.lastOpenShelfTabIndex
             }
         }
     }
@@ -150,7 +154,8 @@ class AppPreferencesUtil @Inject constructor(context: Context) {
             autoOpenLastRead = preferences[AUTO_OPEN_LAST_READ] ?: defaultPreferences.autoOpenLastRead,
             lastBookId = preferences[LAST_OPEN_BOOK_ID] ?: defaultPreferences.lastBookId,
             hasInitScanDirs = preferences[HAS_INIT_SCAN_DIRS] ?: defaultPreferences.hasInitScanDirs,
-            isReaderGuideShown = preferences[IS_READER_GUIDE_SHOWN] ?: defaultPreferences.isReaderGuideShown
+            isReaderGuideShown = preferences[IS_READER_GUIDE_SHOWN] ?: defaultPreferences.isReaderGuideShown,
+            lastOpenShelfTabIndex = preferences[LAST_OPEN_SHELF_TAB_INDEX] ?: defaultPreferences.lastOpenShelfTabIndex
         )
     }
 
@@ -203,6 +208,7 @@ class AppPreferencesUtil @Inject constructor(context: Context) {
             preferences[LAST_OPEN_BOOK_ID] = newPreferences.lastBookId
             preferences[HAS_INIT_SCAN_DIRS] = newPreferences.hasInitScanDirs
             preferences[IS_READER_GUIDE_SHOWN] = newPreferences.isReaderGuideShown
+            preferences[LAST_OPEN_SHELF_TAB_INDEX] = newPreferences.lastOpenShelfTabIndex
         }
     }
 

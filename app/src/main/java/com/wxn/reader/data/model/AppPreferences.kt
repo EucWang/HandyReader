@@ -36,6 +36,8 @@ data class AppPreferences(
 
     val hasInitScanDirs : Boolean,
     val isReaderGuideShown: Boolean = false,  // 阅读界面引导页是否已显示过
+
+    val lastOpenShelfTabIndex: Int,
 )
 
 

@@ -153,7 +153,10 @@ class HomeViewModel
             val preferences = appPreferencesUtil.appPrefsFlow.first()
             coroutineScope {
                 launch { loadBooks(preferences) }
-                launch { loadShelves() }
+                launch {
+                    val lastTabIndex = preferences.lastOpenShelfTabIndex
+                    loadShelves(lastTabIndex)
+                }
                 launch { observeBooks(preferences) }
                 launch { observeAppPreferences() }
                 if (preferences.scanDirectories.isEmpty() && !preferences.hasInitScanDirs) {
@@ -244,16 +247,30 @@ class HomeViewModel
         _openLastBookRoute.value = ""
     }
 
-    private fun loadShelves() {
+    private fun loadShelves(lastOpenShelftTabIndex: Int = 0) {
         viewModelScope.launch {
             getShelvesUseCase().collect { shelves ->
                 _shelves.value = shelves
+
+                if (lastOpenShelftTabIndex > 0 && lastOpenShelftTabIndex <= shelves.size) {
+                    updateCurrentShelf(shelves[lastOpenShelftTabIndex - 1], lastOpenShelftTabIndex, false)
+                }
             }
         }
     }
 
-    fun updateCurrentShelf(shelf: Shelf?) {
+    fun updateCurrentShelf(shelf: Shelf?, index: Int = 0, storeIndex: Boolean = true) {
         _currentShelf.value = shelf
+        selectedTab.value = index
+
+        if (storeIndex) {
+            viewModelScope.launch {
+                val appPref = _appPreferences.value ?: return@launch
+                val appPreferences = appPref.copy(lastOpenShelfTabIndex = index)
+                updateAppPreferences(appPreferences)
+                Logger.d("HomeViewModel::updateCurrentShelf::shelf=${shelf}, index=$index")
+            }
+        }
     }
 
 
@@ -660,18 +677,21 @@ class HomeViewModel
     fun sortBooks(sortOption: SortOption, sortOrder: SortOrder) {
         viewModelScope.launch {
             val appPref = _appPreferences.value ?: return@launch
-            val isAscending = sortOrder == SortOrder.ASCENDING
-            val readingStatus = appPref.readingStatus
-            val fileType = appPref.fileTypes
-            try {
-                getBooksUseCase(sortOption, isAscending, readingStatus, fileType)
-                    .cachedIn(viewModelScope)
-                    .collect { pagingData ->
-                        _books.value = pagingData
-                    }
-            } catch (e: Exception) {
-                Logger.e("HomeViewModel:Error sorting books: ${e.message}")
-            }
+            loadBooks(appPref)
+//
+//            val isAscending = sortOrder == SortOrder.ASCENDING
+//
+//            val readingStatus = appPref.readingStatus
+//            val fileType = appPref.fileTypes
+//            try {
+//                getBooksUseCase(sortOption, isAscending, readingStatus, fileType)
+//                    .cachedIn(viewModelScope)
+//                    .collect { pagingData ->
+//                        _books.value = pagingData
+//                    }
+//            } catch (e: Exception) {
+//                Logger.e("HomeViewModel:Error sorting books: ${e.message}")
+//            }
         }
     }
 
