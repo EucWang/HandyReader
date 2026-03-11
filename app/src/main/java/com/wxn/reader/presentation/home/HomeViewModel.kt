@@ -588,17 +588,15 @@ class HomeViewModel
         return getBooksForShelfUseCase(shelfId)
     }
 
-    fun getBooksForShelf(shelfId: Long): List<Book> {
-        var booksList: List<Book> = emptyList()
+    fun getBooksForShelf(shelfId: Long)  {
+        Logger.d("HomeViewModel::getBooksForShelf::shelfId=$shelfId")
         viewModelScope.launch {
             getBooksForShelfUseCase(shelfId).collect { books: List<Book> ->
-                booksList = books
                 _booksInShelfSet.value = books.map { it.id }.toSet()
+                Logger.d("HomeViewModel::getBooksForShelf::booksList.size=${books.size}")
             }
         }
-        return booksList
     }
-
 
     fun toggleBookSelection(book: Book) {
         _selectedBooks.value = if (_selectedBooks.value.contains(book)) {

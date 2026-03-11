@@ -115,13 +115,6 @@ fun HomeScreen(
             }
         }
 
-//    LaunchedEffect(Unit) {
-//        delay(5000)
-//        if (!appPreferences.isPremium && Random.nextFloat() <= 0.10f) {
-//            navController.navigate(Screens.PremiumScreen.route)
-//        }
-//    }
-
     LaunchedEffect(selectedTab) {
         pagerState.animateScrollToPage(selectedTab)
         viewModel.clearBookSelection()
