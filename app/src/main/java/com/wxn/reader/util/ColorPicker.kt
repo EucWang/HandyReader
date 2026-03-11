@@ -1,8 +1,6 @@
 package com.wxn.reader.util
 
 import com.elixer.palette.composables.LaunchButton
-
-
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.*
 import androidx.compose.foundation.Canvas
@@ -22,8 +20,6 @@ import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.zIndex
-import com.elixer.palette.Presets
 import com.elixer.palette.constraints.HorizontalAlignment
 import com.elixer.palette.constraints.HorizontalAlignment.*
 import com.elixer.palette.constraints.VerticalAlignment
@@ -34,15 +30,11 @@ import com.elixer.palette.models.ColorArc
 import com.elixer.palette.models.ColorWheel
 import com.elixer.palette.models.toColorArch
 import com.elixer.palette.models.toSwatches
-import kotlinx.coroutines.launch
 import kotlin.math.abs
 import kotlin.math.atan2
 
-
-
 @Composable
 fun  ColorPicker(
-    isVisible: Boolean,
     defaultColor: Color = Color(0xFFFF9800),
     buttonSize: Dp = 100.dp,
     swatches: List<List<Color>>,
@@ -60,17 +52,8 @@ fun  ColorPicker(
     colorWheelZIndexOnWheelHidden:Float = 0f
 ) {
 
-    val isPaletteDisplayed by rememberUpdatedState(isVisible)
     val selectedArchAnimatable = remember { Animatable(0f) }
     val selectedColor = remember { mutableStateOf(defaultColor) }
-
-
-    // Add this animated value
-    val visibilityTransition by animateFloatAsState(
-        targetValue = if (isPaletteDisplayed) 1f else 0f,
-        animationSpec = tween(durationMillis = 300), label = ""
-    )
-
 
     val animatedColor by animateColorAsState(
         selectedColor.value,
@@ -91,7 +74,7 @@ fun  ColorPicker(
     val colorWheel = ColorWheel(
         startingRadius = innerRadius, swatches = swatches,
         strokeWidth = strokeWidth,
-        isDisplayed = isPaletteDisplayed,
+        isDisplayed = true,
         spacerOutward = spacerOutward,
         spacerRotation = spacerRotation
     )
@@ -121,13 +104,15 @@ fun  ColorPicker(
 
     colorArcs.forEachIndexed { _, it ->
         val radius: Float by animateFloatAsState(
-            targetValue = if (isPaletteDisplayed) it.radius else 0f,
+//            targetValue = if (isPaletteDisplayed) it.radius else 0f,
+            targetValue =  it.radius,
             animationSpec = spring(
                 dampingRatio = Spring.DampingRatioLowBouncy,
                 stiffness = Spring.StiffnessVeryLow
             ), label = ""
         )
-        radiusAnimatables.add(radius * visibilityTransition)
+//        radiusAnimatables.add(radius * visibilityTransition)
+        radiusAnimatables.add(radius)
     }
 
     val rotationAnimatable: Float by animateFloatAsState(
@@ -144,23 +129,24 @@ fun  ColorPicker(
 //        isPaletteDisplayed = false
         selectedColor.value = colorArc.color
 
-        coroutineScope.launch {
-            selectedArchAnimatable.snapTo(
-                colorArc.radius
-            )
-            selectedArchAnimatable.animateTo(
-                targetValue = 0f,
-                tween(
-                    durationMillis = selectedArchAnimationDuration,
-                    easing = LinearEasing
-                )
-            )
-        }
+//        coroutineScope.launch {
+//            selectedArchAnimatable.snapTo(
+//                colorArc.radius
+//            )
+//            selectedArchAnimatable.animateTo(
+//                targetValue = 0f,
+//                tween(
+//                    durationMillis = selectedArchAnimationDuration,
+//                    easing = LinearEasing
+//                )
+//            )
+//        }
     }
 
     BoxWithConstraints(
         modifier = Modifier
-            .zIndex(if (isPaletteDisplayed) colorWheelZIndexOnWheelDisplayed else colorWheelZIndexOnWheelHidden)
+//            .zIndex(if (isPaletteDisplayed) colorWheelZIndexOnWheelDisplayed else colorWheelZIndexOnWheelHidden)
+//            .zIndex(colorWheelZIndexOnWheelDisplayed )
             .fillMaxSize()
             .pointerInput(Unit) {
                 detectDragGestures(
@@ -190,30 +176,26 @@ fun  ColorPicker(
                 }
             }
     ) {
-
         Canvas(modifier = Modifier
             .fillMaxSize()
             .pointerInput(Unit) {
                 detectTapGestures(
                     onTap = { tapOffset ->
-                        if (isPaletteDisplayed) {
+                        /**
+                         * Calculate angle between center and tapped offset
+                         */
+                        val angle = calculateAngle(centerX.dp.value, centerY.dp.value, tapOffset.x, tapOffset.y)
 
-                            /**
-                             * Calculate angle between center and tapped offset
-                             */
-                            val angle = calculateAngle(centerX.dp.value, centerY.dp.value, tapOffset.x, tapOffset.y)
-
-                            /**
-                             * Calculate distance between center and tapped offset
-                             */
-                            val distance = calculateDistance(centerX, centerY, tapOffset.x, tapOffset.y)
-                            colorArcs.forEachIndexed { _, it ->
-                                if (it.contains(angle, distance, rotationAnimatable)) {
-                                    onColorSelected(it)
-                                    return@forEachIndexed
-                                } else {
+                        /**
+                         * Calculate distance between center and tapped offset
+                         */
+                        val distance = calculateDistance(centerX, centerY, tapOffset.x, tapOffset.y)
+                        colorArcs.forEachIndexed { _, it ->
+                            if (it.contains(angle, distance, rotationAnimatable)) {
+                                onColorSelected(it)
+                                return@forEachIndexed
+                            } else {
 //                                    isPaletteDisplayed.value = false
-                                }
                             }
                         }
                     },
@@ -307,7 +289,6 @@ fun getCenterYCoordinate(verticalAxis: VerticalAlignment, maxY: Float): Float {
 @Composable
 fun PreviewPalette() {
     ColorPicker(
-        isVisible = true,
         defaultColor = Blue,
         swatches = Presets.material(),
     )

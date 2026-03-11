@@ -1,6 +1,5 @@
 package com.wxn.reader.presentation.bookReader.components.modals
 
-import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -11,12 +10,17 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.pager.HorizontalPager
+import androidx.compose.foundation.pager.rememberPagerState
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ColorLens
 import androidx.compose.material3.ButtonDefaults
@@ -29,10 +33,10 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -45,7 +49,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavHostController
-import com.elixer.palette.Presets
+import com.wxn.reader.util.Presets
 import com.elixer.palette.constraints.HorizontalAlignment
 import com.elixer.palette.constraints.VerticalAlignment
 import com.wxn.base.ext.toComposeColor
@@ -55,190 +59,12 @@ import com.wxn.reader.data.model.AppPreferences
 import com.wxn.reader.navigation.Screens
 import com.wxn.reader.presentation.mainReader.MainReadViewModel
 import com.wxn.reader.util.ColorPicker
+import kotlinx.coroutines.launch
 
 enum class ColorType(val displayName: String) {
     BACKGROUND("Background"),
     TEXT("Text"),
 }
-
-//
-//@OptIn(ExperimentalMaterial3Api::class, ExperimentalReadiumApi::class)
-//@Composable
-//fun UiSettings(
-//    navController: NavHostController,
-////    purchaseHelper: PurchaseHelper,
-//    appPreferences: AppPreferences,
-//    viewModel: BookReaderViewModel,
-//    readerPreferences: ReaderPreferences,
-//    onDismiss: () -> Unit,
-//) {
-//    var isPaletteVisible by remember { mutableStateOf(false) }
-//    var editingColorType by remember { mutableStateOf(ColorType.BACKGROUND) }
-//
-//    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
-////    var showPremiumModal by remember { mutableStateOf(false) }
-//
-//
-//    val predefinedColors = remember {
-//        mapOf(
-//            "White" to Color.White,
-//            "Black" to Color.Black,
-//            "Gray" to Color(0xFFD8D3D6),
-//            "Blue Gray" to Color(0xFFDBE1F1),
-//        )
-//    }
-//
-//    LaunchedEffect(isPaletteVisible) {
-//        if (isPaletteVisible && appPreferences.isPremium) sheetState.expand()
-//    }
-//
-//    ModalBottomSheet(
-//        onDismissRequest = onDismiss,
-//        sheetState = sheetState,
-//    ) {
-//        Column(
-//            modifier = Modifier
-//                .fillMaxWidth()
-//                .padding(horizontal = 16.dp),
-//            horizontalAlignment = Alignment.CenterHorizontally
-//        ) {
-//
-//            Box(
-//                modifier = Modifier.fillMaxWidth(),
-//                contentAlignment = Alignment.CenterEnd
-//            ) {
-//                Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
-//                    Text(
-//                        text = stringResource(R.string.color_settings),
-//                        style = MaterialTheme.typography.titleMedium,
-//                    )
-//                }
-//                TextButton(
-//                    onClick = {
-//                        viewModel.resetUiPreferences()
-//                    },
-//                    colors = ButtonDefaults.textButtonColors(
-//                        containerColor = MaterialTheme.colorScheme.surfaceVariant,
-//                    ),
-//                    contentPadding = PaddingValues(horizontal = 8.dp, vertical = 2.dp)
-//                ) {
-//                    Text(
-//                        text = stringResource(R.string.reset),
-//                        style = MaterialTheme.typography.labelSmall
-//                    )
-//                }
-//            }
-//
-//            Spacer(modifier = Modifier.height(16.dp))
-//
-//            ColorSection(
-//                title = stringResource(R.string.background_color),
-//                currentColor = readerPreferences.backgroundColor.toComposeColor(),
-//                predefinedColors = predefinedColors,
-//                onColorSelected = { color ->
-//                    viewModel.updateReaderPreferences(
-//                        readerPreferences.copy(
-//                            backgroundColor = color.toArgb(),
-//                            textColor = if (color == Color.Black) Color.White.toArgb() else Color.Black.toArgb()
-//                        )
-//                    )
-//                },
-//                onCustomColorClicked = {
-//                    if (appPreferences.isPremium) {
-//                        editingColorType = ColorType.BACKGROUND
-//                        isPaletteVisible = true
-//                    } else {
-//                        navController.navigate(Screens.PremiumScreen.route);
-////                        viewModel.purchasePremium(purchaseHelper)
-////                        showPremiumModal = true
-//                    }
-//
-//                },
-//            )
-//
-//            Spacer(modifier = Modifier.height(20.dp))
-//            HorizontalDivider()
-//            Spacer(modifier = Modifier.height(20.dp))
-//
-//            ColorSection(
-//                title = stringResource(R.string.text_color),
-//                currentColor = readerPreferences.textColor.toComposeColor(),
-//                predefinedColors = predefinedColors,
-//                onColorSelected = { color ->
-//                    viewModel.updateReaderPreferences(readerPreferences.copy(textColor = color.toArgb()))
-//                },
-//                onCustomColorClicked = {
-//                    if (appPreferences.isPremium) {
-//                        editingColorType = ColorType.TEXT
-//                        isPaletteVisible = true
-//                    } else {
-//                        navController.navigate(Screens.PremiumScreen.route);
-////                        viewModel.purchasePremium(purchaseHelper)
-////                        showPremiumModal = true
-//                    }
-//
-//                },
-//            )
-//
-//            Spacer(modifier = Modifier.height(20.dp))
-//            HorizontalDivider()
-//            Spacer(modifier = Modifier.height(20.dp))
-//
-//
-//            AnimatedVisibility(
-//                visible = isPaletteVisible && appPreferences.isPremium
-//            ) {
-//                Column(
-//                    horizontalAlignment = Alignment.CenterHorizontally
-//                ) {
-//                    Spacer(modifier = Modifier.height(0.dp))
-//                    Text(
-//                        stringResource(R.string.select_color, editingColorType.displayName),
-//                        style = MaterialTheme.typography.titleMedium,
-//                        textAlign = TextAlign.Center
-//                    )
-//                    ColorPicker(
-//                        isVisible = isPaletteVisible,
-//                        defaultColor = when (editingColorType) {
-//                            ColorType.BACKGROUND -> readerPreferences.backgroundColor.toComposeColor()
-//                            ColorType.TEXT -> readerPreferences.textColor.toComposeColor()
-//                        },
-//                        buttonSize = 70.dp,
-//                        swatches = Presets.material(),
-//                        innerRadius = 200f,
-//                        strokeWidth = 80f,
-//                        spacerRotation = 0f,
-//                        spacerOutward = 3f,
-//                        verticalAlignment = VerticalAlignment.Bottom,
-//                        horizontalAlignment = HorizontalAlignment.Center,
-//                        onColorSelected = { color ->
-//                            isPaletteVisible = false
-//                            viewModel.updateReaderPreferences(
-//                                when (editingColorType) {
-//                                    ColorType.BACKGROUND -> readerPreferences.copy(
-//                                        backgroundColor = color.toArgb(),
-//                                        textColor = if (color == Color.Black) Color.White.toArgb() else Color.Black.toArgb()
-//                                    )
-//
-//                                    ColorType.TEXT -> readerPreferences.copy(textColor = color.toArgb())
-//                                }
-//                            )
-//                        }
-//                    )
-//                }
-//            }
-//        }
-//    }
-//
-////    if (showPremiumModal) {
-////        PremiumModal(
-////            purchaseHelper = purchaseHelper,
-////            hidePremiumModal = { showPremiumModal = false }
-////        )
-////    }
-//
-//}
-
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun UiSettings(
@@ -248,12 +74,9 @@ fun UiSettings(
     readerPreferences: ReaderPreferences,
     onDismiss: () -> Unit,
 ) {
-    var isPaletteVisible by remember { mutableStateOf(false) }
     var editingColorType by remember { mutableStateOf(ColorType.BACKGROUND) }
-
+    val uiScope = rememberCoroutineScope()
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
-//    var showPremiumModal by remember { mutableStateOf(false) }
-
 
     val predefinedColors = remember {
         mapOf(
@@ -264,7 +87,6 @@ fun UiSettings(
             com.wxn.reader.ui.theme.stringResource(R.string.pale_brown) to Color(0xFFFFF2E2),
         )
     }
-
     val predefinedImages = remember {
         mapOf(
             com.wxn.reader.ui.theme.stringResource(R.string.none) to "",
@@ -275,9 +97,7 @@ fun UiSettings(
         )
     }
 
-    LaunchedEffect(isPaletteVisible) {
-        if (isPaletteVisible && appPreferences.isPremium) sheetState.expand()
-    }
+    val pagerState = rememberPagerState(0) { 2 }
 
     ModalBottomSheet(
         onDismissRequest = onDismiss,
@@ -286,9 +106,9 @@ fun UiSettings(
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 8.dp),
-            horizontalAlignment = Alignment.CenterHorizontally
-        ) {
+                .padding(bottom = 16.dp)
+                .padding(horizontal = 16.dp),
+            horizontalAlignment = Alignment.CenterHorizontally) {
 
             Box(
                 modifier = Modifier.fillMaxWidth(),
@@ -302,7 +122,15 @@ fun UiSettings(
                 }
                 TextButton(
                     onClick = {
-                        viewModel.resetUiPreferences()
+                        when(pagerState.currentPage) {
+                            0 ->  viewModel.resetUiPreferences()
+                            else -> {
+                                uiScope.launch {
+                                    pagerState.animateScrollToPage(0)
+                                }
+                            }
+                        }
+
                     },
                     colors = ButtonDefaults.textButtonColors(
                         containerColor = MaterialTheme.colorScheme.surfaceVariant,
@@ -310,7 +138,10 @@ fun UiSettings(
                     contentPadding = PaddingValues(horizontal = 8.dp, vertical = 2.dp)
                 ) {
                     Text(
-                        text = stringResource(R.string.reset),
+                        text =  when(pagerState.currentPage) {
+                            0 -> stringResource(R.string.reset)
+                            else -> stringResource(R.string.back)
+                        } ,
                         style = MaterialTheme.typography.labelSmall
                     )
                 }
@@ -318,137 +149,123 @@ fun UiSettings(
 
             Spacer(modifier = Modifier.height(8.dp))
 
-            ColorSection(
-                title = stringResource(R.string.background_color),
-                currentColor = readerPreferences.backgroundColor.toComposeColor(),
-                predefinedColors = predefinedColors,
-                onColorSelected = { color ->
-                    viewModel.updateReaderPreferences(
-                        readerPreferences.copy(
-                            backgroundColor = color.toArgb(),
-                            textColor = if (color == Color.Black) Color.White.toArgb() else Color.Black.toArgb()
-                        )
-                    )
-                },
-                onCustomColorClicked = {
-                    if (appPreferences.isPremium) {
-                        editingColorType = ColorType.BACKGROUND
-                        isPaletteVisible = true
-                    } else {
-                        navController.navigate(Screens.PremiumScreen.route);
-//                        viewModel.purchasePremium(purchaseHelper)
-//                        showPremiumModal = true
-                    }
+            HorizontalPager(
+                userScrollEnabled = false,
+                state = pagerState,
+                modifier = Modifier
+                    .fillMaxWidth().fillMaxHeight(0.5f)
+            ) { index ->
+                    when(index) {
+                        0 -> {
+                            Column(
+                                modifier = Modifier
+                                    .fillMaxSize()
+                                    .padding(horizontal = 8.dp)
+                                    .verticalScroll(rememberScrollState()),
+                                horizontalAlignment = Alignment.CenterHorizontally
+                            ) {
+                                ColorSection(
+                                    title = stringResource(R.string.background_color),
+                                    currentColor = readerPreferences.backgroundColor.toComposeColor(),
+                                    predefinedColors = predefinedColors,
+                                    onColorSelected = { color ->
+                                        viewModel.updateReaderPreferences(
+                                            readerPreferences.copy(
+                                                backgroundColor = color.toArgb(),
+                                                backgroundImage = ""
+                                            )
+                                        )
+                                    },
+                                    onCustomColorClicked = {
+                                        if (appPreferences.isPremium) {
+                                            editingColorType = ColorType.BACKGROUND
+                                            uiScope.launch{
+                                                pagerState.animateScrollToPage(1)
+                                            }
+                                        } else {
+                                            navController.navigate(Screens.PremiumScreen.route);
+                                        }
+                                    },
+                                )
 
-                },
-            )
+                                Spacer(modifier = Modifier.height(8.dp))
+                                HorizontalDivider()
+                                Spacer(modifier = Modifier.height(8.dp))
 
-            Spacer(modifier = Modifier.height(8.dp))
-            HorizontalDivider()
-            Spacer(modifier = Modifier.height(8.dp))
+                                ImageSection(
+                                    title = stringResource(R.string.background_image),
+                                    currentImage = readerPreferences.backgroundImage,
+                                    predefinedImages = predefinedImages,
+                                    onImageSelected = { image ->
+                                        viewModel.updateReaderPreferences(
+                                            readerPreferences.copy(backgroundImage =image)
+                                        )
+                                    },
+                                )
 
-            ImageSection(
-                title = stringResource(R.string.background_image),
-                currentImage = readerPreferences.backgroundImage,
-                predefinedImages = predefinedImages,
-                onImageSelected = { image ->
-                    viewModel.updateReaderPreferences(
-                        readerPreferences.copy(backgroundImage =image)
-                    )
-                },
-//                onCustomColorClicked = {
-//                    if (appPreferences.isPremium) {
-//                        editingColorType = ColorType.BACKGROUND
-//                        isPaletteVisible = true
-//                    } else {
-//                        navController.navigate(Screens.PremiumScreen.route);
-////                        viewModel.purchasePremium(purchaseHelper)
-////                        showPremiumModal = true
-//                    }
-//
-//                },
-            )
+                                Spacer(modifier = Modifier.height(8.dp))
+                                HorizontalDivider()
+                                Spacer(modifier = Modifier.height(8.dp))
 
-            Spacer(modifier = Modifier.height(8.dp))
-            HorizontalDivider()
-            Spacer(modifier = Modifier.height(8.dp))
+                                ColorSection(
+                                    title = stringResource(R.string.text_color),
+                                    currentColor = readerPreferences.textColor.toComposeColor(),
+                                    predefinedColors = predefinedColors,
+                                    onColorSelected = { color ->
+                                        viewModel.updateReaderPreferences(readerPreferences.copy(textColor = color.toArgb()))
+                                    },
+                                    onCustomColorClicked = {
+                                        if (appPreferences.isPremium) {
+                                            editingColorType = ColorType.TEXT
+                                            uiScope.launch {
+                                                pagerState.animateScrollToPage(1)
+                                            }
+                                        } else {
+                                            navController.navigate(Screens.PremiumScreen.route);
+                                        }
+                                    },
+                                )
 
+                                Spacer(modifier = Modifier.height(8.dp))
+                                HorizontalDivider()
+                                Spacer(modifier = Modifier.height(8.dp))
+                            }
+                        }
+                        1 -> {
+                            ColorPicker(
+                                defaultColor = when (editingColorType) {
+                                    ColorType.BACKGROUND -> readerPreferences.backgroundColor.toComposeColor()
+                                    ColorType.TEXT -> readerPreferences.textColor.toComposeColor()
+                                },
+                                buttonSize = 70.dp,
+                                swatches = Presets.material(),
+                                innerRadius = 200f,
+                                strokeWidth = 80f,
+                                spacerRotation = 0f,
+                                spacerOutward = 3f,
+                                verticalAlignment = VerticalAlignment.Bottom,
+                                horizontalAlignment = HorizontalAlignment.End,
+                                onColorSelected = { color ->
+                                    viewModel.updateReaderPreferences(
+                                        when (editingColorType) {
+                                            ColorType.BACKGROUND -> readerPreferences.copy(
+                                                backgroundColor = color.toArgb(),
+                                                backgroundImage = ""
+                                            )
 
-            ColorSection(
-                title = stringResource(R.string.text_color),
-                currentColor = readerPreferences.textColor.toComposeColor(),
-                predefinedColors = predefinedColors,
-                onColorSelected = { color ->
-                    viewModel.updateReaderPreferences(readerPreferences.copy(textColor = color.toArgb()))
-                },
-                onCustomColorClicked = {
-                    if (appPreferences.isPremium) {
-                        editingColorType = ColorType.TEXT
-                        isPaletteVisible = true
-                    } else {
-                        navController.navigate(Screens.PremiumScreen.route);
-//                        viewModel.purchasePremium(purchaseHelper)
-//                        showPremiumModal = true
-                    }
-                },
-            )
-
-            Spacer(modifier = Modifier.height(8.dp))
-            HorizontalDivider()
-            Spacer(modifier = Modifier.height(8.dp))
-
-            AnimatedVisibility(
-                visible = isPaletteVisible && appPreferences.isPremium
-            ) {
-                Column(
-                    horizontalAlignment = Alignment.CenterHorizontally
-                ) {
-                    Spacer(modifier = Modifier.height(0.dp))
-                    Text(
-                        stringResource(R.string.select_color, editingColorType.displayName),
-                        style = MaterialTheme.typography.titleMedium,
-                        textAlign = TextAlign.Center
-                    )
-                    ColorPicker(
-                        isVisible = isPaletteVisible,
-                        defaultColor = when (editingColorType) {
-                            ColorType.BACKGROUND -> readerPreferences.backgroundColor.toComposeColor()
-                            ColorType.TEXT -> readerPreferences.textColor.toComposeColor()
-                        },
-                        buttonSize = 70.dp,
-                        swatches = Presets.material(),
-                        innerRadius = 200f,
-                        strokeWidth = 80f,
-                        spacerRotation = 0f,
-                        spacerOutward = 3f,
-                        verticalAlignment = VerticalAlignment.Bottom,
-                        horizontalAlignment = HorizontalAlignment.Center,
-                        onColorSelected = { color ->
-                            isPaletteVisible = false
-                            viewModel.updateReaderPreferences(
-                                when (editingColorType) {
-                                    ColorType.BACKGROUND -> readerPreferences.copy(
-                                        backgroundColor = color.toArgb(),
-                                        textColor = if (color == Color.Black) Color.White.toArgb() else Color.Black.toArgb()
+                                            ColorType.TEXT -> readerPreferences.copy(textColor = color.toArgb())
+                                        }
                                     )
-
-                                    ColorType.TEXT -> readerPreferences.copy(textColor = color.toArgb())
+                                    uiScope.launch {
+                                        pagerState.animateScrollToPage(1)
+                                    }
                                 }
                             )
                         }
-                    )
                 }
             }
         }
     }
-
-//    if (showPremiumModal) {
-//        PremiumModal(
-//            purchaseHelper = purchaseHelper,
-//            hidePremiumModal = { showPremiumModal = false }
-//        )
-//    }
-
 }
 
 
@@ -490,7 +307,7 @@ private fun ImageSection(
 
 
 @Composable
-private fun ColorSection(
+fun ColorSection(
     title: String,
     currentColor: Color,
     predefinedColors: Map<String, Color>,
@@ -504,7 +321,7 @@ private fun ColorSection(
     )
     Spacer(modifier = Modifier.height(6.dp))
     Text(
-        text = predefinedColors.entries.find { it.value == currentColor }?.key ?: "Custom Color",
+        text = predefinedColors.entries.find { it.value == currentColor }?.key ?: "", //?: "Custom Color",
         style = MaterialTheme.typography.titleMedium,
         textAlign = TextAlign.Center
     )
@@ -578,7 +395,7 @@ private fun ImageBox(
             .border(
                 width = 2.dp,
                 color = if (isSelected) {
-                        Color(0xFFFFF8DC)
+                    Color(0xFFFFF8DC)
                 } else {
                     Color.Transparent
                 },
@@ -597,7 +414,9 @@ private fun ImageBox(
                     else -> painterResource(com.wxn.bookread.R.drawable.ic_bg_none)
                 },
             contentDescription = image,
-            modifier = Modifier.fillMaxSize().clip(RoundedCornerShape(40.dp)),
+            modifier = Modifier
+                .fillMaxSize()
+                .clip(RoundedCornerShape(40.dp)),
             contentScale = ContentScale.FillBounds
         )
     }
