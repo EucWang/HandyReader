@@ -77,9 +77,6 @@ fun MainReadScreen(
             MainActivity.inReadPage = false
         }
     }
-
-    SetFullScreen(context, showSystemBars = areToolbarsVisible)
-
     Box(
         modifier = Modifier.fillMaxSize(),
         contentAlignment = Alignment.Center
@@ -132,4 +129,7 @@ fun MainReadScreen(
             }
         }
     }
+
+
+    SetFullScreen(context, showSystemBars = areToolbarsVisible)
 }

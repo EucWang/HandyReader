@@ -78,7 +78,7 @@ fun HomeScreen(
     val isAddingBooks by viewModel.isAddingBooks.collectAsStateWithLifecycle()
     val searchQuery by viewModel.searchQuery.collectAsStateWithLifecycle()
     val booksInShelf by viewModel.booksInShelfSet.collectAsStateWithLifecycle()
-    val books = viewModel.books.collectAsLazyPagingItems()
+    val books by viewModel.books.collectAsStateWithLifecycle()
 
     val importProgress by viewModel.importProgressState.collectAsStateWithLifecycle()
     val snackbarState by viewModel.snackbarState.collectAsStateWithLifecycle()
@@ -173,12 +173,12 @@ fun HomeScreen(
                                 viewModel.clearBookSelection()
                             },
                             selectAll = {
-                                viewModel.selectAllBooks(books.itemSnapshotList.items)
+                                viewModel.selectAllBooks(books)
                             },
                             appPreferences = appPreferences!!,
                             toggleLayoutModal = { showLayoutModal = true },
                             toggleSortFilterModal = { showSortModal = true },
-                            totalBooks = books.itemCount,
+                            totalBooks = books.size,
                             currentShelfBookCount = booksInShelf.size,
                             toggleSearchMode = {
                                 searchMode = true

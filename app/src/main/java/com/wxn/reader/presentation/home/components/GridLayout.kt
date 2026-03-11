@@ -8,7 +8,6 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -18,30 +17,15 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
-import androidx.paging.compose.LazyPagingItems
-import androidx.paging.compose.itemKey
-//import com.google.android.gms.ads.AdError
-//import com.google.android.gms.ads.AdRequest
-//import com.google.android.gms.ads.FullScreenContentCallback
-//import com.google.android.gms.ads.LoadAdError
-//import com.google.android.gms.ads.interstitial.InterstitialAd
-//import com.google.android.gms.ads.interstitial.InterstitialAdLoadCallback
-import com.wxn.reader.BuildConfig
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.wxn.reader.data.model.AppPreferences
 import com.wxn.base.bean.Book
-import com.wxn.reader.data.dto.FileType
-import com.wxn.reader.data.dto.FileType.Companion.stringToFileType
 import com.wxn.reader.navigation.LocalNavController
 import com.wxn.reader.presentation.home.HomeViewModel
-import com.wxn.reader.navigation.Screens
-import com.wxn.base.util.Logger
-import kotlin.random.Random
 
 @Composable
 fun GridLayout(
     clearSearch: () -> Unit,
-    books: LazyPagingItems<Book>,
-    selectedBooks: List<Book>,
     selectionMode: Boolean,
     toggleSelection: (Book) -> Unit,
     viewModel: HomeViewModel,
@@ -50,7 +34,6 @@ fun GridLayout(
     openBook: (Book) -> Unit
 ) {
     val navController = LocalNavController.current
-
     val context = LocalContext.current
     var isBookOpen by remember { mutableStateOf(false) }
 
@@ -58,14 +41,13 @@ fun GridLayout(
     val screenWidth = configuration.screenWidthDp.dp
     val screenHeight = configuration.screenHeightDp.dp
 
-
     // Calculate spacing based on screen size
     val horizontalSpacing = (screenWidth * 0.02f).coerceAtLeast(4.dp).coerceAtMost(16.dp)
     val verticalSpacing = (screenHeight * 0.02f).coerceAtLeast(6.dp).coerceAtMost(24.dp)
 
-
     val isAddingBook by viewModel.isAddingBooks.collectAsState()
-
+    val books by viewModel.books.collectAsStateWithLifecycle()
+    val selectedBooks by viewModel.selectedBooks.collectAsStateWithLifecycle()
 
     LazyVerticalGrid(
         userScrollEnabled = !isAddingBook,
@@ -76,8 +58,8 @@ fun GridLayout(
         modifier = Modifier.fillMaxSize(),
     ) {
         items(
-            count = books.itemCount,
-            key = books.itemKey { book -> "${book.id}_${book.filePath}" }
+            count = books.size,
+            key =  { index -> books.getOrNull(index)?.id ?: index }
         ) { index ->
             val book = books[index] ?: return@items
             val isSelected = selectedBooks.contains(book)

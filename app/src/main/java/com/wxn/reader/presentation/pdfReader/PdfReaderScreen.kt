@@ -62,7 +62,6 @@ fun PdfReaderScreen(
     val context = LocalContext.current
     val coroutineScope = rememberCoroutineScope()
     var areToolbarsVisible by remember { mutableStateOf(false) }
-    SetFullScreen(context, showSystemBars = areToolbarsVisible)
 
 
     val book by viewModel.book.collectAsStateWithLifecycle()
@@ -279,6 +278,8 @@ fun PdfReaderScreen(
             )
         }
     }
+
+    SetFullScreen(context, showSystemBars = areToolbarsVisible)
 }
 
 

@@ -20,8 +20,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavHostController
-import androidx.paging.compose.LazyPagingItems
 import com.wxn.base.bean.Book
 import com.wxn.base.util.Logger
 import com.wxn.reader.R
@@ -35,15 +35,12 @@ import com.wxn.reader.navigation.Screens
 import com.wxn.reader.presentation.home.HomeViewModel
 import com.wxn.reader.presentation.home.components.GridLayout
 import com.wxn.reader.presentation.home.components.ListLayout
-import kotlin.random.Random
 
 @Composable
 fun BookShelfScreen(
     clearSearch: () -> Unit,
     shelf: Shelf,
-    books: LazyPagingItems<Book>,
     homeViewModel: HomeViewModel,
-    selectedBooks: List<Book>,
     selectionMode: Boolean,
     toggleSelection: (Book) -> Unit,
     isLoading: Boolean,
@@ -52,6 +49,7 @@ fun BookShelfScreen(
 
     var isBookOpen by remember { mutableStateOf(false) }
     val navController: NavHostController = LocalNavController.current
+    val books by homeViewModel.books.collectAsStateWithLifecycle()
 
     fun openBook(openedBook: Book) {
         if (selectionMode) {
@@ -86,29 +84,25 @@ fun BookShelfScreen(
     }
 
     when {
-        books.itemCount == 0 -> {
+        books.size == 0 -> {
             EmptyShelfContent(shelf.name)
         }
 
         appPreferences.homeLayout == Layout.Grid || appPreferences.homeLayout == Layout.CoverOnly -> {
             GridLayout(
                 clearSearch =  { clearSearch() },
-                books = books,
-                selectedBooks = selectedBooks,
                 selectionMode = selectionMode,
                 toggleSelection = toggleSelection,
                 viewModel = homeViewModel,
                 isLoading = isLoading,
                 appPreferences = appPreferences,
                 ::openBook
-                )
+            )
         }
 
         else -> {
             ListLayout(
                 clearSearch = { clearSearch() },
-                books = books,
-                selectedBooks = selectedBooks,
                 selectionMode = selectionMode,
                 toggleSelection = toggleSelection,
                 viewModel = homeViewModel,

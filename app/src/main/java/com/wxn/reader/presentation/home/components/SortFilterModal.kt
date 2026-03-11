@@ -216,8 +216,9 @@ fun SortContent(
                                 }
                             ),
                             onClick = {
-                                viewModel.updateAppPreferences(appPreferences.copy(sortOrder = sortOrder))
-                                viewModel.sortBooks(appPreferences.sortBy, sortOrder)
+                                val newAppPref = appPreferences.copy(sortOrder = sortOrder)
+                                viewModel.updateAppPreferences(newAppPref)
+                                viewModel.sortBooks(appPreferences.sortBy, sortOrder, newAppPref)
                             }
                         ) {
                             Icon(imageVector = icon, contentDescription = "Sort order")
@@ -235,8 +236,9 @@ fun SortContent(
                 text = stringResource(R.string.last_added),
                 selected = appPreferences.sortBy == SortOption.LAST_ADDED,
                 onClick = {
-                    viewModel.updateAppPreferences(appPreferences.copy(sortBy = SortOption.LAST_ADDED))
-                    viewModel.sortBooks(SortOption.LAST_ADDED, appPreferences.sortOrder)
+                    val newPrefs = appPreferences.copy(sortBy = SortOption.LAST_ADDED)
+                    viewModel.updateAppPreferences(newPrefs)
+                    viewModel.sortBooks(SortOption.LAST_ADDED, appPreferences.sortOrder, newPrefs)
                 }
             )
         }
@@ -247,8 +249,9 @@ fun SortContent(
                 text = stringResource(R.string.last_opened),
                 selected = appPreferences.sortBy == SortOption.LAST_OPENED,
                 onClick = {
-                    viewModel.updateAppPreferences(appPreferences.copy(sortBy = SortOption.LAST_OPENED))
-                    viewModel.sortBooks(SortOption.LAST_OPENED, appPreferences.sortOrder)
+                    val newPrefs = appPreferences.copy(sortBy = SortOption.LAST_OPENED)
+                    viewModel.updateAppPreferences(newPrefs)
+                    viewModel.sortBooks(SortOption.LAST_OPENED, appPreferences.sortOrder, newPrefs)
                 }
             )
         }
@@ -258,8 +261,9 @@ fun SortContent(
                 text = stringResource(R.string.title),
                 selected = appPreferences.sortBy == SortOption.TITLE,
                 onClick = {
-                    viewModel.updateAppPreferences(appPreferences.copy(sortBy = SortOption.TITLE))
-                    viewModel.sortBooks(SortOption.TITLE, appPreferences.sortOrder)
+                    val newPrefs = appPreferences.copy(sortBy = SortOption.TITLE)
+                    viewModel.updateAppPreferences(newPrefs)
+                    viewModel.sortBooks(SortOption.TITLE, appPreferences.sortOrder, newPrefs)
                 }
             )
         }
@@ -272,8 +276,9 @@ fun SortContent(
                 text = stringResource(R.string.author),
                 selected = appPreferences.sortBy == SortOption.AUTHOR,
                 onClick = {
-                    viewModel.updateAppPreferences(appPreferences.copy(sortBy = SortOption.AUTHOR))
-                    viewModel.sortBooks(SortOption.AUTHOR, appPreferences.sortOrder)
+                    val newPrefs = appPreferences.copy(sortBy = SortOption.AUTHOR)
+                    viewModel.updateAppPreferences(newPrefs)
+                    viewModel.sortBooks(SortOption.AUTHOR, appPreferences.sortOrder, newPrefs)
                 }
             )
         }
@@ -287,8 +292,9 @@ fun SortContent(
                 text = stringResource(R.string.rating),
                 selected = appPreferences.sortBy == SortOption.RATING,
                 onClick = {
-                    viewModel.updateAppPreferences(appPreferences.copy(sortBy = SortOption.RATING))
-                    viewModel.sortBooks(SortOption.RATING, appPreferences.sortOrder)
+                    val newPrefs = appPreferences.copy(sortBy = SortOption.RATING)
+                    viewModel.updateAppPreferences(newPrefs)
+                    viewModel.sortBooks(SortOption.RATING, appPreferences.sortOrder, newPrefs)
                 }
             )
         }
@@ -299,8 +305,9 @@ fun SortContent(
                 text = stringResource(R.string.progression),
                 selected = appPreferences.sortBy == SortOption.PROGRESSION,
                 onClick = {
-                    viewModel.updateAppPreferences(appPreferences.copy(sortBy = SortOption.PROGRESSION))
-                    viewModel.sortBooks(SortOption.PROGRESSION, appPreferences.sortOrder)
+                    val newPrefs = appPreferences.copy(sortBy = SortOption.PROGRESSION)
+                    viewModel.updateAppPreferences(newPrefs)
+                    viewModel.sortBooks(SortOption.PROGRESSION, appPreferences.sortOrder, newPrefs)
                 }
             )
         }

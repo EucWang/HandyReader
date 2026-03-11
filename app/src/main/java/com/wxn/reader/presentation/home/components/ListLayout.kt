@@ -1,46 +1,26 @@
 package com.wxn.reader.presentation.home.components
 
-import android.net.Uri
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavHostController
-import androidx.paging.compose.LazyPagingItems
-import androidx.paging.compose.itemKey
-//import com.google.android.gms.ads.AdError
-//import com.google.android.gms.ads.AdRequest
-//import com.google.android.gms.ads.FullScreenContentCallback
-//import com.google.android.gms.ads.LoadAdError
-//import com.google.android.gms.ads.interstitial.InterstitialAd
-//import com.google.android.gms.ads.interstitial.InterstitialAdLoadCallback
-import com.wxn.reader.BuildConfig
 import com.wxn.reader.data.model.AppPreferences
 import com.wxn.base.bean.Book
-import com.wxn.reader.data.dto.FileType
-import com.wxn.reader.data.dto.FileType.Companion.stringToFileType
 import com.wxn.reader.navigation.LocalNavController
 import com.wxn.reader.presentation.home.HomeViewModel
-import com.wxn.reader.navigation.Screens
-import com.wxn.base.util.Logger
-import kotlin.random.Random
 
 @Composable
 fun ListLayout(
     clearSearch: () -> Unit,
-    books: LazyPagingItems<Book>,
-    selectedBooks: List<Book>,
     selectionMode: Boolean,
     toggleSelection: (Book) -> Unit,
     viewModel: HomeViewModel,
@@ -49,10 +29,11 @@ fun ListLayout(
     openBook: (Book) -> Unit
 ) {
     val navController: NavHostController = LocalNavController.current
-
     val context = LocalContext.current
-
     val isAddingBook by viewModel.isAddingBooks.collectAsState()
+    val books by viewModel.books.collectAsStateWithLifecycle()
+
+    val selectedBooks by viewModel.selectedBooks.collectAsStateWithLifecycle()
 
     LazyColumn(
         userScrollEnabled = !isAddingBook,
@@ -61,8 +42,8 @@ fun ListLayout(
         modifier = Modifier.fillMaxSize()
     ) {
         items(
-            count = books.itemCount,
-            key = books.itemKey { book -> "${book.id}_${book.filePath}" }
+            count = books.size,
+            key = { index -> books.getOrNull(index)?.id ?: index }
         ) { index ->
             val book = books[index] ?: return@items
             val isSelected = selectedBooks.contains(book)

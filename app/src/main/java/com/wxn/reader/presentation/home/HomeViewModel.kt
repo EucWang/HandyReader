@@ -100,8 +100,8 @@ class HomeViewModel
     private val _isAddingBooks = MutableStateFlow(false)
     val isAddingBooks: StateFlow<Boolean> = _isAddingBooks.asStateFlow()
 
-    private val _books = MutableStateFlow<PagingData<Book>>(PagingData.empty())
-    val books: StateFlow<PagingData<Book>> = _books.asStateFlow()
+    private val _books = MutableStateFlow<List<Book>>(emptyList())
+    val books: StateFlow<List<Book>> = _books.asStateFlow()
 
     private val _selectedBooks = MutableStateFlow<List<Book>>(emptyList())
     val selectedBooks: StateFlow<List<Book>> = _selectedBooks.asStateFlow()
@@ -239,7 +239,7 @@ class HomeViewModel
                 matchesSearch && matchesShelf && matchesTab
             }
         }.collect { data ->
-            _books.value =  PagingData.from(data)
+            _books.value = data
         }
     }
 
@@ -672,24 +672,9 @@ class HomeViewModel
         }
     }
 
-    fun sortBooks(sortOption: SortOption, sortOrder: SortOrder) {
+    fun sortBooks(sortOption: SortOption, sortOrder: SortOrder, newPrefs: AppPreferences) {
         viewModelScope.launch {
-            val appPref = _appPreferences.value ?: return@launch
-            loadBooks(appPref)
-//
-//            val isAscending = sortOrder == SortOrder.ASCENDING
-//
-//            val readingStatus = appPref.readingStatus
-//            val fileType = appPref.fileTypes
-//            try {
-//                getBooksUseCase(sortOption, isAscending, readingStatus, fileType)
-//                    .cachedIn(viewModelScope)
-//                    .collect { pagingData ->
-//                        _books.value = pagingData
-//                    }
-//            } catch (e: Exception) {
-//                Logger.e("HomeViewModel:Error sorting books: ${e.message}")
-//            }
+            loadBooks(newPrefs)
         }
     }
 

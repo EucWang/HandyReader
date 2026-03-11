@@ -26,7 +26,6 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.IntOffset
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavHostController
-import androidx.paging.compose.collectAsLazyPagingItems
 import com.wxn.base.bean.Book
 import com.wxn.reader.R
 import com.wxn.reader.data.model.Layout
@@ -47,10 +46,8 @@ import com.wxn.reader.navigation.Screens
 @Composable fun HomeShelfsPanel(innerPadding: PaddingValues, pagerState: PagerState, viewModel: HomeViewModel) {
     var selectedTab by viewModel.selectedTab
     val shelves by viewModel.shelves.collectAsStateWithLifecycle()
-    val books = viewModel.books.collectAsLazyPagingItems()
+
     val selectedBooks by viewModel.selectedBooks.collectAsStateWithLifecycle()
-    val selectionMode by viewModel.selectionMode.collectAsStateWithLifecycle()
-    val isAddingBooks by viewModel.isAddingBooks.collectAsStateWithLifecycle()
     val appPreferences by viewModel.appPreferences.collectAsStateWithLifecycle()
 
     var showLayoutModal by viewModel.showLayoutModal
@@ -132,8 +129,9 @@ import com.wxn.reader.navigation.Screens
 @Composable
 fun HomeVoiceBookPanel(index: Int, viewModel: HomeViewModel) {
     val shelves by viewModel.shelves.collectAsStateWithLifecycle()
-    val books = viewModel.books.collectAsLazyPagingItems()
-    val selectedBooks by viewModel.selectedBooks.collectAsStateWithLifecycle()
+    val books by viewModel.books.collectAsStateWithLifecycle()
+
+
     val selectionMode by viewModel.selectionMode.collectAsStateWithLifecycle()
     val isAddingBooks by viewModel.isAddingBooks.collectAsStateWithLifecycle()
     val appPreferences by viewModel.appPreferences.collectAsStateWithLifecycle()
@@ -143,9 +141,7 @@ fun HomeVoiceBookPanel(index: Int, viewModel: HomeViewModel) {
         BookShelfScreen(
             clearSearch = { viewModel.updateSearchQuery("") },
             shelf = shelf,
-            books = books,
             homeViewModel = viewModel,
-            selectedBooks = selectedBooks,
             selectionMode = selectionMode,
             toggleSelection = { book -> viewModel.toggleBookSelection(book) },
             isLoading = isAddingBooks,
@@ -159,8 +155,6 @@ fun HomeVoiceBookPanel(index: Int, viewModel: HomeViewModel) {
 @Composable
 fun HomeMainPanel(viewModel: HomeViewModel) {
     val appPreferences by viewModel.appPreferences.collectAsStateWithLifecycle()
-    val books = viewModel.books.collectAsLazyPagingItems()
-    val selectedBooks by viewModel.selectedBooks.collectAsStateWithLifecycle()
     val selectionMode by viewModel.selectionMode.collectAsStateWithLifecycle()
     val isAddingBooks by viewModel.isAddingBooks.collectAsStateWithLifecycle()
 
@@ -172,10 +166,6 @@ fun HomeMainPanel(viewModel: HomeViewModel) {
 
     val slideInAnimationSpec = tween<IntOffset>(durationMillis = 300)
     val tweenInAnimationSpec = tween<Float>(durationMillis = 300)
-
-//                            if (books.itemCount == 0) {
-//                                EmptyShelfContent("Library")
-//                            }
 
     var isBookOpen by remember { mutableStateOf(false) }
     val navController: NavHostController = LocalNavController.current
@@ -212,8 +202,6 @@ fun HomeMainPanel(viewModel: HomeViewModel) {
             ) {
                 GridLayout(
                     clearSearch = { viewModel.updateSearchQuery("") },
-                    books = books,
-                    selectedBooks = selectedBooks,
                     selectionMode = selectionMode,
                     toggleSelection = {
                         viewModel.toggleBookSelection(it)
@@ -233,8 +221,6 @@ fun HomeMainPanel(viewModel: HomeViewModel) {
             ) {
                 ListLayout(
                     clearSearch = { viewModel.updateSearchQuery("") },
-                    books = books,
-                    selectedBooks = selectedBooks,
                     selectionMode = selectionMode,
                     toggleSelection = {
                         viewModel.toggleBookSelection(it)
