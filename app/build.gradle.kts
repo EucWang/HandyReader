@@ -39,8 +39,8 @@ android {
         applicationId = "com.wxn.reader"
         minSdk = 23
         targetSdk = 35
-        versionCode = 10
-        versionName = "1.8.260303"
+        versionCode = 11
+        versionName = "1.9.260311"
         multiDexEnabled = true
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
@@ -116,6 +116,22 @@ android {
         abi {
             enableSplit = true
         }
+    }
+
+    // 针对应用变体进行配置
+    applicationVariants.all {
+        val variant = this
+        variant.outputs
+            .map { it as com.android.build.gradle.internal.api.BaseVariantOutputImpl }
+            .forEach { output ->
+                val versionName = variant.versionName ?: ""
+                val versionCode = variant.versionCode
+                val variantName = variant.name // 例如 "release" 或 "debug"
+                val newName = "handyreader_${variantName}_v${versionName}_${versionCode}.apk"
+                // 如果是 AAB，可以判断文件名后缀
+                // val newName = "MyApp-${variantName}-v${versionName}-${versionCode}.aab"
+                output.outputFileName = newName
+            }
     }
 }
 
