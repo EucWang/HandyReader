@@ -10,6 +10,11 @@ import com.wxn.base.util.ToastUtil
 import com.wxn.reader.data.source.local.AppPreferencesUtil
 import com.wxn.reader.util.LanguageUtil
 import dagger.hilt.android.HiltAndroidApp
+import io.sentry.Hint
+import io.sentry.SentryEvent
+import io.sentry.SentryLevel
+import io.sentry.SentryOptions
+import io.sentry.android.core.SentryAndroid
 import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.launch
 import javax.inject.Inject
@@ -78,6 +83,25 @@ class BookApplication : Application() {
         LanguageUtil.initDefaultLanguage(this)
         Logger.init(BuildConfig.DEBUG)
         ToastUtil.init(this)
+
+        SentryAndroid.init(this,  { options ->
+            options.dsn = "https://2a869e37b9dc5a699c56a00bf60d7acd@o4511029194194944.ingest.us.sentry.io/4511029196357632"
+            options.environment = if (BuildConfig.DEBUG ) "debug" else "release"
+            options.beforeSend = object : SentryOptions.BeforeSendCallback{
+                override fun execute(
+                    event: SentryEvent,
+                    hint: Hint
+                ): SentryEvent? {
+                    if (SentryLevel.DEBUG == event.level ||
+                        SentryLevel.INFO == event.level ||
+                        SentryLevel.WARNING == event.level) {
+                        return null
+                    } else {
+                        return event
+                    }
+                }
+            }
+        })
     }
 
 

@@ -19,6 +19,8 @@ plugins {
     id("com.google.firebase.crashlytics")
 
     id("androidx.room")
+
+    id("io.sentry.android.gradle") version "6.1.0"
 }
 
 val apikeyPropertiesFile = rootProject.file("key.properties")
@@ -205,4 +207,14 @@ dependencies {
     implementation(project(":bookread"))
     implementation(project(":base"))
     implementation(project(":text2speech"))
+}
+
+sentry {
+    org.set("white-bear-studio")
+    projectName.set("android")
+
+    // this will upload your source code to Sentry to show it as part of the stack traces
+    // disable if you don't want to expose your sources
+    includeSourceContext.set(true)
+    autoUploadProguardMapping.set(true)
 }

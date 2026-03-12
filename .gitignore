@@ -23,3 +23,5 @@ jp2forandroid/build
 .idea
 /.kotlin
 /package-lock.json
+# Sentry Config File
+sentry.properties
