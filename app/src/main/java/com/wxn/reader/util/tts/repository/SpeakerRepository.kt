@@ -39,13 +39,14 @@ class SpeakerRepository(
 ) {
     private lateinit var voices: List<Voice>
 
-    suspend fun fetchAll(): Result<List<Voice>> {
+    suspend fun fetchAll(): Result<List<Voice>>? {
         if (::voices.isInitialized) {
             return Result.success(voices)
         }
         val result = remoteDS.getAll()
         if (result.isSuccess) {
-            voices = result.getOrNull()!!
+            val allVoices = result.getOrNull() ?: return Result.failure(IllegalStateException("No voices available"))
+            voices = allVoices
             return Result.success(voices)
         }
         return Result.failure(result.exceptionOrNull()!!)

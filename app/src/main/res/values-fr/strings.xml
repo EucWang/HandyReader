@@ -296,4 +296,39 @@
     <!-- Reader Settings - Left Handed Mode -->
     <string name="left_handed_mode">Mode gaucher</string>
     <string name="left_handed_mode_description">Changer la direction de tournage de page pour les gauchers</string>
+
+    <!-- TTS Notification -->
+    <string name="tts_notification_channel_name">Lecture TTS</string>
+    <string name="tts_notification_channel_description">Notifications de synthèse vocale en cours</string>
+    <string name="tts_notification_title">HandyReader - En cours</string>
+    <string name="tts_notification_content">Synthèse vocale en cours</string>
+    <string name="tts_notification_playing">En cours</string>
+    <string name="tts_notification_paused">En pause</string>
+    <string name="tts_action_play">Lecture</string>
+    <string name="tts_action_pause">Pause</string>
+    <string name="tts_action_stop">Arrêter</string>
+
+    <!-- Messages d\'erreur TTS -->
+    <string name="tts_error_service_not_started">Service TTS non démarré</string>
+    <string name="tts_error_engine_not_ready">Moteur TTS non prêt</string>
+    <string name="tts_error_chapter_load_failed">Impossible de charger le chapitre %1$d</string>
+    <string name="tts_error_language_not_supported">Langue non prise en charge: %1$s</string>
+    <string name="tts_error_playback_failed">Échec de la lecture: %1$s</string>
+    <string name="tts_error_unknown_reason">Erreur inconnue</string>
+    <string name="tts_error_network_error">Échec de la connexion réseau</string>
+    <string name="tts_error_generic">Erreur TTS</string>
+    <string name="tts_error_playback_failed_simple">Échec de la lecture</string>
+    <string name="tts_set_times">Minuterie : %1$s</string>
+    <string name="tts_time_unlimit">Non défini</string>
+
+    <!-- Permission de notification TTS -->
+    <string name="notification_permission_required_title">Permission de notification requise</string>
+    <string name="notification_permission_required_message">HandyReader a besoin de la permission de notification pour afficher les contrôles de lecture TTS. Veuillez l\'activer dans les paramètres.</string>
+    <string name="notification_permission_go_settings">Ouvrir les paramètres</string>
+    <string name="notification_permission_cancel">Annuler</string>
+    
+    <!-- Boîte de dialogue d\'explication des notifications -->
+    <string name="notification_permission_explanation_title">Activer les notifications pour TTS</string>
+    <string name="notification_permission_explanation_message">Pour utiliser la fonction de synthèse vocale, HandyReader doit afficher une notification avec les commandes de lecture. Cela vous permet de contrôler la lecture TTS même lorsque l\'application est en arrière-plan.</string>
+    <string name="notification_permission_continue">Continuer</string>
 </resources>

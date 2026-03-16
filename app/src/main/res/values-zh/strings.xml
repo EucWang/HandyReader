@@ -296,4 +296,39 @@
     <!-- Reader Settings - Left Handed Mode -->
     <string name="left_handed_mode">左手操作模式</string>
     <string name="left_handed_mode_description">切换翻页方向以适应左手操作</string>
+
+    <!-- TTS通知相关 -->
+    <string name="tts_notification_channel_name">TTS播放</string>
+    <string name="tts_notification_channel_description">文本转语音播放通知</string>
+    <string name="tts_notification_title">随阅 - 正在朗读</string>
+    <string name="tts_notification_content">文本转语音播放中</string>
+    <string name="tts_notification_playing">正在播放</string>
+    <string name="tts_notification_paused">已暂停</string>
+    <string name="tts_action_play">播放</string>
+    <string name="tts_action_pause">暂停</string>
+    <string name="tts_action_stop">停止</string>
+
+    <!-- TTS 错误消息 -->
+    <string name="tts_error_service_not_started">TTS服务未启动</string>
+    <string name="tts_error_engine_not_ready">TTS引擎未就绪</string>
+    <string name="tts_error_chapter_load_failed">无法加载章节 %1$d</string>
+    <string name="tts_error_language_not_supported">不支持的语言: %1$s</string>
+    <string name="tts_error_playback_failed">播放失败: %1$s</string>
+    <string name="tts_error_unknown_reason">未知错误</string>
+    <string name="tts_error_network_error">网络连接失败</string>
+    <string name="tts_error_generic">TTS错误</string>
+    <string name="tts_error_playback_failed_simple">播放失败</string>
+    <string name="tts_set_times">定时器：%1$s</string>
+    <string name="tts_time_unlimit">未设置</string>
+
+    <!-- TTS 通知权限 -->
+    <string name="notification_permission_required_title">需要通知权限</string>
+    <string name="notification_permission_required_message">HandyReader需要通知权限以显示TTS播放控制。请在设置中启用。</string>
+    <string name="notification_permission_go_settings">去设置</string>
+    <string name="notification_permission_cancel">取消</string>
+    
+    <!-- 通知权限说明对话框 -->
+    <string name="notification_permission_explanation_title">为 TTS 启用通知</string>
+    <string name="notification_permission_explanation_message">要使用朗读功能，随阅需要显示一个带有播放控制的通知。这允许您即使在应用后台运行时也能控制 TTS 播放。</string>
+    <string name="notification_permission_continue">继续</string>
 </resources>

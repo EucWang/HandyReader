@@ -1,7 +1,11 @@
 package com.wxn.reader.presentation.mainReader
 
+import android.Manifest
 import android.content.Intent
+import android.content.pm.PackageManager
 import android.net.Uri
+import android.os.Build
+import android.provider.Settings
 import android.widget.FrameLayout
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.slideInVertically
@@ -25,20 +29,28 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.compose.ui.window.Popup
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.core.content.ContextCompat
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewModelScope
 import com.wxn.base.ext.toAndroidColor
@@ -65,6 +77,7 @@ import com.wxn.reader.presentation.bookReader.components.toolbars.BottomToolbar
 import com.wxn.reader.presentation.bookReader.components.toolbars.TopToolbar
 import com.wxn.reader.presentation.bookReader.components.ReaderGuideOverlay
 import com.wxn.reader.presentation.bookReader.components.ReaderGuideOverlay2
+import com.wxn.reader.presentation.bookReader.components.TtsPlayer
 import com.wxn.reader.util.LogCompositions
 import com.wxn.reader.util.TopPopupPositionProvider
 import kotlinx.coroutines.launch
@@ -116,15 +129,62 @@ fun ReaderView(
 
     val isTtsOn by viewModel.isTtsOn.collectAsStateWithLifecycle()
     val enableTts by viewModel.enableTts.collectAsStateWithLifecycle()
-//    val isTtsPlaying by viewModel.isTtsPlaying.collectAsStateWithLifecycle()
-//    val ttsSpeed by viewModel.ttsSpeed.collectAsStateWithLifecycle()
-//    val ttsPitch by viewModel.ttsPitch.collectAsStateWithLifecycle()
-//    val ttsLanguage by viewModel.ttsLanguage.collectAsStateWithLifecycle()
+    val isTtsPlaying by viewModel.isTtsPlaying.collectAsStateWithLifecycle()
+    val ttsSpeed by viewModel.ttsSpeed.collectAsStateWithLifecycle()
+    val ttsPitch by viewModel.ttsPitch.collectAsStateWithLifecycle()
+    val ttsLanguage by viewModel.ttsLanguage.collectAsStateWithLifecycle()
+    val ttsPlayTimes by viewModel.ttsPlayTimes.collectAsStateWithLifecycle()
 
     val outHref by viewModel.outHref.collectAsStateWithLifecycle()
     val showOutHrefDialog by viewModel.showOutHrefDialog.collectAsStateWithLifecycle()
 
     val context = LocalContext.current
+    val lifecycleOwner = LocalLifecycleOwner.current
+
+    // 权限状态管理
+    var showPermissionDeniedDialog = remember { mutableStateOf(false) }
+    var waitingForPermission = remember { mutableStateOf(false) }
+    var showPermissionExplanationDialog = remember { mutableStateOf(false) }
+
+    // 权限请求 launcher
+    val notificationPermissionLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.RequestPermission()
+    ) { isGranted ->
+        if (isGranted) {
+            // 权限授予，启动 TTS
+            viewModel.toggleTts()
+        } else {
+            // 权限被拒绝，显示提示对话框
+            showPermissionDeniedDialog.value = true
+        }
+    }
+
+    // 监听应用生命周期，处理从设置返回的情况
+    DisposableEffect(lifecycleOwner) {
+        val observer = LifecycleEventObserver { _, event ->
+            if (event == Lifecycle.Event.ON_RESUME && waitingForPermission.value) {
+                // 从设置返回，检查权限状态
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                    if (ContextCompat.checkSelfPermission(
+                            context,
+                            Manifest.permission.POST_NOTIFICATIONS
+                        ) == PackageManager.PERMISSION_GRANTED
+                    ) {
+                        // 权限已授予，自动启动 TTS
+                        viewModel.toggleTts()
+                        waitingForPermission.value = false
+                    } else {
+                        // 权限仍未授予，重置标志
+                        waitingForPermission.value = false
+                    }
+                }
+            }
+        }
+        lifecycleOwner.lifecycle.addObserver(observer)
+        onDispose {
+            lifecycleOwner.lifecycle.removeObserver(observer)
+        }
+    }
 
     // 检查是否需要显示阅读引导页
     LaunchedEffect(Unit) {
@@ -194,7 +254,26 @@ fun ReaderView(
                         }
                     },
                     textToSpeech = {
-                        viewModel.toggleTts()
+                        // Android 13+ 需要通知权限
+                        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                            // 检查权限状态
+                            when (ContextCompat.checkSelfPermission(
+                                context,
+                                Manifest.permission.POST_NOTIFICATIONS
+                            )) {
+                                PackageManager.PERMISSION_GRANTED -> {
+                                    // 已授予，直接启动 TTS
+                                    viewModel.toggleTts()
+                                }
+                                else -> {
+                                    // 未授予，先显示说明对话框
+                                    showPermissionExplanationDialog.value = true
+                                }
+                            }
+                        } else {
+                            // Android 12 及以下，不需要该权限，直接启动
+                            viewModel.toggleTts()
+                        }
                     },
                     enableTts = enableTts,
                     isTtsOn = isTtsOn,
@@ -207,28 +286,31 @@ fun ReaderView(
                 }
             }
 
-    //        TtsPlayer(
-    //            areToolbarsVisible = areToolbarsVisible,
-    //            isTtsOn = isTtsOn,
-    //            isTtsPlaying = isTtsPlaying,
-    //            speed = ttsSpeed,
-    //            pitch = ttsPitch,
-    //            language = ttsLanguage,
-    //            onPlay = {
-    //                viewModel.setTtsPlaying(true)
-    //            },
-    //            onPause = {
-    //                viewModel.setTtsPlaying(false)
-    //            },
-    //            onEnd = {
-    //                viewModel.toggleTts()
-    //            },
-    //            onSpeedChange = { viewModel.setTtsSpeed(it.toDouble()) },
-    //            onPitchChange = { viewModel.setTtsPitch(it.toDouble()) },
-    //            onLanguageChange = { viewModel.setTtsLanguage(it) },
-    //            onSkipToNextUtterance = { viewModel.skipToNextUtterance() },
-    //            onSkipToPreviousUtterance = { viewModel.skipToPreviousUtterance() }
-    //        )
+            TtsPlayer(
+                viewModel = viewModel,
+                areToolbarsVisible = areToolbarsVisible,
+                isTtsOn = isTtsOn,
+                isTtsPlaying = isTtsPlaying,
+                speed = ttsSpeed,
+                pitch = ttsPitch,
+                playTimes = ttsPlayTimes,
+                language = ttsLanguage,
+                onPlay = {
+                    viewModel.resumeTtsPlaying()
+                },
+                onPause = {
+                    viewModel.pauseTtsPlaying()
+                },
+                onEnd = {
+                    viewModel.stopTts()
+                },
+                onSpeedChange = { viewModel.setTtsSpeed(it) },
+                onPitchChange = { viewModel.setTtsPitch(it) },
+                onLanguageChange = { viewModel.setTtsLanguage(it) },
+                onPlayTimeChange = { viewModel.setTtsPlayTime(it) },
+                onSkipToNextUtterance = { viewModel.skipToNextUtterance() },
+                onSkipToPreviousUtterance = { viewModel.skipToPreviousUtterance() }
+            )
             // ActionModeLayout
             if (showTextToolbar || isHighlightsDrawerOpen || isChaptersDrawerOpen || isNotesDrawerOpen || isBookmarksDrawerOpen) {
                 Box(
@@ -534,6 +616,75 @@ fun ReaderView(
                         Text(stringResource(R.string.navigate_to))
                     }
                 },
+            )
+        }
+
+        // 权限说明对话框
+        if (showPermissionExplanationDialog.value) {
+            AlertDialog(
+                onDismissRequest = {
+                    showPermissionExplanationDialog.value = false
+                },
+                title = {
+                    Text(stringResource(R.string.notification_permission_explanation_title))
+                },
+                text = {
+                    Text(stringResource(R.string.notification_permission_explanation_message))
+                },
+                confirmButton = {
+                    Button(onClick = {
+                        showPermissionExplanationDialog.value = false
+                        // 用户确认后再请求权限
+                        notificationPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
+                    }) {
+                        Text(stringResource(R.string.notification_permission_continue))
+                    }
+                },
+                dismissButton = {
+                    Button(onClick = {
+                        showPermissionExplanationDialog.value = false
+                    }) {
+                        Text(stringResource(R.string.cancel))
+                    }
+                }
+            )
+        }
+
+        // 权限被拒绝提示对话框
+        if (showPermissionDeniedDialog.value) {
+            AlertDialog(
+                onDismissRequest = {
+                    showPermissionDeniedDialog.value = false
+                },
+                title = {
+                    Text(stringResource(R.string.notification_permission_required_title))
+                },
+                text = {
+                    Text(stringResource(R.string.notification_permission_required_message))
+                },
+                confirmButton = {
+                    Button(onClick = {
+                        showPermissionDeniedDialog.value = false
+                        waitingForPermission.value = true
+                        // 打开应用设置页面
+                        val intent = Intent(
+                            Settings.ACTION_APPLICATION_DETAILS_SETTINGS,
+                            Uri.fromParts("package", context.packageName, null)
+                        ).apply {
+                            addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                        }
+                        context.startActivity(intent)
+                    }) {
+                        Text(stringResource(R.string.notification_permission_go_settings))
+                    }
+                },
+                dismissButton = {
+                    Button(onClick = {
+                        showPermissionDeniedDialog.value = false
+                    }) {
+                        Text(stringResource(R.string.notification_permission_cancel))
+                    }
+                }
             )
         }
 

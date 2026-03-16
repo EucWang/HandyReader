@@ -48,6 +48,10 @@ class PageView : FrameLayout, IDataSource, PageCallback {
     }
 
     var dataProvider: PageViewDataProvider? = null
+    private var downInTopRegion = false
+    private var downInBottomRegion = false
+    private var isVerticalEdgeSwipe = false
+    private val edgeRegionThreshold = 0.08f // 顶部/底部区域阈值，占高度的比例
 
     /***
      * 当前章节中正在显示的页面的索引
@@ -306,6 +310,9 @@ class PageView : FrameLayout, IDataSource, PageCallback {
                 if (pageDelegate?.isRunning != true && pageDelegate?.isStarted != true) {
                     setStartPoint(event.x, event.y)
                 }
+                downInTopRegion = event.y < height * edgeRegionThreshold
+                downInBottomRegion = event.y > height * (1 - edgeRegionThreshold)
+                isVerticalEdgeSwipe = false
             }
 
             MotionEvent.ACTION_MOVE -> {
@@ -316,11 +323,30 @@ class PageView : FrameLayout, IDataSource, PageCallback {
                     isMove = abs(startX - event.x) > slopSquare || abs(startY - event.y) > slopSquare
                 }
 
-                if (isStartMove) {
+                // 检测垂直边缘滑动
+                if (isMove && !isVerticalEdgeSwipe && (downInTopRegion || downInBottomRegion)) {
+                    val dx = abs(event.x - startX)
+                    val dy = abs(event.y - startY)
+                    if (dy > dx && dy > slopSquare) { // 垂直滑动为主且超过阈值
+                        if (downInTopRegion && event.y > startY) { // 从顶部向下
+                            isVerticalEdgeSwipe = true
+                            Logger.d("PageView::onTouchEvent::downInTopRegion#isVerticalEdgeSwipe#")
+                        } else if (downInBottomRegion && event.y < startY) { // 从底部向上
+                            isVerticalEdgeSwipe = true
+                            Logger.d("PageView::onTouchEvent::downInBottomRegion#isVerticalEdgeSwipe#")
+                        }
+                        if (isVerticalEdgeSwipe) {
+                            removeCallbacks(longPressRunnable) // 取消长按
+                            longPressed = false
+                        }
+                    }
+                }
+
+                if (isStartMove && !isVerticalEdgeSwipe) {
                     pageDelegate?.startMove()
                 }
 
-                if (isMove) {
+                if (isMove && !isVerticalEdgeSwipe) {
                     longPressed = false
                     removeCallbacks(longPressRunnable)
                     if (isTextSelected) {
@@ -350,6 +376,10 @@ class PageView : FrameLayout, IDataSource, PageCallback {
                     pageDelegate?.onTouch(event)
                 }
                 pressOnTextSelected = false
+                // 重置边缘滑动标志
+                isVerticalEdgeSwipe = false
+                downInTopRegion = false
+                downInBottomRegion = false
             }
         }
         return true
@@ -652,11 +682,13 @@ class PageView : FrameLayout, IDataSource, PageCallback {
      * 处理tts  TODO
      */
     override fun contentLoadFinish() {
+        Logger.i("PageView::contentLoadFinish()")
 //        if (intent.getBooleanExtra("readAloud", false)) {
 //            intent.removeExtra("readAloud")
 //            ReadBook.readAloud()
 //        }
 //        loadStates = true
+//        invalidate()
     }
 
     override fun upPageControl() {

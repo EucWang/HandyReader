@@ -49,7 +49,9 @@ import com.wxn.reader.domain.use_case.chapters.GetChapterCountByBookIdUserCase
 import com.wxn.reader.domain.use_case.chapters.UpdateChapterWordCountUserCase
 import com.wxn.reader.domain.use_case.notes.GetNotesForBookUseCase
 import com.wxn.reader.presentation.mainReader.PageViewController
+import com.wxn.reader.service.TtsStateHolder
 import com.wxn.reader.util.PdfBitmapConverter
+import com.wxn.reader.util.TtsServiceController
 import com.wxn.reader.util.tts.TtsNavigator
 import dagger.Module
 import dagger.Provides
@@ -208,7 +210,9 @@ object AppModule {
         updateChapterWordCountUserCase: UpdateChapterWordCountUserCase,
         updateBookUseCase: UpdateBookUseCase,
         appPreferencesUtil: AppPreferencesUtil,
-        textParser: TextParser
+        textParser: TextParser,
+        ttsStateHolder: TtsStateHolder,
+        ttsServiceController: TtsServiceController,
     ): PageViewController {
         return PageViewController(
             context,
@@ -220,8 +224,24 @@ object AppModule {
             updateChapterWordCountUserCase,
             updateBookUseCase,
             appPreferencesUtil,
-            textParser
+            textParser,
+            ttsStateHolder,
+            ttsServiceController
         )
+    }
+
+    @Provides
+    @Singleton
+    fun provideTtsStateHolder(preferencesUtil: TtsPreferencesUtil): TtsStateHolder {
+        return TtsStateHolder(preferencesUtil)
+    }
+
+    @Provides
+    @Singleton
+    fun provideTtsServiceController(
+        @ApplicationContext context: Context,
+        ttsStateHolder: TtsStateHolder): TtsServiceController {
+        return TtsServiceController(context, ttsStateHolder)
     }
 
     @Provides

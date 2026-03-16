@@ -73,6 +73,15 @@ public class BaseTextToSpeechEngine implements TextToSpeechEngine {
     }
 
     @Override
+   public  Set<Locale> getAvailableLanguages() {
+        if (mTextToSpeech != null) {
+            return mTextToSpeech.getAvailableLanguages();
+        } else {
+            return null;
+        }
+    }
+
+    @Override
     public void say(String message, TextToSpeechCallback callback) {
         final String utteranceId = UUID.randomUUID().toString();
 
@@ -123,26 +132,32 @@ public class BaseTextToSpeechEngine implements TextToSpeechEngine {
     }
 
     @Override
-    public void setPitch(float pitch) {
+    public int setPitch(float pitch) {
         mTtsPitch = pitch;
         if (mTextToSpeech != null) {
-            mTextToSpeech.setPitch(pitch);
+            return mTextToSpeech.setPitch(pitch);
+        } else {
+            return TextToSpeech.ERROR;
         }
     }
 
     @Override
-    public void setSpeechRate(float rate) {
+    public int setSpeechRate(float rate) {
         mTtsRate = rate;
         if (mTextToSpeech != null) {
-            mTextToSpeech.setSpeechRate(rate);
+            return mTextToSpeech.setSpeechRate(rate);
+        } else {
+            return TextToSpeech.ERROR;
         }
     }
 
     @Override
-    public void setVoice(Voice voice) {
+    public int setVoice(Voice voice) {
         this.voice = voice;
         if (mTextToSpeech != null && Build.VERSION.SDK_INT >= 21) {
-            mTextToSpeech.setVoice(voice);
+            return mTextToSpeech.setVoice(voice);
+        } else {
+            return TextToSpeech.ERROR;
         }
     }
 

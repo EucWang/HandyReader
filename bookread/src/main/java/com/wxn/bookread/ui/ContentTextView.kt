@@ -7,14 +7,11 @@ import android.graphics.Color
 import android.graphics.Paint
 import android.graphics.Path
 import android.graphics.RectF
-import android.graphics.Typeface
-import android.os.Build
 import android.text.TextPaint
 import android.util.AttributeSet
 import android.view.View
 import androidx.core.graphics.toColorInt
 import androidx.core.graphics.withClip
-import com.wxn.base.bean.CssFontWeight
 import com.wxn.base.bean.TextCssInfo
 import com.wxn.base.bean.TextTag
 import com.wxn.base.ext.DpExt
@@ -29,7 +26,6 @@ import com.wxn.bookread.data.model.TextPage
 import com.wxn.bookread.ext.BitmapExt
 import com.wxn.bookread.provider.ChapterProvider
 import com.wxn.bookread.provider.ChapterProvider.contentPaint
-import com.wxn.bookread.provider.ChapterProvider.typeface
 import com.wxn.bookread.provider.ImageProvider
 import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.launch
@@ -184,6 +180,7 @@ class ContentTextView(context: Context, attrs: AttributeSet?) : View(context, at
      */
     private fun drawPage(canvas: Canvas) {
         var relativeOffset = relativeOffset(0)
+        val startTime = System.currentTimeMillis()
         Logger.i("ContentTextView::drawPage:relativeOffset=$relativeOffset, paddingOffset =$pageOffset, textPage.height=${textPage.height}")
         val factory = pageFactory ?: return
 
@@ -205,6 +202,7 @@ class ContentTextView(context: Context, attrs: AttributeSet?) : View(context, at
             drawLine(canvas, textLine, tags, textCssInfo, relativeOffset)
         }
 
+        Logger.i("ContentTextView::drawPage:when(no scroll and no next): spend:${System.currentTimeMillis() - startTime}")
         if (true != callback?.isScroll) return          //非滚动翻页，跳过
         if (pageFactory?.hasNext() != true) return      //没有下一页，跳过
 
@@ -227,6 +225,7 @@ class ContentTextView(context: Context, attrs: AttributeSet?) : View(context, at
             }
         }
 
+        Logger.i("ContentTextView::drawPage: when(no next plus): spend:${System.currentTimeMillis() - startTime}")
         if (pageFactory?.hasNextPlus() != true) return
         relativeOffset = relativeOffset(2)
         if (relativeOffset < ChapterProvider.visibleHeight) {   //绘制下下一页
@@ -248,6 +247,7 @@ class ContentTextView(context: Context, attrs: AttributeSet?) : View(context, at
                 }
             }
         }
+        Logger.i("ContentTextView::drawPage: full :${System.currentTimeMillis() - startTime}")
     }
 
     /***
@@ -280,28 +280,81 @@ class ContentTextView(context: Context, attrs: AttributeSet?) : View(context, at
         marginTop : Int,
         marginBottom : Int
     ) {
+        val speakBookStatus = pageFactory?.getSpeekBookStatus()
+        if (speakBookStatus == null || !speakBookStatus.isSpeaking || speakBookStatus.readBookLocator == null) {
+//            Logger.d("ContentTextView:tryDrawReadAloudBg:speakBookStatus=${speakBookStatus}")
+            return
+        }
+//        Logger.i("ContentTextView:tryDrawReadAloudBg2:${speakBookStatus}")
+        val readBookLocator = speakBookStatus.readBookLocator
+        val curChapterIndex = this.textPage.chapterIndex
+        val curLineParagraphIndex = textLine.paragraphIndex
+        if (readBookLocator.chapterIndex != curChapterIndex ||
+            readBookLocator.startParagraphIndex != curLineParagraphIndex) {
+//            Logger.d("ContentTextView:tryDrawReadAloudBg:curChapterIndex=${curChapterIndex},curLineParagraphIndex=$curLineParagraphIndex, pass")
+            return
+        }
+        val start = readBookLocator.startTextOffset
+        val end = readBookLocator.endTextOffset
+
+        val lineStartOffset = textLine.charStartOffset
+        val lineEndOffset = textLine.charEndOffset
+
+        if (lineStartOffset > end || lineEndOffset < start) {
+//            Logger.d("ContentTextView:tryDrawReadAloudBg:lineStartOffset=$lineStartOffset,lineEndOffset=$lineEndOffset, pass")
+            return
+        }
+
+        var startCharOffset = Int.MAX_VALUE
+        var endCharOffset = Int.MIN_VALUE
+
+        for (i in 0 until textLine.textChars.size) {
+            val offset = i + lineStartOffset
+            if (offset in start..<end) {
+                if (startCharOffset > offset) {
+                    startCharOffset = offset
+                }
+                if (endCharOffset < offset) {
+                    endCharOffset = offset
+                }
+            }
+        }
+//        Logger.d("ContentTextView:tryDrawReadAloudBg3:startCharOffset=$startCharOffset,endCharOffset=$endCharOffset, textChars.size=${textLine.textChars.size}, lineStartOffset=$lineStartOffset")
+        if (startCharOffset == Int.MAX_VALUE || endCharOffset == Int.MIN_VALUE) {
+            return
+        }
+        val startCharIndex = startCharOffset - lineStartOffset
+        val endCharIndex = endCharOffset - lineStartOffset
+        if (startCharIndex < 0 || startCharIndex >= textLine.textChars.size ||
+            endCharIndex < 0 || endCharIndex >= textLine.textChars.size) {
+            return
+        }
+//        Logger.d("ContentTextView::tryDrawReadAloudBg6::speakBookStatus=${speakBookStatus}," +
+//                " startCharIndex=$startCharIndex, endCharIndex=$endCharIndex")
 
         val lineTop = textLine.lineTop + relativeOffset
         val lineBottom = textLine.lineBottom + relativeOffset
 
-        if (textLine.isReadAloud) {   //绘制笔记的背景色
-            var noteColor = "#FFFF00"
-            val dp12px = DpExt.dp2px(context, 12f)
-            val dp6px = DpExt.dp2px(context, 6f)
-            val left = 0f
-            val top = lineTop - (marginTop / 2)
-            val right = ChapterProvider.viewWidth.toFloat()
-            val bottom = lineBottom + (marginBottom / 2)
-            canvas.drawRect(
-                RectF(left, top, right, bottom),
-                Paint().apply {
-                    noteColor.toColor()?.let { intColor ->
-                        color = intColor
-                        alpha = (0.4 * 256).toInt()
-                    }
-                    style = Paint.Style.FILL
-                })
-        }
+//        if (textLine.isReadAloud) {   //绘制笔记的背景色
+        var noteColor = "#FFFF00"
+        val dp12px = DpExt.dp2px(context, 12f)
+        val dp6px = DpExt.dp2px(context, 6f)
+//            val left = 0f
+        val left = textLine.textChars[startCharIndex].start
+        val top = lineTop - (marginTop / 2)
+//            val right = ChapterProvider.viewWidth.toFloat()
+        val right = textLine.textChars[endCharIndex].end
+        val bottom = lineBottom + (marginBottom / 2)
+        canvas.drawRect(
+            RectF(left, top, right, bottom),
+            Paint().apply {
+                noteColor.toColor()?.let { intColor ->
+                    color = intColor
+                    alpha = (0.4 * 256).toInt()
+                }
+                style = Paint.Style.FILL
+            })
+//        }
     }
 
     private fun tryDrawNote(
@@ -402,6 +455,8 @@ class ContentTextView(context: Context, attrs: AttributeSet?) : View(context, at
     }
 
 
+    private val drawingPaint = TextPaint()
+
     private fun drawChars(
         canvas: Canvas,
         textLine: TextLine,
@@ -443,12 +498,12 @@ class ContentTextView(context: Context, attrs: AttributeSet?) : View(context, at
 //        }
 
         if (textLine.withLineDot > 0) { //绘制html列表前面的 圆点/方块
-            val lineTop = textLine.lineTop
-            val lineBottom = textLine.lineBottom
+            val lTop = textLine.lineTop
+            val lBottom = textLine.lineBottom
             val start =  textLine.textChars.firstOrNull()?.start ?: 0f
             val end = start - 60
             val centerX = (start + end) / 2;
-            val centerY = (lineBottom + lineTop) / 2;
+            val centerY = (lBottom + lTop) / 2;
             val dotPaint = Paint()
             dotPaint.color =  "#FF333333".toColorInt()
             dotPaint.strokeWidth = 15f
@@ -498,39 +553,18 @@ class ContentTextView(context: Context, attrs: AttributeSet?) : View(context, at
                     ChapterProvider.getPaintByTagName(texttag)
                 }
             }
-            val paint = TextPaint()
-            paint.set(parentPaint)
+
+            drawingPaint.set(parentPaint)
 
             if (!isTitle && textCssInfo !=null) {
                 if (textCssInfo.fontSize.isEm()) {
-                    paint.textSize *= textCssInfo.fontSize.value
+                    drawingPaint.textSize *= textCssInfo.fontSize.value
                 } else if (textCssInfo.fontSize.isPx()) {
-                    paint.textSize = textCssInfo.fontSize.value
+                    drawingPaint.textSize = textCssInfo.fontSize.value
                 }
-                paint.typeface = when(textCssInfo.fontWeight) {
-                    CssFontWeight.FontWeightNormal -> {
-                        Typeface.create(typeface, Typeface.NORMAL)
-                    }
-                    CssFontWeight.FontWeightBold -> {
-                        Typeface.create(typeface, Typeface.BOLD)
-                    }
-                    CssFontWeight.FontWeightBolder -> {
-                        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
-                            Typeface.create(typeface, 900, false)
-                        } else {
-                            Typeface.create(typeface, Typeface.BOLD)
-                        }
-                    }
-                    CssFontWeight.FontWeightLighter -> {
-                        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
-                            Typeface.create(typeface, 300, false)
-                        } else {
-                            Typeface.create(typeface, Typeface.NORMAL)
-                        }
-                    }
-                }
+                drawingPaint.typeface = ChapterProvider.getTypeface(textCssInfo.fontWeight)
                 textCssInfo.fontColor.toColor()?.let { color ->
-                    paint.color = color
+                    drawingPaint.color = color
                 }
             }
 
@@ -554,12 +588,12 @@ class ContentTextView(context: Context, attrs: AttributeSet?) : View(context, at
             }
 
             if (ch.isImage) {
-                val lineTop = textLine.lineTop
-                val lineBottom = textLine.lineBottom
-                Logger.d("ContentTextView::drawLine:drawInnerImage:lineTop=${lineTop}, lineBottom=${lineBottom}")
-                drawImage(canvas, ch, lineTop, lineBottom) //绘制图片
+                val lTop = textLine.lineTop
+                val lBottom = textLine.lineBottom
+                Logger.d("ContentTextView::drawLine:drawInnerImage:lineTop=${lTop}, lineBottom=${lBottom}")
+                drawImage(canvas, ch, lTop, lBottom) //绘制图片
             } else {
-                canvas.drawText(ch.charData, ch.start, lineBase, paint) //绘制每一个字
+                canvas.drawText(ch.charData, ch.start, lineBase, drawingPaint) //绘制每一个字
             }
         }
     }

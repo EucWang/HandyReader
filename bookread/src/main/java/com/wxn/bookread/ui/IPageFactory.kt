@@ -2,6 +2,7 @@ package com.wxn.bookread.ui
 
 import com.wxn.base.bean.TextCssInfo
 import com.wxn.base.bean.TextTag
+import com.wxn.bookread.data.model.SpeekBookStatus
 
 abstract class IPageFactory<DATA>(protected val dataSource: IDataSource) {
 
@@ -42,4 +43,7 @@ abstract class IPageFactory<DATA>(protected val dataSource: IDataSource) {
         lineStartOffset: Int,
         lineEndOffset: Int
     ): Pair<List<TextTag>, TextCssInfo?>
+
+
+    abstract fun getSpeekBookStatus(): SpeekBookStatus
 }

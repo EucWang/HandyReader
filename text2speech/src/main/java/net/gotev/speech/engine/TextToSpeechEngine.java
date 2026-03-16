@@ -8,6 +8,7 @@ import net.gotev.speech.TextToSpeechCallback;
 
 import java.util.List;
 import java.util.Locale;
+import java.util.Set;
 
 public interface TextToSpeechEngine {
 
@@ -27,9 +28,9 @@ public interface TextToSpeechEngine {
 
     void setOnInitListener(TextToSpeech.OnInitListener onInitListener);
 
-    void setPitch(float pitch);
+    int setPitch(float pitch);
 
-    void setSpeechRate(float rate);
+    int setSpeechRate(float rate);
 
     /****
      *
@@ -40,9 +41,11 @@ public interface TextToSpeechEngine {
      */
     int setLocale(Locale locale);
 
-    void setVoice(Voice voice);
+    int setVoice(Voice voice);
 
     List<Voice> getSupportedVoices();
 
     Voice getCurrentVoice();
+
+    Set<Locale> getAvailableLanguages();
 }

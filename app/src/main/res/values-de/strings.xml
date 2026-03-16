@@ -298,4 +298,39 @@
     <!-- Reader Settings - Left Handed Mode -->
     <string name="left_handed_mode">Linkshänder-Modus</string>
     <string name="left_handed_mode_description">Seitenblättrichtung für Linkshänder umkehren</string>
+
+    <!-- TTS Notification -->
+    <string name="tts_notification_channel_name">TTS-Wiedergabe</string>
+    <string name="tts_notification_channel_description">Benachrichtigungen zur Text-to-Speech-Wiedergabe</string>
+    <string name="tts_notification_title">HandyReader - Wiedergabe</string>
+    <string name="tts_notification_content">Text-to-Speech wird abgespielt</string>
+    <string name="tts_notification_playing">Wiedergabe</string>
+    <string name="tts_notification_paused">Pausiert</string>
+    <string name="tts_action_play">Wiedergabe</string>
+    <string name="tts_action_pause">Pause</string>
+    <string name="tts_action_stop">Stopp</string>
+
+    <!-- TTS-Fehlermeldungen -->
+    <string name="tts_error_service_not_started">TTS-Dienst nicht gestartet</string>
+    <string name="tts_error_engine_not_ready">TTS-Engine nicht bereit</string>
+    <string name="tts_error_chapter_load_failed">Kapitel %1$d kann nicht geladen werden</string>
+    <string name="tts_error_language_not_supported">Sprache nicht unterstützt: %1$s</string>
+    <string name="tts_error_playback_failed">Wiedergabefehler: %1$s</string>
+    <string name="tts_error_unknown_reason">Unbekannter Fehler</string>
+    <string name="tts_error_network_error">Netzwerkverbindungsfehler</string>
+    <string name="tts_error_generic">TTS-Fehler</string>
+    <string name="tts_error_playback_failed_simple">Wiedergabefehler</string>
+    <string name="tts_set_times">Timer: %1$s</string>
+    <string name="tts_time_unlimit">Nicht festgelegt</string>
+
+    <!-- TTS-Benachrichtigungsberechtigung -->
+    <string name="notification_permission_required_title">Benachrichtigungsberechtigung erforderlich</string>
+    <string name="notification_permission_required_message">HandyReader benötigt Benachrichtigungsberechtigung, um TTS-Wiedergabesteuerelemente anzuzeigen. Bitte aktivieren Sie sie in den Einstellungen.</string>
+    <string name="notification_permission_go_settings">Einstellungen öffnen</string>
+    <string name="notification_permission_cancel">Abbrechen</string>
+    
+    <!-- Dialog für Erklärung der Benachrichtigungsberechtigung -->
+    <string name="notification_permission_explanation_title">Benachrichtigungen für TTS aktivieren</string>
+    <string name="notification_permission_explanation_message">Um die Text-to-Speech-Funktion zu nutzen, muss HandyReader eine Benachrichtigung mit Wiedergabesteuerelementen anzeigen. Dies ermöglicht es Ihnen, die TTS-Wiedergabe zu steuern, auch wenn die App im Hintergrund läuft.</string>
+    <string name="notification_permission_continue">Weiter</string>
 </resources>

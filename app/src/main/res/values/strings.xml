@@ -194,6 +194,8 @@
     <string name="speed">Speed</string>
     <string name="pitch_x">Pitch: %1$s</string>
     <string name="speed_x">Speed: %1$sx</string>
+    <string name="tts_set_times">Timer: %1$s</string>
+    <string name="tts_time_unlimit">Unset</string>
     <string name="skip">Skip</string>
     <string name="last_added">Last Added</string>
     <string name="keep_screen_on">Keep screen on</string>
@@ -298,4 +300,36 @@
     <!-- Reader Settings - Left Handed Mode -->
     <string name="left_handed_mode">Left-handed Mode</string>
     <string name="left_handed_mode_description">Switch page turning direction for left-handed use</string>
+
+    <string name="tts_notification_channel_name">TTS playing</string>
+    <string name="tts_notification_channel_description">TTS playing notifications</string>
+    <string name="tts_notification_title">HandyReader - Playing</string>
+    <string name="tts_notification_content">TTS playing</string>
+    <string name="tts_notification_playing">Playing</string>
+    <string name="tts_notification_paused">Paused</string>
+    <string name="tts_action_play">Play</string>
+    <string name="tts_action_pause">Pause</string>
+    <string name="tts_action_stop">Stop</string>
+
+    <!-- TTS Error Messages -->
+    <string name="tts_error_service_not_started">TTS service not started</string>
+    <string name="tts_error_engine_not_ready">TTS engine not ready</string>
+    <string name="tts_error_chapter_load_failed">Unable to load chapter %1$d</string>
+    <string name="tts_error_language_not_supported">Language not supported: %1$s</string>
+    <string name="tts_error_playback_failed">Playback failed: %1$s</string>
+    <string name="tts_error_unknown_reason">Unknown error</string>
+    <string name="tts_error_network_error">Network connection failed</string>
+    <string name="tts_error_generic">TTS error</string>
+    <string name="tts_error_playback_failed_simple">Playback failed</string>
+
+    <!-- TTS Notification Permission -->
+    <string name="notification_permission_required_title">Notification Permission Required</string>
+    <string name="notification_permission_required_message">HandyReader needs notification permission to show TTS playback controls. Please enable it in Settings.</string>
+    <string name="notification_permission_go_settings">Go to Settings</string>
+    <string name="notification_permission_cancel">Cancel</string>
+    
+    <!-- Notification Permission Explanation Dialog -->
+    <string name="notification_permission_explanation_title">Enable Notifications for TTS</string>
+    <string name="notification_permission_explanation_message">To use Text-to-Speech functionality, HandyReader needs to display a notification with playback controls. This allows you to control TTS playback even when the app is in the background.</string>
+    <string name="notification_permission_continue">Continue</string>
 </resources>

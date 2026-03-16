@@ -947,7 +947,9 @@ kotlin.coroutines.Continuation suspend*(...);
 -keep class com.wxn.base.bean.** { *; }
 -keep class com.wxn.base.ui.** { *; }
 
-
+# 保留TTS服务相关类
+-keep class com.wxn.reader.service.TtsPlaybackService { *; }
+-keep class * extends androidx.media3.session.MediaSessionService
 
 # Prevent proguard from stripping interface information from TypeAdapterFactory,
 # JsonSerializer, JsonDeserializer instances (so they can be used in @JsonAdapter)

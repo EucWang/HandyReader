@@ -298,4 +298,39 @@
     <!-- Reader Settings - Left Handed Mode -->
     <string name="left_handed_mode">وضع اليد اليسرى</string>
     <string name="left_handed_mode_description">تغيير اتجاه تقليب الصفحات للاستخدام باليد اليسرى</string>
+
+    <!-- TTS Notification -->
+    <string name="tts_notification_channel_name">تشغيل TTS</string>
+    <string name="tts_notification_channel_description">إشعارات تشغيل تحويل النص إلى كلام</string>
+    <string name="tts_notification_title">HandyReader - قيد التشغيل</string>
+    <string name="tts_notification_content">تحويل النص إلى كلام قيد التشغيل</string>
+    <string name="tts_notification_playing">قيد التشغيل</string>
+    <string name="tts_notification_paused">متوقف مؤقتًا</string>
+    <string name="tts_action_play">تشغيل</string>
+    <string name="tts_action_pause">إيقاف مؤقت</string>
+    <string name="tts_action_stop">إيقاف</string>
+
+    <!-- رسائل أخطاء TTS -->
+    <string name="tts_error_service_not_started">خدمة TTS لم تبدأ</string>
+    <string name="tts_error_engine_not_ready">محرك TTS غير جاهز</string>
+    <string name="tts_error_chapter_load_failed">تعذر تحميل الفصل %1$d</string>
+    <string name="tts_error_language_not_supported">اللغة غير مدعومة: %1$s</string>
+    <string name="tts_error_playback_failed">فشل التشغيل: %1$s</string>
+    <string name="tts_error_unknown_reason">خطأ غير معروف</string>
+    <string name="tts_error_network_error">فشل الاتصال بالشبكة</string>
+    <string name="tts_error_generic">خطأ TTS</string>
+    <string name="tts_error_playback_failed_simple">فشل التشغيل</string>
+    <string name="tts_set_times">مؤقت: %1$s</string>
+    <string name="tts_time_unlimit">غير محدود</string>
+
+    <!-- إذن إشعار TTS -->
+    <string name="notification_permission_required_title">إذن الإشعار مطلوب</string>
+    <string name="notification_permission_required_message">يحتاج HandyReader إلى إذن الإشعار لعرض عناصر التحكم في تشغيل TTS. يرجى تفعيله في الإعدادات.</string>
+    <string name="notification_permission_go_settings">فتح الإعدادات</string>
+    <string name="notification_permission_cancel">إلغاء</string>
+    
+    <!-- مربع حوار شرح إذن الإشعارات -->
+    <string name="notification_permission_explanation_title">تفعيل الإشعارات لـ TTS</string>
+    <string name="notification_permission_explanation_message">لاستخدام وظيفة تحويل النص إلى كلام، يحتاج HandyReader إلى عرض إشعار يحتوي على عناصر التحكم في التشغيل. هذا يسمح لك بالتحكم في تشغيل TTS حتى عندما يكون التطبيق في الخلفية.</string>
+    <string name="notification_permission_continue">متابعة</string>
 </resources>

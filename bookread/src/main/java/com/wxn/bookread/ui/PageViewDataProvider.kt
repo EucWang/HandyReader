@@ -1,5 +1,6 @@
 package com.wxn.bookread.ui
 
+import com.wxn.bookread.data.model.SpeekBookStatus
 import com.wxn.bookread.data.model.TextChapter
 
 interface PageViewDataProvider : PageViewCallback{
@@ -19,6 +20,8 @@ interface PageViewDataProvider : PageViewCallback{
 
     fun changeChapter(newChapterIndex: Int, newProgress: Double = -1.0) : Boolean
 
+    fun changeChapterAndPage(newChapterIndex: Int, newPageIndex: Int, newProgress: Double = -1.0) : Boolean
+
     fun findLinkContent(href: String) : String?
 
     /**
@@ -31,4 +34,6 @@ interface PageViewDataProvider : PageViewCallback{
     fun moveToNextChapter(upContent: Boolean) : Boolean
 
     fun moveToPrevChapter(upContent: Boolean, toLast:Boolean = true) : Boolean
+
+    fun getSpeakBookStatus(): SpeekBookStatus
 }

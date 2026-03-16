@@ -55,9 +55,6 @@ class EdgeTTS {
     suspend fun run() {
         try {
             val client = client
-            if (client == null) {
-                throw IllegalStateException("HttpClient is not initialized")
-            }
 
             session = client.webSocketSession {
                 makeHttpRequestBuilder(this)
@@ -181,9 +178,6 @@ class EdgeTTS {
     private suspend fun resolveHttp403() {
         val builder = makeHttpRequestBuilder(HttpRequestBuilder(), useWs = false)
         val client = client
-        if (client == null) {
-            throw IllegalStateException("HttpClient is not initialized")
-        }
         val res = client.request(builder)
         val date = res.headers["Date"]
         if (date != null) {

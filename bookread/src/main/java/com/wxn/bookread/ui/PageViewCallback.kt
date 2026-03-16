@@ -36,6 +36,9 @@ interface PageViewCallback  : TextPageFactoryCallback {
      */
     fun showTextActionMenu()
 
+
+    fun showToolbarMenu()
+
     /***
      * 当前章节中正在显示的页面的索引
      */

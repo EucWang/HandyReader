@@ -296,4 +296,39 @@
     <!-- Reader Settings - Left Handed Mode -->
     <string name="left_handed_mode">左利きモード</string>
     <string name="left_handed_mode_description">左利き用にページめくりの方向を変更</string>
+
+    <!-- TTS Notification -->
+    <string name="tts_notification_channel_name">TTS再生</string>
+    <string name="tts_notification_channel_description">テキスト読み上げ再生の通知</string>
+    <string name="tts_notification_title">HandyReader - 再生中</string>
+    <string name="tts_notification_content">テキスト読み上げ中</string>
+    <string name="tts_notification_playing">再生中</string>
+    <string name="tts_notification_paused">一時停止中</string>
+    <string name="tts_action_play">再生</string>
+    <string name="tts_action_pause">一時停止</string>
+    <string name="tts_action_stop">停止</string>
+
+    <!-- TTSエラーメッセージ -->
+    <string name="tts_error_service_not_started">TTSサービスが開始されていません</string>
+    <string name="tts_error_engine_not_ready">TTSエンジンの準備ができていません</string>
+    <string name="tts_error_chapter_load_failed">チャプター %1$d を読み込めません</string>
+    <string name="tts_error_language_not_supported">サポートされていない言語: %1$s</string>
+    <string name="tts_error_playback_failed">再生に失敗しました: %1$s</string>
+    <string name="tts_error_unknown_reason">不明なエラー</string>
+    <string name="tts_error_network_error">ネットワーク接続に失敗しました</string>
+    <string name="tts_error_generic">TTSエラー</string>
+    <string name="tts_error_playback_failed_simple">再生に失敗しました</string>
+    <string name="tts_set_times">タイマー：%1$s</string>
+    <string name="tts_time_unlimit">設定なし</string>
+
+    <!-- TTS通知権限 -->
+    <string name="notification_permission_required_title">通知権限が必要です</string>
+    <string name="notification_permission_required_message">HandyReaderはTTS再生コントロールを表示するために通知権限が必要です。設定で有効にしてください。</string>
+    <string name="notification_permission_go_settings">設定を開く</string>
+    <string name="notification_permission_cancel">キャンセル</string>
+    
+    <!-- 通知権限の説明ダイアログ -->
+    <string name="notification_permission_explanation_title">TTSの通知を有効にする</string>
+    <string name="notification_permission_explanation_message">テキスト読み上げ機能を使用するには、HandyReaderが再生コントロール付きの通知を表示する必要があります。これにより、アプリがバックグラウンドにある場合でもTTSの再生を制御できます。</string>
+    <string name="notification_permission_continue">続行</string>
 </resources>

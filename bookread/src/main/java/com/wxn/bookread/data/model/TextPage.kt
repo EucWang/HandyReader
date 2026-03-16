@@ -107,38 +107,38 @@ data class TextPage(
         return this
     }
 
-    fun removePageAloudSpan(): TextPage {
-        textLines.forEach { textLine ->
-            textLine.isReadAloud = false
-        }
-        return this
-    }
+//    fun removePageAloudSpan(): TextPage {
+//        textLines.forEach { textLine ->
+//            textLine.isReadAloud = false
+//        }
+//        return this
+//    }
 
-    fun upPageAloudSpan(pageStart: Int) {
-        removePageAloudSpan()
-        var lineStart = 0
-        for ((index, textLine) in textLines.withIndex()) {
-            if (pageStart > lineStart && pageStart < lineStart + textLine.text.length) {
-                for (i in index - 1 downTo 0) {
-                    if (textLines[i].text.endsWith("\n")) {
-                        break
-                    } else {
-                        textLines[i].isReadAloud = true
-                    }
-                }
-                for (i in index until textLines.size) {
-                    if (textLines[i].text.endsWith("\n")) {
-                        textLines[i].isReadAloud = true
-                        break
-                    } else {
-                        textLines[i].isReadAloud = true
-                    }
-                }
-                break
-            }
-            lineStart += textLine.text.length
-        }
-    }
+//    fun upPageAloudSpan(pageStart: Int) {
+//        removePageAloudSpan()
+//        var lineStart = 0
+//        for ((index, textLine) in textLines.withIndex()) {
+//            if (pageStart > lineStart && pageStart < lineStart + textLine.text.length) {
+//                for (i in index - 1 downTo 0) {
+//                    if (textLines[i].text.endsWith("\n")) {
+//                        break
+//                    } else {
+//                        textLines[i].isReadAloud = true
+//                    }
+//                }
+//                for (i in index until textLines.size) {
+//                    if (textLines[i].text.endsWith("\n")) {
+//                        textLines[i].isReadAloud = true
+//                        break
+//                    } else {
+//                        textLines[i].isReadAloud = true
+//                    }
+//                }
+//                break
+//            }
+//            lineStart += textLine.text.length
+//        }
+//    }
 
     /***
      * 用于显示的阅读进度

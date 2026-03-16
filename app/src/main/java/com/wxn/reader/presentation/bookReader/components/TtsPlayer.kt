@@ -27,7 +27,9 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.wrapContentSize
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.rounded.ArrowBackIosNew
@@ -58,22 +60,27 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.wxn.reader.R
+import com.wxn.reader.presentation.mainReader.MainReadViewModel
 import com.wxn.reader.util.LanguageInfo
-import com.wxn.reader.util.LanguageUtil
+import com.wxn.reader.util.format
+import com.wxn.reader.util.tts.TtsNavigator
 
 @Composable
 fun TtsPlayer(
+    viewModel: MainReadViewModel,
     areToolbarsVisible: Boolean,
     isTtsOn: Boolean,
     isTtsPlaying: Boolean,
-    speed: Double,
-    pitch: Double,
-    language: LanguageInfo,
+    speed: Float,
+    pitch: Float,
+    playTimes: Float,
+    language: LanguageInfo?,
     onPlay: () -> Unit,
     onPause: () -> Unit,
     onEnd: () -> Unit,
     onSpeedChange: (Float) -> Unit,
     onPitchChange: (Float) -> Unit,
+    onPlayTimeChange: (Float)->Unit,
     onLanguageChange: (LanguageInfo) -> Unit,
     onSkipToNextUtterance: () -> Unit,
     onSkipToPreviousUtterance: () -> Unit
@@ -83,7 +90,6 @@ fun TtsPlayer(
         targetValue = if (isExpanded && !areToolbarsVisible) 1f else 0f,
         animationSpec = tween(durationMillis = 300, easing = FastOutSlowInEasing), label = ""
     )
-
 
     var showTtsSettings by remember { mutableStateOf(false) }
     var showLanguageSettings by remember { mutableStateOf(false) }
@@ -130,7 +136,6 @@ fun TtsPlayer(
                             )
                         }
 
-
                         // Main content
                         AnimatedVisibility(
                             visible = !showTtsSettings && !showLanguageSettings
@@ -155,8 +160,10 @@ fun TtsPlayer(
                                 heightAnimation = heightAnimation,
                                 speed = speed,
                                 pitch = pitch,
+                                playTimes = playTimes,
                                 onSpeedChange = onSpeedChange,
                                 onPitchChange = onPitchChange,
+                                onPlayTimeChange = onPlayTimeChange,
                                 hideTtsSettings = { showTtsSettings = false },
                                 showLanguageSettings = {
                                     showTtsSettings = false
@@ -171,6 +178,7 @@ fun TtsPlayer(
                             visible = showLanguageSettings
                         ) {
                             LanguageSettings(
+                                viewModel = viewModel,
                                 heightAnimation = heightAnimation,
                                 currentLanguage = language,
                                 onLanguageChange = onLanguageChange,
@@ -211,6 +219,7 @@ fun MainTtsPlayer(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(16.dp)
+                .verticalScroll(rememberScrollState())
         ) {
             // Playback controls
             Row(
@@ -255,8 +264,6 @@ fun MainTtsPlayer(
                     )
                 }
             }
-
-
 
             Spacer(modifier = Modifier.height(16.dp))
             Row(
@@ -308,15 +315,15 @@ fun MainTtsPlayer(
 @Composable
 fun TtsSettings(
     heightAnimation: Float,
-    speed: Double,
-    pitch: Double,
+    speed: Float,
+    pitch: Float,
+    playTimes: Float,
     onSpeedChange: (Float) -> Unit,
     onPitchChange: (Float) -> Unit,
+    onPlayTimeChange: (Float)->Unit,
     hideTtsSettings: () -> Unit,
     showLanguageSettings: () -> Unit,
 ) {
-
-
     Box(
         modifier = Modifier
             .fillMaxWidth()
@@ -330,38 +337,70 @@ fun TtsSettings(
                 .padding(16.dp)
         ) {
             // Speed control
-            Text(
-                text = stringResource(R.string.speed_x, speed.format(2)),
-                style = MaterialTheme.typography.titleMedium,
-                color = MaterialTheme.colorScheme.onSurface,
-                modifier = Modifier.padding(bottom = 8.dp)
-            )
-            Slider(
-                value = speed.toFloat(),
-                onValueChange = onSpeedChange,
-                valueRange = 0.25f..1.75f,
-                steps = 5,
-                modifier = Modifier.padding(horizontal = 16.dp)
-            )
+            Row(
+                horizontalArrangement = Arrangement.Start,
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Text(
+                    text = stringResource(R.string.speed_x, speed.format(2)),
+                    style = MaterialTheme.typography.titleMedium,
+                    color = MaterialTheme.colorScheme.onSurface,
+                )
+                Slider(
+                    value = speed.toFloat(),
+                    onValueChange = onSpeedChange,
+                    valueRange = TtsNavigator.TTS_MIN_SPEED ..TtsNavigator.TTS_MAX_SPEED,
+                    steps = 14,
+                    modifier = Modifier.padding(start = 12.dp)
+                )
+            }
 
             Spacer(modifier = Modifier.height(16.dp))
 
             // Pitch control
-            Text(
-                text = stringResource(R.string.pitch_x, pitch.format(2)),
-                style = MaterialTheme.typography.titleMedium,
-                color = MaterialTheme.colorScheme.onSurface,
-                modifier = Modifier.padding(bottom = 8.dp)
-            )
-            Slider(
-                value = pitch.toFloat(),
-                onValueChange = onPitchChange,
-                valueRange = 0.25f..1.75f,
-                steps = 5,
-                modifier = Modifier.padding(horizontal = 16.dp)
-            )
+            Row(
+                horizontalArrangement = Arrangement.Start,
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Text(
+                    text = stringResource(R.string.pitch_x, pitch.format(2)),
+                    style = MaterialTheme.typography.titleMedium,
+                    color = MaterialTheme.colorScheme.onSurface,
+                )
+                Slider(
+                    value = pitch.toFloat(),
+                    onValueChange = onPitchChange,
+                    valueRange = TtsNavigator.TTS_MIN_PITCH ..TtsNavigator.TTS_MAX_PITCH,
+                    steps = 10,
+                    modifier = Modifier.padding(start = 12.dp)
+                )
+            }
 
             Spacer(modifier = Modifier.height(16.dp))
+
+            // Play time control
+            Row(
+                horizontalArrangement = Arrangement.Start,
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Text(
+                    text = stringResource(R.string.tts_set_times, if (playTimes > 0) "${playTimes.format(2)}h" else stringResource(R.string.tts_time_unlimit)),
+                    style = MaterialTheme.typography.titleMedium,
+                    color = MaterialTheme.colorScheme.onSurface,
+                )
+                Slider(
+                    value = playTimes.toFloat(),
+                    onValueChange = onPlayTimeChange,
+                    valueRange = TtsNavigator.TTS_PLAY_MIN_TIMES.toFloat() ..TtsNavigator.TTS_PLAY_MAX_TIMES.toFloat(),
+                    steps = 7,
+                    modifier = Modifier.padding(start = 12.dp)
+                )
+            }
+
+            Spacer(modifier = Modifier.height(12.dp))
 
             // Action buttons
             Row(
@@ -406,12 +445,13 @@ fun TtsSettings(
 
 @Composable
 fun LanguageSettings(
+    viewModel: MainReadViewModel,
     heightAnimation: Float,
-    currentLanguage: LanguageInfo,
+    currentLanguage: LanguageInfo?,
     onLanguageChange: (LanguageInfo) -> Unit,
     onClose: () -> Unit
 ) {
-    val languages = LanguageUtil.languageMaps.values.toList()
+    val languages = viewModel.getSupportedLanguages()
 
     Box(
         modifier = Modifier
@@ -457,7 +497,7 @@ fun LanguageSettings(
 
             LazyColumn {
                 items(languages) { lang ->
-                    val isSelected = lang.code == currentLanguage.code
+                    val isSelected = lang.code == currentLanguage?.code
                     ElevatedButton(
                         onClick = {
                             onLanguageChange(lang)

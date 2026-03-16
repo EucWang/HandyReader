@@ -143,53 +143,83 @@ object ChapterProvider {
 
 //    private var oneWordWidth = 0f
 
+    private val typerfaceMap = mutableMapOf<String, Typeface>()
+
+    fun getTypeface(fontWeight: CssFontWeight) : Typeface? {
+        return getTypeface(fontWeight, CssFontStyle.CssFontStyleNormal)
+    }
+
     fun getTypeface(fontWeight: CssFontWeight, cssFontStyle: CssFontStyle) =
         when (fontWeight) {
             CssFontWeight.FontWeightNormal -> {
-                Typeface.create(
-                    typeface, if (cssFontStyle == CssFontStyle.CssFontStyleItalic) {
-                        Typeface.ITALIC
-                    } else {
-                        Typeface.NORMAL
+                if (cssFontStyle == CssFontStyle.CssFontStyleItalic) {
+                    if (typerfaceMap["weight_normal_italic"] == null) {
+                        typerfaceMap["weight_normal_italic"] = Typeface.create(typeface, Typeface.ITALIC)
                     }
-                )
+                    typerfaceMap["weight_normal_italic"]
+                } else {
+                    if (typerfaceMap["weight_normal_normal"] == null) {
+                        typerfaceMap["weight_normal_normal"] = Typeface.create(typeface, Typeface.NORMAL)
+                    }
+                    typerfaceMap["weight_normal_normal"]
+                }
             }
 
             CssFontWeight.FontWeightBold -> {
-                Typeface.create(
-                    typeface, if (cssFontStyle == CssFontStyle.CssFontStyleItalic) {
-                        Typeface.BOLD_ITALIC
-                    } else {
-                        Typeface.BOLD
+                if (cssFontStyle == CssFontStyle.CssFontStyleItalic) {
+                    if (typerfaceMap["weight_bold_italic"] == null) {
+                        typerfaceMap["weight_bold_italic"] = Typeface.create(typeface, Typeface.BOLD_ITALIC)
                     }
-                )
+                    typerfaceMap["weight_bold_italic"]
+                } else {
+                    if (typerfaceMap["weight_bold"] == null) {
+                        typerfaceMap["weight_bold"] = Typeface.create(typeface, Typeface.BOLD)
+                    }
+                    typerfaceMap["weight_bold"]
+                }
             }
 
             CssFontWeight.FontWeightBolder -> {
-                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
-                    Typeface.create(typeface, 900, cssFontStyle == CssFontStyle.CssFontStyleItalic)
-                } else {
-                    Typeface.create(
-                        typeface, if (cssFontStyle == CssFontStyle.CssFontStyleItalic) {
-                            Typeface.BOLD_ITALIC
+                if (cssFontStyle == CssFontStyle.CssFontStyleItalic) {
+                    if (typerfaceMap["weight_bolder_italic"] == null) {
+                        typerfaceMap["weight_bolder_italic"] = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+                            Typeface.create(typeface, 900, true)
                         } else {
-                            Typeface.BOLD
+                            Typeface.create(typeface, Typeface.BOLD_ITALIC)
                         }
-                    )
+                    }
+                    typerfaceMap["weight_bolder_italic"]
+                } else {
+                    if (typerfaceMap["weight_bolder"] == null) {
+                        typerfaceMap["weight_bolder"] = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+                            Typeface.create(typeface, 900, false)
+                        } else {
+                            Typeface.create(typeface, Typeface.BOLD)
+                        }
+                    }
+                    typerfaceMap["weight_bolder"]
                 }
             }
 
             CssFontWeight.FontWeightLighter -> {
-                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
-                    Typeface.create(typeface, 300, cssFontStyle == CssFontStyle.CssFontStyleItalic)
-                } else {
-                    Typeface.create(
-                        typeface, if (cssFontStyle == CssFontStyle.CssFontStyleItalic) {
-                            Typeface.ITALIC
+                if (cssFontStyle == CssFontStyle.CssFontStyleItalic) {
+                    if (typerfaceMap["weight_lighter_italic"] == null) {
+                        typerfaceMap["weight_lighter_italic"] = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+                            Typeface.create(typeface, 300, true)
                         } else {
-                            Typeface.NORMAL
+                            Typeface.create(typeface, Typeface.ITALIC)
                         }
-                    )
+                    }
+                    typerfaceMap["weight_lighter_italic"]
+                } else {
+                    if (typerfaceMap["weight_lighter"] == null) {
+                        typerfaceMap["weight_lighter"] = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+                            Typeface.create(typeface, 300, false)
+                        } else {
+                            Typeface.create(typeface, Typeface.NORMAL)
+                        }
+                    }
+                    typerfaceMap["weight_lighter"]
                 }
             }
         }
@@ -1293,7 +1323,7 @@ object ChapterProvider {
                                         newPartWithNewLine = true
                                         pentingImg = imgTag
                                     }
-                                    Logger.d("ChapterProvider::imgTag[$imgTag],imgWidth=$imgWidth,lastLineEnd=$lastLineEnd,morePartIndent=$morePartIndent,newPartWithNewLine=$newPartWithNewLine")
+//                                    Logger.d("ChapterProvider::imgTag[$imgTag],imgWidth=$imgWidth,lastLineEnd=$lastLineEnd,morePartIndent=$morePartIndent,newPartWithNewLine=$newPartWithNewLine")
                                 }
                             }
                         }

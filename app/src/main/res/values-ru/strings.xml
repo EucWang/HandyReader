@@ -296,4 +296,39 @@
     <!-- Reader Settings - Left Handed Mode -->
     <string name="left_handed_mode">Режим для левшей</string>
     <string name="left_handed_mode_description">Изменить направление перелистывания для левшей</string>
+
+    <!-- TTS Notification -->
+    <string name="tts_notification_channel_name">Воспроизведение TTS</string>
+    <string name="tts_notification_channel_description">Уведомления о воспроизведении текста в речь</string>
+    <string name="tts_notification_title">HandyReader - Воспроизведение</string>
+    <string name="tts_notification_content">Воспроизведение текста в речь</string>
+    <string name="tts_notification_playing">Воспроизведение</string>
+    <string name="tts_notification_paused">На паузе</string>
+    <string name="tts_action_play">Воспроизвести</string>
+    <string name="tts_action_pause">Пауза</string>
+    <string name="tts_action_stop">Остановить</string>
+
+    <!-- TTS сообщения об ошибках -->
+    <string name="tts_error_service_not_started">Служба TTS не запущена</string>
+    <string name="tts_error_engine_not_ready">Движок TTS не готов</string>
+    <string name="tts_error_chapter_load_failed">Не удалось загрузить главу %1$d</string>
+    <string name="tts_error_language_not_supported">Язык не поддерживается: %1$s</string>
+    <string name="tts_error_playback_failed">Ошибка воспроизведения: %1$s</string>
+    <string name="tts_error_unknown_reason">Неизвестная ошибка</string>
+    <string name="tts_error_network_error">Сетевая ошибка</string>
+    <string name="tts_error_generic">Ошибка TTS</string>
+    <string name="tts_error_playback_failed_simple">Ошибка воспроизведения</string>
+    <string name="tts_set_times">Таймер: %1$s</string>
+    <string name="tts_time_unlimit">Не установлен</string>
+
+    <!-- Разрешение на уведомления TTS -->
+    <string name="notification_permission_required_title">Требуется разрешение на уведомления</string>
+    <string name="notification_permission_required_message">HandyReader требуется разрешение на уведомления для отображения элементов управления воспроизведением TTS. Пожалуйста, включите его в настройках.</string>
+    <string name="notification_permission_go_settings">Открыть настройки</string>
+    <string name="notification_permission_cancel">Отмена</string>
+    
+    <!-- Диалог объяснения разрешения уведомлений -->
+    <string name="notification_permission_explanation_title">Включить уведомления для TTS</string>
+    <string name="notification_permission_explanation_message">Для использования функции синтеза речи HandyReader должен отображать уведомление с элементами управления воспроизведением. Это позволяет вам управлять воспроизведением TTS, даже когда приложение находится в фоне.</string>
+    <string name="notification_permission_continue">Продолжить</string>
 </resources>

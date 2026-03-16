@@ -2,6 +2,7 @@ package com.wxn.bookread.ui
 
 import com.wxn.base.bean.TextCssInfo
 import com.wxn.base.bean.TextTag
+import com.wxn.bookread.data.model.SpeekBookStatus
 import com.wxn.bookread.data.model.TextPage
 
 class TextPageFactory(dataSource: IDataSource, val provider: PageViewDataProvider) :
@@ -93,7 +94,7 @@ class TextPageFactory(dataSource: IDataSource, val provider: PageViewDataProvide
             }
             currentChapter?.let {
                 if (pageIndex < it.pageSize - 1) {
-                    return@with it.page(pageIndex + 1)?.removePageAloudSpan()
+                    return@with it.page(pageIndex + 1) //?.removePageAloudSpan()
                         ?: TextPage(title = it.title).format()
                 }
             }
@@ -101,7 +102,7 @@ class TextPageFactory(dataSource: IDataSource, val provider: PageViewDataProvide
                 return@with TextPage(text = "")
             }
             nextChapter?.let {
-                return@with it.page(0)?.removePageAloudSpan()
+                return@with it.page(0) //?.removePageAloudSpan()
                     ?: TextPage(title = it.title).format()
             }
             return TextPage().format()
@@ -114,12 +115,12 @@ class TextPageFactory(dataSource: IDataSource, val provider: PageViewDataProvide
             }
             if (pageIndex > 0) {
                 currentChapter?.let {
-                    return@with it.page(pageIndex - 1)?.removePageAloudSpan()
+                    return@with it.page(pageIndex - 1) //?.removePageAloudSpan()
                         ?: TextPage(title = it.title).format()
                 }
             }
             prevChapter?.let {
-                return@with it.lastPage?.removePageAloudSpan()
+                return@with it.lastPage //?.removePageAloudSpan()
                     ?: TextPage(title = it.title).format()
             }
             return TextPage().format()
@@ -129,18 +130,17 @@ class TextPageFactory(dataSource: IDataSource, val provider: PageViewDataProvide
         get() = with(dataSource) {
             currentChapter?.let {
                 if (pageIndex < it.pageSize - 2) {
-                    return@with it.page(pageIndex + 2)?.removePageAloudSpan()
+                    return@with it.page(pageIndex + 2) //?.removePageAloudSpan()
                         ?: TextPage(title = it.title).format()
                 }
                 nextChapter?.let { nc ->
                     if (pageIndex < it.pageSize - 1) {
-                        return@with nc.page(0)?.removePageAloudSpan()
+                        return@with nc.page(0) //?.removePageAloudSpan()
                             ?: TextPage(title = nc.title).format()
                     }
-                    return@with nc.page(1)?.removePageAloudSpan()
+                    return@with nc.page(1) //?.removePageAloudSpan()
                         ?: TextPage(title = nc.title).format()
                 }
-
             }
             return TextPage().format()
         }
@@ -193,5 +193,9 @@ class TextPageFactory(dataSource: IDataSource, val provider: PageViewDataProvide
             }
         }
         return Pair(effectedTextTags, textCssInfo)
+    }
+
+    override fun getSpeekBookStatus(): SpeekBookStatus {
+        return provider.getSpeakBookStatus()
     }
 }

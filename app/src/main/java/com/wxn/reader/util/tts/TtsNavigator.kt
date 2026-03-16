@@ -1,235 +1,171 @@
 package com.wxn.reader.util.tts
 
 import android.content.Context
+import android.media.AudioManager
 import android.speech.tts.TextToSpeech
+import com.wxn.base.bean.Locator
 import com.wxn.base.util.Coroutines
 import com.wxn.base.util.Logger
-import com.wxn.bookread.data.model.TextLine
+import com.wxn.bookread.data.model.SpeakSentence
 import com.wxn.bookread.data.source.local.TtsPreferencesUtil
-import com.wxn.reader.util.LanguageInfo
 import com.wxn.reader.util.LanguageUtil
-import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.channels.Channel
+import kotlinx.coroutines.channels.Channel.Factory.UNLIMITED
 import kotlinx.coroutines.flow.firstOrNull
+import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import net.gotev.speech.Speech
-import net.gotev.speech.SpeechRecognitionNotAvailable
 import net.gotev.speech.TextToSpeechCallback
 import java.util.Locale
 import kotlin.coroutines.resume
 import kotlin.coroutines.suspendCoroutine
 
+
 class TtsNavigator(
     val context: Context,
     val ttsPreferencesUtil: TtsPreferencesUtil
-//    var speed: Float,// 语速
-//    var pitch: Float, //音调
-//    var language: AppLanguage
-) {
+) : ITtsNavigator {
 
-//    var initSuccess: Boolean = false
-//
-//    var tts: TextToSpeech? = null
-//
-//    fun skipToPreviousUtterance(): Boolean {
-//        if (!initSuccess || tts == null) {
-//            return false
-//        }
-//
-//        return true
-//    }
-//
-//    fun skipToNextUtterance(): Boolean {
-//        if (!initSuccess || tts == null) {
-//            return false
-//        }
-//
-//        return true
-//    }
-//
-//    fun play(): Boolean {
-//        if (!initSuccess || tts == null) {
-//            return false
-//        }
-//
-//        tts?.setPitch(pitch)
-//        tts?.setSpeechRate(speed)
-//        val locale = language.locale
-//        tts?.setLanguage(locale)
-//        val engines = tts?.engines.orEmpty()
-//        for(engine in engines) {
-//            Logger.d("TtsNavigator::engine[${engine.toString()}]")
-//        }
-//
-//        //LANG_AVAILABLE, LANG_COUNTRY_AVAILABLE, LANG_COUNTRY_VAR_AVAILABLE, LANG_MISSING_DATA and LANG_NOT_SUPPORTED.
-//        val isSuppport = tts?.isLanguageAvailable(locale)
-//        if (isSuppport == TextToSpeech.LANG_AVAILABLE ||
-//            isSuppport == TextToSpeech.LANG_COUNTRY_AVAILABLE ||
-//            isSuppport == TextToSpeech.LANG_COUNTRY_VAR_AVAILABLE
-//        ) {
-//
-//            //        params – Parameters for the request. Can be null.
-//            //        Supported parameter names: TextToSpeech.Engine.KEY_PARAM_STREAM,
-//            //        TextToSpeech.Engine.KEY_PARAM_VOLUME,
-//            //        TextToSpeech.Engine.KEY_PARAM_PAN.
-//            //        Engine specific parameters may be passed in but the parameter keys must be prefixed by the name of the engine they are intended for.
-//            //        For example the keys "com.svox.pico_foo" and "com.svox.pico:bar" will be passed to the engine named "com.svox.pico" if it is being used.
-//            tts?.speak("when i was young, I listen to the radio, waiting for my favorite song.", TextToSpeech.QUEUE_FLUSH, null, UUID.randomUUID().toString())
-//            tts?.setOnUtteranceProgressListener(object : UtteranceProgressListener() {
-//                override fun onStart(utteranceId: String?) {  // 开始播放
-//                    Logger.d("TtsNavigator::onStart:utteranceId=${utteranceId}")
-//                }
-//
-//                override fun onDone(utteranceId: String?) {  // 播放完成
-//                    Logger.d("TtsNavigator::onDone:utteranceId=${utteranceId}")
-//                }
-//
-//                override fun onError(utteranceId: String?) {  // 播放出错
-//                    Logger.d("TtsNavigator::onError:utteranceId=${utteranceId}")
-//                }
-//
-//                override fun onError(utteranceId: String?, errorCode: Int) {  // 播放出错
-//                    Logger.d("TtsNavigator::onError:utteranceId=${utteranceId},errorCode=$errorCode")
-//                }
-//
-//                override fun onStop(utteranceId: String?, interrupted: Boolean) {
-//                    super.onStop(utteranceId, interrupted)
-//                    Logger.d("TtsNavigator::onStop:utteranceId=${utteranceId},interrupted=$interrupted")
-//                }
-//
-//                override fun onAudioAvailable(utteranceId: String?, audio: ByteArray?) {
-//                    super.onAudioAvailable(utteranceId, audio)
-//                    Logger.d("TtsNavigator::onAudioAvailable:utteranceId=${utteranceId},audio=${audio?.size}")
-//                }
-//
-//                override fun onBeginSynthesis(utteranceId: String?, sampleRateInHz: Int, audioFormat: Int, channelCount: Int) {
-//                    super.onBeginSynthesis(utteranceId, sampleRateInHz, audioFormat, channelCount)
-//                    Logger.d("TtsNavigator::onBeginSynthesis:utteranceId=${utteranceId},sampleRateInHz=${sampleRateInHz}, audioFormat=$audioFormat,channelCount=$channelCount")
-//                }
-//
-//                override fun onRangeStart(utteranceId: String?, start: Int, end: Int, frame: Int) {
-//                    super.onRangeStart(utteranceId, start, end, frame)
-//                    Logger.d("TtsNavigator::onRangeStart:utteranceId=${utteranceId},start=${start}, end=$end,frame=$frame")
-//                }
-//            })
-//        }
-//        return true
-//    }
-//
-//    fun pause(): Boolean {
-//        if (!initSuccess || tts == null) {
-//            return false
-//        }
-//
-//        tts?.stop()
-//
-//        return true
-//    }
-//
-//    fun onCrate() {
-//        tts = TextToSpeech(context, object : TextToSpeech.OnInitListener {
-//            override fun onInit(status: Int) {
-//                Logger.d("TtsNavigator::onCreate:onInit:status=$status")
-//                if (status == TextToSpeech.SUCCESS) {
-//                    val engines = tts?.engines.orEmpty()
-//                    for(engine in engines) {
-//                        Logger.d("TtsNavigator::engine[${engine.toString()}]")
-//                    }
-//
-//                    initSuccess = true
-//                } else {
-//                    initSuccess = false
-//                }
-//            }
-//        }, "com.wxn.reader")
-//    }
-//
-//    fun onDestroy() {
-//        if (tts != null) {
-//            tts?.stop()
-//            tts?.shutdown()
-//            tts = null
-//        }
-//    }
-//
-//    init {
-//        onCrate()
-//    }
+    companion object {
+        const val TTS_MIN_SPEED = 0.25f
+        const val TTS_MAX_SPEED = 4f
+        const val TTS_MIN_PITCH = 0.25f
+        const val TTS_MAX_PITCH = 3f
 
-    //---------------------------
+        const val TTS_PLAY_MIN_TIMES = 0.0f
+        const val TTS_PLAY_MAX_TIMES = 2.0f
 
+        const val STATUS_NORMAL_FINISH = 0
+        const val STATUS_NEXT_CHAPTER_REQUESTED = 1
+        const val STATUS_ERROR = -1
+    }
+
+    enum class TtsSpeakStatus{
+        Tts_Status_Playing,
+        Tts_Status_Pause,
+        Tts_Status_Stop
+    }
+
+    interface SuspendSpeakCallback {
+        suspend fun onSpeakSentence(locator: Locator, sentenceIndex: Int): Boolean
+        suspend fun onSpeakNextChapter(nextChapterIndex: Int):Boolean
+        suspend fun onFinished(status: Int)
+    }
+
+    var status = TtsSpeakStatus.Tts_Status_Stop
+    private var ttsLocale : Locale = LanguageUtil.LANG_EN.locale
+    private var speed = 1.0f
+    private var pitch = 1.0f
+    private val curSentences = mutableListOf<SpeakSentence>()
+    @Volatile
+    private var playSentenceIndex: Int = 0
+    private var callback : SuspendSpeakCallback? = null
+    private val scope = Coroutines.mainScope() // 播放队列：无限制通道，外部向其中发送句子
+    private val sentenceChannel = Channel<SpeakSentence>(UNLIMITED)
+    private var playJob : Job? = null
     init {
         Speech.init(context)
     }
 
-    private var ttsLocale : Locale = LanguageUtil.LANG_EN.locale
-    private var speed = 1.0f
-    private var pitch = 1.0f
+    override fun skipToPreviousUtterance(): Boolean {
+        if (!Speech.getInstance().isSpeaking) {
+            return false
+        }
+        val curIndex = playSentenceIndex
+        if (curIndex <= 0) return false
+        playSentenceIndex = curIndex - 1
+        restartChannel()
+        return true
+    }
 
-    suspend fun play(textLines: List<TextLine>?, onReadLine: (List<TextLine>, Boolean)->Unit) : Int {
-        Logger.i("TtsNavigator::play")
-        var status = 1
-        try {
-            val ttsPreferences = ttsPreferencesUtil.ttsPreferencesFlow.firstOrNull()
-            if (ttsPreferences == null) {
-                Logger.e("TtsNavigator::play::ttsPreferences is null")
-                status = 0
-            } else {
-//                ttsLocale = AppLanguage.fromCode(ttsPreferences.localeCode).locale
-                speed = ttsPreferences.speed
-                pitch = ttsPreferences.pitch
+    override  fun skipToNextUtterance(): Boolean {
+        if (!Speech.getInstance().isSpeaking) {
+            return false
+        }
+        val lastIndex = curSentences.size - 1
+        val curIndex = playSentenceIndex
+        if (curIndex >= lastIndex) return false
+        playSentenceIndex = curIndex + 1
+        restartChannel()
+        return true
+    }
 
-//                val localeSuppported = Speech.getInstance().setLocale(ttsLocale)
-//                if (localeSuppported < 0) {
-//                    return localeSuppported;
-//                }
-//                Logger.d("TtsNavigator::play[language[$ttsLocale]], localeSupported[$localeSuppported]")
-                Speech.getInstance().setTextToSpeechRate(speed)
-                Speech.getInstance().setTextToSpeechPitch(pitch)
-                Speech.getInstance().setTextToSpeechQueueMode(TextToSpeech.QUEUE_ADD)
-                Speech.getInstance().setGetPartialResults(true)
+    override fun setSpeakSentences(sentences: List<SpeakSentence>, startSentenceIndex: Int) {
+        Logger.i("TtsNavigator::setSpeakSentences:sentences.size=${sentences.size},startSentenceIndex=$startSentenceIndex")
+        curSentences.clear()
+        curSentences.addAll(sentences)
+        playSentenceIndex = startSentenceIndex
+        restartChannel(false)
+    }
 
-                var ret  = 1
-                val textLineMap = hashMapOf<Int, ArrayList<TextLine>>()
-                val texts = arrayListOf<StringBuilder>()
-                if (!textLines.isNullOrEmpty()) {
-                    for(textLine in textLines) {
-                        if (!textLine.isImage && !textLine.isLine && textLine.text.isNotEmpty()) {
-                            val paragraph = textLine.paragraphIndex
-                            if (textLineMap.get(paragraph) == null) {
-                                textLineMap.put(paragraph, arrayListOf(textLine))
-                                texts.add(StringBuilder(textLine.text))
+    override fun setSpeakCallback(callback: SuspendSpeakCallback?) {
+        this.callback = callback
+    }
+
+    override  fun play() {
+        Logger.i("TtsNavigator:play")
+
+        playJob?.cancel()
+        playJob = scope.launch {
+            if (curSentences.isEmpty() && playSentenceIndex < 0 && playSentenceIndex >= curSentences.size) {
+                callback?.onFinished(STATUS_ERROR)
+                Logger.d("TtsNavigator:play:sentences is empty or playSentenceIndex overflow[$playSentenceIndex][${curSentences.size}]")
+                return@launch
+            }
+
+            // 标记是否请求了下一章
+            var chapterRequested = false
+            Speech.getInstance().setTextToSpeechQueueMode(TextToSpeech.QUEUE_ADD)
+            Speech.getInstance().setAudioStream(AudioManager.STREAM_MUSIC)
+
+            for (sentence in sentenceChannel) {
+                Logger.d("TtsNavigator::play:get sentence[$sentence], isActive=$isActive")
+                // 检查是否被取消
+                if (!isActive) break
+
+                // 回调通知开始播放此句
+                if (true != callback?.onSpeakSentence(sentence.locator, playSentenceIndex)) {
+                    Logger.d("TtsNavigator::play:onSpeakSentence return false, over the time limit.")
+                    // 超过播放时长限制,正常退出
+                    callback?.onFinished(STATUS_NORMAL_FINISH)
+                    break
+                }
+                // 播放句子（挂起直到播放完成）
+                val result = innerPlay(sentence.sentence)
+
+                Logger.d("TtsNavigator::play:play result=[$result],check agian:isActive=$isActive")
+                if (!isActive) break // 播放过程中可能被取消（如暂停）
+
+                when (result) {
+                    1 -> {
+                        // 播放成功，索引自增
+                        playSentenceIndex++
+                        chapterRequested = false
+
+                        // 如果已到列表末尾，请求下一章
+                        if (playSentenceIndex >= curSentences.size) {
+                            val nextChapterIndex = sentence.locator.chapterIndex + 1
+                            val shouldContinue = callback?.onSpeakNextChapter(nextChapterIndex) == true
+                            if (!shouldContinue) {
+                                // 没有下一章，正常结束
+                                callback?.onFinished(STATUS_NORMAL_FINISH)
+                                break
                             } else {
-                                textLineMap[paragraph]?.add(textLine)
-                                texts.lastOrNull()?.append(textLine.text)
+                                chapterRequested = true
+                                // 等待外部调用 setSpeakSentences 追加新句子
+                                // 此时通道为空，for 循环会挂起，直到新句子到来
                             }
                         }
                     }
-                }
-
-                val keys = textLineMap.keys.sorted()
-                var index = 0
-                for(key in keys) {
-                    val lines = textLineMap[key] ?: continue
-                    val text = texts.getOrNull(index++) ?: continue
-                    with(Dispatchers.Main) {
-                        onReadLine(lines, true)
-                    }
-                    ret = innerPlay(text.toString())
-                    Logger.d("TtsNavigator::play::innerPlay result[$ret],text[$text], key=$key, index=$index, lines.size[${lines.size}]")
-                    with(Dispatchers.Main) {
-                        onReadLine(lines, false)
-                    }
-                    if (ret != 1) {
-                        status = 0
+                    else -> {
+                        // 播放出错
+                        callback?.onFinished(STATUS_ERROR)
                         break
                     }
                 }
             }
-        }catch(ex : SpeechRecognitionNotAvailable) {
-            Logger.e("TtsNavigator::$ex")
-            status = 0
         }
-        return status
     }
 
     private suspend fun innerPlay(text: String) : Int {
@@ -241,6 +177,7 @@ class TtsNavigator(
                     override fun onStart() {
                         Logger.d("TtsNavigator::innerPlay say callback onStart")
                         start = System.currentTimeMillis()
+                        status = TtsSpeakStatus.Tts_Status_Playing
                     }
 
                     override fun onCompleted() {
@@ -258,49 +195,94 @@ class TtsNavigator(
         }
     }
 
-    fun setSpeed(speed: Float) {
-        Logger.i("TtsNavigator::setSpeed:speed=$speed")
-        val speechSpeed = speed.coerceIn(0.25f, 2.0f)
+    override  fun setSpeed(speed: Float) {
+        Logger.i("TtsNavigator::setSpeed:speed=$speed, oldSpeed=${this.speed}")
+        val speechSpeed = speed.coerceIn(TTS_MIN_SPEED, TTS_MAX_SPEED)
         if (speechSpeed != this.speed) {
-            this.speed = speechSpeed
-            Speech.getInstance().setTextToSpeechRate(speechSpeed)
-
-            Coroutines.scope().launch {
-                ttsPreferencesUtil.ttsPreferencesFlow.firstOrNull()?.let { preferences ->
-                    preferences.speed = speechSpeed
-                    ttsPreferencesUtil.updatePreferences(preferences)
+            if (Speech.getInstance().setTextToSpeechRate(speechSpeed) == TextToSpeech.SUCCESS) {
+                this.speed = speechSpeed
+                restartChannel()
+                scope.launch {
+                    ttsPreferencesUtil.ttsPreferencesFlow.firstOrNull()?.let { preferences ->
+                        preferences.speed = speechSpeed
+                        ttsPreferencesUtil.updatePreferences(preferences)
+                    }
                 }
+            } else {
+                Logger.e("TtsNavigator::setSpeed:set speed failed.")
             }
         }
     }
 
-    fun setPitch(pitch: Float) {
-        Logger.i("TtsNavigator::setPitch:pitch=$pitch")
-        val speechPitch = pitch.coerceIn(0.25f, 2.0f)
+    private fun restartChannel(needResume: Boolean = true) {
+        val isPlaying = isPlaying()
+        scope.launch {
+            if (isPlaying && needResume) {
+                pause()
+            }
+            while (sentenceChannel.tryReceive().isSuccess) { }
+            val size = curSentences.size
+            if (size > 0 && playSentenceIndex in 0 until size) {
+                curSentences.drop(playSentenceIndex).forEach { sentenceChannel.trySend(it) }
+            }
+            if (isPlaying && needResume) {
+                resume()
+            }
+        }
+    }
+
+    override  fun setPitch(pitch: Float) {
+        Logger.i("TtsNavigator:setLanguage:pitch[$pitch,ttsPitch[${this.pitch}]]")
+
+        val speechPitch = pitch.coerceIn(TTS_MIN_PITCH, TTS_MAX_PITCH)
         if (speechPitch != this.pitch) {
-            this.pitch = speechPitch
-            Speech.getInstance().setTextToSpeechPitch(speechPitch)
-            Coroutines.scope().launch {
-                ttsPreferencesUtil.ttsPreferencesFlow.firstOrNull()?.let { preferences ->
-                    preferences.pitch = speechPitch
-                    ttsPreferencesUtil.updatePreferences(preferences)
+            if (Speech.getInstance().setTextToSpeechPitch(speechPitch) == TextToSpeech.SUCCESS) {
+                this.pitch = speechPitch
+                restartChannel()
+                scope.launch {
+                    ttsPreferencesUtil.ttsPreferencesFlow.firstOrNull()?.let { preferences ->
+                        preferences.pitch = speechPitch
+                        ttsPreferencesUtil.updatePreferences(preferences)
+                    }
                 }
+            } else{
+                Logger.e("TtsNavigator::setPitch:set pitch failed.")
             }
         }
     }
-    fun setLanguage(language: LanguageInfo?): Boolean {
-        Logger.i("TtsNavigator::setLanguage:language=$language")
-        val newlocale = language?.locale ?: return false
+
+    override  fun getSupportedLanguage() : Set<Locale> {
+        val locales = Speech.getInstance().supportedTtsLanguages
+        val retLocales = hashSetOf<Locale>()
+        for (locale in locales) {
+            retLocales.add(Locale.forLanguageTag(locale.language))
+            Logger.d("TtsNavigator::getSupportedLanguage:language=${locale}, ${locale.getDisplayName(locale)}")
+        }
+        return retLocales
+    }
+
+    override  fun setLanguage(newlocale: Locale): Boolean {
+        Logger.i("TtsNavigator:setLanguage:newLocale[${newlocale.language},ttsLocale[${ttsLocale.language}]]")
         if (newlocale != this.ttsLocale) {
-            this.ttsLocale = newlocale
-            val supportLanguage = Speech.getInstance().setLocale(language.locale)
-            if (supportLanguage < 0) {
+            val status = Speech.getInstance().setLocale(newlocale)
+            if (status < 0) {
+                Logger.e("TtsNavigator::setLanguage::language not support[${
+                    when(status) {
+                        -1 -> "LANG_MISSING_DATA"
+                        -2 -> "LANG_NOT_SUPPORTED"
+                        else -> "OTHER ISSUE"
+                    }
+                }]")
                 return false
             }
-            Logger.d("TtsNavigator::setLanguage::language[$language], supportLanguage[$supportLanguage]")
-            Coroutines.scope().launch {
+
+            this.ttsLocale = newlocale
+            restartChannel()
+
+            Logger.d("TtsNavigator::setLanguage::newlocale[$newlocale], supportLanguage[$status]")
+            scope.launch {
                 ttsPreferencesUtil.ttsPreferencesFlow.firstOrNull()?.let { preferences ->
-                    preferences.localeCode = language.code
+                    preferences.localeCode = newlocale.language
                     ttsPreferencesUtil.updatePreferences(preferences)
                 }
             }
@@ -308,19 +290,37 @@ class TtsNavigator(
         return true
     }
 
-    fun stop() {
-        Logger.i("TtsNavigator::stop")
+    override  fun pause() {
+        Logger.i("TtsNavigator::pause")
+        playJob?.cancel()
+        playJob = null
         Speech.getInstance().stopTextToSpeech()
+        status = TtsSpeakStatus.Tts_Status_Pause
     }
 
-    fun onDestroy() {
-        Logger.i("TtsNavigator::onDestroy")
-        stop()
+    override  fun resume() {
+        Logger.i("TtsNavigator::resume")
+        play()
     }
-//
-//    fun isPlaying() : Boolean {
-//        val isPlaying = Speech.getInstance().isListening
-//        Logger.i("TtsNavigator::isPlaying[$isPlaying]")
-//        return isPlaying
-//    }
+
+    override  fun stop() {
+        Logger.i("TtsNavigator::stop")
+        playJob?.cancel()
+        playJob = null
+        Speech.getInstance().stopTextToSpeech()
+        status = TtsSpeakStatus.Tts_Status_Pause
+        callback = null
+        // 清空通道
+        while (sentenceChannel.tryReceive().isSuccess) { }
+
+        curSentences.clear()
+        playSentenceIndex = 0
+        status = TtsSpeakStatus.Tts_Status_Stop
+    }
+
+    fun isPlaying() : Boolean {
+        val isPlaying = Speech.getInstance().isSpeaking &&  playJob?.isActive == true
+        Logger.i("TtsNavigator::isPlaying[$isPlaying]")
+        return isPlaying
+    }
 }

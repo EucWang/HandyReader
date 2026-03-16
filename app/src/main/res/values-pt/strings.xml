@@ -296,4 +296,39 @@
     <!-- Reader Settings - Left Handed Mode -->
     <string name="left_handed_mode">Modo canhoto</string>
     <string name="left_handed_mode_description">Alternar direção de virada de página para uso canhoto</string>
+
+    <!-- TTS Notification -->
+    <string name="tts_notification_channel_name">Reprodução TTS</string>
+    <string name="tts_notification_channel_description">Notificações de reprodução de texto em voz</string>
+    <string name="tts_notification_title">HandyReader - Reproduzindo</string>
+    <string name="tts_notification_content">Reprodução de texto em voz</string>
+    <string name="tts_notification_playing">Reproduzindo</string>
+    <string name="tts_notification_paused">Pausado</string>
+    <string name="tts_action_play">Reproduzir</string>
+    <string name="tts_action_pause">Pausar</string>
+    <string name="tts_action_stop">Parar</string>
+
+    <!-- Mensagens de erro TTS -->
+    <string name="tts_error_service_not_started">Serviço TTS não iniciado</string>
+    <string name="tts_error_engine_not_ready">Mecanismo TTS não pronto</string>
+    <string name="tts_error_chapter_load_failed">Não foi possível carregar o capítulo %1$d</string>
+    <string name="tts_error_language_not_supported">Idioma não suportado: %1$s</string>
+    <string name="tts_error_playback_failed">Falha na reprodução: %1$s</string>
+    <string name="tts_error_unknown_reason">Erro desconhecido</string>
+    <string name="tts_error_network_error">Falha na conexão de rede</string>
+    <string name="tts_error_generic">Erro TTS</string>
+    <string name="tts_error_playback_failed_simple">Falha na reprodução</string>
+    <string name="tts_set_times">Timer: %1$s</string>
+    <string name="tts_time_unlimit">Não definido</string>
+
+    <!-- Permissão de notificação TTS -->
+    <string name="notification_permission_required_title">Permissão de Notificação Necessária</string>
+    <string name="notification_permission_required_message">O HandyReader precisa de permissão de notificação para mostrar controles de reprodução TTS. Por favor, ative-a nas Configurações.</string>
+    <string name="notification_permission_go_settings">Ir para Configurações</string>
+    <string name="notification_permission_cancel">Cancelar</string>
+    
+    <!-- Diálogo de explicação da permissão de notificação -->
+    <string name="notification_permission_explanation_title">Ativar notificações para TTS</string>
+    <string name="notification_permission_explanation_message">Para usar a função de texto em voz, o HandyReader precisa exibir uma notificação com controles de reprodução. Isso permite que você controle a reprodução TTS mesmo quando o aplicativo está em segundo plano.</string>
+    <string name="notification_permission_continue">Continuar</string>
 </resources>

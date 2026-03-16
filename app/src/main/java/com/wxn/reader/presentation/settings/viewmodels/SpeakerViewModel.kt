@@ -55,13 +55,13 @@ class SpeakerViewModel @Inject constructor(
 
     fun loadVoices() {
         viewModelScope.launch {
-            speakerRepository.fetchAll().onSuccess { voices ->
+            speakerRepository.fetchAll()?.onSuccess { voices ->
                 _voicesUiState.update {
                     voices.filter { voice ->
                         !speakerUiState.value.any { voice.uid == it.id }
                     }.map { it.voice2Option() }
                 }
-            }.onFailure { e ->
+            }?.onFailure { e ->
                 _messageUiState.update { Message(e.localizedMessage ?: "", true) }
             }
         }

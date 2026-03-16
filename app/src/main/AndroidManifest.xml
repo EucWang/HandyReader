@@ -11,6 +11,13 @@
          or higher if your app targets Android 14 (API level 34) or higher.  -->
     <uses-permission android:name="android.permission.READ_MEDIA_VISUAL_USER_SELECTED" />
     <uses-permission android:name="android.permission.INTERNET" />
+
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+    <!-- Android 14+ 必须指定类型 -->
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MEDIA_PLAYBACK" />
+    <!-- Android 13+ 通知权限 -->
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+
     <application
         android:name="com.wxn.reader.BookApplication"
         android:allowBackup="false"
@@ -64,6 +71,17 @@
 <!--                <category android:name="android.intent.category.DEFAULT" />-->
 <!--            </intent-filter>-->
 <!--        </service>-->
+
+        <!-- TTS前台播放服务 -->
+        <service
+            android:name="com.wxn.reader.service.TtsPlaybackService"
+            android:foregroundServiceType="mediaPlayback"
+            android:launchMode="singleInstance"
+            android:exported="false">  <!-- 仅内部使用，安全考虑 -->
+            <intent-filter>
+                <action android:name="androidx.media3.session.MediaSessionService" />
+            </intent-filter>
+        </service>
 
         <service
             android:name="androidx.appcompat.app.AppLocalesMetadataHolderService"

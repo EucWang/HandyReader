@@ -35,14 +35,14 @@ public class Speech {
     private Context mContext;
 
     private TextToSpeechEngine textToSpeechEngine;
-    private SpeechRecognitionEngine speechRecognitionEngine;
+//    private SpeechRecognitionEngine speechRecognitionEngine;
 
     private Speech(final Context context, final String callingPackage, TextToSpeech.OnInitListener onInitListener, SpeechRecognitionEngine speechRecognitionEngine, TextToSpeechEngine textToSpeechEngine) {
         mContext = context;
 
-        this.speechRecognitionEngine = speechRecognitionEngine;
-        this.speechRecognitionEngine.setCallingPackage(callingPackage);
-        this.speechRecognitionEngine.initSpeechRecognizer(context);
+//        this.speechRecognitionEngine = speechRecognitionEngine;
+//        this.speechRecognitionEngine.setCallingPackage(callingPackage);
+//        this.speechRecognitionEngine.initSpeechRecognizer(context);
 
         this.textToSpeechEngine = textToSpeechEngine;
         this.textToSpeechEngine.setOnInitListener(onInitListener);
@@ -105,7 +105,7 @@ public class Speech {
      * Must be called inside Activity's onDestroy.
      */
     public synchronized void shutdown() {
-        speechRecognitionEngine.shutdown();
+//        speechRecognitionEngine.shutdown();
         textToSpeechEngine.shutdown();
 
         instance = null;
@@ -131,10 +131,10 @@ public class Speech {
      * @throws SpeechRecognitionNotAvailable      when speech recognition is not available on the device
      * @throws GoogleVoiceTypingDisabledException when google voice typing is disabled on the device
      */
-    public void startListening(final SpeechDelegate delegate)
-            throws SpeechRecognitionNotAvailable, GoogleVoiceTypingDisabledException {
-        startListening(null, delegate);
-    }
+//    public void startListening(final SpeechDelegate delegate)
+//            throws SpeechRecognitionNotAvailable, GoogleVoiceTypingDisabledException {
+//        startListening(null, delegate);
+//    }
 
     /**
      * Starts voice recognition.
@@ -144,28 +144,28 @@ public class Speech {
      * @throws SpeechRecognitionNotAvailable      when speech recognition is not available on the device
      * @throws GoogleVoiceTypingDisabledException when google voice typing is disabled on the device
      */
-    public void startListening(final SpeechProgressView progressView, final SpeechDelegate delegate)
-            throws SpeechRecognitionNotAvailable, GoogleVoiceTypingDisabledException {
+//    public void startListening(final SpeechProgressView progressView, final SpeechDelegate delegate)
+//            throws SpeechRecognitionNotAvailable, GoogleVoiceTypingDisabledException {
+//
+//        speechRecognitionEngine.startListening(progressView, delegate);
+//    }
 
-        speechRecognitionEngine.startListening(progressView, delegate);
-    }
-
-    /**
+    /**x`
      * Stops voice recognition listening.
      * This method does nothing if voice listening is not active
      */
-    public void stopListening() {
-        speechRecognitionEngine.stopListening();
-    }
+//    public void stopListening() {
+//        speechRecognitionEngine.stopListening();
+//    }
 
     /**
      * Check if voice recognition is currently active.
      *
      * @return true if the voice recognition is on, false otherwise
      */
-    public boolean isListening() {
-        return speechRecognitionEngine.isListening();
-    }
+//    public boolean isListening() {
+//        return speechRecognitionEngine.isListening();
+//    }
 
     /**
      * Check if text to speak is currently speaking.
@@ -209,10 +209,10 @@ public class Speech {
      * @param preferOffline true to prefer offline engine, false to use either one of the two
      * @return speech instance
      */
-    public Speech setPreferOffline(final boolean preferOffline) {
-        speechRecognitionEngine.setPreferOffline(preferOffline);
-        return this;
-    }
+//    public Speech setPreferOffline(final boolean preferOffline) {
+//        speechRecognitionEngine.setPreferOffline(preferOffline);
+//        return this;
+//    }
 
     /**
      * Set whether partial results should be returned by the recognizer as the user speaks
@@ -221,10 +221,10 @@ public class Speech {
      * @param getPartialResults true to get also partial recognition results, false otherwise
      * @return speech instance
      */
-    public Speech setGetPartialResults(final boolean getPartialResults) {
-        speechRecognitionEngine.setPartialResults(getPartialResults);
-        return this;
-    }
+//    public Speech setGetPartialResults(final boolean getPartialResults) {
+//        speechRecognitionEngine.setPartialResults(getPartialResults);
+//        return this;
+//    }
 
     /**
      * Sets text to speech and recognition language.
@@ -234,9 +234,8 @@ public class Speech {
      * @return speech instance
      */
     public int setLocale(final Locale locale) {
-        speechRecognitionEngine.setLocale(locale);
+//        speechRecognitionEngine.setLocale(locale);
         return textToSpeechEngine.setLocale(locale);
-//        return this;
     }
 
     /**
@@ -247,9 +246,8 @@ public class Speech {
      *             (2.0 is twice the normal speech rate).
      * @return speech instance
      */
-    public Speech setTextToSpeechRate(final float rate) {
-        textToSpeechEngine.setSpeechRate(rate);
-        return this;
+    public int setTextToSpeechRate(final float rate) {
+        return textToSpeechEngine.setSpeechRate(rate);
     }
 
     /**
@@ -259,9 +257,8 @@ public class Speech {
      * @param voice Speech voice.
      * @return speech instance
      */
-    public Speech setVoice(final Voice voice) {
-        textToSpeechEngine.setVoice(voice);
-        return this;
+    public int setVoice(final Voice voice) {
+        return textToSpeechEngine.setVoice(voice);
     }
 
     /**
@@ -272,9 +269,8 @@ public class Speech {
      *              synthesized voice, greater values increase it.
      * @return speech instance
      */
-    public Speech setTextToSpeechPitch(final float pitch) {
-        textToSpeechEngine.setPitch(pitch);
-        return this;
+    public int setTextToSpeechPitch(final float pitch) {
+        return textToSpeechEngine.setPitch(pitch);
     }
 
     /**
@@ -283,11 +279,11 @@ public class Speech {
      * @param milliseconds timeout in milliseconds
      * @return speech instance
      */
-    public Speech setStopListeningAfterInactivity(final long milliseconds) {
-        speechRecognitionEngine.setStopListeningAfterInactivity(milliseconds);
-        speechRecognitionEngine.init(mContext);
-        return this;
-    }
+//    public Speech setStopListeningAfterInactivity(final long milliseconds) {
+//        speechRecognitionEngine.setStopListeningAfterInactivity(milliseconds);
+//        speechRecognitionEngine.init(mContext);
+//        return this;
+//    }
 
     /**
      * Sets the minimum interval between start/stop events. This is useful to prevent
@@ -296,10 +292,10 @@ public class Speech {
      * @param milliseconds minimum interval betweeb state change in milliseconds
      * @return speech instance
      */
-    public Speech setTransitionMinimumDelay(final long milliseconds) {
-        speechRecognitionEngine.setTransitionMinimumDelay(milliseconds);
-        return this;
-    }
+//    public Speech setTransitionMinimumDelay(final long milliseconds) {
+//        speechRecognitionEngine.setTransitionMinimumDelay(milliseconds);
+//        return this;
+//    }
 
     /**
      * Sets the text to speech queue mode.
@@ -345,38 +341,38 @@ public class Speech {
      * Gets the list of the supported speech to text languages on this device
      * @param listener listner which will receive the results
      */
-    public void getSupportedSpeechToTextLanguages(SupportedLanguagesListener listener) {
-        if (!isGoogleAppInstalled()) {
-            listener.onNotSupported(UnsupportedReason.GOOGLE_APP_NOT_FOUND);
-            return;
-        }
-
-        Intent intent = RecognizerIntent.getVoiceDetailsIntent(mContext);
-
-        if (intent == null) {
-            intent = new Intent(RecognizerIntent.ACTION_GET_LANGUAGE_DETAILS);
-            intent.setPackage(GOOGLE_APP_PACKAGE);
-        }
-
-        mContext.sendOrderedBroadcast(intent, null, new BroadcastReceiver() {
-            @Override
-            public void onReceive(Context context, Intent intent) {
-                Bundle extras = getResultExtras(true);
-
-                if (extras != null && extras.containsKey(RecognizerIntent.EXTRA_SUPPORTED_LANGUAGES)) {
-                    List<String> languages = extras.getStringArrayList(RecognizerIntent.EXTRA_SUPPORTED_LANGUAGES);
-                    if (languages == null || languages.isEmpty()) {
-                        listener.onNotSupported(UnsupportedReason.EMPTY_SUPPORTED_LANGUAGES);
-                    } else {
-                        Collections.sort(languages);
-                        listener.onSupportedLanguages(languages);
-                    }
-                } else {
-                    listener.onNotSupported(UnsupportedReason.EMPTY_SUPPORTED_LANGUAGES);
-                }
-            }
-        }, null, Activity.RESULT_OK, null, null);
-    }
+//    public void getSupportedSpeechToTextLanguages(SupportedLanguagesListener listener) {
+//        if (!isGoogleAppInstalled()) {
+//            listener.onNotSupported(UnsupportedReason.GOOGLE_APP_NOT_FOUND);
+//            return;
+//        }
+//
+//        Intent intent = RecognizerIntent.getVoiceDetailsIntent(mContext);
+//
+//        if (intent == null) {
+//            intent = new Intent(RecognizerIntent.ACTION_GET_LANGUAGE_DETAILS);
+//            intent.setPackage(GOOGLE_APP_PACKAGE);
+//        }
+//
+//        mContext.sendOrderedBroadcast(intent, null, new BroadcastReceiver() {
+//            @Override
+//            public void onReceive(Context context, Intent intent) {
+//                Bundle extras = getResultExtras(true);
+//
+//                if (extras != null && extras.containsKey(RecognizerIntent.EXTRA_SUPPORTED_LANGUAGES)) {
+//                    List<String> languages = extras.getStringArrayList(RecognizerIntent.EXTRA_SUPPORTED_LANGUAGES);
+//                    if (languages == null || languages.isEmpty()) {
+//                        listener.onNotSupported(UnsupportedReason.EMPTY_SUPPORTED_LANGUAGES);
+//                    } else {
+//                        Collections.sort(languages);
+//                        listener.onSupportedLanguages(languages);
+//                    }
+//                } else {
+//                    listener.onNotSupported(UnsupportedReason.EMPTY_SUPPORTED_LANGUAGES);
+//                }
+//            }
+//        }, null, Activity.RESULT_OK, null, null);
+//    }
 
     /**
      * Gets the list of the supported Text to Speech languages on this device
@@ -393,9 +389,9 @@ public class Speech {
      * Gets the locale used for speech recognition.
      * @return speech recognition locale
      */
-    public Locale getSpeechToTextLanguage() {
-        return speechRecognitionEngine.getLocale();
-    }
+//    public Locale getSpeechToTextLanguage() {
+//        return speechRecognitionEngine.getLocale();
+//    }
 
     /**
      * Gets the current voice used for text to speech.
@@ -408,4 +404,7 @@ public class Speech {
         return textToSpeechEngine.getCurrentVoice();
     }
 
+    public  Set<Locale> getSupportedTtsLanguages(){
+        return textToSpeechEngine.getAvailableLanguages();
+    }
 }

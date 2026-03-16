@@ -298,4 +298,39 @@
     <!-- Reader Settings - Left Handed Mode -->
     <string name="left_handed_mode">बाएं हाथ मोड</string>
     <string name="left_handed_mode_description">बाएं हाथ उपयोग के लिए पेज टर्निंग दिशा बदलें</string>
+
+    <!-- TTS Notification -->
+    <string name="tts_notification_channel_name">TTS चल रहा है</string>
+    <string name="tts_notification_channel_description">TTS प्लेबैक सूचनाएँ</string>
+    <string name="tts_notification_title">HandyReader - चल रहा है</string>
+    <string name="tts_notification_content">TTS प्लेबैक जारी है</string>
+    <string name="tts_notification_playing">चल रहा है</string>
+    <string name="tts_notification_paused">रुका हुआ</string>
+    <string name="tts_action_play">चलाएं</string>
+    <string name="tts_action_pause">रोकें</string>
+    <string name="tts_action_stop">बंद करें</string>
+
+    <!-- TTS त्रुटि संदेश -->
+    <string name="tts_error_service_not_started">TTS सेवा शुरू नहीं हुई</string>
+    <string name="tts_error_engine_not_ready">TTS इंजन तैयार नहीं है</string>
+    <string name="tts_error_chapter_load_failed">अध्याय %1$d लोड नहीं किया जा सका</string>
+    <string name="tts_error_language_not_supported">भाषा समर्थित नहीं: %1$s</string>
+    <string name="tts_error_playback_failed">प्लेबैक विफल: %1$s</string>
+    <string name="tts_error_unknown_reason">अज्ञात त्रुटि</string>
+    <string name="tts_error_network_error">नेटवर्क कनेक्शन विफल</string>
+    <string name="tts_error_generic">TTS त्रुटि</string>
+    <string name="tts_error_playback_failed_simple">प्लेबैक विफल</string>
+    <string name="tts_set_times">टाइमर: %1$s</string>
+    <string name="tts_time_unlimit">अनसेट</string>
+
+    <!-- TTS अधिसूचना अनुमति -->
+    <string name="notification_permission_required_title">अधिसूचना अनुमति आवश्यक</string>
+    <string name="notification_permission_required_message">HandyReader को TTS प्लेबैक नियंत्रण दिखाने के लिए अधिसूचना अनुमति की आवश्यकता है। कृपया इसे सेटिंग्स में सक्षम करें।</string>
+    <string name="notification_permission_go_settings">सेटिंग्स खोलें</string>
+    <string name="notification_permission_cancel">रद्द करें</string>
+    
+    <!-- अधिसूचना अनुमति स्पष्टीकरण संवाद -->
+    <string name="notification_permission_explanation_title">TTS के लिए अधिसूचनाएं सक्षम करें</string>
+    <string name="notification_permission_explanation_message">टेक्स्ट-टू-स्पीच फ़ंक्शन का उपयोग करने के लिए, HandyReader को प्लेबैक नियंत्रण के साथ एक अधिसूचना प्रदर्शित करने की आवश्यकता है। इससे आप TTS प्लेबैक को तब भी नियंत्रित कर सकते हैं जब ऐप बैकग्राउंड में हो।</string>
+    <string name="notification_permission_continue">जारी रखें</string>
 </resources>
