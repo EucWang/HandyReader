@@ -26,6 +26,7 @@
 - [√] Add page-turning animation speed control option
 - [√] Add volume key page-turning feature toggle
 - [√] Modify color selection panel
+- [√] Optimaze TTS server and add setter
 - [ ] Add font selection
 - [ ] Control the maximum height of popup for in-page annotation content
 - [ ] Continuous vertical scrolling
