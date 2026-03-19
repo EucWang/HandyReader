@@ -23,12 +23,13 @@ import com.wxn.reader.data.model.SortOption
 import com.wxn.reader.data.model.SortOrder
 import com.wxn.reader.data.source.local.AppPreferencesUtil
 import com.wxn.reader.domain.model.Shelf
-import com.wxn.reader.domain.use_case.books.DeleteBookByUriUseCase
 import com.wxn.reader.domain.use_case.books.DeleteBookUseCase
+import com.wxn.reader.domain.use_case.books.DeleteBookByUriUseCase
 import com.wxn.reader.domain.use_case.books.GetBookUrisUseCase
 import com.wxn.reader.domain.use_case.books.GetBooksUseCase
 import com.wxn.reader.domain.use_case.books.InsertBookUseCase
 import com.wxn.reader.domain.use_case.books.UpdateBookUseCase
+import com.wxn.reader.domain.use_case.books.UpdateDeletedFlagUseCase
 import com.wxn.reader.domain.use_case.shelves.AddBookToShelfUseCase
 import com.wxn.reader.domain.use_case.shelves.AddShelfUseCase
 import com.wxn.reader.domain.use_case.shelves.GetBooksForShelfUseCase
@@ -84,6 +85,7 @@ class HomeViewModel
     private val appPreferencesUtil: AppPreferencesUtil,
     private val fileParser: FileParser,
     private val permissionRepository: PermissionRepository,
+    private val updateDeletedFlagUseCase: UpdateDeletedFlagUseCase,
     application: Application,
 ) : AndroidViewModel(application) {
 
@@ -540,7 +542,7 @@ class HomeViewModel
                     books.map { book ->
                         book.copy(deleted = true)
                     }.forEach {
-                        updateBookUseCase(it)
+                        updateDeletedFlagUseCase(it.id, true)
                     }
                 }
                 showSnackbar(stringResource(R.string.book_remove_success))

@@ -9,7 +9,7 @@ import androidx.lifecycle.viewModelScope
 import com.wxn.base.bean.Book
 import com.wxn.reader.domain.use_case.books.DeleteBookUseCase
 import com.wxn.reader.domain.use_case.books.GetDeletedBooksUseCase
-import com.wxn.reader.domain.use_case.books.UpdateBookUseCase
+import com.wxn.reader.domain.use_case.books.UpdateDeletedFlagUseCase
 import com.wxn.reader.presentation.settings.states.DeletedBooksState
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -22,7 +22,7 @@ import javax.inject.Inject
 @HiltViewModel
 class DeletedBooksViewModel @Inject constructor(
     private val getDeletedBooksUseCase: GetDeletedBooksUseCase,
-    private val updateBookUseCase: UpdateBookUseCase,
+    private val updateDeletedFlagUseCase: UpdateDeletedFlagUseCase,
     private val deleteBookUseCase: DeleteBookUseCase,
     application: Application,
 ) : AndroidViewModel(application) {
@@ -55,8 +55,7 @@ class DeletedBooksViewModel @Inject constructor(
     fun restoreBooks(selectedBooks: Set<Book>) {
         viewModelScope.launch {
             selectedBooks.forEach { book ->
-                val restoredBook = book.copy(deleted = false)
-                updateBookUseCase(restoredBook)
+                updateDeletedFlagUseCase(book.id, false)
             }
         }
     }

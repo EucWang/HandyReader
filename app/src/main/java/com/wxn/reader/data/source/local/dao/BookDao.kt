@@ -144,5 +144,94 @@ interface BookDao {
 
     @Query("UPDATE books SET readingStatus = :status WHERE id = :bookId")
     suspend fun setReadingStatus(bookId: Long, status: ReadingStatus)
+
+    /**
+     * 原子性增加阅读时间
+     * 使用 SQL 的增量更新避免读-修改-写竞态条件
+     * @param bookId 书籍ID
+     * @param delta 增量（毫秒）
+     * @return 影响的行数
+     */
+    @Query("UPDATE books SET readingTime = readingTime + :delta WHERE id = :bookId")
+    suspend fun incrementReadingTime(bookId: Long, delta: Long): Int
+
+    // ============ 选择性更新方法 ============
+
+    /**
+     * 只更新阅读进度相关字段，不覆盖 readingTime
+     */
+    @Query("""
+         UPDATE books 
+         SET lastOpened = :lastOpened, 
+             scrollIndex = :scrollIndex, 
+             scrollOffset = :scrollOffset, 
+             progression = :progression 
+         WHERE id = :bookId
+     """)
+    suspend fun updateProgressFields(
+        bookId: Long,
+        lastOpened: Long,
+        scrollIndex: Int,
+        scrollOffset: Int,
+        progression: Float
+    ): Int
+
+    /**
+     * 只更新阅读状态
+     */
+    @Query("UPDATE books SET readingStatus = :status WHERE id = :bookId")
+    suspend fun updateReadingStatus(bookId: Long, status: ReadingStatus): Int
+
+    /**
+     * 更新开始阅读时间
+     */
+    @Query("UPDATE books SET startReadingDate = :startDate WHERE id = :bookId")
+    suspend fun updateStartReadingDate(bookId: Long, startDate: Long): Int
+
+    /**
+     * 更新结束阅读时间和状态
+     */
+    @Query("""
+        UPDATE books 
+        SET endReadingDate = :endDate, 
+            readingStatus = :status 
+        WHERE id = :bookId
+    """)
+    suspend fun updateEndReadingDateAndStatus(
+        bookId: Long, 
+        endDate: Long, 
+        status: ReadingStatus
+    ): Int
+
+    /**
+     * 更新书总字数
+     */
+    @Query("UPDATE books SET wordCount = :wordCount WHERE id = :bookId")
+    suspend fun updateWordCount(bookId: Long, wordCount: Long): Int
+
+    /**
+     * 更新 PDF 阅读进度字段（locator, progression, readingStatus, endReadingDate）
+     */
+    @Query("""
+        UPDATE books 
+        SET locator = :locator, 
+            progression = :progression, 
+            readingStatus = :readingStatus, 
+            endReadingDate = :endReadingDate 
+        WHERE id = :bookId
+    """)
+    suspend fun updatePdfProgressFields(
+        bookId: Long,
+        locator: String,
+        progression: Float,
+        readingStatus: ReadingStatus,
+        endReadingDate: Long?
+    ): Int
+
+    /**
+     * 更新删除标志
+     */
+    @Query("UPDATE books SET deleted = :deleted WHERE id = :bookId")
+    suspend fun updateDeletedFlag(bookId: Long, deleted: Boolean): Int
 }
 

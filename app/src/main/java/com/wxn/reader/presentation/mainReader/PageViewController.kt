@@ -32,6 +32,8 @@ import com.wxn.reader.domain.model.toTextTags
 import com.wxn.reader.domain.use_case.annotations.GetAnnotationsUseCase
 import com.wxn.reader.domain.use_case.bookmarks.GetBookmarksForBookUseCase
 import com.wxn.reader.domain.use_case.books.UpdateBookUseCase
+import com.wxn.reader.domain.use_case.books.UpdateProgressFieldsUseCase
+import com.wxn.reader.domain.use_case.books.UpdateWordCountUseCase
 import com.wxn.reader.domain.use_case.chapters.BookHelper
 import com.wxn.reader.domain.use_case.chapters.GetChapterByIdUserCase
 import com.wxn.reader.domain.use_case.chapters.GetChapterCountByBookIdUserCase
@@ -68,6 +70,9 @@ open class PageViewController @Inject constructor(
 
     val updateChapterWordCountUserCase: UpdateChapterWordCountUserCase,
     val updateBookUseCase: UpdateBookUseCase,
+    val updateProgressFieldsUseCase: UpdateProgressFieldsUseCase,
+    val updateWordCountUseCase: UpdateWordCountUseCase,
+
     val appPreferencesUtil: AppPreferencesUtil,
     val textParser: TextParser,
     var ttsStateHolder: TtsStateHolder,
@@ -149,13 +154,15 @@ open class PageViewController @Inject constructor(
             Logger.d("PageViewController::handleTtsStateChange::locator update[$locator]")
             if (locator.chapterIndex != durChapterIndex ||
                 locator.startParagraphIndex != speekBookStatus.readBookLocator?.startParagraphIndex ||
-                locator.endParagraphIndex != speekBookStatus.readBookLocator?.endParagraphIndex ||
                 locator.startTextOffset != speekBookStatus.readBookLocator?.startTextOffset) {
 
                 val newSentenceIndex = state.currentSentenceIndex
                 speekBookStatus = speekBookStatus.copy(readBookLocator = locator, playSentenceIndex = newSentenceIndex)
                 callBack?.upContent()
                 updateReadingPosition(locator)
+                scope?.launch {
+                    clickListener?.updateReadingTime()
+                }
             }
         }
     }
@@ -443,6 +450,8 @@ open class PageViewController @Inject constructor(
         fun onSelectedCancel()
         fun onCheckedAnnotation(annotationIds: List<String>, rect: RectF)
         fun onCheckedNote(noteId: String, rect: RectF)
+
+        suspend fun updateReadingTime(force:Boolean = false)
     }
 
     var clickListener: OnClickListener? = null
@@ -560,7 +569,7 @@ open class PageViewController @Inject constructor(
                     nextTextChapter?.totalWordCount = totalWordCount.toLong()
                 }
             }
-            updateBookUseCase.invoke(book)
+            updateWordCountUseCase(book.id, book.wordCount)
         }
         isCalcChapterWords = false
         Logger.d("PageViewController::calcChapterWords:totalWordCount=${totalWordCount}, spend=${System.currentTimeMillis() - start}")
@@ -769,11 +778,20 @@ open class PageViewController @Inject constructor(
     private fun saveRead() {
         val curBook = book ?: return
         scope?.launchIO {
-            curBook.lastOpened = System.currentTimeMillis()
-            curBook.scrollIndex = durChapterIndex
-            curBook.scrollOffset = durPageIndex
-            curBook.progress = (progression * 100.0).toFloat()
-            updateBookUseCase(curBook)
+            val lastTime = System.currentTimeMillis()
+            val lastChapterIndex = durChapterIndex
+            val lastPageInChapter = durPageIndex
+            val lastProgress = (progression * 100.0).toFloat()
+            
+            updateProgressFieldsUseCase(
+                bookId = curBook.id,
+                lastOpened = lastTime,
+                scrollIndex = lastChapterIndex,
+                scrollOffset = lastPageInChapter,
+                progress = lastProgress
+            )
+            
+            Logger.d("PageViewController::saveRead::lastOpened=${lastTime},lastChapterIndex=${lastChapterIndex},lastPageInChapter=${lastPageInChapter},lastProgress=${lastProgress}")
         }
     }
 
@@ -983,128 +1001,127 @@ open class PageViewController @Inject constructor(
             }
             return
         }
-        BookHelper.loadChapterContent(context, curBook, chapter, textParser).let { contents ->
-            Logger.i("PageViewController::loadContent:index=$chapterIndex,chapter.index=${chapter.chapterIndex} contents.size=${contents.size}")
+        val readerTexts : List<ReaderText> = BookHelper.loadChapterContent(context, curBook, chapter, textParser)
+        Logger.i("PageViewController::loadContent:index=$chapterIndex,chapter.index=${chapter.chapterIndex} readerTexts.size=${readerTexts.size}")
 
-            var tags = hashMapOf<Int, List<TextTag>>()  //章节全部标签信息
-            contents.forEachIndexed { index, content ->
-                if (content is ReaderText.Text) {
-                    if (content.annotations.isNotEmpty()) {
-                        tags[index] = content.annotations
-                    }
+        var tags = hashMapOf<Int, List<TextTag>>()  //章节全部标签信息
+        readerTexts.forEachIndexed { index, content ->
+            if (content is ReaderText.Text) {
+                if (content.annotations.isNotEmpty()) {
+                    tags[index] = content.annotations
                 }
             }
-            //将BookAnnotation转换成TextTag,控制界面的显示
-            userAnnotations?.forEach { anno ->
-                val texttags = anno.locatorInfo?.toTextTags(
-                    anno.id.toString(),
-                    anno.type.toString(),
-                    anno.color,
-                    chapterIndex, contents)
-                if (!texttags.isNullOrEmpty()) {
-                    val keys = tags.keys.plus(texttags.keys)
-                    for(key in keys) {
-                        tags[key] = (tags[key].orEmpty()).toMutableList().plus(texttags[key].orEmpty())
-                    }
+        }
+        //将BookAnnotation转换成TextTag,控制界面的显示
+        userAnnotations?.forEach { anno ->
+            val texttags = anno.locatorInfo?.toTextTags(
+                anno.id.toString(),
+                anno.type.toString(),
+                anno.color,
+                chapterIndex, readerTexts)
+            if (!texttags.isNullOrEmpty()) {
+                val keys = tags.keys.plus(texttags.keys)
+                for(key in keys) {
+                    tags[key] = (tags[key].orEmpty()).toMutableList().plus(texttags[key].orEmpty())
                 }
             }
-            //将Note转换成TextTag，控制界面显示
-            userNotes?.forEach { note ->
-                val texttags = note.locatorInfo?.toTextTags(
-                    note.id.toString(),
-                    "note",
-                    note.color,
-                    chapterIndex, contents)
-                if (!texttags.isNullOrEmpty()) {
-                    val keys = tags.keys.plus(texttags.keys)
-                    for(key in keys) {
-                        tags[key] = (tags[key].orEmpty()).toMutableList().plus(texttags[key].orEmpty())
-                    }
+        }
+        //将Note转换成TextTag，控制界面显示
+        userNotes?.forEach { note ->
+            val texttags = note.locatorInfo?.toTextTags(
+                note.id.toString(),
+                "note",
+                note.color,
+                chapterIndex, readerTexts)
+            if (!texttags.isNullOrEmpty()) {
+                val keys = tags.keys.plus(texttags.keys)
+                for(key in keys) {
+                    tags[key] = (tags[key].orEmpty()).toMutableList().plus(texttags[key].orEmpty())
                 }
             }
+        }
 
-            //遍历当前章节的书签
-            val chapterBookmarks = userBookmakrs?.filter {
-                it.chapterIndex == chapterIndex
+        //遍历当前章节的书签
+        val chapterBookmarks = userBookmakrs?.filter {
+            it.chapterIndex == chapterIndex
+        }
+        Logger.d("PageViewController::loadContent[$chapterIndex],chapterBookmarks[${chapterBookmarks?.size}]")
+
+        val cssInfos = BookHelper.loadChpaterCsses(context, curBook, tags, textParser)      //章节全部的css信息
+
+        val supperReaderTexts = BookHelper.disposeContent(appPreferencesUtil, chapter, readerTexts, cssInfos)
+
+        val cssInfoMaps = hashMapOf<Int, TextCssInfo>()
+        var wordCount = 0L
+        for ((index, content) in supperReaderTexts.withIndex()) {
+            if (content is ReaderText.Text) {
+                cssInfoMaps[index] = content.textCssInfo
+                wordCount += content.line.length
             }
-            Logger.d("PageViewController::loadContent[$chapterIndex],chapterBookmarks[${chapterBookmarks?.size}]")
+        }
 
-            val cssInfos = BookHelper.loadChpaterCsses(context, curBook, tags, textParser)      //章节全部的css信息
+        val textChapter = ChapterProvider.getTextChapter(chapter, supperReaderTexts, imageStyles = "", chapterSize)
+        textChapter?.annotations = tags
+        textChapter?.textCssInfos = cssInfoMaps
+        textChapter?.readerTexts = supperReaderTexts
+        textChapter?.wordCount = wordCount
+        textChapter?.totalWordCount = curBook.wordCount
+        textChapter?.chapterProgress = chapter.chapterProgress
 
-            val contents = BookHelper.disposeContent(appPreferencesUtil, chapter, contents, cssInfos)
+        textChapter?.pages?.forEach { page ->
+            page.bookmarkId = getPageBookmark(page, textChapter, chapterBookmarks)?.id ?: -1
+        }
 
-            val cssInfoMaps = hashMapOf<Int, TextCssInfo>()
-            var wordCount = 0L
-            for ((index, content) in contents.withIndex()) {
-                if (content is ReaderText.Text) {
-                    cssInfoMaps[index] = content.textCssInfo
-                    wordCount += content.line.length
-                }
-            }
+        var needOnPageChange = (targetProgress < 0.0)
 
-            val textChapter = ChapterProvider.getTextChapter(chapter, contents, imageStyles = "", chapterSize)
-            textChapter?.annotations = tags
-            textChapter?.textCssInfos = cssInfoMaps
-            textChapter?.readerTexts = contents
-            textChapter?.wordCount = wordCount
-            textChapter?.totalWordCount = curBook.wordCount
-            textChapter?.chapterProgress = chapter.chapterProgress
+        when (chapter.chapterIndex) {
+            durChapterIndex -> {    //加载的是当前章节
+                curTextChapter = textChapter
 
-            textChapter?.pages?.forEach { page ->
-                page.bookmarkId = getPageBookmark(page, textChapter, chapterBookmarks)?.id ?: -1
-            }
+                if (targetProgress >= 0.0 && curBook.wordCount > 0 && targetProgress >= chapter.chapterProgress) { //修改切换之后的显示章节的第几页
+                    val inChapterProgress = targetProgress - chapter.chapterProgress
+                    val inChapterPercent = chapter.wordCount.toDouble() / curBook.wordCount.toDouble()
+                    val chapterPageSize = textChapter?.pageSize ?: 0
 
-            var needOnPageChange = (targetProgress < 0.0)
-
-            when (chapter.chapterIndex) {
-                durChapterIndex -> {    //加载的是当前章节
-                    curTextChapter = textChapter
-
-                    if (targetProgress >= 0.0 && curBook.wordCount > 0 && targetProgress >= chapter.chapterProgress) { //修改切换之后的显示章节的第几页
-                        val inChapterProgress = targetProgress - chapter.chapterProgress
-                        val inChapterPercent = chapter.wordCount.toDouble() / curBook.wordCount.toDouble()
-                        val chapterPageSize = textChapter?.pageSize ?: 0
-
-                        Logger.d("PageViewController::inChapterProgress=${inChapterProgress},inChapterPercent=${inChapterPercent}, pageSize=${chapterPageSize} durPageIndex=$durPageIndex,targetProgress=$targetProgress")
-                        val pageIndex = ((inChapterProgress / inChapterPercent) * (chapterPageSize.toDouble() ?: 0.0)).roundToInt()
-                        if (pageIndex in 0 until (textChapter?.pageSize ?: 0)) {
-                            durPageIndex = pageIndex
-                        }
-                        Logger.d("PageViewController::pageIndex =${pageIndex}, durPageIndex=$durPageIndex, wordCount=${curTextChapter?.wordCount},totalWordCount=${curTextChapter?.totalWordCount}")
-                        targetProgress = -1.0
-                        needOnPageChange = true
+                    Logger.d("PageViewController::inChapterProgress=${inChapterProgress},inChapterPercent=${inChapterPercent}, pageSize=${chapterPageSize} durPageIndex=$durPageIndex,targetProgress=$targetProgress")
+                    val pageIndex = ((inChapterProgress / inChapterPercent) * (chapterPageSize.toDouble() ?: 0.0)).roundToInt()
+                    if (pageIndex in 0 until (textChapter?.pageSize ?: 0)) {
+                        durPageIndex = pageIndex
                     }
-
-                    if (upContent) {
-                        callBack?.upContent(resetPageOffset = resetPageOffset)
-                    }
-                    callBack?.upView()
-                    if (isInitFinish && onInitChapterLoadListener != null) {
-                        Logger.e("PageViewController::loadChapterContent first success")
-                        onInitChapterLoadListener?.invoke(true)
-                        onInitChapterLoadListener = null
-                    }
+                    Logger.d("PageViewController::pageIndex =${pageIndex}, durPageIndex=$durPageIndex, wordCount=${curTextChapter?.wordCount},totalWordCount=${curTextChapter?.totalWordCount}")
+                    targetProgress = -1.0
+                    needOnPageChange = true
                 }
 
-                durChapterIndex - 1 -> { //加载的是上一章节
-                    prevTextChapter = textChapter
-                    if (upContent) {
-                        callBack?.upContent(-1, resetPageOffset)
-                    }
+                if (upContent) {
+                    callBack?.upContent(resetPageOffset = resetPageOffset)
                 }
-
-                durChapterIndex + 1 -> {    //加载的是下一章节
-                    nextTextChapter = textChapter
-                    if (upContent) {
-                        callBack?.upContent(1, resetPageOffset)
-                    }
+                callBack?.upView()
+                if (isInitFinish && onInitChapterLoadListener != null) {
+                    Logger.e("PageViewController::loadChapterContent first success")
+                    onInitChapterLoadListener?.invoke(true)
+                    onInitChapterLoadListener = null
                 }
             }
 
-            if (needOnPageChange) {
-                Logger.e("PageViewController::loadContent success onPageChange::${durChapterIndex}")
-                clickListener?.onPageChange()
+            durChapterIndex - 1 -> { //加载的是上一章节
+                prevTextChapter = textChapter
+                if (upContent) {
+                    callBack?.upContent(-1, resetPageOffset)
+                }
             }
+
+            durChapterIndex + 1 -> {    //加载的是下一章节
+                nextTextChapter = textChapter
+                if (upContent) {
+                    callBack?.upContent(1, resetPageOffset)
+                }
+            }
+        }
+
+        if (needOnPageChange) {
+            Logger.e("PageViewController::loadContent success onPageChange::${durChapterIndex}")
+            clickListener?.onPageChange()
         }
     }
 

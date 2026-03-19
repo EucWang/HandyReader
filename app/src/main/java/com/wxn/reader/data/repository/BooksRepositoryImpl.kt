@@ -167,6 +167,59 @@ class BooksRepositoryImpl @Inject constructor(
         bookDao.setReadingProgress(bookId, locator, progression)
     }
 
+    override suspend fun incrementReadingTime(bookId: Long, delta: Long): Int {
+        return bookDao.incrementReadingTime(bookId, delta)
+    }
+
+    override suspend fun incrementReadingActivityTime(date: Long, delta: Long): Int {
+        return readingActivityDao.incrementReadingTime(date, delta)
+    }
+
+    // ============ 选择性更新方法实现 ============
+
+    override suspend fun updateProgressFields(
+        bookId: Long, 
+        lastOpened: Long, 
+        scrollIndex: Int, 
+        scrollOffset: Int, 
+        progression: Float
+    ): Int = withContext(Dispatchers.IO) {
+        bookDao.updateProgressFields(bookId, lastOpened, scrollIndex, scrollOffset, progression)
+    }
+
+    override suspend fun updateReadingStatus(bookId: Long, status: ReadingStatus): Int = withContext(Dispatchers.IO) {
+        bookDao.updateReadingStatus(bookId, status)
+    }
+
+    override suspend fun updateStartReadingDate(bookId: Long, startDate: Long): Int = withContext(Dispatchers.IO) {
+        bookDao.updateStartReadingDate(bookId, startDate)
+    }
+
+    override suspend fun updateEndReadingDateAndStatus(
+        bookId: Long, 
+        endDate: Long, 
+        status: ReadingStatus
+    ): Int = withContext(Dispatchers.IO) {
+        bookDao.updateEndReadingDateAndStatus(bookId, endDate, status)
+    }
+
+    override suspend fun updateWordCount(bookId: Long, wordCount: Long): Int = withContext(Dispatchers.IO) {
+        bookDao.updateWordCount(bookId, wordCount)
+    }
+
+    override suspend fun updatePdfProgressFields(
+        bookId: Long,
+        locator: String,
+        progression: Float,
+        readingStatus: ReadingStatus,
+        endReadingDate: Long?
+    ): Int = withContext(Dispatchers.IO) {
+        bookDao.updatePdfProgressFields(bookId, locator, progression, readingStatus, endReadingDate)
+    }
+
+    override suspend fun updateDeletedFlag(bookId: Long, deleted: Boolean): Int = withContext(Dispatchers.IO) {
+        bookDao.updateDeletedFlag(bookId, deleted)
+    }
 
     override suspend fun getAllAnnotations(): Flow<List<BookAnnotation>> = withContext(Dispatchers.IO) {
         annotationDao.getAllAnnotations().map { entities ->

@@ -44,6 +44,7 @@ interface BooksRepository {
     suspend fun setReadingProgress(bookId: Long, locator: String, progression: Float)
     suspend fun setReadingStatus(bookId: Long, status: ReadingStatus)
 
+
     // annotation (Highlights / Underlines)
     suspend fun getAllAnnotations(): Flow<List<BookAnnotation>>
     suspend fun getAnnotations(bookId: Long): Flow<List<BookAnnotation>>
@@ -51,14 +52,12 @@ interface BooksRepository {
     suspend fun updateAnnotation(annotation: BookAnnotation)
     suspend fun deleteAnnotation(annotation: BookAnnotation)
 
-
     // Notes
     suspend fun getAllNotes(): Flow<List<Note>>
     suspend fun getNotesForBook(bookId: Long): Flow<List<Note>>
     suspend fun addNote(note: Note): Long
     suspend fun updateNote(note: Note)
     suspend fun deleteNote(note: Note)
-
 
     // Bookmarks
     suspend fun getAllBookmarks(): Flow<List<Bookmark>>
@@ -73,4 +72,62 @@ interface BooksRepository {
     suspend fun getReadingActivityByDate(date: Long): ReadingActive?
     suspend fun getTotalReadingTime(): Long?
     suspend fun getAllReadingActivities(): Flow<List<ReadingActive>>
+
+
+    // Atomic increment operations
+    suspend fun incrementReadingTime(bookId: Long, delta: Long): Int
+    suspend fun incrementReadingActivityTime(date: Long, delta: Long): Int
+
+    // ============ 选择性更新方法 ============
+
+    /**
+     * 只更新阅读进度相关字段，不覆盖 readingTime
+     */
+    suspend fun updateProgressFields(
+        bookId: Long, 
+        lastOpened: Long, 
+        scrollIndex: Int, 
+        scrollOffset: Int, 
+        progression: Float
+    ): Int
+
+    /**
+     * 只更新阅读状态
+     */
+    suspend fun updateReadingStatus(bookId: Long, status: ReadingStatus): Int
+
+    /**
+     * 更新开始阅读时间
+     */
+    suspend fun updateStartReadingDate(bookId: Long, startDate: Long): Int
+
+    /**
+     * 更新结束阅读时间和状态
+     */
+    suspend fun updateEndReadingDateAndStatus(
+        bookId: Long, 
+        endDate: Long, 
+        status: ReadingStatus
+    ): Int
+
+    /**
+     * 更新书总字数
+     */
+    suspend fun updateWordCount(bookId: Long, wordCount: Long): Int
+
+    /**
+     * 更新 PDF 阅读进度字段
+     */
+    suspend fun updatePdfProgressFields(
+        bookId: Long,
+        locator: String,
+        progression: Float,
+        readingStatus: ReadingStatus,
+        endReadingDate: Long?
+    ): Int
+
+    /**
+     * 更新删除标志
+     */
+    suspend fun updateDeletedFlag(bookId: Long, deleted: Boolean): Int
 }

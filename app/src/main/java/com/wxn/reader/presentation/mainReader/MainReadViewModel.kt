@@ -41,7 +41,11 @@ import com.wxn.reader.domain.use_case.bookmarks.DeleteBookmarkUseCase
 import com.wxn.reader.domain.use_case.bookmarks.GetBookmarksForBookUseCase
 import com.wxn.reader.domain.use_case.bookmarks.UpdateBookmarkUseCase
 import com.wxn.reader.domain.use_case.books.GetBookByIdUseCase
+import com.wxn.reader.domain.use_case.books.IncrementReadingTimeUseCase
 import com.wxn.reader.domain.use_case.books.UpdateBookUseCase
+import com.wxn.reader.domain.use_case.books.UpdateReadingStatusUseCase
+import com.wxn.reader.domain.use_case.books.UpdateStartReadingDateUseCase
+import com.wxn.reader.domain.use_case.books.UpdateEndReadingDateAndStatusUseCase
 import com.wxn.reader.domain.use_case.chapters.BookHelper
 import com.wxn.reader.domain.use_case.chapters.GetChapterByIdUserCase
 import com.wxn.reader.domain.use_case.chapters.GetChapterCountByBookIdUserCase
@@ -53,8 +57,7 @@ import com.wxn.reader.domain.use_case.notes.GetNotesForBookUseCase
 import com.wxn.reader.domain.use_case.notes.UpdateNoteUseCase
 import com.wxn.reader.domain.use_case.reading_activity.AddReadingActivityUseCase
 import com.wxn.reader.domain.use_case.reading_activity.GetReadingActivityByDateUseCase
-import com.wxn.reader.domain.use_case.reading_progress.GetReadingProgressUseCase
-import com.wxn.reader.domain.use_case.reading_progress.SetReadingProgressUseCase
+import com.wxn.reader.domain.use_case.reading_activity.IncrementReadingActivityTimeUseCase
 import com.wxn.reader.events.VolumeEventBus
 import com.wxn.reader.presentation.bookReader.BookReaderUiState
 import com.wxn.reader.presentation.bookReader.BookReaderUiState.LOAD_CHAPTER_SUCCESS
@@ -88,8 +91,12 @@ class MainReadViewModel @Inject constructor(
 
     private val getBookByIdUseCase: GetBookByIdUseCase,
     private val updateBookUseCase: UpdateBookUseCase,
-    private val getReadingProgressUseCase: GetReadingProgressUseCase,
-    private val setReadingProgressUseCase: SetReadingProgressUseCase,
+
+    // 选择性更新 UseCase
+    private val updateReadingStatusUseCase: UpdateReadingStatusUseCase,
+    private val updateStartReadingDateUseCase: UpdateStartReadingDateUseCase,
+    private val updateEndReadingDateAndStatusUseCase: UpdateEndReadingDateAndStatusUseCase,
+
     private val getAnnotationsUseCase: GetAnnotationsUseCase,
     private val addAnnotationUseCase: AddAnnotationUseCase,
     private val updateAnnotationUseCase: UpdateAnnotationUseCase,
@@ -111,6 +118,8 @@ class MainReadViewModel @Inject constructor(
 
     private val addOrUpdateReadingActivityUseCase: AddReadingActivityUseCase,
     private val getReadingActivityByDateUseCase: GetReadingActivityByDateUseCase,
+    private val incrementReadingTimeUseCase: IncrementReadingTimeUseCase,
+    private val incrementReadingActivityTimeUseCase: IncrementReadingActivityTimeUseCase,
 
     private val textParser: TextParser,
     val pageController: PageViewController,
@@ -546,11 +555,11 @@ class MainReadViewModel @Inject constructor(
             if (readingStatus == 0) {
                 curBook = curBook.copy(readingStatus = ReadingStatus.IN_PROGRESS.value)
                 _book.value = curBook
-                updateBookUseCase(curBook)
+                updateReadingStatusUseCase(curBook.id, ReadingStatus.IN_PROGRESS)
             } else if (isLastPage && readingStatus != ReadingStatus.FINISHED.value) {
                 curBook = curBook.copy(readingStatus = ReadingStatus.FINISHED.value)
                 _book.value = curBook
-                updateBookUseCase(curBook)
+                updateReadingStatusUseCase(curBook.id, ReadingStatus.FINISHED)
             }
         }
     }
@@ -789,81 +798,54 @@ class MainReadViewModel @Inject constructor(
         _textToolbarRect.value = Rect(0,0,0,0)
     }
 
-    private suspend fun updateReadingTime() {
+    override suspend fun updateReadingTime(force:Boolean) {
         val currentTime = System.currentTimeMillis()
         if (lastLocatorChangeTime != 0L) {
             val sessionDuration = currentTime - lastLocatorChangeTime
-            updateBookReadingTime(sessionDuration)
-            updateReadingActivity(sessionDuration)
+            if (force || sessionDuration >= 3000) {
+                updateBookReadingTime(sessionDuration)
+                updateReadingActivity(sessionDuration)
+                lastLocatorChangeTime = currentTime
+            }
+        } else {
+            lastLocatorChangeTime = currentTime
         }
-        lastLocatorChangeTime = currentTime
     }
 
     private suspend fun updateStartReadingDate() {
-        currentBookId.value?.let { bookId ->
-            val book = getBookByIdUseCase(bookId)
-            book?.let {
-                if (it.startReadingDate == null) {
-                    val updatedBook = it.copy(
-                        startReadingDate = System.currentTimeMillis(),
-                    )
-                    updateBookUseCase(updatedBook)
-                }
-            }
+        val book = _book.value ?: return
+        if (book.startReadingDate == null) {
+            val startDate = System.currentTimeMillis()
+            updateStartReadingDateUseCase(book.id, startDate)
+            _book.value = book.copy(startReadingDate = startDate)
         }
     }
 
     private suspend fun updateEndReadingDate() {
-        currentBookId.value?.let { bookId ->
-            val book = getBookByIdUseCase(bookId)
-            book?.let {
-                if (it.endReadingDate == null) {
-                    val updatedBook = it.copy(
-                        endReadingDate = System.currentTimeMillis(),
-                        readingStatus = ReadingStatus.FINISHED.value
-                    )
-                    updateBookUseCase(updatedBook)
-                }
-            }
+        val book = _book.value ?: return
+        if (book.endReadingDate == null) {
+            val endDate = System.currentTimeMillis()
+            updateEndReadingDateAndStatusUseCase(book.id, endDate, ReadingStatus.FINISHED)
+            _book.value = book.copy(endReadingDate = endDate, readingStatus = ReadingStatus.FINISHED.value)
         }
     }
 
     private suspend fun updateBookReadingTime(sessionDuration: Long) {
         currentBookId.value?.let { bookId ->
-            val book = getBookByIdUseCase(bookId)
-            book?.let {
-                val updatedBook = it.copy(readingTime = it.readingTime + sessionDuration)
-                updateBookUseCase(updatedBook)
-            }
+            incrementReadingTimeUseCase(bookId, sessionDuration)
         }
     }
 
     private suspend fun updateReadingActivity(sessionDuration: Long) {
-        currentBookId.value?.let { bookId ->
-            val book = getBookByIdUseCase(bookId)
-            book?.let {
-                val currentDate = Calendar.getInstance().apply {
-                    set(Calendar.HOUR_OF_DAY, 0)
-                    set(Calendar.MINUTE, 0)
-                    set(Calendar.SECOND, 0)
-                    set(Calendar.MILLISECOND, 0)
-                }.timeInMillis
-
-                val existingActivity = getReadingActivityByDateUseCase(currentDate)
-                if (existingActivity != null) {
-                    val updatedActivity = existingActivity.copy(
-                        readingTime = existingActivity.readingTime + sessionDuration
-                    )
-                    addOrUpdateReadingActivityUseCase(updatedActivity)
-                } else {
-                    val newActivity = ReadingActive(
-                        date = currentDate,
-                        readingTime = sessionDuration
-                    )
-                    addOrUpdateReadingActivityUseCase(newActivity)
-                }
-            }
-        }
+        // 每次重新计算当前日期，避免跨天问题
+        val currentDate = Calendar.getInstance().apply {
+            timeInMillis = System.currentTimeMillis()
+            set(Calendar.HOUR_OF_DAY, 0)
+            set(Calendar.MINUTE, 0)
+            set(Calendar.SECOND, 0)
+            set(Calendar.MILLISECOND, 0)
+        }.timeInMillis
+        incrementReadingActivityTimeUseCase(currentDate, sessionDuration)
     }
     /***
      * 拖动阅读进度条来改变阅读位置

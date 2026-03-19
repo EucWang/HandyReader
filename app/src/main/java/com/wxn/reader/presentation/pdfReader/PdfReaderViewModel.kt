@@ -9,14 +9,16 @@ import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.viewModelScope
 import com.wxn.base.bean.Book
 import com.wxn.base.util.Logger
-import com.wxn.reader.domain.model.ReadingActive
 import com.wxn.reader.data.dto.ReadingStatus
 import com.wxn.reader.data.model.AppPreferences
 import com.wxn.reader.data.source.local.AppPreferencesUtil
 import com.wxn.reader.domain.use_case.books.GetBookByIdUseCase
+import com.wxn.reader.domain.use_case.books.IncrementReadingTimeUseCase
 import com.wxn.reader.domain.use_case.books.UpdateBookUseCase
+import com.wxn.reader.domain.use_case.books.UpdatePdfProgressFieldsUseCase
 import com.wxn.reader.domain.use_case.reading_activity.AddReadingActivityUseCase
 import com.wxn.reader.domain.use_case.reading_activity.GetReadingActivityByDateUseCase
+import com.wxn.reader.domain.use_case.reading_activity.IncrementReadingActivityTimeUseCase
 import com.wxn.reader.domain.use_case.reading_progress.GetReadingProgressUseCase
 import com.wxn.reader.events.VolumeEventBus
 import com.wxn.reader.util.PdfBitmapConverter
@@ -35,9 +37,12 @@ class PdfReaderViewModel @Inject constructor(
     private val getBookByIdUseCase: GetBookByIdUseCase,
     private val pdfBitmapConverter: PdfBitmapConverter,
     private val updateBookUseCase: UpdateBookUseCase,
+    private val updatePdfProgressFieldsUseCase: UpdatePdfProgressFieldsUseCase,
     private val getReadingProgressUseCase: GetReadingProgressUseCase,
     private val addOrUpdateReadingActivityUseCase: AddReadingActivityUseCase,
     private val getReadingActivityByDateUseCase: GetReadingActivityByDateUseCase,
+    private val incrementReadingTimeUseCase: IncrementReadingTimeUseCase,
+    private val incrementReadingActivityTimeUseCase: IncrementReadingActivityTimeUseCase,
     savedStateHandle: SavedStateHandle,
     context: Application,
 ) : AndroidViewModel(context) {
@@ -74,6 +79,20 @@ class PdfReaderViewModel @Inject constructor(
     private val pageCache = mutableMapOf<Int, Bitmap>()
     private var readingStartTime: Long = 0
     private var lastSaveTime: Long = 0
+
+    // 书籍阅读时间节流更新器（6秒阈值）
+//    private val bookReadingTimeUpdater = ThrottledUpdateManager<Long>(
+//        updateFunction = { bookId, delta -> incrementReadingTimeUseCase(bookId, delta) },
+//        timeWindowMs = 1000L,
+//        maxAccumulatedMs = 6000L
+//    )
+//
+//    // 阅读活动时长节流更新器（3秒阈值）
+//    private val activityReadingTimeUpdater = ThrottledUpdateManager<Long>(
+//        updateFunction = { date, delta -> incrementReadingActivityTimeUseCase(date, delta) },
+//        timeWindowMs = 1000L,
+//        maxAccumulatedMs = 3000L
+//    )
 
     private val _appPreferences = MutableStateFlow<AppPreferences?>(null)
     val appPreferences: StateFlow<AppPreferences?> = _appPreferences.asStateFlow()
@@ -157,6 +176,7 @@ class PdfReaderViewModel @Inject constructor(
 
     fun loadInitialPages() {
         viewModelScope.launch {
+            updateReadingTime()
             (0 until minOf(3, _pageCount.value)).forEach { loadPage(it) }
         }
     }
@@ -184,7 +204,6 @@ class PdfReaderViewModel @Inject constructor(
         viewModelScope.launch {
             _book.value?.let { book ->
                 val currentTime = System.currentTimeMillis()
-                val sessionDuration = currentTime - lastSaveTime
                 lastSaveTime = currentTime
 
                 val newProgression = if (_pageCount.value != 0) {
@@ -192,54 +211,65 @@ class PdfReaderViewModel @Inject constructor(
                 } else {
                     0f
                 }
-                val newReadingTime = book.readingTime + sessionDuration
-                var newReadingStatus = book.readingStatus
 
-                if (newProgression >= 98f) {
-                    newReadingStatus = ReadingStatus.FINISHED.value
-                } else if (newReadingStatus != ReadingStatus.IN_PROGRESS.value) {
-                    newReadingStatus = ReadingStatus.IN_PROGRESS.value
+                val newReadingStatus = if (newProgression >= 98f) {
+                    ReadingStatus.FINISHED
+                } else {
+                    ReadingStatus.IN_PROGRESS
                 }
 
+                updateReadingTime()
+
+                // 使用选择性更新 PDF 进度字段
+                updatePdfProgressFieldsUseCase(
+                    bookId = book.id,
+                    locator = currentPage.toString(),
+                    progress = newProgression,
+                    readingStatus = newReadingStatus,
+                    endReadingDate = if (newReadingStatus == ReadingStatus.FINISHED) currentTime else null
+                )
+
+                // 更新内存中的 book 对象
                 val updatedBook = book.copy(
                     locator = currentPage.toString(),
                     progress = newProgression,
-                    readingTime = newReadingTime,
-                    readingStatus = newReadingStatus,
-                    endReadingDate = if (newReadingStatus == ReadingStatus.FINISHED.value) currentTime else null
+                    readingStatus = newReadingStatus.value,
+                    endReadingDate = if (newReadingStatus == ReadingStatus.FINISHED) currentTime else null
                 )
-
-                updateBookUseCase(updatedBook)
                 _book.value = updatedBook
-
-                updateReadingActivity(sessionDuration)
             }
         }
     }
 
-    private suspend fun updateReadingActivity(sessionDuration: Long) {
-        _book.value?.let {
-            val currentDate = Calendar.getInstance().apply {
-                set(Calendar.HOUR_OF_DAY, 0)
-                set(Calendar.MINUTE, 0)
-                set(Calendar.SECOND, 0)
-                set(Calendar.MILLISECOND, 0)
-            }.timeInMillis
-
-            val existingActivity = getReadingActivityByDateUseCase(currentDate)
-            if (existingActivity != null) {
-                val updatedActivity = existingActivity.copy(
-                    readingTime = existingActivity.readingTime + sessionDuration
-                )
-                addOrUpdateReadingActivityUseCase(updatedActivity)
-            } else {
-                val newActivity = ReadingActive(
-                    date = currentDate,
-                    readingTime = sessionDuration
-                )
-                addOrUpdateReadingActivityUseCase(newActivity)
+    suspend fun updateReadingTime(force:Boolean = false) {
+        val currentTime = System.currentTimeMillis()
+        if (lastSaveTime != 0L) {
+            val sessionDuration = currentTime - lastSaveTime
+            if (force || sessionDuration >= 3000) {
+                updateBookReadingTime(sessionDuration)
+                updateReadingActivity(sessionDuration)
+                lastSaveTime = currentTime
             }
+        } else {
+            lastSaveTime = currentTime
         }
+    }
+    private suspend fun updateBookReadingTime(sessionDuration: Long) {
+        _book.value?.id?.let { bookId ->
+            incrementReadingTimeUseCase(bookId, sessionDuration)
+        }
+    }
+
+    private suspend fun updateReadingActivity(sessionDuration: Long) {
+        // 每次重新计算当前日期，避免跨天问题
+        val currentDate = Calendar.getInstance().apply {
+            timeInMillis = System.currentTimeMillis()
+            set(Calendar.HOUR_OF_DAY, 0)
+            set(Calendar.MINUTE, 0)
+            set(Calendar.SECOND, 0)
+            set(Calendar.MILLISECOND, 0)
+        }.timeInMillis
+        incrementReadingActivityTimeUseCase.invoke(currentDate, sessionDuration)
     }
 
     private fun startReadingSession() {

@@ -30,6 +30,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.lifecycle.viewModelScope
 import com.wxn.base.util.Logger
 import com.wxn.reader.MainActivity
 import com.wxn.reader.R
@@ -39,6 +40,7 @@ import com.wxn.reader.util.KeepScreenOn
 import com.wxn.reader.util.SetFullScreen
 import com.wxn.reader.util.Space
 import com.wxn.reader.util.consumeClick
+import kotlinx.coroutines.launch
 
 @Composable
 fun MainReadScreen(
@@ -72,8 +74,14 @@ fun MainReadScreen(
     }
 
     DisposableEffect(Unit) {
+        viewModel.viewModelScope.launch {
+            viewModel.updateReadingTime()
+        }
         onDispose {
-            viewModel.resetReadingSession()
+            viewModel.viewModelScope.launch {
+                viewModel.updateReadingTime(true)
+                viewModel.resetReadingSession()
+            }
             MainActivity.inReadPage = false
         }
     }

@@ -44,6 +44,8 @@ import com.wxn.reader.domain.repository.ShelfRepository
 import com.wxn.reader.domain.use_case.annotations.GetAnnotationsUseCase
 import com.wxn.reader.domain.use_case.bookmarks.GetBookmarksForBookUseCase
 import com.wxn.reader.domain.use_case.books.UpdateBookUseCase
+import com.wxn.reader.domain.use_case.books.UpdateProgressFieldsUseCase
+import com.wxn.reader.domain.use_case.books.UpdateWordCountUseCase
 import com.wxn.reader.domain.use_case.chapters.GetChapterByIdUserCase
 import com.wxn.reader.domain.use_case.chapters.GetChapterCountByBookIdUserCase
 import com.wxn.reader.domain.use_case.chapters.UpdateChapterWordCountUserCase
@@ -204,12 +206,18 @@ object AppModule {
         @ApplicationContext context: Context,
         getChapterByIdUserCase: GetChapterByIdUserCase,
         getChapterCountByBookIdUserCase: GetChapterCountByBookIdUserCase,
+
         getAnnotationsUseCase: GetAnnotationsUseCase,
         getNotesForBookUseCase: GetNotesForBookUseCase,
         getBookmarksForBookUseCase : GetBookmarksForBookUseCase,
+
         updateChapterWordCountUserCase: UpdateChapterWordCountUserCase,
         updateBookUseCase: UpdateBookUseCase,
+        updateProgressFieldsUseCase: UpdateProgressFieldsUseCase,
+        updateWordCountUseCase: UpdateWordCountUseCase,
+
         appPreferencesUtil: AppPreferencesUtil,
+
         textParser: TextParser,
         ttsStateHolder: TtsStateHolder,
         ttsServiceController: TtsServiceController,
@@ -223,6 +231,9 @@ object AppModule {
             getBookmarksForBookUseCase,
             updateChapterWordCountUserCase,
             updateBookUseCase,
+            updateProgressFieldsUseCase,
+            updateWordCountUseCase,
+
             appPreferencesUtil,
             textParser,
             ttsStateHolder,
