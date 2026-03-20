@@ -185,6 +185,10 @@
     <string name="are_you_sure_you_want_to_delete_this_directory_from_the_scan_list">هل أنت متأكد من أنك تريد حذف هذا المجلد من قائمة المسح؟</string>
     <string name="color_scheme">مخطط الألوان</string>
     <string name="language">اللغة</string>
+    <string name="theme_updated">تم تحديث السمة بنجاح</string>
+    <string name="color_scheme_updated">تم تحديث مخطط الألوان إلى %1$s</string>
+    <string name="app_theme_updated">تم تحديث سمة التطبيق إلى %1$s</string>
+    <string name="edit_book">تحرير الكتاب</string>
     <string name="system_default">النظام</string>
     <string name="bookmarks">إشارات مرجعية</string>
     <string name="add_later">تخطي الآن</string>

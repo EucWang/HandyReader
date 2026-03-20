@@ -184,6 +184,10 @@
     <string name="are_you_sure_you_want_to_delete_this_directory_from_the_scan_list">你确定要从扫描列表中删除此目录吗？</string>
     <string name="color_scheme">配色方案</string>
     <string name="language">语言</string>
+    <string name="theme_updated">主题更新成功</string>
+    <string name="color_scheme_updated">配色方案已更新为 %1$s</string>
+    <string name="app_theme_updated">应用主题已更新为 %1$s</string>
+    <string name="edit_book">编辑书籍</string>
     <string name="system_default">系统默认</string>
     <string name="bookmarks">书签</string>
     <string name="add_later">现在跳过</string>

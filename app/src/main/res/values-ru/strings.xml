@@ -183,6 +183,10 @@
     <string name="are_you_sure_you_want_to_delete_this_directory_from_the_scan_list">Вы уверены, что хотите удалить эту директорию из списка сканирования?</string>
     <string name="color_scheme">Цветовая схема</string>
     <string name="language">Язык</string>
+    <string name="theme_updated">Тема успешно обновлена</string>
+    <string name="color_scheme_updated">Цветовая схема обновлена на %1$s</string>
+    <string name="app_theme_updated">Тема приложения обновлена на %1$s</string>
+    <string name="edit_book">Редактировать книгу</string>
     <string name="system_default">Системный</string>
     <string name="bookmarks">Закладки</string>
     <string name="add_later">Пропустить сейчас</string>

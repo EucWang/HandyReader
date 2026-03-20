@@ -154,7 +154,7 @@ fun EditMetadataModal(
                         Icon(Icons.AutoMirrored.Default.ArrowBack, contentDescription = "Back")
                     }
                     Text(
-                        text = "Edit Book",
+                        text = stringResource(R.string.edit_book),
                         style = MaterialTheme.typography.titleLarge,
                     )
                 }

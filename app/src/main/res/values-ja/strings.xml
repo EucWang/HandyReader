@@ -183,6 +183,10 @@
     <string name="are_you_sure_you_want_to_delete_this_directory_from_the_scan_list">このディレクトリをスキャンリストから削除してもよろしいですか?</string>
     <string name="color_scheme">カラースキーム</string>
     <string name="language">言語</string>
+    <string name="theme_updated">テーマが正常に更新されました</string>
+    <string name="color_scheme_updated">カラースキームが %1$s に更新されました</string>
+    <string name="app_theme_updated">アプリテーマが %1$s に更新されました</string>
+    <string name="edit_book">本を編集</string>
     <string name="system_default">システムデフォルト</string>
     <string name="bookmarks">ブックマーク</string>
     <string name="add_later">後で追加</string>

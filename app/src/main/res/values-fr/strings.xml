@@ -183,6 +183,10 @@
     <string name="are_you_sure_you_want_to_delete_this_directory_from_the_scan_list">Êtes-vous sûr de vouloir supprimer ce répertoire de la liste de scan ?</string>
     <string name="color_scheme">Schéma de couleurs</string>
     <string name="language">Langue</string>
+    <string name="theme_updated">Thème mis à jour avec succès</string>
+    <string name="color_scheme_updated">Schéma de couleurs mis à jour vers %1$s</string>
+    <string name="app_theme_updated">Thème de l\'application mis à jour vers %1$s</string>
+    <string name="edit_book">Modifier le livre</string>
     <string name="system_default">Système</string>
     <string name="bookmarks">Signets</string>
     <string name="add_later">Ignorer pour l\'instant</string>

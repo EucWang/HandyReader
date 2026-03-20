@@ -184,6 +184,10 @@
     <string name="are_you_sure_you_want_to_delete_this_directory_from_the_scan_list">Tem certeza de que deseja excluir este diretório da lista de digitalização?</string>
     <string name="color_scheme">Esquema de Cores</string>
     <string name="language">Idioma</string>
+    <string name="theme_updated">Tema atualizado com sucesso</string>
+    <string name="color_scheme_updated">Esquema de cores atualizado para %1$s</string>
+    <string name="app_theme_updated">Tema do aplicativo atualizado para %1$s</string>
+    <string name="edit_book">Editar Livro</string>
     <string name="system_default">Sistema</string>
     <string name="bookmarks">Marcadores</string>
     <string name="add_later">Pular por Enquanto</string>

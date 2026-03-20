@@ -183,6 +183,10 @@
     <string name="are_you_sure_you_want_to_delete_this_directory_from_the_scan_list">Sind Sie sicher, dass Sie dieses Verzeichnis aus der Durchsuchungsliste löschen möchten?</string>
     <string name="color_scheme">Farbschema</string>
     <string name="language">Sprache</string>
+    <string name="theme_updated">Design erfolgreich aktualisiert</string>
+    <string name="color_scheme_updated">Farbschema aktualisiert auf %1$s</string>
+    <string name="app_theme_updated">App-Design aktualisiert auf %1$s</string>
+    <string name="edit_book">Buch bearbeiten</string>
     <string name="system_default">Systemstandard</string>
     <string name="bookmarks">Lesezeichen</string>
     <string name="add_later">Für jetzt überspringen</string>

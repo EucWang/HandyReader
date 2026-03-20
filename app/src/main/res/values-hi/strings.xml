@@ -185,6 +185,10 @@
     <string name="are_you_sure_you_want_to_delete_this_directory_from_the_scan_list">क्या आप इस निर्देशिका को स्कैन सूची से हटाना चाहते हैं?</string>
     <string name="color_scheme">रंग योजना</string>
     <string name="language">भाषा</string>
+    <string name="theme_updated">थीम सफलतापूर्वक अपडेट किया गया</string>
+    <string name="color_scheme_updated">रंग योजना %1$s में अपडेट की गई</string>
+    <string name="app_theme_updated">ऐप थीम %1$s में अपडेट किया गया</string>
+    <string name="edit_book">पुस्तक संपादित करें</string>
     <string name="system_default">सिस्टम</string>
     <string name="bookmarks">बुकमार्क</string>
     <string name="add_later">अभी के लिए छोड़ें</string>

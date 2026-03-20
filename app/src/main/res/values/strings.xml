@@ -184,6 +184,10 @@
     <string name="are_you_sure_you_want_to_delete_this_directory_from_the_scan_list">Are you sure you want to delete this directory from the scan list?</string>
     <string name="color_scheme">Color Scheme</string>
     <string name="language">Language</string>
+    <string name="theme_updated">Theme updated successfully</string>
+    <string name="color_scheme_updated">Color scheme updated to %1$s</string>
+    <string name="app_theme_updated">App theme updated to %1$s</string>
+    <string name="edit_book">Edit Book</string>
     <string name="system_default">System</string>
     <string name="bookmarks">Bookmarks</string>
     <string name="add_later">Skip for Now</string>
