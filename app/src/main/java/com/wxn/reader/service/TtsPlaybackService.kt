@@ -40,6 +40,10 @@ import com.wxn.reader.R
 import com.wxn.reader.util.BreakParagraphUtil
 import com.wxn.reader.util.tts.TtsNavigator
 import dagger.hilt.android.AndroidEntryPoint
+import kotlinx.coroutines.CoroutineExceptionHandler
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
 import net.gotev.speech.Speech
 import java.io.File
@@ -151,7 +155,13 @@ class TtsPlaybackService : MediaSessionService() {
     @Inject
     lateinit var ttsPreferencesUtil: TtsPreferencesUtil
 
-    private val scope = Coroutines.scope()
+    private val scope = CoroutineScope(
+        SupervisorJob() +
+                Dispatchers.Main +
+                CoroutineExceptionHandler { _, throwable ->
+                    Logger.e(throwable)
+                }
+    )
 
     private var mediaSession: MediaSession? = null
 
@@ -583,8 +593,11 @@ class TtsPlaybackService : MediaSessionService() {
         notificationManager?.cancel(NOTIFICATION_ID)
         
         scope.cancel()
-        mediaSession?.player?.release()
-        mediaSession?.release()
+        mediaSession?.let {
+            it.player.release()
+            it.release()
+        }
+        mediaSession = null
         ttsNavigator?.stop()
         ttsNavigator = null
         

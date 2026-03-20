@@ -12,6 +12,7 @@ import com.wxn.base.bean.TextTag
 import com.wxn.base.util.Coroutines
 import com.wxn.base.util.Logger
 import com.wxn.base.util.launchIO
+import com.wxn.base.util.launchMain
 import com.wxn.bookparser.TextParser
 import com.wxn.bookread.data.model.SpeekBookStatus
 import com.wxn.bookread.data.model.TextChapter
@@ -375,11 +376,9 @@ open class PageViewController @Inject constructor(
     }
 
     fun showErrorToast(msg: String) {
-        scope?.launchIO {
+        scope?.launchMain {
             try {
-                Coroutines.mainScope().launch {
-                    Toast.makeText(context, msg, Toast.LENGTH_LONG).show()
-                }
+                Toast.makeText(context, msg, Toast.LENGTH_LONG).show()
             } catch (e: Exception) {
                 Logger.e("显示错误提示失败: ${e.message}")
             }

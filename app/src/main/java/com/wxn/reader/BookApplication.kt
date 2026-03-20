@@ -15,6 +15,10 @@ import io.sentry.SentryEvent
 import io.sentry.SentryLevel
 import io.sentry.SentryOptions
 import io.sentry.android.core.SentryAndroid
+import kotlinx.coroutines.CoroutineExceptionHandler
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.launch
 import javax.inject.Inject
@@ -31,9 +35,32 @@ class BookApplication : Application() {
 
     private var topActivity: Activity? = null
 
+    // Application 级别的 CoroutineScope
+    private val applicationScope: CoroutineScope by lazy {
+        CoroutineScope(
+            SupervisorJob() +
+                    Dispatchers.IO +
+                    CoroutineExceptionHandler { _, throwable ->
+                        Logger.e(throwable)
+                    }
+        )
+    }
+
+    private val applicationMainScope: CoroutineScope by lazy {
+        CoroutineScope(
+            SupervisorJob() +
+                    Dispatchers.Main +
+                    CoroutineExceptionHandler { _, throwable ->
+                        Logger.e(throwable)
+                    }
+        )
+    }
+
     override fun onCreate() {
         super.onCreate()
         app = this
+        // ✅ 关键：初始化 Coroutines 的 Application Scope
+        Coroutines.init(applicationScope, applicationMainScope)
 
         registerActivityLifecycleCallbacks(object : Application.ActivityLifecycleCallbacks{
             override fun onActivityCreated(
@@ -119,5 +146,4 @@ class BookApplication : Application() {
         Logger.d("BookApplication::onLanguageChange::topActivity[$topActivity]")
         topActivity?.recreate()
     }
-
 }
