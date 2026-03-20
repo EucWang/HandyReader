@@ -176,26 +176,32 @@ fun ThemeScreen(
             }
         }
 
-        LaunchedEffect(updateEvent) {
-            updateEvent?.let { event ->
-                val message = when (event) {
-                    is ThemeUpdateEvent.ThemeUpdated ->
-                        stringResource(R.string.theme_updated)
-                    is ThemeUpdateEvent.ColorSchemeUpdated -> {
-                        val displayName = displayNameMapping[event.colorScheme] ?: event.colorScheme
-                        stringResource(R.string.color_scheme_updated, displayName)
-                    }
-                    is ThemeUpdateEvent.AppThemeUpdated -> {
-                        val themeName = when (event.appTheme) {
-                            AppTheme.SYSTEM -> stringResource(R.string.system_default)
-                            AppTheme.LIGHT -> "Light"
-                            AppTheme.DARK -> "Dark"
-                        }
-                        stringResource(R.string.app_theme_updated, themeName)
-                    }
+        @Composable
+        fun getUpdateMessage(event: ThemeUpdateEvent): String {
+            return when (event) {
+                is ThemeUpdateEvent.ThemeUpdated ->
+                    stringResource(R.string.theme_updated)
+                is ThemeUpdateEvent.ColorSchemeUpdated -> {
+                    val displayName = displayNameMapping[event.colorScheme] ?: event.colorScheme
+                    stringResource(R.string.color_scheme_updated, displayName)
                 }
+                is ThemeUpdateEvent.AppThemeUpdated -> {
+                    val themeName = when (event.appTheme) {
+                        AppTheme.SYSTEM -> stringResource(R.string.system_default)
+                        AppTheme.LIGHT -> "Light"
+                        AppTheme.DARK -> "Dark"
+                    }
+                    stringResource(R.string.app_theme_updated, themeName)
+                }
+            }
+        }
+
+        val message = updateEvent?.let { getUpdateMessage(it) }
+
+        LaunchedEffect(message) {
+            message?.let {
                 snackbarHostState.showSnackbar(
-                    message = message,
+                    message = it,
                     duration = SnackbarDuration.Short
                 )
                 viewModel.clearUpdateEvent()
