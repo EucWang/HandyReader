@@ -328,7 +328,19 @@
     <string name="notification_permission_required_message">HandyReader benötigt Benachrichtigungsberechtigung, um TTS-Wiedergabesteuerelemente anzuzeigen. Bitte aktivieren Sie sie in den Einstellungen.</string>
     <string name="notification_permission_go_settings">Einstellungen öffnen</string>
     <string name="notification_permission_cancel">Abbrechen</string>
-    
+
+    <!-- Feedback-Funktion -->
+    <string name="feedback">Feedback</string>
+    <string name="feedback_label_name">Spitzname</string>
+    <string name="feedback_label_email">E-Mail (erforderlich)</string>
+    <string name="feedback_type_bug">Fehler melden</string>
+    <string name="feedback_type_more_feature">Funktionen anfordern</string>
+    <string name="feedback_type_other">Andere</string>
+    <string name="feedback_type">Feedback-Typ</string>
+    <string name="feedback_content_too_short">Der Inhalt muss mindestens 10 Zeichen lang sein</string>
+    <string name="feedback_email_invalid">Bitte geben Sie eine gültige E-Mail-Adresse ein</string>
+    <string name="submit">Absenden</string>
+
     <!-- Dialog für Erklärung der Benachrichtigungsberechtigung -->
     <string name="notification_permission_explanation_title">Benachrichtigungen für TTS aktivieren</string>
     <string name="notification_permission_explanation_message">Um die Text-to-Speech-Funktion zu nutzen, muss HandyReader eine Benachrichtigung mit Wiedergabesteuerelementen anzeigen. Dies ermöglicht es Ihnen, die TTS-Wiedergabe zu steuern, auch wenn die App im Hintergrund läuft.</string>

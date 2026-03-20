@@ -29,6 +29,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.StickyNote2
 import androidx.compose.material.icons.outlined.DeleteOutline
+import androidx.compose.material.icons.outlined.Feedback
 import androidx.compose.material.icons.outlined.FolderCopy
 import androidx.compose.material.icons.outlined.Info
 import androidx.compose.material.icons.outlined.Palette
@@ -154,11 +155,11 @@ fun HomeMinePanel(innerPadding: PaddingValues, viewModel: HomeViewModel) {
                     }
                 }
 
-                item {
-                    SetListItem(isDarkTheme, stringResource(R.string.deleted_books),Icons.Outlined.DeleteOutline,) {
-                        navController.navigate(Screens.DeletedBooksScreen.route)
-                    }
-                }
+//                item {
+//                    SetListItem(isDarkTheme, stringResource(R.string.deleted_books),Icons.Outlined.DeleteOutline,) {
+//                        navController.navigate(Screens.DeletedBooksScreen.route)
+//                    }
+//                }
 
                 item {
                     SetListItem(isDarkTheme,  stringResource(R.string.notes),Icons.AutoMirrored.Outlined.StickyNote2,) {
@@ -191,7 +192,6 @@ fun HomeMinePanel(innerPadding: PaddingValues, viewModel: HomeViewModel) {
                 }
 
                 item {
-
                     ListItem(
                         modifier = Modifier
                             .padding(horizontal = 16.dp, vertical = 8.dp)
@@ -294,6 +294,15 @@ fun HomeMinePanel(innerPadding: PaddingValues, viewModel: HomeViewModel) {
                         }
                     }
                 }
+
+                item {
+                    SetListItem(isDarkTheme,
+                        text = stringResource(R.string.feedback),
+                        icon = Icons.Outlined.Feedback) {
+                        navController.navigate(Screens.FeedbackScreen.route)
+                    }
+                }
+
             }
         }
 

@@ -328,7 +328,19 @@
     <string name="notification_permission_required_message">HandyReader को TTS प्लेबैक नियंत्रण दिखाने के लिए अधिसूचना अनुमति की आवश्यकता है। कृपया इसे सेटिंग्स में सक्षम करें।</string>
     <string name="notification_permission_go_settings">सेटिंग्स खोलें</string>
     <string name="notification_permission_cancel">रद्द करें</string>
-    
+
+    <!-- फीडबैक फ़ंक्शन -->
+    <string name="feedback">प्रतिक्रिया</string>
+    <string name="feedback_label_name">उपनाम</string>
+    <string name="feedback_label_email">ईमेल (आवश्यक)</string>
+    <string name="feedback_type_bug">बग रिपोर्ट करें</string>
+    <string name="feedback_type_more_feature">सुविधाओं का अनुरोध करें</string>
+    <string name="feedback_type_other">अन्य</string>
+    <string name="feedback_type">प्रतिक्रिया प्रकार</string>
+    <string name="feedback_content_too_short">सामग्री कम से कम 10 अक्षर की होनी चाहिए</string>
+    <string name="feedback_email_invalid">कृपया एक मान्य ईमेल पता दर्ज करें</string>
+    <string name="submit">जमा करें</string>
+
     <!-- अधिसूचना अनुमति स्पष्टीकरण संवाद -->
     <string name="notification_permission_explanation_title">TTS के लिए अधिसूचनाएं सक्षम करें</string>
     <string name="notification_permission_explanation_message">टेक्स्ट-टू-स्पीच फ़ंक्शन का उपयोग करने के लिए, HandyReader को प्लेबैक नियंत्रण के साथ एक अधिसूचना प्रदर्शित करने की आवश्यकता है। इससे आप TTS प्लेबैक को तब भी नियंत्रित कर सकते हैं जब ऐप बैकग्राउंड में हो।</string>

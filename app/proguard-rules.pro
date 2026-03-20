@@ -951,6 +951,11 @@ kotlin.coroutines.Continuation suspend*(...);
 -keep class com.wxn.reader.service.TtsPlaybackService { *; }
 -keep class * extends androidx.media3.session.MediaSessionService
 
+
+-keepattributes *Annotation*
+-keep class com.example.handyreader.data.remote.dto.** { *; }
+-keep class kotlinx.serialization.json.** { *; }
+
 # Prevent proguard from stripping interface information from TypeAdapterFactory,
 # JsonSerializer, JsonDeserializer instances (so they can be used in @JsonAdapter)
 #-keep class * implements com.google.gson.TypeAdapterFactory
