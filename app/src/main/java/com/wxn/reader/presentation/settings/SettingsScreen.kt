@@ -2,6 +2,7 @@ package com.wxn.reader.presentation.settings
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -11,6 +12,7 @@ import androidx.compose.material3.ListItemDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
@@ -245,6 +247,28 @@ fun SetListItem(
                 contentDescription = "General",
                 tint = MaterialTheme.colorScheme.onSurface
             )
+        },
+        colors = ListItemDefaults.colors(
+            containerColor = Color.Transparent,
+        )
+    )
+}
+
+@Composable
+fun SetListItem(text: String) {
+    ListItem(
+        modifier = Modifier
+            .padding(horizontal = 16.dp, vertical = 8.dp)
+            .clip(RoundedCornerShape(16.dp))
+            .fillMaxWidth(),
+        headlineContent = {
+             Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
+                Text(
+                    text = text,
+                    color = MaterialTheme.colorScheme.onSurface,
+                    style = MaterialTheme.typography.titleSmall
+                )
+            }
         },
         colors = ListItemDefaults.colors(
             containerColor = Color.Transparent,

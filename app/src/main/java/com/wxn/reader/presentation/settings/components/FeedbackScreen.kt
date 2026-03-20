@@ -81,8 +81,6 @@ private fun FeedbackScreenView(viewModel: FeedbackViewModel) {
                     message = state.message.ifEmpty { "Feedback submitted successfully" },
                     duration = SnackbarDuration.Short
                 )
-//                delay(1000)
-//                viewModel.resetForm()
             }
             is FeedbackViewModel.SubmitState.Error -> {
                 snackbarHostState.showSnackbar(

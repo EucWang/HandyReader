@@ -117,13 +117,4 @@ class FeedbackViewModel @Inject constructor(
             }
         }
     }
-
-    fun resetForm() {
-        _name.value = ""
-        _email.value = ""
-        _emailError.value = false
-        _type.value = 0
-        _content.value = ""
-        _submitState.value = SubmitState.Idle
-    }
 }

@@ -112,7 +112,6 @@ fun HomeMinePanel(innerPadding: PaddingValues, viewModel: HomeViewModel) {
 
     val appVersion = getAppVersion()
 
-    var showVersionDialog by remember { mutableStateOf(false) }
     var showPrivacyPolicyModal by remember { mutableStateOf(false) }
     val privacyPolicy = remember { readPrivacyPolicy(context) }
 
@@ -220,45 +219,6 @@ fun HomeMinePanel(innerPadding: PaddingValues, viewModel: HomeViewModel) {
                     )
                 }
 
-
-                item {
-                    ListItem(
-                        modifier = Modifier
-                            .padding(horizontal = 16.dp, vertical = 8.dp)
-                            .shadow(
-                                elevation = 4.dp,
-                                shape = RoundedCornerShape(16.dp),
-                                spotColor = if (!isDarkTheme) {
-                                    Color.Black.copy(alpha = 0.8f)
-                                } else {
-                                    Color.Black.copy(alpha = 0.5f)
-                                }
-                            )
-                            .clip(RoundedCornerShape(16.dp))
-                            .background(elevationOverlay)
-                            .clickable(onClick = {
-                                showVersionDialog = true
-                            })
-                            .fillMaxWidth(),
-                        headlineContent = {
-                            Text(
-                                text = stringResource(R.string.version),
-                                color = MaterialTheme.colorScheme.onSurface
-                            )
-                        },
-                        leadingContent = {
-                            Icon(
-                                Icons.Outlined.Info,
-                                contentDescription = "Rating",
-                                tint = MaterialTheme.colorScheme.onSurface
-                            )
-                        },
-                        colors = ListItemDefaults.colors(
-                            containerColor = Color.Transparent,
-                        )
-                    )
-                }
-
                 item {
                     SetListItem(isDarkTheme,  stringResource(R.string.rate_the_app), Icons.Outlined.StarRate,) {
                         val request = reviewManager.requestReviewFlow()
@@ -294,6 +254,9 @@ fun HomeMinePanel(innerPadding: PaddingValues, viewModel: HomeViewModel) {
                     }
                 }
 
+                item {
+                    SetListItem(text = "v${appVersion?.versionName ?: ""} (${appVersion?.versionNumber ?: ""})",)
+                }
             }
         }
 
@@ -337,7 +300,7 @@ fun HomeMinePanel(innerPadding: PaddingValues, viewModel: HomeViewModel) {
                             try {
                                 val intent = Intent(
                                     Intent.ACTION_VIEW,
-                                    Uri.parse("https://github.com/EucWang/HandyReader/blob/main/PrivayPolicy.md")
+                                    Uri.parse("https://www.handyreader.top/privacy_policy.html")
                                 )
                                 context.startActivity(intent)
                             } catch (e: Exception) {
@@ -365,31 +328,5 @@ fun HomeMinePanel(innerPadding: PaddingValues, viewModel: HomeViewModel) {
                 }
             }
         }
-    }
-
-    if (showVersionDialog) {
-        AlertDialog(
-            onDismissRequest = {
-                showVersionDialog = false
-            },
-            title = {
-                Text(text = stringResource(R.string.version))
-            },
-            text = {
-                Column {
-                    Text(text = "${stringResource(LocalContext.current.applicationInfo.labelRes)}v${appVersion?.versionName ?: "Unknown"} (${appVersion?.versionNumber ?: "Unknown"}) stable")
-                    Text(text = "Release Date: ${appVersion?.releaseDate ?: "Unknown"}")
-                }
-            },
-            confirmButton = {
-                Button(
-                    onClick = {
-                        showVersionDialog = false
-                    }
-                ) {
-                    Text(text = "OK")
-                }
-            }
-        )
     }
 }
