@@ -83,12 +83,12 @@ import java.io.IOException
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun HomeMinePanel(innerPadding: PaddingValues, viewModel: HomeViewModel) {
-    val appPreferences by viewModel.appPreferences.collectAsStateWithLifecycle()
+    val themePreferences by viewModel.themePreferences.collectAsStateWithLifecycle()
     val navController = LocalNavController.current
 
     val context = LocalContext.current
     val reviewManager = remember { ReviewManagerFactory.create(context) }
-    val isDarkTheme = when (appPreferences?.appTheme) {
+    val isDarkTheme = when (themePreferences?.appTheme) {
         AppTheme.SYSTEM -> isSystemInDarkTheme()
         AppTheme.LIGHT -> false
         AppTheme.DARK -> true
@@ -130,15 +130,6 @@ fun HomeMinePanel(innerPadding: PaddingValues, viewModel: HomeViewModel) {
                         Column(
                             horizontalAlignment = Alignment.CenterHorizontally,
                         ) {
-//                            if (appPreferences.isPremium) {
-//                                Image(
-//                                    painter = painterResource(id = R.drawable.crown),
-//                                    contentDescription = "Crown",
-//                                    modifier = Modifier
-//                                        .size(24.dp)
-//                                        .offset(y = (36).dp)  // Adjust this value to control overlap
-//                                )
-//                            }
                             Image(
                                 painter = painterResource(id = R.mipmap.ic_launcher_foreground),
                                 contentDescription = "App Logo",

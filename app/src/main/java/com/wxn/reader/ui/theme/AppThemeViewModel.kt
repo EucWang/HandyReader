@@ -3,8 +3,8 @@ package com.wxn.reader.ui.theme
 import android.app.Application
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
-import com.wxn.reader.data.model.AppPreferences
-import com.wxn.reader.data.source.local.AppPreferencesUtil
+import com.wxn.reader.data.model.ThemePreferences
+import com.wxn.reader.data.source.local.ThemePreferencesUtil
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -14,17 +14,17 @@ import javax.inject.Inject
 
 @HiltViewModel
 class AppThemeViewModel @Inject constructor(
-    private val appPreferencesUtil: AppPreferencesUtil,
+    private val themePreferencesUtil: ThemePreferencesUtil,
     application: Application,
 ) : AndroidViewModel(application) {
 
-    private val _appPreferences = MutableStateFlow<AppPreferences?>(null)
-    val appPreferences: StateFlow<AppPreferences?> = _appPreferences.asStateFlow()
+    private val _themePreferences = MutableStateFlow<ThemePreferences?>(null)
+    val themePreferences: StateFlow<ThemePreferences?> = _themePreferences.asStateFlow()
 
     init {
         viewModelScope.launch {
-            appPreferencesUtil.appPrefsFlow.collect { preferences ->
-                _appPreferences.value = preferences
+            themePreferencesUtil.themePrefsFlow.collect { preferences ->
+                _themePreferences.value = preferences
             }
         }
     }

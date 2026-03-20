@@ -270,7 +270,7 @@ fun CustomTopAppBar(
                         }
 
                         ImagePicker { path ->
-                            viewModel.updateAppPreferences(appPreferences.copy(homeBackgroundImage = path))
+                            viewModel.updateHomeBgImage(path)
                         }
 
 

@@ -313,11 +313,11 @@ fun HomeScreen(
 }
 
 @Composable fun PageBackground(viewModel: HomeViewModel) {
-    val appPreferences by viewModel.appPreferences.collectAsStateWithLifecycle()
+    val themePreferences by viewModel.themePreferences.collectAsStateWithLifecycle()
 
-    if (!appPreferences?.homeBackgroundImage.isNullOrEmpty()) { //自定义背景
+    if (!themePreferences?.homeBackgroundImage.isNullOrEmpty()) { //自定义背景
         Image(
-            painter = rememberAsyncImagePainter(appPreferences?.homeBackgroundImage),
+            painter = rememberAsyncImagePainter(themePreferences?.homeBackgroundImage),
             contentDescription = "Book cover",
             modifier = Modifier
                 .fillMaxSize()

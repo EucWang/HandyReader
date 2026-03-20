@@ -12,10 +12,7 @@ data class AppPreferences(
     val language: String,
 
     //Ui settings
-    val appTheme: AppTheme,
-    val colorScheme: String,
     val homeLayout: Layout,
-    val homeBackgroundImage: String,
     val gridCount: Int,
     val showEntries: Boolean,
     val showRating: Boolean,

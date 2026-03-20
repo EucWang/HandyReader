@@ -8,8 +8,6 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.documentfile.provider.DocumentFile
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
-import androidx.paging.PagingData
-import androidx.paging.cachedIn
 import com.wxn.bookparser.FileParser
 import com.wxn.base.bean.Book
 import com.wxn.bookparser.domain.file.CachedFileCompat
@@ -41,7 +39,6 @@ import com.wxn.reader.presentation.home.states.SnackbarState
 import com.wxn.reader.ui.theme.stringResource
 import com.wxn.base.util.Logger
 import com.wxn.base.util.retry
-import com.wxn.reader.util.PurchaseHelper
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.CoroutineExceptionHandler
 import kotlinx.coroutines.Dispatchers
@@ -64,6 +61,8 @@ import com.wxn.reader.domain.use_case.books.GetBookByIdUseCase
 import com.wxn.reader.navigation.Screens
 import com.wxn.reader.util.DocumentUtil
 import androidx.core.net.toUri
+import com.wxn.reader.data.model.ThemePreferences
+import com.wxn.reader.data.source.local.ThemePreferencesUtil
 
 @HiltViewModel
 class HomeViewModel
@@ -83,6 +82,7 @@ class HomeViewModel
     private val removeBooksFromShelfUseCase: RemoveBooksFromShelfUseCase,
     private val getBooksForShelfUseCase: GetBooksForShelfUseCase,
     private val appPreferencesUtil: AppPreferencesUtil,
+    private val themePreferencesUtil: ThemePreferencesUtil,
     private val fileParser: FileParser,
     private val permissionRepository: PermissionRepository,
     private val updateDeletedFlagUseCase: UpdateDeletedFlagUseCase,
@@ -98,6 +98,9 @@ class HomeViewModel
 
     private val _appPreferences = MutableStateFlow<AppPreferences?>(null)
     val appPreferences: StateFlow<AppPreferences?> = _appPreferences.asStateFlow()
+
+    private val _themePreferences = MutableStateFlow<ThemePreferences?>(null)
+    val themePreferences: StateFlow<ThemePreferences?> = _themePreferences.asStateFlow()
 
     private val _isAddingBooks = MutableStateFlow(false)
     val isAddingBooks: StateFlow<Boolean> = _isAddingBooks.asStateFlow()
@@ -147,8 +150,24 @@ class HomeViewModel
     var showMetadataModal = mutableStateOf(false)
 
     init {
+        observeThemePreferences()
         initializeApp()
     }
+
+    private fun observeThemePreferences() {
+        viewModelScope.launch {
+            themePreferencesUtil.themePrefsFlow.collect { preferences ->
+                _themePreferences.value = preferences
+            }
+        }
+
+        viewModelScope.launch {
+            appPreferencesUtil.appPrefsFlow.collect { preferences ->
+                _appPreferences.value = preferences
+            }
+        }
+    }
+
 
     private fun initializeApp() {
         viewModelScope.launch {
@@ -772,6 +791,12 @@ class HomeViewModel
         }
         if (route.isNotEmpty()) {
             onRouteNav(route)
+        }
+    }
+
+    fun updateHomeBgImage(path:String?) {
+        viewModelScope.launch {
+            themePreferencesUtil.updateBgImage(path ?: "")
         }
     }
 }

@@ -1,35 +1,75 @@
 package com.wxn.reader.presentation.settings.components
 
 import android.os.Build
-import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.isSystemInDarkTheme
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
-import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.unit.dp
-import androidx.hilt.navigation.compose.hiltViewModel
-import com.wxn.reader.presentation.settings.viewmodels.ThemeViewModel
-import com.wxn.reader.ui.theme.*
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.ColorScheme
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Text
+import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.dynamicDarkColorScheme
+import androidx.compose.material3.dynamicLightColorScheme
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.unit.dp
+import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavHostController
 import com.wxn.reader.R
 import com.wxn.reader.data.model.AppTheme
 import com.wxn.reader.navigation.LocalNavController
-import com.wxn.reader.navigation.Screens
+import com.wxn.reader.presentation.settings.viewmodels.ThemeViewModel
+import com.wxn.reader.ui.theme.DarkBlueScheme
+import com.wxn.reader.ui.theme.DarkColorScheme
+import com.wxn.reader.ui.theme.DarkGreenScheme
+import com.wxn.reader.ui.theme.DarkGreyScheme
+import com.wxn.reader.ui.theme.DarkParchmentScheme
+import com.wxn.reader.ui.theme.DarkPinkScheme
+import com.wxn.reader.ui.theme.DarkPurpleScheme
+import com.wxn.reader.ui.theme.DarkRedScheme
+import com.wxn.reader.ui.theme.DarkSepiaScheme
+import com.wxn.reader.ui.theme.DarkTealScheme
+import com.wxn.reader.ui.theme.DarkYellowScheme
+import com.wxn.reader.ui.theme.LightBlueScheme
+import com.wxn.reader.ui.theme.LightColorScheme
+import com.wxn.reader.ui.theme.LightGreenScheme
+import com.wxn.reader.ui.theme.LightGreyScheme
+import com.wxn.reader.ui.theme.LightParchmentScheme
+import com.wxn.reader.ui.theme.LightPinkScheme
+import com.wxn.reader.ui.theme.LightPurpleScheme
+import com.wxn.reader.ui.theme.LightRedScheme
+import com.wxn.reader.ui.theme.LightSepiaScheme
+import com.wxn.reader.ui.theme.LightTealScheme
+import com.wxn.reader.ui.theme.LightYellowScheme
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -37,10 +77,10 @@ fun ThemeScreen(
     viewModel: ThemeViewModel = hiltViewModel()
 ) {
     val navController: NavHostController = LocalNavController.current
-    val appPreferences by viewModel.appPreferences.collectAsStateWithLifecycle()
+    val themePreferences by viewModel.themePreferences.collectAsStateWithLifecycle()
 
-    if (appPreferences != null) {
-        val isDarkTheme = when (appPreferences!!.appTheme) {
+    if (themePreferences != null) {
+        val isDarkTheme = when (themePreferences!!.appTheme) {
             AppTheme.SYSTEM -> isSystemInDarkTheme()
             AppTheme.LIGHT -> false
             AppTheme.DARK -> true
@@ -111,7 +151,7 @@ fun ThemeScreen(
 
 
         LaunchedEffect(isDarkTheme) {
-            val currentScheme = appPreferences!!.colorScheme
+            val currentScheme = themePreferences!!.colorScheme
             val newScheme = when {
                 currentScheme == "Dynamic" -> currentScheme
                 isDarkTheme && currentScheme.startsWith("Light") -> "Dark ${
@@ -125,7 +165,7 @@ fun ThemeScreen(
                 else -> currentScheme
             }
             if (currentScheme != newScheme) {
-                viewModel.updateAppPreferences(appPreferences!!.copy(colorScheme = newScheme))
+                viewModel.updateColorSchemePreferences(newScheme)
             }
         }
 
@@ -155,9 +195,9 @@ fun ThemeScreen(
                        Text(stringResource(R.string.theme), style = MaterialTheme.typography.titleMedium)
                        Spacer(modifier = Modifier.height(4.dp))
                        SegmentedThemeControl(
-                           selectedTheme = appPreferences!!.appTheme,
+                           selectedTheme = themePreferences!!.appTheme,
                            onThemeSelected = { theme ->
-                               viewModel.updateAppPreferences(appPreferences!!.copy(appTheme = theme))
+                               viewModel.updateAppThemePreferences(theme)
                            }
                        )
                        Spacer(modifier = Modifier.height(4.dp))
@@ -169,15 +209,10 @@ fun ThemeScreen(
                         ColorSchemePreviewCard(
                             name = displayName,
                             colorScheme = scheme,
-                            isSelected = appPreferences!!.colorScheme == name,
+                            isSelected = themePreferences!!.colorScheme == name,
                             onSelect = {
-                                if (name == "Dynamic" || appPreferences!!.isPremium) {
-                                    viewModel.updateAppPreferences(appPreferences!!.copy(colorScheme = name))
-                                } else {
-                                    navController.navigate(Screens.PremiumScreen.route)
-                                }
-                            },
-                            isPremium = !appPreferences!!.isPremium && name != "Dynamic"
+                                viewModel.updateColorSchemePreferences(name)
+                            }
                         )
                     }
                 }
@@ -191,8 +226,7 @@ fun ColorSchemePreviewCard(
     name: String,
     colorScheme: ColorScheme?,
     isSelected: Boolean,
-    onSelect: () -> Unit,
-    isPremium: Boolean
+    onSelect: () -> Unit
 ) {
 
     Card(
@@ -228,24 +262,6 @@ fun ColorSchemePreviewCard(
                     style = MaterialTheme.typography.titleMedium,
                     color = colorScheme?.onSurface ?: MaterialTheme.colorScheme.onSurface
                 )
-                if (isPremium) {
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(4.dp)
-                    ) {
-                        Image(
-                            painter = painterResource(id = R.drawable.crown),
-                            contentDescription = "Crown",
-                            modifier = Modifier
-                                .size(16.dp)
-                        )
-                        Text(
-                            text = "Premium",
-                            style = MaterialTheme.typography.labelSmall,
-                            color = MaterialTheme.colorScheme.primary
-                        )
-                    }
-                }
             }
             Spacer(modifier = Modifier.height(16.dp))
             ColorPreviewRow(colorScheme)

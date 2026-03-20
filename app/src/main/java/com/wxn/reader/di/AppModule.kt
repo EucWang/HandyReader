@@ -29,6 +29,7 @@ import com.wxn.reader.data.repository.PermissionRepositoryImpl
 import com.wxn.reader.data.repository.ShelfRepositoryImpl
 import com.wxn.reader.data.source.local.AppDatabase
 import com.wxn.reader.data.source.local.AppPreferencesUtil
+import com.wxn.reader.data.source.local.ThemePreferencesUtil
 import com.wxn.reader.data.source.local.dao.AnnotationDao
 import com.wxn.reader.data.source.local.dao.BookDao
 import com.wxn.reader.data.source.local.dao.BookShelfDao
@@ -198,6 +199,12 @@ object AppModule {
     @Singleton
     fun provideAppPreferencesUtil(@ApplicationContext context: Context): AppPreferencesUtil {
         return AppPreferencesUtil(context)
+    }
+
+    @Provides
+    @Singleton
+    fun provideThemePreferencesUtil(@ApplicationContext context: Context): ThemePreferencesUtil {
+        return ThemePreferencesUtil(context)
     }
 
     @Provides

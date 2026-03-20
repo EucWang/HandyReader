@@ -35,20 +35,21 @@ fun ReadTheme(
     content: @Composable () -> Unit,
 ) {
     val context = LocalContext.current
-    val appPreferences by viewModel.appPreferences.collectAsStateWithLifecycle()
+    val themePreferences by viewModel.themePreferences.collectAsStateWithLifecycle()
     val view = LocalView.current
     val activity = LocalActivity.current
 
-    if (appPreferences != null) {
+    if (themePreferences != null) {
 
-        val darkTheme = when (appPreferences!!.appTheme) {
+        val darkTheme = when (themePreferences?.appTheme) {
             AppTheme.SYSTEM -> isSystemInDarkTheme()
             AppTheme.LIGHT -> false
             AppTheme.DARK -> true
+            else -> isSystemInDarkTheme()
         }
 
         val colorScheme = when {
-            appPreferences!!.colorScheme == "Dynamic" -> {
+            themePreferences!!.colorScheme == "Dynamic" -> {
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
                     if (darkTheme) dynamicDarkColorScheme(context) else dynamicLightColorScheme(
                         context
@@ -58,7 +59,7 @@ fun ReadTheme(
                 }
             }
 
-            darkTheme -> when (appPreferences!!.colorScheme) {
+            darkTheme -> when (themePreferences!!.colorScheme) {
                 "Light", "Dark" -> DarkColorScheme
                 "Light Grey", "Dark Grey" -> DarkGreyScheme
                 "Light Sepia", "Dark Sepia" -> DarkSepiaScheme
@@ -73,7 +74,7 @@ fun ReadTheme(
                 else -> DarkColorScheme
             }
 
-            else -> when (appPreferences!!.colorScheme) {
+            else -> when (themePreferences!!.colorScheme) {
                 "Light", "Dark" -> LightColorScheme
                 "Light Grey", "Dark Grey" -> LightGreyScheme
                 "Light Sepia", "Dark Sepia" -> LightSepiaScheme

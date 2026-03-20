@@ -10,7 +10,6 @@ import androidx.datastore.preferences.core.stringSetPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
 import com.wxn.base.util.Coroutines
 import com.wxn.reader.data.model.AppPreferences
-import com.wxn.reader.data.model.AppTheme
 import com.wxn.reader.data.dto.FileType
 import com.wxn.reader.data.model.Layout
 import com.wxn.reader.data.dto.ReadingStatus
@@ -35,10 +34,7 @@ class AppPreferencesUtil @Inject constructor(context: Context) {
         val SCAN_DIRECTORY = stringSetPreferencesKey("scan_directory")
         val ENABLE_PDF_SUPPORT = booleanPreferencesKey("enable_pdf_support")
         val LANGUAGE = stringPreferencesKey("language")
-        val APP_THEME = stringPreferencesKey("app_theme")
-        val COLOR_SCHEME = stringPreferencesKey("color_scheme")
         val HOME_LAYOUT = stringPreferencesKey("home_layout")
-        val HOME_BACKGROUND_IMAGE = stringPreferencesKey("home_background_image")
         val GRID_COUNT = intPreferencesKey("grid_count")
         val SHOW_ENTRIES = booleanPreferencesKey("show_entries")
         val SHOW_RATING = booleanPreferencesKey("show_rating")
@@ -66,10 +62,7 @@ class AppPreferencesUtil @Inject constructor(context: Context) {
             scanDirectories = emptySet(),
             enablePdfSupport = true,
             language = "",
-            appTheme = AppTheme.SYSTEM,
-            colorScheme = "Dynamic",
             homeLayout = Layout.Grid,
-            homeBackgroundImage = "",
             gridCount = 4,
             showEntries = false,
             showRating = false,
@@ -104,10 +97,7 @@ class AppPreferencesUtil @Inject constructor(context: Context) {
                 prefs[SCAN_DIRECTORY] = defaultPreferences.scanDirectories
                 prefs[ENABLE_PDF_SUPPORT] = defaultPreferences.enablePdfSupport
                 prefs[LANGUAGE] = defaultPreferences.language
-                prefs[APP_THEME] = defaultPreferences.appTheme.name
-                prefs[COLOR_SCHEME] = defaultPreferences.colorScheme
                 prefs[HOME_LAYOUT] = defaultPreferences.homeLayout.name
-                prefs[HOME_BACKGROUND_IMAGE] = defaultPreferences.homeBackgroundImage
                 prefs[GRID_COUNT] = defaultPreferences.gridCount
                 prefs[SHOW_ENTRIES] = defaultPreferences.showEntries
                 prefs[SHOW_RATING] = defaultPreferences.showRating
@@ -136,10 +126,7 @@ class AppPreferencesUtil @Inject constructor(context: Context) {
             scanDirectories = preferences[SCAN_DIRECTORY] ?: defaultPreferences.scanDirectories,
             enablePdfSupport = preferences[ENABLE_PDF_SUPPORT] ?: defaultPreferences.enablePdfSupport,
             language = preferences[LANGUAGE] ?: defaultPreferences.language,
-            appTheme = AppTheme.valueOf(preferences[APP_THEME] ?: defaultPreferences.appTheme.name),
-            colorScheme = preferences[COLOR_SCHEME] ?: defaultPreferences.colorScheme,
             homeLayout = Layout.valueOf(preferences[HOME_LAYOUT] ?: defaultPreferences.homeLayout.name),
-            homeBackgroundImage = preferences[HOME_BACKGROUND_IMAGE] ?: defaultPreferences.homeBackgroundImage,
             gridCount = preferences[GRID_COUNT] ?: defaultPreferences.gridCount,
             showEntries = preferences[SHOW_ENTRIES] ?: defaultPreferences.showEntries,
             showRating = preferences[SHOW_RATING] ?: defaultPreferences.showRating,
@@ -189,10 +176,7 @@ class AppPreferencesUtil @Inject constructor(context: Context) {
             preferences[SCAN_DIRECTORY] = newPreferences.scanDirectories
             preferences[ENABLE_PDF_SUPPORT] = newPreferences.enablePdfSupport
             preferences[LANGUAGE] = newPreferences.language
-            preferences[APP_THEME] = newPreferences.appTheme.name
-            preferences[COLOR_SCHEME] = newPreferences.colorScheme
             preferences[HOME_LAYOUT] = newPreferences.homeLayout.name
-            preferences[HOME_BACKGROUND_IMAGE] = newPreferences.homeBackgroundImage
             preferences[GRID_COUNT] = newPreferences.gridCount
             preferences[SHOW_ENTRIES] = newPreferences.showEntries
             preferences[SHOW_RATING] = newPreferences.showRating
@@ -215,7 +199,6 @@ class AppPreferencesUtil @Inject constructor(context: Context) {
     suspend fun resetLayoutPreferences() {
         dataStore.edit { preferences ->
             preferences[HOME_LAYOUT] = defaultPreferences.homeLayout.name
-            preferences[HOME_BACKGROUND_IMAGE] = defaultPreferences.homeBackgroundImage
             preferences[GRID_COUNT] = defaultPreferences.gridCount
             preferences[SHOW_ENTRIES] = defaultPreferences.showEntries
             preferences[SHOW_RATING] = defaultPreferences.showRating
@@ -225,6 +208,3 @@ class AppPreferencesUtil @Inject constructor(context: Context) {
         }
     }
 }
-
-
-
