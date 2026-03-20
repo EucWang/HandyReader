@@ -126,6 +126,9 @@ interface BookDao {
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     fun insertBooks(books: List<BookEntity>)
 
+    @Insert(onConflict = OnConflictStrategy.IGNORE)
+    suspend fun insertBooksIgnoreConflict(books: List<BookEntity>): List<Long>
+
     @Transaction
     @Update
     suspend fun update(book: BookEntity)

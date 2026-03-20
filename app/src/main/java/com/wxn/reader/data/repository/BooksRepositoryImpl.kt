@@ -126,17 +126,10 @@ class BooksRepositoryImpl @Inject constructor(
     }
 
     override suspend fun insertBooks(books: List<Book>) : Int = withContext(Dispatchers.IO) {
-        val entities = arrayListOf<BookEntity>()
-        val uris = getAllBookUris().toSet()
-        for(book in books) {
-            val entity = bookMapper.toBookEntity(book)
-            if (!uris.contains(entity.uri)) {
-                entities.add(entity)
-            }
-        }
+        val entities = books.map { bookMapper.toBookEntity(it) }
         if (entities.size > 0) {
-            bookDao.insertBooks(entities)
-            entities.size
+            val insertedIds = bookDao.insertBooksIgnoreConflict(entities)
+            insertedIds.count { it >= 0 }
         } else {
             0
         }
