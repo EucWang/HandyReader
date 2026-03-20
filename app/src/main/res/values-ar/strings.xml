@@ -328,7 +328,19 @@
     <string name="notification_permission_required_message">يحتاج HandyReader إلى إذن الإشعار لعرض عناصر التحكم في تشغيل TTS. يرجى تفعيله في الإعدادات.</string>
     <string name="notification_permission_go_settings">فتح الإعدادات</string>
     <string name="notification_permission_cancel">إلغاء</string>
-    
+
+    <!-- وظيفة الملاحظات -->
+    <string name="feedback">ملاحظات</string>
+    <string name="feedback_label_name">الاسم المستعار</string>
+    <string name="feedback_label_email">البريد الإلكتروني (مطلوب)</string>
+    <string name="feedback_type_bug">الإبلاغ عن خطأ</string>
+    <string name="feedback_type_more_feature">طلب ميزات</string>
+    <string name="feedback_type_other">أخرى</string>
+    <string name="feedback_type">نوع الملاحظات</string>
+    <string name="feedback_content_too_short">يجب أن يكون المحتوى 10 أحرف على الأقل</string>
+    <string name="feedback_email_invalid">الرجاء إدخال عنوان بريد إلكتروني صحيح</string>
+    <string name="submit">إرسال</string>
+
     <!-- مربع حوار شرح إذن الإشعارات -->
     <string name="notification_permission_explanation_title">تفعيل الإشعارات لـ TTS</string>
     <string name="notification_permission_explanation_message">لاستخدام وظيفة تحويل النص إلى كلام، يحتاج HandyReader إلى عرض إشعار يحتوي على عناصر التحكم في التشغيل. هذا يسمح لك بالتحكم في تشغيل TTS حتى عندما يكون التطبيق في الخلفية.</string>

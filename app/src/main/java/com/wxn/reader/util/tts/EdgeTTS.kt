@@ -39,7 +39,7 @@ class EdgeTTS {
     //can reuse ws connection
     private var client: HttpClient = HttpClient() {
         install(WebSockets) {
-            pingIntervalMillis = 20_000L
+            pingInterval = 20_000L
         }
     }
     private var session: DefaultClientWebSocketSession? = null

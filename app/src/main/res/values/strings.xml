@@ -332,4 +332,15 @@
     <string name="notification_permission_explanation_title">Enable Notifications for TTS</string>
     <string name="notification_permission_explanation_message">To use Text-to-Speech functionality, HandyReader needs to display a notification with playback controls. This allows you to control TTS playback even when the app is in the background.</string>
     <string name="notification_permission_continue">Continue</string>
+
+    <string name="feedback">Feedback</string>
+    <string name="feedback_label_name">Nickname</string>
+    <string name="feedback_label_email">Email(Required)</string>
+    <string name="feedback_type_bug">Report Bug</string>
+    <string name="feedback_type_more_feature">Request Features</string>
+    <string name="feedback_type_other">Other</string>
+    <string name="feedback_type">Feedback Type</string>
+    <string name="feedback_content_too_short">Content must be at least 10 characters</string>
+    <string name="feedback_email_invalid">Please enter a valid email address</string>
+    <string name="submit">Submit</string>
 </resources>

@@ -326,7 +326,19 @@
     <string name="notification_permission_required_message">HandyReader a besoin de la permission de notification pour afficher les contrôles de lecture TTS. Veuillez l\'activer dans les paramètres.</string>
     <string name="notification_permission_go_settings">Ouvrir les paramètres</string>
     <string name="notification_permission_cancel">Annuler</string>
-    
+
+    <!-- Fonction de commentaires -->
+    <string name="feedback">Commentaires</string>
+    <string name="feedback_label_name">Pseudo</string>
+    <string name="feedback_label_email">E-mail (requis)</string>
+    <string name="feedback_type_bug">Signaler un bug</string>
+    <string name="feedback_type_more_feature">Demander des fonctionnalités</string>
+    <string name="feedback_type_other">Autre</string>
+    <string name="feedback_type">Type de commentaire</string>
+    <string name="feedback_content_too_short">Le contenu doit comporter au moins 10 caractères</string>
+    <string name="feedback_email_invalid">Veuillez entrer une adresse e-mail valide</string>
+    <string name="submit">Envoyer</string>
+
     <!-- Boîte de dialogue d\'explication des notifications -->
     <string name="notification_permission_explanation_title">Activer les notifications pour TTS</string>
     <string name="notification_permission_explanation_message">Pour utiliser la fonction de synthèse vocale, HandyReader doit afficher une notification avec les commandes de lecture. Cela vous permet de contrôler la lecture TTS même lorsque l\'application est en arrière-plan.</string>

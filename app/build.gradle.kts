@@ -51,9 +51,7 @@ android {
         }
 
         buildConfigField("String", "RELEASE_DATE", "\"${SimpleDateFormat("yyyy-MM-dd HH:mm:ss").format(Date())}\"")
-        vectorDrawables {
-            useSupportLibrary = true
-        }
+        buildConfigField("String", "FEEDBACK_API_URL", "\"https://handyreader.top\"")
     }
 
     buildTypes {
@@ -104,6 +102,7 @@ android {
             excludes += "/schemas/**"
 //            excludes += "META-INF/DEPENDENCIES"
             excludes += "/META-INF/gradle/incremental.annotation.processors"
+            excludes += "META-INF/versions/9/OSGI-INF/MANIFEST.MF"
         }
     }
 
@@ -201,12 +200,18 @@ dependencies {
     implementation(libs.aboutlibraries.compose)
 
     implementation(libs.kotlinx.serialization.json)
-    implementation(libs.ktor.client.okhttp)
 
     implementation(project(":bookparser"))
     implementation(project(":bookread"))
     implementation(project(":base"))
     implementation(project(":text2speech"))
+
+    implementation(libs.ktor.client.okhttp.v341)            // Ktor 核心
+    implementation(libs.ktor.client.content.negotiation)    // JSON 序列化
+    implementation(libs.ktor.serialization.kotlinx.json)
+    implementation(libs.ktor.client.logging)
+    implementation(libs.okhttp)// OkHttp（如果需要额外配置）
+    implementation(libs.logging.interceptor)
 }
 
 sentry {

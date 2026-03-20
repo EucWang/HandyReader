@@ -12,6 +12,7 @@ import com.wxn.reader.presentation.mainReader.MainReadScreen
 import com.wxn.reader.presentation.notes.NotesScreen
 import com.wxn.reader.presentation.pdfReader.PdfReaderScreen
 import com.wxn.reader.presentation.settings.components.DeletedBooksScreen
+import com.wxn.reader.presentation.settings.components.FeedbackScreen
 import com.wxn.reader.presentation.settings.components.GeneralSettings
 import com.wxn.reader.presentation.settings.components.SpeakerScreen
 import com.wxn.reader.presentation.shelves.ShelvesScreen
@@ -96,6 +97,11 @@ fun SetupNavGraph(startDestination: String) {
             route = Screens.TtsSetScreen.route,
         ) {
             SpeakerScreen()
+        }
+        composable(
+            route = Screens.FeedbackScreen.route,
+        ) {
+            FeedbackScreen()
         }
         //composable(
         //    route = Screens.OnlineBooksScreen.route,

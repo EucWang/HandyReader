@@ -326,7 +326,19 @@
     <string name="notification_permission_required_message">HandyReaderはTTS再生コントロールを表示するために通知権限が必要です。設定で有効にしてください。</string>
     <string name="notification_permission_go_settings">設定を開く</string>
     <string name="notification_permission_cancel">キャンセル</string>
-    
+
+    <!-- フィードバック機能 -->
+    <string name="feedback">フィードバック</string>
+    <string name="feedback_label_name">ニックネーム</string>
+    <string name="feedback_label_email">メールアドレス（必須）</string>
+    <string name="feedback_type_bug">バグを報告</string>
+    <string name="feedback_type_more_feature">機能をリクエスト</string>
+    <string name="feedback_type_other">その他</string>
+    <string name="feedback_type">フィードバックタイプ</string>
+    <string name="feedback_content_too_short">コンテンツは最低10文字である必要があります</string>
+    <string name="feedback_email_invalid">有効なメールアドレスを入力してください</string>
+    <string name="submit">送信</string>
+
     <!-- 通知権限の説明ダイアログ -->
     <string name="notification_permission_explanation_title">TTSの通知を有効にする</string>
     <string name="notification_permission_explanation_message">テキスト読み上げ機能を使用するには、HandyReaderが再生コントロール付きの通知を表示する必要があります。これにより、アプリがバックグラウンドにある場合でもTTSの再生を制御できます。</string>

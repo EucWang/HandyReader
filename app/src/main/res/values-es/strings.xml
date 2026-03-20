@@ -326,7 +326,19 @@
     <string name="notification_permission_required_message">HandyReader necesita permiso de notificación para mostrar los controles de reproducción TTS. Por favor, actívalo en Configuración.</string>
     <string name="notification_permission_go_settings">Ir a Configuración</string>
     <string name="notification_permission_cancel">Cancelar</string>
-    
+
+    <!-- Función de comentarios -->
+    <string name="feedback">Comentarios</string>
+    <string name="feedback_label_name">Apodo</string>
+    <string name="feedback_label_email">Correo electrónico (obligatorio)</string>
+    <string name="feedback_type_bug">Reportar error</string>
+    <string name="feedback_type_more_feature">Solicitar funciones</string>
+    <string name="feedback_type_other">Otro</string>
+    <string name="feedback_type">Tipo de comentario</string>
+    <string name="feedback_content_too_short">El contenido debe tener al menos 10 caracteres</string>
+    <string name="feedback_email_invalid">Por favor ingrese una dirección de correo electrónico válida</string>
+    <string name="submit">Enviar</string>
+
     <!-- Diálogo de explicación del permiso de notificación -->
     <string name="notification_permission_explanation_title">Activar notificaciones para TTS</string>
     <string name="notification_permission_explanation_message">Para usar la función de texto a voz, HandyReader necesita mostrar una notificación con controles de reproducción. Esto le permite controlar la reproducción TTS incluso cuando la aplicación está en segundo plano.</string>

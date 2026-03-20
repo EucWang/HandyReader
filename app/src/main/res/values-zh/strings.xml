@@ -321,6 +321,18 @@
     <string name="tts_set_times">定时器：%1$s</string>
     <string name="tts_time_unlimit">未设置</string>
 
+    <!-- 反馈功能 -->
+    <string name="feedback">反馈</string>
+    <string name="feedback_label_name">昵称</string>
+    <string name="feedback_label_email">邮箱（必填）</string>
+    <string name="feedback_type_bug">报告错误</string>
+    <string name="feedback_type_more_feature">请求功能</string>
+    <string name="feedback_type_other">其他</string>
+    <string name="feedback_type">反馈类型</string>
+    <string name="feedback_content_too_short">内容至少需要 10 个字符</string>
+    <string name="feedback_email_invalid">请输入有效的邮箱地址</string>
+    <string name="submit">提交</string>
+
     <!-- TTS 通知权限 -->
     <string name="notification_permission_required_title">需要通知权限</string>
     <string name="notification_permission_required_message">HandyReader需要通知权限以显示TTS播放控制。请在设置中启用。</string>
