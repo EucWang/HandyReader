@@ -27,6 +27,9 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SnackbarDuration
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.dynamicDarkColorScheme
@@ -34,6 +37,7 @@ import androidx.compose.material3.dynamicLightColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -48,6 +52,7 @@ import com.wxn.reader.R
 import com.wxn.reader.data.model.AppTheme
 import com.wxn.reader.navigation.LocalNavController
 import com.wxn.reader.presentation.settings.viewmodels.ThemeViewModel
+import com.wxn.reader.presentation.settings.viewmodels.ThemeUpdateEvent
 import com.wxn.reader.ui.theme.DarkBlueScheme
 import com.wxn.reader.ui.theme.DarkColorScheme
 import com.wxn.reader.ui.theme.DarkGreenScheme
@@ -78,6 +83,8 @@ fun ThemeScreen(
 ) {
     val navController: NavHostController = LocalNavController.current
     val themePreferences by viewModel.themePreferences.collectAsStateWithLifecycle()
+    val updateEvent by viewModel.updateEvent.collectAsStateWithLifecycle()
+    val snackbarHostState = remember { SnackbarHostState() }
 
     if (themePreferences != null) {
         val isDarkTheme = when (themePreferences!!.appTheme) {
@@ -169,6 +176,32 @@ fun ThemeScreen(
             }
         }
 
+        LaunchedEffect(updateEvent) {
+            updateEvent?.let { event ->
+                val message = when (event) {
+                    is ThemeUpdateEvent.ThemeUpdated ->
+                        stringResource(R.string.theme_updated)
+                    is ThemeUpdateEvent.ColorSchemeUpdated -> {
+                        val displayName = displayNameMapping[event.colorScheme] ?: event.colorScheme
+                        stringResource(R.string.color_scheme_updated, displayName)
+                    }
+                    is ThemeUpdateEvent.AppThemeUpdated -> {
+                        val themeName = when (event.appTheme) {
+                            AppTheme.SYSTEM -> stringResource(R.string.system_default)
+                            AppTheme.LIGHT -> "Light"
+                            AppTheme.DARK -> "Dark"
+                        }
+                        stringResource(R.string.app_theme_updated, themeName)
+                    }
+                }
+                snackbarHostState.showSnackbar(
+                    message = message,
+                    duration = SnackbarDuration.Short
+                )
+                viewModel.clearUpdateEvent()
+            }
+        }
+
         Scaffold(
             topBar = {
                 TopAppBar(
@@ -180,6 +213,7 @@ fun ThemeScreen(
                     },
                 )
             },
+            snackbarHost = { SnackbarHost(snackbarHostState) }
         ) { paddingValues ->
             Column(
                 modifier = Modifier

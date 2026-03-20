@@ -14,6 +14,12 @@ import kotlinx.coroutines.launch
 import javax.inject.Inject
 
 
+sealed class ThemeUpdateEvent {
+    data object ThemeUpdated : ThemeUpdateEvent()
+    data class ColorSchemeUpdated(val colorScheme: String) : ThemeUpdateEvent()
+    data class AppThemeUpdated(val appTheme: AppTheme) : ThemeUpdateEvent()
+}
+
 @HiltViewModel
 class ThemeViewModel @Inject constructor(
     private val themePreferencesUtil: ThemePreferencesUtil,
@@ -22,6 +28,9 @@ class ThemeViewModel @Inject constructor(
 
     private val _themePreferences = MutableStateFlow<ThemePreferences?>(null)
     val themePreferences: StateFlow<ThemePreferences?> = _themePreferences.asStateFlow()
+
+    private val _updateEvent = MutableStateFlow<ThemeUpdateEvent?>(null)
+    val updateEvent: StateFlow<ThemeUpdateEvent?> = _updateEvent.asStateFlow()
 
     init {
         observeAppPreferences()
@@ -39,24 +48,32 @@ class ThemeViewModel @Inject constructor(
     fun updateThemePreferences(newPreferences: ThemePreferences) {
         viewModelScope.launch {
             themePreferencesUtil.updateAppPreferences(newPreferences)
+            _updateEvent.value = ThemeUpdateEvent.ThemeUpdated
         }
     }
 
     fun updateThemePreferences(newAppTheme: AppTheme, newColorScheme: String) {
         viewModelScope.launch {
             themePreferencesUtil.updateTheme(newAppTheme, newColorScheme)
+            _updateEvent.value = ThemeUpdateEvent.ThemeUpdated
         }
     }
 
     fun updateColorSchemePreferences(newColorScheme: String) {
         viewModelScope.launch {
             themePreferencesUtil.updateColorTheme(newColorScheme)
+            _updateEvent.value = ThemeUpdateEvent.ColorSchemeUpdated(newColorScheme)
         }
     }
 
     fun updateAppThemePreferences(newAppTheme: AppTheme) {
         viewModelScope.launch {
             themePreferencesUtil.updateAppTheme(newAppTheme)
+            _updateEvent.value = ThemeUpdateEvent.AppThemeUpdated(newAppTheme)
         }
+    }
+
+    fun clearUpdateEvent() {
+        _updateEvent.value = null
     }
 }
