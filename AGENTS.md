@@ -109,6 +109,144 @@ val appPreferences: StateFlow<AppPreferences?> = _appPreferences.asStateFlow()
 - DAOs: Provide interface with `@Dao` annotation
 - Migrations: Version control with `@Database(version = N)`
 
+## Theme System
+
+### Architecture Overview
+
+HandyReader uses a **data-isolated theme system** to prevent cache conflicts and ensure instant theme application across all screens.
+
+### Key Components
+
+#### 1. Data Layer
+
+**ThemePreferencesUtil** (`app/src/main/java/com/wxn/reader/data/source/local/ThemePreferencesUtil.kt`)
+- Dedicated DataStore for theme settings (`theme_prefs`)
+- Isolated from general app preferences to avoid cache interference
+- Provides Flow-based reactive updates
+
+**ThemePreferences** (`app/src/main/java/com/wxn/reader/data/model/ThemePreferences.kt`)
+```kotlin
+data class ThemePreferences(
+    val appTheme: AppTheme,           // SYSTEM, LIGHT, DARK
+    val colorScheme: String,          // "Dynamic", "Light Blue", "Dark Teal", etc.
+    val homeBackgroundImage: String   // Background image path
+)
+```
+
+#### 2. Presentation Layer
+
+**AppThemeViewModel** (`app/src/main/java/com/wxn/reader/ui/theme/AppThemeViewModel.kt`)
+- Application-level ViewModel
+- Observes `themePrefsFlow` from ThemePreferencesUtil
+- Provides theme state to `ReadTheme()` composable
+
+**ThemeViewModel** (`app/src/main/java/com/wxn/reader/presentation/settings/viewmodels/ThemeViewModel.kt`)
+- Settings UI-specific ViewModel
+- Provides update methods for theme changes
+- Includes feedback messaging for user actions
+
+#### 3. Theme Application
+
+**ReadTheme** (`app/src/main/java/com/wxn/reader/ui/theme/Theme.kt:33`)
+- Root theme wrapper in MainActivity
+- Collects theme preferences from AppThemeViewModel
+- Applies MaterialTheme with dynamic color schemes
+- Handles system theme mode (dark/light)
+- Supports Material You dynamic colors on Android 12+
+
+### Theme Data Flow
+
+```
+User Action (ThemeScreen)
+    ↓
+ThemeViewModel.updateColorSchemePreferences()
+    ↓
+ThemePreferencesUtil.updateColorTheme()
+    ↓
+DataStore (theme_prefs) [persisted]
+    ↓
+themePrefsFlow.emit()
+    ↓
+AppThemeViewModel._themePreferences
+    ↓
+ReadTheme recomposes
+    ↓
+MaterialTheme applied to all screens
+```
+
+### Supported Color Schemes
+
+**Dynamic Colors** (Android 12+):
+- System-generated color schemes based on wallpaper
+
+**Predefined Schemes**:
+- Monochrome (Light/Dark Default)
+- Twilight (Grey)
+- Sepia
+- Parchment
+- Pastel Yellow
+- Teal
+- Lavender Blue
+- Pastel Pink
+- Violet (Purple)
+- Crimson Red
+- Emerald Green
+
+### Theme Update Methods
+
+**In ThemeViewModel**:
+```kotlin
+// Update both theme and color scheme
+fun updateThemePreferences(newAppTheme: AppTheme, newColorScheme: String)
+
+// Update only color scheme
+fun updateColorSchemePreferences(newColorScheme: String)
+
+// Update only app theme mode
+fun updateAppThemePreferences(newAppTheme: AppTheme)
+```
+
+### Feedback System
+
+Theme changes trigger **Snackbar notifications** for immediate user feedback:
+- "Theme updated successfully"
+- "Color scheme updated to {color name}"
+- "App theme updated to {mode}"
+
+### Important Notes
+
+- **Data Isolation**: Theme settings stored in separate `theme_prefs` DataStore
+- **Instant Application**: Changes apply immediately via Flow recomposition
+- **Persistence**: All theme preferences survive app restarts
+- **System Sync**: Automatic dark/light mode switching when using SYSTEM theme
+- **Premium Integration**: Some color schemes require premium subscription
+
+### Testing Theme Changes
+
+```kotlin
+// In ThemeScreen.kt
+@Composable
+fun ThemeScreen(viewModel: ThemeViewModel = hiltViewModel()) {
+    val themePreferences by viewModel.themePreferences.collectAsStateWithLifecycle()
+    val updateMessage by viewModel.updateMessage.collectAsStateWithLifecycle()
+    
+    LaunchedEffect(updateMessage) {
+        updateMessage?.let { message ->
+            snackbarHostState.showSnackbar(message)
+            viewModel.clearUpdateMessage()
+        }
+    }
+}
+```
+
+### Migration from AppPreferences
+
+When working with themes, **always use ThemePreferencesUtil** instead of AppPreferencesUtil:
+- ✅ `ThemePreferencesUtil` - for theme-related settings
+- ❌ `AppPreferencesUtil` - for general app settings (NOT themes)
+
+This separation prevents cache conflicts and ensures reliable theme application.
+
 ## Jetpack Compose UI
 
 ### Material Design 3
