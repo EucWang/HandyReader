@@ -64,7 +64,6 @@ import com.wxn.reader.presentation.bookReader.BookReaderUiState.LOAD_CHAPTER_SUC
 import com.wxn.reader.ui.theme.stringResource
 import com.wxn.reader.util.LanguageInfo
 import com.wxn.reader.util.LanguageUtil
-import com.wxn.reader.util.TtsServiceController
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -126,8 +125,6 @@ class MainReadViewModel @Inject constructor(
     val ttsPreferencesUtil: TtsPreferencesUtil,
 
     savedStateHandle: SavedStateHandle,
-    private val ttsServiceController: TtsServiceController
-
     ) : AndroidViewModel(context), PageViewController.OnClickListener {
     private val _appPreferences = MutableStateFlow<AppPreferences?>(null)
     val appPreferences: StateFlow<AppPreferences?> = _appPreferences.asStateFlow()
@@ -315,8 +312,6 @@ class MainReadViewModel @Inject constructor(
         val openedBookId = savedStateHandle.get<String>("bookId")?.toLongOrNull()
         val bookUri = savedStateHandle.get<String>("bookUri")
 
-        pageController.scope = viewModelScope
-
         viewModelScope.launch {
             readerPrefsUtil.readerPrefsFlow.stateIn(viewModelScope).collect { pref ->
                 _readerPreferences.value = pref
@@ -436,7 +431,6 @@ class MainReadViewModel @Inject constructor(
         _book.value = null
         isReadingSessionActive = false
         lastLocatorChangeTime = 0L
-        ttsServiceController.stopService(context)
 
         super.onCleared()
         Logger.i("MainReadViewModel::onCleared")
@@ -1196,23 +1190,23 @@ class MainReadViewModel @Inject constructor(
 
     fun resumeTtsPlaying() {
         _isTtsPlaying.value = true
-        ttsServiceController.resume(context)
+        pageController.resumeTtsPlaying()
     }
 
     fun pauseTtsPlaying() {
         _isTtsPlaying.value = false
-        ttsServiceController.pause(context)
+        pageController.pauseTtsPlaying()
     }
 
     private val ttsLocales = arrayListOf<Locale>()
     private fun ttsPlay() {
         Logger.i("MainReadViewModel::ttsPlay")
-        ttsServiceController.startService(context = context)
+        pageController.startTtsService()
         viewModelScope.launchIO {
             val (speed, pitch, lang) = getTtsConfig()
-            ttsServiceController.setLanguage(context, Locale.forLanguageTag(lang))
-            ttsServiceController.setPitch(context, pitch)
-            ttsServiceController.setSpeed(context, speed)
+            pageController.setTtsLanguage(lang)
+            pageController.setTtsPitch(pitch)
+            pageController.setTtsSpeed(speed)
             pageController.readPageNew { isSuccess ->
                 if (isSuccess) {
                     _isTtsOn.value = true
@@ -1237,7 +1231,7 @@ class MainReadViewModel @Inject constructor(
             _ttsPitch.value = pitch
         }
         val localLang = Locale.forLanguageTag(lang)
-        val locales = ttsServiceController.getSupportedLanguage(context)
+        val locales = pageController.getTtsSupportedLanguages()
         if (locales.isNotEmpty() && !locales.contains(localLang)) {
             val newLocale = locales.toList().minByOrNull { it.language }!!
             lang = newLocale.language
@@ -1259,17 +1253,14 @@ class MainReadViewModel @Inject constructor(
             if (!isPlayging) {
                 ttsPlay()
             } else {
-                ttsServiceController.stop(context)
-                pageController.stopReadPageNew()
+                pageController.stopTts()
                 _isTtsOn.value = false
                 _isTtsPlaying.value = false
             }
         }
     }
     fun stopTts() {
-        ttsServiceController.stop(context)
-        pageController.stopReadPageNew()
-        ttsServiceController.stopService(context)
+        pageController.stopTts()
         _isTtsOn.value = false
         _isTtsPlaying.value = false
     }
@@ -1320,28 +1311,28 @@ class MainReadViewModel @Inject constructor(
     }
 
     fun setTtsSpeed(speed: Float) {
-        ttsServiceController.setSpeed(context, speed)
+        pageController.setTtsSpeed(speed)
     }
 
     fun setTtsPitch(pitch: Float) {
-        ttsServiceController.setPitch(context, pitch)
+        pageController.setTtsPitch(pitch)
     }
 
     fun setTtsLanguage(language: LanguageInfo) {
-        ttsServiceController.setLanguage(context, language.locale)
+        pageController.setTtsLanguage(language)
     }
 
     fun setTtsPlayTime(duration: Float) {
-        ttsServiceController.setPlayTime(context, duration)
+        pageController.setTtsTimer(duration)
         _ttsPlayTimes.value = duration
     }
 
     fun skipToNextUtterance() {
-        ttsServiceController.skipToNextUtterance(context)
+        pageController.skipToNextUtterance()
     }
 
     fun skipToPreviousUtterance() {
-        ttsServiceController.skipToPreviousUtterance(context)
+        pageController.skipToPreviousUtterance()
     }
 
     fun getSupportedLanguages() : List<LanguageInfo> {

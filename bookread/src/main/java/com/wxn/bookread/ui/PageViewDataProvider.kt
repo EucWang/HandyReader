@@ -20,8 +20,6 @@ interface PageViewDataProvider : PageViewCallback{
 
     fun changeChapter(newChapterIndex: Int, newProgress: Double = -1.0) : Boolean
 
-    fun changeChapterAndPage(newChapterIndex: Int, newPageIndex: Int, newProgress: Double = -1.0) : Boolean
-
     fun findLinkContent(href: String) : String?
 
     /**

@@ -2,17 +2,14 @@ package com.wxn.reader.presentation.mainReader
 
 import android.content.Context
 import android.graphics.RectF
-import android.widget.Toast
 import com.wxn.base.bean.Book
 import com.wxn.base.bean.Bookmark
 import com.wxn.base.bean.Locator
 import com.wxn.base.bean.ReaderText
 import com.wxn.base.bean.TextCssInfo
 import com.wxn.base.bean.TextTag
-import com.wxn.base.util.Coroutines
 import com.wxn.base.util.Logger
 import com.wxn.base.util.launchIO
-import com.wxn.base.util.launchMain
 import com.wxn.bookparser.TextParser
 import com.wxn.bookread.data.model.SpeekBookStatus
 import com.wxn.bookread.data.model.TextChapter
@@ -40,28 +37,21 @@ import com.wxn.reader.domain.use_case.chapters.GetChapterByIdUserCase
 import com.wxn.reader.domain.use_case.chapters.GetChapterCountByBookIdUserCase
 import com.wxn.reader.domain.use_case.chapters.UpdateChapterWordCountUserCase
 import com.wxn.reader.domain.use_case.notes.GetNotesForBookUseCase
-import com.wxn.reader.R
-import com.wxn.reader.service.SimpleTtsCallback
-import com.wxn.reader.service.TtsError
-import com.wxn.reader.service.TtsState
 import com.wxn.reader.service.TtsStateHolder
-import com.wxn.reader.service.toLocalizedString
 import com.wxn.reader.util.TtsServiceController
-import com.wxn.reader.util.tts.TtsNavigator
-import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
-import kotlinx.coroutines.delay
-import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.isActive
-import kotlinx.coroutines.launch
 import java.util.concurrent.atomic.AtomicInteger
 import javax.inject.Inject
+import javax.inject.Singleton
 import kotlin.math.roundToInt
 
-open class PageViewController @Inject constructor(
-    val context: Context,
+
+@Singleton
+class PageViewController @Inject constructor(
+    override val context: Context,
     val getChapterByIdUserCase: GetChapterByIdUserCase,
     val getChapterCountByBookIdUserCase: GetChapterCountByBookIdUserCase,
 
@@ -76,12 +66,9 @@ open class PageViewController @Inject constructor(
 
     val appPreferencesUtil: AppPreferencesUtil,
     val textParser: TextParser,
-    var ttsStateHolder: TtsStateHolder,
-    var ttsServiceController: TtsServiceController,
-) : PageViewDataProvider, PageViewCallback, SelectTextCallback {
-
-    var scope: CoroutineScope? = null
-//    var titleDate = MutableLiveData<String>()
+    override var ttsStateHolder: TtsStateHolder,
+    override var ttsServiceController: TtsServiceController,
+) : TTSController(context, ttsStateHolder, ttsServiceController), PageViewDataProvider, PageViewCallback, SelectTextCallback {
 
     override var book: Book? = null
     var userAnnotations : ArrayList<BookAnnotation>? = null
@@ -106,337 +93,6 @@ open class PageViewController @Inject constructor(
     var curTextChapter: TextChapter? = null
     var nextTextChapter: TextChapter? = null
     override var msg: String? = null            //对应章节名？
-
-    private var ttsStateCollector: Job? = null
-    /**
-     * 初始化TTS状态监听
-     */
-    private fun initTtsStateListener() {
-        // 取消现有的监听
-        ttsStateCollector?.cancel()
-
-        ttsStateCollector = scope?.launchIO {
-            ttsStateHolder.state.collect { state ->
-                handleTtsStateChange(state)
-            }
-        }
-    }
-    /**
-     * 处理TTS状态变化
-     */
-    private fun handleTtsStateChange(state: TtsState) {
-        Logger.i("PageViewController::handleTtsStateChange")
-        // 播放状态变化
-
-        if (state.isPlaying != speekBookStatus.isSpeaking) {
-            speekBookStatus = speekBookStatus.copy(isSpeaking = state.isPlaying)
-            callBack?.upContent()
-        }
-
-        // 错误处理
-        state.error?.let { error ->
-            handleTtsError(error)
-            ttsStateHolder.clearError() // 消费错误
-        }
-
-        // 检测章节请求：当TTS请求的章节索引大于当前索引时，提供下一章
-        val nextChapterIndex = state.currentChapterIndex
-        if (nextChapterIndex > (speekBookStatus.readBookLocator?.chapterIndex?:0) && state.isPlaying) {
-            if (speekBookStatus.readBookLocator != null) {
-                Logger.i("检测到TTS请求章节 ${nextChapterIndex}，自动提供")
-                scope?.launchIO {
-                    provideNextChapterToTts(nextChapterIndex)
-                }
-            }
-        }
-
-        // 进度更新
-        state.currentLocator?.let { locator ->
-            Logger.d("PageViewController::handleTtsStateChange::locator update[$locator]")
-            if (locator.chapterIndex != durChapterIndex ||
-                locator.startParagraphIndex != speekBookStatus.readBookLocator?.startParagraphIndex ||
-                locator.startTextOffset != speekBookStatus.readBookLocator?.startTextOffset) {
-
-                val newSentenceIndex = state.currentSentenceIndex
-                speekBookStatus = speekBookStatus.copy(readBookLocator = locator, playSentenceIndex = newSentenceIndex)
-                callBack?.upContent()
-                updateReadingPosition(locator)
-                scope?.launch {
-                    clickListener?.updateReadingTime()
-                }
-            }
-        }
-    }
-    /**
-     * 处理TTS错误
-     */
-    private fun handleTtsError(error: TtsError) {
-        Logger.e("TTS错误: ${error.toLocalizedString(context)}")
-
-        when (error) {
-            is TtsError.ChapterLoadFailed -> {
-                showErrorToast(error.toLocalizedString(context))
-                stopReadPageNew()
-            }
-
-            is TtsError.LanguageNotSupported -> {
-                showErrorToast(error.toLocalizedString(context))
-            }
-
-            is TtsError.PlaybackFailed -> {
-                showErrorToast(error.toLocalizedString(context))
-                stopReadPageNew()
-            }
-
-            is TtsError.ServiceNotStarted -> {
-                showErrorToast(error.toLocalizedString(context))
-            }
-
-            is TtsError.EngineNotReady -> {
-                showErrorToast(error.toLocalizedString(context))
-            }
-
-            is TtsError.NetworkError -> {
-                showErrorToast(error.toLocalizedString(context))
-            }
-
-            else -> {
-                showErrorToast(context.getString(R.string.tts_error_generic))
-            }
-        }
-    }
-
-    /**
-     * 更新阅读位置
-     */
-    private fun updateReadingPosition(locator: Locator) {
-        Logger.d("PageViewController::updateReadingPosition:locator=$locator")
-        val chapterIndex = locator.chapterIndex
-
-        // 查找对应的页面
-        val textChapter = when (chapterIndex) {
-            curTextChapter?.position -> curTextChapter
-            prevTextChapter?.position -> prevTextChapter
-            nextTextChapter?.position -> nextTextChapter
-            else -> null
-        }
-
-        textChapter?.let { chapter ->
-            var speakingPageIndex = -1
-
-            for (page in chapter.pages) {
-                val linesInParagraph = page.textLines.filter { textLine ->
-                    textLine.paragraphIndex == locator.startParagraphIndex
-                }
-
-                if (linesInParagraph.isNotEmpty()) {
-                    for (line in linesInParagraph) {
-                        if (line.paragraphIndex == locator.startParagraphIndex &&
-                            locator.startTextOffset >= line.charStartOffset &&
-                            locator.startTextOffset < line.charEndOffset) {
-                            speakingPageIndex = page.index
-                            break
-                        }
-                    }
-                }
-
-                if (speakingPageIndex >= 0) break
-            }
-
-            if (speakingPageIndex >= 0) {
-                changeChapterAndPage(chapterIndex, speakingPageIndex)
-            }
-        }
-    }
-    /**
-     * 开始朗读页面（新版本）
-     */
-    suspend fun readPageNew(onFinished: (Boolean) -> Unit) {
-        Logger.i("PageViewController::readPageNew")
-        val curChapter = curTextChapter ?: run {
-            Logger.e("当前章节为空")
-            onFinished(false)
-            return
-        }
-
-        val curPage = currentPage()
-
-        // 1. 启动TTS服务（如果未启动）
-        if (!ttsServiceController.isServiceRunning(context)) {
-            ttsServiceController.startService(context)
-            // 等待服务启动
-            delay(1000)
-        }
-
-        // 2. 设置播放数据
-        val success = ttsServiceController.setSpeakStartChapterAndPage(
-            context,
-            curChapter,
-            curPage,
-            bookTitle = book?.title ?: "",
-            chapterTitle = curChapter.title,
-            bookCover = book?.coverImage,
-            chapterSize = curChapter.chaptersSize,
-        )
-
-        if (!success) {
-            Logger.e("设置播放数据失败")
-            onFinished(false)
-            return
-        }
-
-        // 3. 开始播放
-        ttsServiceController.play(context)
-
-        // 4. 监听播放完成
-        scope?.launch {
-            ttsStateHolder.state
-                .filter { !it.isPlaying && it.error == null }
-                .first()
-                .let {
-                    onFinished(false)
-                }
-        }
-        onFinished(true)
-        initTtsStateListener()
-    }
-    /**
-     * 停止朗读（新版本）
-     */
-    fun stopReadPageNew() {
-        Logger.i("PageViewController::stopReadPageNew")
-
-        ttsServiceController.stop(context)
-
-        // 清理状态
-        speekBookStatus = SpeekBookStatus()
-        callBack?.upContent()
-    }
-    /**
-     * 简化的回调接口实现
-     */
-    private val simpleSpeakCallback = object : SimpleTtsCallback {
-        override suspend fun onSentenceComplete(locator: Locator, sentenceIndex: Int): Boolean {
-            Logger.d("句子完成: $locator, index=$sentenceIndex")
-
-            // 状态已通过TtsStateHolder更新，这里不需要额外处理
-            return true
-        }
-
-        override suspend fun loadNextChapter(currentChapterIndex: Int): TextChapter? {
-            Logger.i("需要加载下一章: currentChapterIndex=$currentChapterIndex, durChapterIndex=$durChapterIndex")
-
-            // 计算下一章的索引
-            val nextChapterIndex = currentChapterIndex + 1
-            Logger.d("请求章节索引: $nextChapterIndex")
-
-            // 优先从缓存获取
-            val cachedChapter = when {
-                nextChapterIndex == durChapterIndex -> curTextChapter
-                nextChapterIndex == durChapterIndex + 1 -> nextTextChapter
-                nextChapterIndex == durChapterIndex - 1 -> prevTextChapter
-                else -> null
-            }
-
-            cachedChapter?.let { chapter ->
-                Logger.i("从缓存获取章节: index=${chapter.position}")
-                return chapter
-            }
-
-            // 缓存未命中，触发异步加载
-            Logger.w("缓存未命中，触发异步加载章节: $nextChapterIndex")
-            scope?.launchIO {
-                try {
-                    loadContent(nextChapterIndex, upContent = false, resetPageOffset = false)
-                    Logger.i("异步章节加载完成: $nextChapterIndex")
-                } catch (e: Exception) {
-                    Logger.e("异步加载章节失败: ${e.message}")
-                    ttsStateHolder.reportError(TtsError.ChapterLoadFailed(nextChapterIndex), context)
-                }
-            }
-
-            // 返回null表示需要等待异步加载
-            return null
-        }
-
-        override suspend fun onPlaybackComplete(success: Boolean, errorMessage: String?) {
-            Logger.i("播放完成: success=$success, error=$errorMessage")
-
-            if (success) {
-                // 正常结束
-                onSpeakFinished?.invoke()
-            } else {
-                // 错误处理
-                val message = errorMessage ?: context.getString(R.string.tts_error_playback_failed_simple)
-                showErrorToast(message)
-            }
-
-            stopReadPageNew()
-        }
-    }
-
-    fun showErrorToast(msg: String) {
-        scope?.launchMain {
-            try {
-                Toast.makeText(context, msg, Toast.LENGTH_LONG).show()
-            } catch (e: Exception) {
-                Logger.e("显示错误提示失败: ${e.message}")
-            }
-        }
-    }
-
-    private suspend fun provideNextChapterToTts(requestedChapterIndex: Int) {
-        Logger.i("PageViewController::provideNextChapterToTts,$requestedChapterIndex")
-
-        // 从缓存获取或加载章节
-        val chapter = when {
-            requestedChapterIndex == durChapterIndex + 1 -> nextTextChapter
-            requestedChapterIndex == durChapterIndex -> curTextChapter
-            requestedChapterIndex == durChapterIndex - 1 -> prevTextChapter
-            else -> null
-        }
-
-        if (chapter != null) {
-            Logger.i("从缓存提供章节: index=${chapter.position}")
-            // 通过TtsServiceController发送章节到服务
-            ttsServiceController.setSpeakStartChapterAndPage(
-                context, chapter,
-                null,
-                bookTitle = book?.title ?: "",
-                chapterTitle = chapter.title,
-                bookCover = book?.coverImage,
-                chapterSize = chapter.chaptersSize
-            )
-        } else {
-            Logger.w("缓存中没有章节 $requestedChapterIndex，尝试加载")
-            try {
-                loadContent(requestedChapterIndex, upContent = false, resetPageOffset = false)
-                // 等待加载完成后再次尝试提供
-                delay(500)
-                val loadedChapter = when {
-                    requestedChapterIndex == durChapterIndex + 1 -> nextTextChapter
-                    requestedChapterIndex == durChapterIndex -> curTextChapter
-                    else -> null
-                }
-                if (loadedChapter != null) {
-                    Logger.i("加载后提供章节: index=${loadedChapter.position}")
-                    ttsServiceController.setSpeakStartChapterAndPage(
-                        context, loadedChapter, null,
-                        bookTitle = book?.title ?: "",
-                        chapterTitle = loadedChapter.title,
-                        bookCover = book?.coverImage,
-                        chapterSize = loadedChapter.chaptersSize
-                    )
-                } else {
-                    Logger.e("加载章节失败: $requestedChapterIndex")
-                    ttsStateHolder.reportError(TtsError.ChapterLoadFailed(requestedChapterIndex), context)
-                }
-            } catch (e: Exception) {
-                Logger.e("加载章节异常: ${e.message}")
-                ttsStateHolder.reportError(TtsError.ChapterLoadFailed(requestedChapterIndex), context)
-            }
-        }
-    }
 
     interface OnClickListener {
         fun onCenterClick()
@@ -489,9 +145,6 @@ open class PageViewController @Inject constructor(
     override var isScroll: Boolean = false
 
     private var screenTimeOut: Long = 0
-
-    @Volatile
-    private var speekBookStatus: SpeekBookStatus = SpeekBookStatus()
 
     val progression: Double
         get() {
@@ -661,27 +314,6 @@ open class PageViewController @Inject constructor(
         return true
     }
 
-    override fun changeChapterAndPage(newChapterIndex: Int, newPageIndex: Int, newProgress: Double): Boolean {
-        Logger.i("PageViewController::changeChapterAndPage:newChapterIndex=$newChapterIndex,newPageIndex=$newPageIndex,newProgress=$newProgress")
-        if (durChapterIndex != newChapterIndex) {
-            durChapterIndex = newChapterIndex
-        }
-        if (durPageIndex != newPageIndex) {
-            durPageIndex = newPageIndex
-        }
-        if (newProgress >= 0.0) {
-            val curChapter = curTextChapter ?: return false
-            if (curChapter.totalWordCount == 0L || curChapter.wordCount == 0L) {
-                Logger.e("PageViewController::changeChapter failed, no word count info")
-                return false
-            }
-
-            targetProgress = newProgress
-        }
-        loadContent(true)
-        saveRead()
-        return true
-    }
 
     override fun findLinkContent(href: String): String? {
         var anchorId = ""
@@ -749,7 +381,7 @@ open class PageViewController @Inject constructor(
         Logger.d("PageViewController::loadContent cancelled previous job, version=$currentVersion")
         
         // 使用 launchIO 而不是 launch(Dispatchers.IO)，保持与现有代码一致
-        loadContentJob = scope?.launchIO {
+        loadContentJob = scope.launchIO {
             // 双重检查：协程活性 + 版本号验证
             if (!isActive) {
                 Logger.d("PageViewController::loadContent cancelled - coroutine not active")
@@ -761,9 +393,9 @@ open class PageViewController @Inject constructor(
             }
             
             Logger.d("PageViewController::loadContent executing - version=$currentVersion")
-            loadContent(durChapterIndex, resetPageOffset = resetPageOffset)
-            loadContent(durChapterIndex + 1, resetPageOffset = resetPageOffset)
-            loadContent(durChapterIndex - 1, resetPageOffset = resetPageOffset)
+            loadChapter(durChapterIndex, resetPageOffset = resetPageOffset)
+            loadChapter(durChapterIndex + 1, resetPageOffset = resetPageOffset)
+            loadChapter(durChapterIndex - 1, resetPageOffset = resetPageOffset)
         }
     }
 
@@ -776,7 +408,7 @@ open class PageViewController @Inject constructor(
 
     private fun saveRead() {
         val curBook = book ?: return
-        scope?.launchIO {
+        scope.launchIO {
             val lastTime = System.currentTimeMillis()
             val lastChapterIndex = durChapterIndex
             val lastPageInChapter = durPageIndex
@@ -983,7 +615,7 @@ open class PageViewController @Inject constructor(
         return targetMark
     }
 
-    private suspend fun loadContent(chapterIndex: Int, upContent: Boolean = true, resetPageOffset: Boolean) {
+    override suspend fun loadChapter(chapterIndex: Int, upContent: Boolean, resetPageOffset: Boolean) {
 //        Logger.i("PageViewController::loadContent:index=$index,upContent=$upContent,resetPageOffset=$resetPageOffset,bookid=${book?.id},bookname=${book?.title}")
         if (chapterIndex < 0) return
         val curBook = book ?: return
@@ -1157,16 +789,16 @@ open class PageViewController @Inject constructor(
         curTextChapter = nextTextChapter
         nextTextChapter = null
         if (curTextChapter == null) {
-            Coroutines.mainScope().launchIO {
+            scope.launchIO {
                 Logger.d("PageViewController::moveToNextChapter:when curTextChapter is null, durChapterIndex=$durChapterIndex")
-                loadContent(durChapterIndex, upContent, false)
+                loadChapter(durChapterIndex, upContent, false)
             }
         } else {
             callBack?.upContent()
         }
-        Coroutines.mainScope().launchIO {
+        scope.launchIO {
             Logger.d("PageViewController::moveToNextChapter:, durChapterIndex=${durChapterIndex + 1}")
-            loadContent(durChapterIndex.plus(1), upContent, false)
+            loadChapter(durChapterIndex.plus(1), upContent, false)
         }
         saveRead()
         callBack?.upView()
@@ -1192,25 +824,21 @@ open class PageViewController @Inject constructor(
         prevTextChapter = null
 
         if (curTextChapter == null) {
-            Coroutines.mainScope().launchIO {
+            scope.launchIO {
                 Logger.d("PageViewController::moveToPrevChapter when curTextChapter is null, durChapterIndex=${durChapterIndex}")
-                loadContent(durChapterIndex, upContent, false)
+                loadChapter(durChapterIndex, upContent, false)
             }
         } else if (upContent) {
             callBack?.upContent()
         }
 
-        Coroutines.mainScope().launchIO {
+        scope.launchIO {
             Logger.d("PageViewController::moveToPrevChapter, durChapterIndex=${durChapterIndex - 1}")
-            loadContent(durChapterIndex.minus(1), upContent, false)
+            loadChapter(durChapterIndex.minus(1), upContent, false)
         }
         saveRead()
         callBack?.upView()
         return true
-    }
-
-    override fun getSpeakBookStatus(): SpeekBookStatus {
-        return this.speekBookStatus
     }
 
     override fun clickCenter() {
@@ -1441,10 +1069,7 @@ open class PageViewController @Inject constructor(
         }
     }
 
-    fun currentPage() : TextPage? = textChapter(0)?.page(durChapterPos())
-
-
-    private var onSpeakFinished: (()->Unit)? = null
+    override fun currentPage() : TextPage? = textChapter(0)?.page(durChapterPos())
 
     /***
      * update view after modify preference
@@ -1461,14 +1086,14 @@ open class PageViewController @Inject constructor(
         }
     }
 
-    fun clear() {
-        scope?.launchIO {
+    override fun clear() {
+        super.clear()
+        scope.launchIO {
             book?.let {
                 BookHelper.closeBook(context, it, textParser)
             }
             book = null
         }
-        onSpeakFinished = null
         callBack = null
         prevTextChapter = null
         curTextChapter = null
@@ -1486,8 +1111,6 @@ open class PageViewController @Inject constructor(
         autoPageProgress = 0
         pageFactory = null
         isScroll = false
-        ttsStateCollector?.cancel()
-        ttsStateCollector = null
         Logger.i("PageViewController:clear()")
     }
 
@@ -1499,4 +1122,49 @@ open class PageViewController @Inject constructor(
         callBack?.moveToPrevPage()
     }
 
+
+
+    /**
+     * 停止朗读（新版本）
+     */
+    override fun stopReadPageNew() {
+        Logger.i("PageViewController::stopReadPageNew")
+        super.stopReadPageNew()
+        callBack?.upContent()
+    }
+
+    override fun refreshView() {
+        callBack?.upContent()
+    }
+
+    override fun changeChapterAndPage(newChapterIndex: Int, newPageIndex: Int, newProgress: Double): Boolean {
+        Logger.i("PageViewController::changeChapterAndPage:newChapterIndex=$newChapterIndex,newPageIndex=$newPageIndex,newProgress=$newProgress")
+
+        if (  durChapterPos() != newChapterIndex) {
+            durChapterIndex = newChapterIndex
+        }
+        if (durPageIndex != newPageIndex) {
+            durPageIndex = newPageIndex
+        }
+        if (newProgress >= 0.0) {
+            val curChapter = curTextChapter ?: return false
+            if (curChapter.totalWordCount == 0L || curChapter.wordCount == 0L) {
+                Logger.e("PageViewController::changeChapter failed, no word count info")
+                return false
+            }
+
+            targetProgress = newProgress
+        }
+        loadContent(true)
+        saveRead()
+        return true
+    }
+
+    override suspend fun updateReadingTime() {
+        clickListener?.updateReadingTime()
+    }
+
+    override fun getSpeakBookStatus(): SpeekBookStatus {
+        return this.speakingStatus
+    }
 }
