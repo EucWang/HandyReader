@@ -103,8 +103,15 @@ std::string epub_util::cover_to_zip_entity(const std::string &spine_name) {
         return ret;
     }
 
+    std::string spine = spine_name;
+    if (string_ext::startWith(spine, "/")) {
+        spine = spine.substr(1);
+    }
+
     auto it = std::find_if(zipEntities.begin(), zipEntities.end(), [=](std::string &item){
-        return item.find(spine_name) != std::string::npos || spine_name.find(item) != std::string::npos;
+        return !string_ext::endsWith(item, "/") &&
+         !string_ext::endsWith(spine, "/") &&
+         item.find(spine) != std::string::npos;
     });
     if (it != zipEntities.end()) {
         ret = (*it);
@@ -623,21 +630,7 @@ int epub_util::getChapters(/*out*/std::vector<NavPoint> &points) {
     // 然而，许多出版商为了向前兼容 EPUB 2 的阅读器，仍然会保留 toc.ncx 文件
     std::string ncx_data;
     std::string nav_data;
-    if (!ncx_path.empty()) {
-        ncx_path = cover_to_zip_entity(ncx_path);
-         if (1 != load_zip_entity_data(ncx_path, ncx_data)) {
-            LOGE("%s failed get0 [%s] ncx data failed", __func__, ncx_path.c_str());
-            return 0;
-        }
-        LOGD("%s ncx_path[%s]", __func__, ncx_path.c_str());
-
-        if (!ncx_data.empty()) {
-            if (1 != xml_ext::parseNcxData(ncx_data, points)) {
-                LOGE("%s failed, cannot pass ncx", __func__);
-                return 0;
-            }
-        }
-    } else if (!nav_path.empty()) {
+    if (!nav_path.empty()) {
         nav_path = cover_to_zip_entity(nav_path);
         if (1 != load_zip_entity_data(nav_path, nav_data)) {
             LOGE("%s failed get1 [%s] nav data failed", __func__, nav_path.c_str());
@@ -647,6 +640,20 @@ int epub_util::getChapters(/*out*/std::vector<NavPoint> &points) {
 
         if (!nav_data.empty()) {
             if (1 != xml_ext::parseEpub3NcxData(nav_data, points, nav_path)) {
+                LOGE("%s failed, cannot pass ncx", __func__);
+                return 0;
+            }
+        }
+    } else if (!ncx_path.empty()) {
+        ncx_path = cover_to_zip_entity(ncx_path);
+        if (1 != load_zip_entity_data(ncx_path, ncx_data)) {
+            LOGE("%s failed get0 [%s] ncx data failed", __func__, ncx_path.c_str());
+            return 0;
+        }
+        LOGD("%s ncx_path[%s]", __func__, ncx_path.c_str());
+
+        if (!ncx_data.empty()) {
+            if (1 != xml_ext::parseNcxData(ncx_data, points)) {
                 LOGE("%s failed, cannot pass ncx", __func__);
                 return 0;
             }
