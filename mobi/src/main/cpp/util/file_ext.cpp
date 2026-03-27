@@ -12,11 +12,15 @@
 std::string file_ext::handle_filename(const std::string &filename) {
     std::string separator = "/";
     std::string underscore = "_";
-    std::string predir = "..";
+    std::string predir1 = "../";
+    std::string predir2 = "./";
     std::string name;
     name.append(filename);
-    if (string_ext::startWith(name, predir)) {
-        name = name.substr(predir.length());
+    if (string_ext::startWith(name, predir1)) {
+        name = name.substr(predir1.length());
+    }
+    if (string_ext::startWith(name, predir2)) {
+        name = name.substr(predir2.length());
     }
     if (name.find(separator) != std::string::npos) {
         string_ext::replace_all(name, separator, underscore);
@@ -110,4 +114,41 @@ std::string file_ext::get_file_suffix(std::string &path_name) {
         return path_name.substr(index + 1);
     }
     return "";
+}
+
+/***
+ * thepath 需要计算和判断的路径,有可能是绝对路径,有可能是相对路径, 还有可能只是一个文件名
+ * 如果是绝对路径,则直接返回,
+ * 如果是相对路径或者只是一个文件名,则可以依据absolate_path这个路径来确定其真实的绝对路径,
+ *
+ * @param thepath  需要计算和判断的路径,
+ * @param absolate_path  一个文件的绝对路径
+ * @return
+ */
+std::string file_ext::calc_file_path_by_other_obsolate_path(const std::string &thepath, const std::string &absolate_path) {
+    if (thepath.empty()) {
+        return "";
+    }
+
+    if (string_ext::startWith(thepath, "/")) {
+        return thepath;
+    }
+
+    try {
+        fs::path parentDir;
+        if (!absolate_path.empty()) {
+            parentDir = fs::path(absolate_path).parent_path();
+        }
+
+        if (parentDir.empty()) {
+            parentDir = ".";
+        }
+
+        fs::path result = parentDir / thepath;
+        return fs::weakly_canonical(result).string();
+    } catch (const std::exception &e) {
+        LOGE("%s: failed to calc path, thepath[%s], absolate_path[%s], error[%s]",
+             __func__, thepath.c_str(), absolate_path.c_str(), e.what());
+        return "";
+    }
 }

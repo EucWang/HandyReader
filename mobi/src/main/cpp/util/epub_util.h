@@ -154,6 +154,8 @@ private:
 
     std::string opf_path;
     std::string ncx_path;
+    std::string nav_path;
+    int epubVersion;
 
     int epub_init();
 

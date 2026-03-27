@@ -293,6 +293,141 @@ void xml_ext::parseNavData(tinyxml2::XMLElement *firstNavPoint, std::vector<NavP
     }
 }
 
+int playOrder = 0;
+int xml_ext::parseEpub3NcxData(std::string &nav_data, std::vector<NavPoint> &points, std::string &nav_path) {
+    tinyxml2::XMLDocument doc;
+    if (doc.Parse(nav_data.c_str(), nav_data.length()) != tinyxml2::XML_SUCCESS) {
+        LOGE("%s failed to parse epub3 nav", __func__ );
+        return 0;
+    }
+
+    tinyxml2::XMLElement *root = doc.RootElement();
+    if (!root) {
+        LOGE("%s failed parse epub3 nav, no root element", __func__);
+        return 0;
+    }
+
+    tinyxml2::XMLElement *bodyEle = root->FirstChildElement("body");
+    if (!bodyEle) {
+        LOGE("%s failed parse epub3 nav, no body element", __func__);
+        return 0;
+    }
+    const tinyxml2::XMLElement * navEle = xml_ext::getChildByNameAndAttr(bodyEle, "nav", "epub:type", "toc");
+    if (!navEle) {
+        LOGE("%s failed parse epub3 nav, no nav element", __func__);
+        return 0;
+    }
+
+    const tinyxml2::XMLElement *olEle = navEle->FirstChildElement("ol");
+    const tinyxml2::XMLElement *liELe = navEle->FirstChildElement("li");
+    tinyxml2::XMLElement *navRootEle;
+    if (olEle != nullptr) {
+        navRootEle = const_cast<tinyxml2::XMLElement*>(olEle);
+    } else if (liELe != nullptr) {
+        navRootEle = const_cast<tinyxml2::XMLElement*>(liELe);
+    } else {
+        navRootEle = nullptr;
+        LOGE("%s failed parse epub3 nav, no ol or li element", __func__);
+        return 0;
+    }
+    playOrder = 0;
+    parseEpub3NavInnerData(reinterpret_cast<tinyxml2::XMLElement *>(navRootEle), points, nav_path);
+    std::sort(points.begin(), points.end());
+    return 1;
+}
+
+NavPoint xml_ext::parseTagA2NavPoint(const tinyxml2::XMLElement *tagA, std::string& parentId, std::string& nav_path) {
+    std::string label;
+    xml_ext::get_ele_words(const_cast<tinyxml2::XMLElement *>(tagA), label);
+
+    std::string src = xml_ext::getEleAttr(tagA, "href");
+    src = file_ext::calc_file_path_by_other_obsolate_path(src, nav_path);
+    src = src.substr(1);
+
+    return NavPoint {
+            string_ext::generate_uuid(),
+            parentId,
+            playOrder++,
+            label,
+            src
+    };
+}
+
+int xml_ext::parseEpub3NavInnerData(tinyxml2::XMLElement *childEle, std::vector<NavPoint> &vectors, std::string& nav_path) {
+    if (childEle == nullptr) {
+        LOGE("%s: childEle is null", __func__);
+        return 0;
+    }
+    
+    LOGD("%s: start parsing epub3 nav inner data", __func__);
+    
+    std::stack<std::pair<tinyxml2::XMLElement*, std::string>> contextStack;
+    std::string currentParentId = "";
+    tinyxml2::XMLElement* ele = childEle;
+    
+    std::string eleName = xml_ext::ele_name(ele);
+    if (eleName == "ol") {
+        ele = ele->FirstChildElement("li");
+        if (ele == nullptr) {
+            LOGW("%s: ol has no li children", __func__);
+            return 1;
+        }
+    }
+    
+    while (ele != nullptr) {
+        eleName = xml_ext::ele_name(ele);
+        
+        if (eleName == "ol") {
+            tinyxml2::XMLElement* liEle = ele->FirstChildElement("li");
+            if (liEle != nullptr) {
+                ele = liEle;
+                continue;
+            } else {
+                LOGW("%s: ol element has no li children, breaking", __func__);
+                break;
+            }
+        }
+        
+        if (eleName == "li") {
+            tinyxml2::XMLElement* aEle = ele->FirstChildElement("a");
+            if (aEle != nullptr) {
+                NavPoint point = parseTagA2NavPoint(aEle, currentParentId, nav_path);
+                vectors.push_back(point);
+                
+//                LOGD("%s: created NavPoint[id=%s, parentId=%s, playOrder=%d, text=%s, src=%s]",
+//                     __func__, point.id.c_str(), point.parentId.c_str(),
+//                     point.playOrder, point.text.c_str(), point.src.c_str());
+                
+                tinyxml2::XMLElement* nestedOl = ele->FirstChildElement("ol");
+                if (nestedOl != nullptr) {
+                    contextStack.push({ele, currentParentId});
+                    currentParentId = point.id;
+                    ele = nestedOl->FirstChildElement("li");
+                    continue;
+                }
+            } else {
+                LOGW("%s: li element has no a tag, skipping", __func__);
+            }
+            
+            ele = ele->NextSiblingElement("li");
+            
+            if (ele == nullptr && !contextStack.empty()) {
+                auto [parentLi, parentId] = contextStack.top();
+                contextStack.pop();
+                currentParentId = parentId;
+                ele = parentLi->NextSiblingElement("li");
+            }
+            continue;
+        }
+        
+        LOGW("%s: unexpected element type: %s, skipping", __func__, eleName.c_str());
+        break;
+    }
+    
+    LOGD("%s: parsing completed, total NavPoints: %zu", __func__, vectors.size());
+    return 1;
+}
+
 int xml_ext::parseNcxData(std::string &ncx_data, std::vector<NavPoint> &points) {
     tinyxml2::XMLDocument doc;
     if (doc.Parse(ncx_data.c_str(), ncx_data.length()) != tinyxml2::XML_SUCCESS) {

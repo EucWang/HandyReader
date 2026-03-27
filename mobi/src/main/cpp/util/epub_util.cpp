@@ -6,7 +6,7 @@
 
 const std::string epub_zfile_container = "META-INF/container.xml";
 const std::string epub_zfile_mimetype = "mimetype";
-const std::string epub_zfile_toc_ncx = "toc.ncx";
+//const std::string epub_zfile_toc_ncx = "toc.ncx";
 const std::string epub_zfile_nav_xhtml = "nav.xhtml";   //epub3 中 可能会用这个文件代替toc.ncx
 
 int epub_util::open_zip_and_entities() {
@@ -104,7 +104,7 @@ std::string epub_util::cover_to_zip_entity(const std::string &spine_name) {
     }
 
     auto it = std::find_if(zipEntities.begin(), zipEntities.end(), [=](std::string &item){
-        return item.find(spine_name) != std::string::npos;
+        return item.find(spine_name) != std::string::npos || spine_name.find(item) != std::string::npos;
     });
     if (it != zipEntities.end()) {
         ret = (*it);
@@ -197,6 +197,7 @@ int epub_util::epub_init() {
     meta_info.isbn = xml_ext::getText(xml_ext::getChildByNameAndAttr(opfMetadataEle, "dc:identifier", "opf:scheme", "ISBN"));
 
     std::string spine_toc_id = "";
+    std::string spine_nav_id = "";
     auto spineElem = opfRoot->FirstChildElement("spine");
     if (spineElem != nullptr) {
         std::string toc_id = xml_ext::getEleAttr(spineElem, "toc");
@@ -208,6 +209,10 @@ int epub_util::epub_init() {
         while (item != nullptr) {
             std::string idref = xml_ext::getEleAttr(item, "idref");
             this->spines.emplace_back(BookSpine{idref});
+
+            if (idref == epub_zfile_nav_xhtml) {
+                spine_nav_id = idref;
+            }
 
             item = item->NextSiblingElement("itemref");
         }
@@ -229,14 +234,17 @@ int epub_util::epub_init() {
             if (!spine_toc_id.empty() && id == spine_toc_id && media_type == xml_ext::MediaTypeNcx) {
                 ncx_path = href;
             }
+            if (!spine_nav_id.empty() && id == spine_nav_id && media_type == xml_ext::MediaTypeHtml) {
+                nav_path = href;
+            }
 
             item = item->NextSiblingElement("item");
         }
     }
 
-    if (ncx_path.empty()) {
-        ncx_path = epub_zfile_toc_ncx;
-    }
+//    if (ncx_path.empty()) {
+//        ncx_path = epub_zfile_toc_ncx;
+//    }
     std::string zipNcxPath;
     for(std::string &item : this->zipEntities) {
         if (string_ext::endsWith(item, ".ncx")) {
@@ -246,9 +254,11 @@ int epub_util::epub_init() {
     }
     if (!zipNcxPath.empty() && ncx_path != zipNcxPath) {
         ncx_path = zipNcxPath;
+    } else if (zipNcxPath.empty()) {
+        ncx_path = "";
     }
 
-    LOGI("%s:invoke done ncx_path[%s]", __func__, ncx_path.c_str());
+    LOGI("%s:invoke done ncx_path[%s], nav_path[%s]", __func__, ncx_path.c_str(), nav_path.c_str());
     return 1;
 }
 
@@ -612,17 +622,34 @@ int epub_util::getChapters(/*out*/std::vector<NavPoint> &points) {
     //toc.ncx 文件不是必须的。根据 EPUB 3 的规范，toc.ncx 文件已被 nav.xhtml 所取代，因此它不再是 EPUB 的强制要求。
     // 然而，许多出版商为了向前兼容 EPUB 2 的阅读器，仍然会保留 toc.ncx 文件
     std::string ncx_data;
-    ncx_path = cover_to_zip_entity(ncx_path);
-    if (1 != load_zip_entity_data(ncx_path, ncx_data)) {
-        LOGE("%s failed get0 [%s] ncx data failed", __func__, ncx_path.c_str());
-        return 0;
-    }
-    LOGD("%s ncx_path[%s]", __func__, ncx_path.c_str());
-
-    if (!ncx_data.empty()) {
-        if (1 != xml_ext::parseNcxData(ncx_data, points)) {
-            LOGE("%s failed, cannot pass ncx", __func__);
+    std::string nav_data;
+    if (!ncx_path.empty()) {
+        ncx_path = cover_to_zip_entity(ncx_path);
+         if (1 != load_zip_entity_data(ncx_path, ncx_data)) {
+            LOGE("%s failed get0 [%s] ncx data failed", __func__, ncx_path.c_str());
             return 0;
+        }
+        LOGD("%s ncx_path[%s]", __func__, ncx_path.c_str());
+
+        if (!ncx_data.empty()) {
+            if (1 != xml_ext::parseNcxData(ncx_data, points)) {
+                LOGE("%s failed, cannot pass ncx", __func__);
+                return 0;
+            }
+        }
+    } else if (!nav_path.empty()) {
+        nav_path = cover_to_zip_entity(nav_path);
+        if (1 != load_zip_entity_data(nav_path, nav_data)) {
+            LOGE("%s failed get1 [%s] nav data failed", __func__, nav_path.c_str());
+            return 0;
+        }
+        LOGE("%s failed get0 [%s] nav data failed", __func__ , nav_path.c_str());
+
+        if (!nav_data.empty()) {
+            if (1 != xml_ext::parseEpub3NcxData(nav_data, points, nav_path)) {
+                LOGE("%s failed, cannot pass ncx", __func__);
+                return 0;
+            }
         }
     }
     if (1 != parseOpfData(points)) {

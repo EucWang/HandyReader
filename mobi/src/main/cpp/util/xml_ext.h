@@ -14,7 +14,9 @@
 #include <stack>
 #include <list>
 #include <set>
+#include <utility>
 #include "doc_text.h"
+#include "file_ext.h"
 
 typedef struct _NodeTag {
     tinyxml2::XMLNode * node;
@@ -97,6 +99,9 @@ public:
 
     static int parseNcxData(std::string &ncx_data, std::vector<NavPoint> &points);
 
+    static int parseEpub3NcxData(std::string &ncx_data, std::vector<NavPoint> &points, std::string& nav_path);
+    static  int parseEpub3NavInnerData(tinyxml2::XMLElement *olEle, std::vector<NavPoint> &vectors, std::string& nav_path);
+    static NavPoint parseTagA2NavPoint(const tinyxml2::XMLElement *tagA, std::string& parentId, std::string& nav_path);
     static bool has_child_img(tinyxml2::XMLElement *elem);
 
     /****

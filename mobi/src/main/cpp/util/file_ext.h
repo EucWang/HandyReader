@@ -36,6 +36,17 @@ public:
     static int writeDataToFile(const std::string &filepath, unsigned char* data, size_t data_size);
 
     /***
+     * thepath 需要计算和判断的路径,有可能是绝对路径,有可能是相对路径, 还有可能只是一个文件名
+     * 如果是绝对路径,则直接返回,
+     * 如果是相对路径或者只是一个文件名,则可以依据absolate_path这个路径来确定其真实的绝对路径,
+     *
+     * @param thepath  需要计算和判断的路径,
+     * @param absolate_path  一个文件的绝对路径
+     * @return
+     */
+    static std::string calc_file_path_by_other_obsolate_path(const std::string &thepath, const std::string &absolate_path);
+
+    /***
      * 根据书名，图片类型后缀，得到给定目录下的封面图片路径
      * @param book_title
      * @param file_ext   取值：jpg gif png bmp
