@@ -36,6 +36,17 @@ This guide helps agentic coding agents work effectively in the HandyReader Andro
 ## Project Structure
 
 ### Module Organization
+
+#### Module Documentation
+- **[app/AGENTS.md](app/AGENTS.md)** - Main application module guide
+- **[base/AGENTS.md](base/AGENTS.md)** - Shared utilities module guide
+- **[bookread/AGENTS.md](bookread/AGENTS.md)** - Reading interface module guide
+- **[bookparser/AGENTS.md](bookparser/AGENTS.md)** - File format parsing module guide
+- **[mobi/AGENTS.md](mobi/AGENTS.md)** - MOBI format support module guide
+- **[jp2forandroid/AGENTS.md](jp2forandroid/AGENTS.md)** - JPEG2000 decoding module guide
+- **[text2speech/AGENTS.md](text2speech/AGENTS.md)** - TTS functionality module guide
+
+#### Module Overview
 - **app/** - Main application with UI layer (Compose screens, ViewModels)
 - **base/** - Shared utilities, base classes, common extensions
 - **bookread/** - Reading interface components and logic
