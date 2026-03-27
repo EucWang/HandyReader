@@ -48,7 +48,9 @@ class BookMapperImpl @Inject constructor() : BookMapper {
             scrollOffset = book.scrollOffset,
 
             crc = book.crc,
-            cachedDir = book.cachedDir.orEmpty()
+            cachedDir = book.cachedDir.orEmpty(),
+
+            importStatus = book.importStatus
 
         )
     }
@@ -94,7 +96,9 @@ class BookMapperImpl @Inject constructor() : BookMapper {
             narrator = bookEntity.narrator,
 
             crc = bookEntity.crc,
-            cachedDir = bookEntity.cachedDir
+            cachedDir = bookEntity.cachedDir,
+
+            importStatus = bookEntity.importStatus
         )
     }
 }

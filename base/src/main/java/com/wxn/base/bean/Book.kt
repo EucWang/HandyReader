@@ -51,4 +51,6 @@ data class Book(
     var crc: Int = 0,
     var cachedDir: String? = null,
 
+    var importStatus: Int = 0, // 导入状态: 0=正常, -1=导入失败
+
 ) : Parcelable

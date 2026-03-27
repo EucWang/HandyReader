@@ -15,13 +15,13 @@ import kotlinx.coroutines.flow.Flow
 
 @Dao
 interface BookDao {
-    @Query("SELECT * FROM books WHERE deleted = 0")
+    @Query("SELECT * FROM books WHERE deleted = 0 AND importStatus = 0")
     fun getAllBooks(): Flow<List<BookEntity>>
 
     @Query(
         """
         SELECT * FROM books 
-        WHERE deleted = 0 
+        WHERE deleted = 0 AND importStatus = 0
         AND (:readingStatuses IS NULL OR readingStatus IN (:readingStatuses))
         AND (:fileTypes IS NULL OR fileType IN (:fileTypes))
         ORDER BY 
@@ -49,7 +49,7 @@ interface BookDao {
     @Query(
         """
         SELECT * FROM books
-        WHERE deleted = 0
+        WHERE deleted = 0 AND importStatus = 0
         AND (:allStatus == 1 OR readingStatus IN (:readingStatuses))
         AND (:fileTypes IS NULL OR fileType IN (:fileTypes))
         ORDER BY
@@ -79,7 +79,7 @@ interface BookDao {
         """
         SELECT COUNT(*) FROM 
         ( SELECT * FROM books
-        WHERE deleted = 0
+        WHERE deleted = 0 AND importStatus = 0
         AND (:readingStatuses IS NULL OR readingStatus IN (:readingStatuses))
         AND (:fileTypes IS NULL OR fileType IN (:fileTypes))
         ORDER BY
@@ -105,7 +105,7 @@ interface BookDao {
     ): Int
 
 
-    @Query("SELECT * FROM books WHERE deleted = 1")
+    @Query("SELECT * FROM books WHERE deleted = 1 AND importStatus = 0")
     fun getDeletedBooks(): Flow<List<BookEntity>>
 
     @Query("SELECT uri FROM books")

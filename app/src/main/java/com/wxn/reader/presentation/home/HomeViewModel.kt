@@ -637,7 +637,8 @@ class HomeViewModel
         _selectionMode.value = false
     }
 
-    private suspend fun addNewBook(documentFile: DocumentFile) {
+    private suspend fun addNewBook(documentFile: DocumentFile) : Int {
+        var ret = 0
         withContext(Dispatchers.IO) {
             try {
                 val cachedFile = CachedFileCompat.fromUri(context,
@@ -649,16 +650,57 @@ class HomeViewModel
                 val book = fileParser.parse(cachedFile)
                 if (book != null) {
                     retry {
-                        insertBookUseCase(book)
+                        insertBookUseCase(book.copy(importStatus = 0))
                     }
+                    ret = 1
                 } else {
                     Logger.e("HomeViewModel::Error add book: ${documentFile.name}")
+                    //导入失败的书籍,需要记录下来,以确保下次导入时不会重复导入
+                    val extension = documentFile.name?.substringAfterLast(".", "") ?: ""
+                    val failedBook = Book(
+                        title = documentFile.name ?: "Unknown",
+                        filePath = documentFile.uri.toString(),
+                        author = "",
+                        description = null,
+                        coverImage = null,
+                        scrollIndex = 0,
+                        scrollOffset = 0,
+                        progress = 0f,
+                        lastOpened = null,
+                        category = null,
+                        fileType = if (extension.isNotEmpty()) extension else FileType.UNKNOWN.typeName(),
+                        publishDate = null,
+                        publisher = null,
+                        language = null,
+                        numberOfPages = null,
+                        wordCount = 0,
+                        locator = "",
+                        deleted = false,
+                        rating = 0f,
+                        isFavorite = false,
+                        readingStatus = 0,
+                        readingTime = 0,
+                        startReadingDate = null,
+                        endReadingDate = null,
+                        review = null,
+                        duration = null,
+                        narrator = null,
+                        crc = 0,
+                        cachedDir = null,
+                        importStatus = -1
+                    )
+                    try {
+                        insertBookUseCase(failedBook)
+                    } catch (e: Exception) {
+                        Logger.e("HomeViewModel::Error saving failed book: ${e.message}")
+                    }
                 }
             } catch (e: Exception) {
                 Logger.e("HomeViewModel::Error adding book: ${documentFile.name}, ${e.message}")
                 throw e
             }
         }
+        return ret
     }
 
     fun updateBook(updatedBook: Book, updatedReadingStatus: Boolean = false) {

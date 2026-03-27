@@ -48,6 +48,7 @@ data class BookEntity(
 
     var cachedDir: String = "",         //+ 缓存目录, 当缓存目录创建成功之后，会设置这个值
     var crc: Int = 0,                   //+  文件校验码
+    var importStatus: Int = 0,          //+ 导入状态: 0=正常, -1=导入失败
 )
 
 enum class FileType {

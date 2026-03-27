@@ -2,6 +2,8 @@ package com.wxn.reader.data.source.local
 
 import androidx.room.Database
 import androidx.room.RoomDatabase
+import androidx.room.migration.Migration
+import androidx.sqlite.db.SupportSQLiteDatabase
 import com.wxn.reader.data.dto.BookAnnotationEntity
 import com.wxn.reader.data.dto.BookChapterEntity
 import com.wxn.reader.data.dto.BookEntity
@@ -30,7 +32,7 @@ import com.wxn.reader.data.source.local.dao.ShelfDao
         ReadingActiveEntity::class,
         BookChapterEntity::class
     ],
-    version = 1,
+    version = 2,
     exportSchema = true,
 )
 abstract class AppDatabase : RoomDatabase() {
@@ -42,4 +44,14 @@ abstract class AppDatabase : RoomDatabase() {
     abstract fun bookShelfDao(): BookShelfDao
     abstract fun readingActivityDao(): ReadingActivityDao
     abstract fun bookChapterDao(): ChapterDao
+
+    companion object {
+        val MIGRATION_1_2 = object : Migration(1, 2) {
+            override fun migrate(database: SupportSQLiteDatabase) {
+                database.execSQL(
+                    "ALTER TABLE books ADD COLUMN importStatus INTEGER NOT NULL DEFAULT 0"
+                )
+            }
+        }
+    }
 }
