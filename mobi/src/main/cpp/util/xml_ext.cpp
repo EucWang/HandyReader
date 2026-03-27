@@ -25,6 +25,8 @@ const std::string &xml_ext::MediaTypeOpf = "application/oebps-package+xml";  //o
 const std::string &xml_ext::MediaTypeNcx = "application/x-dtbncx+xml";       //ncx
 const std::string &xml_ext::MediaTypeDat = "application/unknown";            //data
 
+int totalPlayOrder = 0;
+
 std::string xml_ext::ele_name(const tinyxml2::XMLElement *elem) {
     std::string ret;
     if (elem != nullptr) {
@@ -267,16 +269,27 @@ const tinyxml2::XMLElement *xml_ext::getChildByNameAndAttr(const tinyxml2::XMLEl
 void xml_ext::parseNavData(tinyxml2::XMLElement *firstNavPoint, std::vector<NavPoint> &vectors, const char *parentId) {
     for (tinyxml2::XMLElement *navPoint = firstNavPoint; navPoint; navPoint = navPoint->NextSiblingElement("navPoint")) {
         std::string id = xml_ext::getEleAttr(navPoint, "id");
-        std::string playOrder = xml_ext::getEleAttr(navPoint, "playOrder");
+        std::string strPlayOrder = xml_ext::getEleAttr(navPoint, "playOrder");
         std::string label;
         xml_ext::get_ele_words(navPoint->FirstChildElement("navLabel"), label);
         std::string src = xml_ext::getEleAttr(navPoint->FirstChildElement("content"), "src");
 
-        LOGD("%s::id[%s],playOrder[%s],label[%s],src[%s]", __func__, id.c_str(), playOrder.c_str(), label.c_str(), src.c_str());
+        if (!strPlayOrder.empty()) {
+            int orderIndex = string_ext::toInt(strPlayOrder);
+            if (orderIndex > 0) {
+                totalPlayOrder = orderIndex;
+            }
+        }
+
+        if (id.empty()) {
+            id = string_ext::generate_uuid();
+        }
+
+        LOGD("%s::id[%s],playOrder[%s],label[%s],src[%s],totalPlayOrder=%d", __func__, id.c_str(), strPlayOrder.c_str(), label.c_str(), src.c_str(), totalPlayOrder);
 
         NavPoint nav;
         nav.id = id;
-        nav.playOrder = string_ext::toInt(playOrder);
+        nav.playOrder = totalPlayOrder++;
         nav.text = label;
         nav.src = src;
         nav.parentId = parentId;
@@ -293,7 +306,6 @@ void xml_ext::parseNavData(tinyxml2::XMLElement *firstNavPoint, std::vector<NavP
     }
 }
 
-int playOrder = 0;
 int xml_ext::parseEpub3NcxData(std::string &nav_data, std::vector<NavPoint> &points, std::string &nav_path) {
     tinyxml2::XMLDocument doc;
     if (doc.Parse(nav_data.c_str(), nav_data.length()) != tinyxml2::XML_SUCCESS) {
@@ -330,7 +342,7 @@ int xml_ext::parseEpub3NcxData(std::string &nav_data, std::vector<NavPoint> &poi
         LOGE("%s failed parse epub3 nav, no ol or li element", __func__);
         return 0;
     }
-    playOrder = 0;
+    totalPlayOrder = 0;
     parseEpub3NavInnerData(reinterpret_cast<tinyxml2::XMLElement *>(navRootEle), points, nav_path);
     std::sort(points.begin(), points.end());
     return 1;
@@ -347,7 +359,7 @@ NavPoint xml_ext::parseTagA2NavPoint(const tinyxml2::XMLElement *tagA, std::stri
     return NavPoint {
             string_ext::generate_uuid(),
             parentId,
-            playOrder++,
+            totalPlayOrder++,
             label,
             src
     };
@@ -446,6 +458,7 @@ int xml_ext::parseNcxData(std::string &ncx_data, std::vector<NavPoint> &points) 
         LOGE("%s failed parse ncx, no navMap element", __func__);
         return 0;
     }
+    totalPlayOrder = 0;
     tinyxml2::XMLElement *firstNavPoint = navMapElem->FirstChildElement("navPoint");
     parseNavData(firstNavPoint, points, "");
     std::sort(points.begin(), points.end());
@@ -1405,6 +1418,17 @@ bool xml_ext::empty_node(const tinyxml2::XMLElement *elem) {
     return nochild && noAttr && name != "br";
 }
 
+/****
+ * 解析xhtml文档, 将文档给定开始或者结束的id属性的节点之间的数据解析成docTexts数据集合.
+ * @param element  开始的节点元素
+ * @param docTexts  输出的数据集合
+ * @param startAnchorId  开始的节点的属性id, 可空, 为空,即从element处开始处理
+ * @param endAnchorId     结束的节点的属性id, 可空, 为空,即解析完全部DOC树
+ * @param flagAdd
+ * @param spineSrcName  当前文档的路径
+ * @param type  取值0， 为epub, mobi,azw3 等的解析； 取值为1： 则为fb2的解析
+ * @return
+ */
 int xml_ext::parse(
         tinyxml2::XMLElement *element,
         std::vector<DocText> &docTexts,
