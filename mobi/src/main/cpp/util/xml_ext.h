@@ -249,4 +249,12 @@ public:
     static size_t get_ele_words(tinyxml2::XMLElement *element, std::string &output);
 };
 
+// 全局辅助函数（用于段落分割逻辑）
+std::vector<TagInfo> get_fathers_tags(const std::string& parent_uuid,
+                                      const std::vector<TagInfo>& tags);
+std::vector<TagInfo> get_fathers_tags(const std::vector<TagInfo> cur_tags,
+                                      const std::vector<TagInfo>& tags);
+std::vector<TagInfo> non_father_tags(const std::string parent_uuid,
+                                     const std::vector<TagInfo>& tags);
+
 #endif //UREAD_XML_EXT_H
