@@ -734,13 +734,15 @@ int epub_util::getChapter(JNIEnv *env, long book_id,
     }
 
     if (spineSrc != currentSrc) {
-        std::string chapter_data;
         spineSrc = cover_to_zip_entity(spineSrc);
         if (!run_flag) {
             LOGI("%s:invoke failed, run_flag false", __func__);
             return 0;
         }
+    }
 
+    if (spineSrc != currentSrc) {
+        std::string chapter_data;
         LOGD("%s::transform to zip entity src is %s", __func__, spineSrc.c_str());
         if (1 != load_zip_entity_data(spineSrc, chapter_data)) {
             LOGE("%s read [%s] failed", __func__, spineSrc.c_str());
@@ -766,6 +768,7 @@ int epub_util::getChapter(JNIEnv *env, long book_id,
         }
         currentSrc = spineSrc;
     }
+
     if (!run_flag) {
         LOGI("%s:invoke failed, run_flag false", __func__);
         return 0;

@@ -709,6 +709,7 @@ bool xml_ext::is_paragraph_tag(const std::string &name) {
         name == "blockquote" || name == "h1" || name == "h2" || name == "h3" ||
         name == "h4" || name == "h5" || name == "h6" || name == "h7" ||
         //                           name == "img" || name == "image" ||
+        name == "figure" ||
         name == "section" || name == "article" ||
         name == "table" || name == "tr" || name == "caption" ||
         name == "hr" || name == "br") {
@@ -1468,8 +1469,7 @@ int xml_ext::parse(
             flag = false;
             *flagAdd = 2;
             break;
-        } else
-        if (!startAnchorId.empty() && itemId == startAnchorId) { //判断开始节点, 只有到达开始节点,才能继续处理
+        } else if (!startAnchorId.empty() && itemId == startAnchorId) { //判断开始节点, 只有到达开始节点,才能继续处理
             *flagAdd = 1;
         }
 

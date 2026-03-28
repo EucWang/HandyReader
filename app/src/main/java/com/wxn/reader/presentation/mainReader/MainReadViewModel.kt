@@ -498,13 +498,18 @@ class MainReadViewModel @Inject constructor(
                         targetSrcName = href
                     }
 
-                    val targetChapter = allChapters.find { chapter ->
-                        chapter.srcName == href || chapter.srcName?.contains(targetSrcName) == true
-                    }
+                    val targetChapter = allChapters.find { chapter -> chapter.srcName == href } //优先找href对应的章节
                     if (targetChapter != null) {
                         pageController.changeChapter(targetChapter.chapterIndex)
                     } else {
-                        Logger.d("MainReaderViewModel::onLinkClick:href=$href, no target chapter found")
+                        val targetChapter = allChapters.find { chapter ->
+                            chapter.srcName?.contains(targetSrcName) == true
+                        }
+                        if (targetChapter != null) {
+                            pageController.changeChapter(targetChapter.chapterIndex)
+                        } else {
+                            Logger.d("MainReaderViewModel::onLinkClick:href=$href, no target chapter found")
+                        }
                     }
                 }
             }
