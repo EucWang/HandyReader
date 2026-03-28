@@ -12,6 +12,7 @@ import android.util.AttributeSet
 import android.view.View
 import androidx.core.graphics.toColorInt
 import androidx.core.graphics.withClip
+import com.wxn.base.bean.CssFontWeight
 import com.wxn.base.bean.TextCssInfo
 import com.wxn.base.bean.TextTag
 import com.wxn.base.ext.DpExt
@@ -516,6 +517,7 @@ class ContentTextView(context: Context, attrs: AttributeSet?) : View(context, at
         textLine.textChars.forEachIndexed { index, ch ->
             var isHighlight = false     //是否高亮
             var isUnderline = false
+            var isBold = false
             val charIndex = textLine.charStartOffset + index
             val parentPaint = if (defaultTextPaint != null) defaultTextPaint else {
                 val texttag = if (textTags.size == 1) {
@@ -538,6 +540,8 @@ class ContentTextView(context: Context, attrs: AttributeSet?) : View(context, at
                                     highlightPaint.color = hightlightColor.toColorInt()
                                 }
                                 isHighlight = true
+                            } else if (tag.name == "strong" || tag.name == "b" || tag.name == "big") {
+                                isBold = true
                             }
                         }
                     }
@@ -562,6 +566,9 @@ class ContentTextView(context: Context, attrs: AttributeSet?) : View(context, at
                 textCssInfo.fontColor.toColor()?.let { color ->
                     drawingPaint.color = color
                 }
+            }
+            if (isBold) {       //加粗显示字体
+                drawingPaint.typeface = ChapterProvider.getTypeface(CssFontWeight.FontWeightBold)
             }
 
             if (isHighlight) {                //绘制高亮文字时的背景
