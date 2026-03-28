@@ -351,21 +351,14 @@ object ChapterProvider {
             val bold = Typeface.create(typeface, Typeface.BOLD) //加粗
             val normal = Typeface.create(typeface, Typeface.NORMAL) //正常
             //根据用户配置是否加粗，得到标题字体和内容字体
+
             val (titleFont, textFont) = when (readerPreferences?.fontBold) {
                 1 -> {
-                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P)
-                        Pair(Typeface.create(typeface, 900, false), bold)
-                    else
-                        Pair(bold, bold)
+                    Pair(getTypeface(CssFontWeight.FontWeightBolder), getTypeface(CssFontWeight.FontWeightBold))
                 }
-
                 2 -> {
-                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P)
-                        Pair(normal, Typeface.create(typeface, 300, false))
-                    else
-                        Pair(normal, normal)
+                    Pair(getTypeface(CssFontWeight.FontWeightBolder), getTypeface(CssFontWeight.FontWeightNormal))
                 }
-
                 else -> Pair(bold, normal)
             }
 
@@ -377,7 +370,7 @@ object ChapterProvider {
 //            Logger.d("ChapterProvider::upStyle::titlePaint.letterSpacing=${titlePaint.letterSpacing}")
             titlePaint.typeface = titleFont                                                     //设置标题字体
 //        titlePaint.textSize = with(ReadBookConfig) { textSize + titleSize }.sp.toFloat()    //设置标题字体大小
-            titlePaint.textSize = (readerPreferences?.titleSize?.toFloat() ?: 1.0f) * BASE_TITLE_FONT_SIZE
+            titlePaint.textSize = (readerPreferences?.titleSize?.toFloat() ?: 1.0f) * BASE_TITLE_FONT_SIZE * 1.2f
 //            Logger.d("ChapterProvider::upStyle::titlePaint.textSize=${titlePaint.textSize}")
             titlePaint.isAntiAlias = true                                                       //设置抗锯齿
 
@@ -388,7 +381,7 @@ object ChapterProvider {
             h1Paint.letterSpacing = readerPreferences?.letterSpacing?.toFloat() ?: 0f        //设置标题字母间距
 //            Logger.d("ChapterProvider::upStyle::titlePaint.letterSpacing=${h1Paint.letterSpacing}")
             h1Paint.typeface = titleFont                                                     //设置标题字体
-            h1Paint.textSize = (readerPreferences?.titleSize?.toFloat() ?: 1.0f) * BASE_TITLE_FONT_SIZE * 0.95f
+            h1Paint.textSize = (readerPreferences?.titleSize?.toFloat() ?: 1.0f) * BASE_TITLE_FONT_SIZE * 1.0f
 //            Logger.d("ChapterProvider::upStyle::titlePaint.textSize=${h1Paint.textSize}")
             h1Paint.isAntiAlias = true                                                       //设置抗锯齿
 
