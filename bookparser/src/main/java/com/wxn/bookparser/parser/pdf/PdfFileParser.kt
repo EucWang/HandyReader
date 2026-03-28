@@ -76,7 +76,7 @@ class PdfFileParser @Inject constructor(
             document = PDDocument.load(inputStream, MemoryUsageSetting.setupTempFileOnly())
 
             document?.use { document ->
-                val title = document.documentInformation.title ?: baseName
+                val title = if (document.documentInformation.title.isNullOrEmpty()) baseName else document.documentInformation.title
                 val author = document.documentInformation.author.orEmpty()
                 val description = document.documentInformation.subject.orEmpty()
 

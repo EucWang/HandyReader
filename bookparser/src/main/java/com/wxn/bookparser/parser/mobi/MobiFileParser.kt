@@ -198,7 +198,7 @@ class MobiFileParser @Inject constructor(val context: Context) : FileParser {
         val metaInfo: MetaInfo = MobiParser.getMobiInfo(context, path) ?: return null
 
         return Book(
-            title = metaInfo.title ?: title ?: "",
+            title = metaInfo.title.ifEmpty { title },
             author = metaInfo.author.orEmpty(),
 
             publisher = metaInfo.publisher.orEmpty(),

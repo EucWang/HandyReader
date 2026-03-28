@@ -5,7 +5,7 @@ import com.wxn.mobi.data.model.MetaInfo
 
 fun fromMetaInfoToBook(metaInfo: MetaInfo, defaultTitle: String?, bookPath: String, format: String) =
     Book(
-        title = metaInfo.title ?: defaultTitle ?: "",
+        title = metaInfo.title.ifEmpty { defaultTitle?:"" },
         author = metaInfo.author.orEmpty(),
 
         publisher = metaInfo.publisher.orEmpty(),

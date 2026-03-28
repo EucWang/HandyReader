@@ -41,7 +41,7 @@ class Fb2FileParser @Inject constructor(val context: Context) : FileParser {
         val metaInfo: MetaInfo = Fb2Parser.getFb2Info(context, path) ?: return null
 
         return Book(
-                title = metaInfo.title ?: title ?: "",
+                title = metaInfo.title.ifEmpty { title },
                 author = metaInfo.author.orEmpty(),
 
                 publisher = metaInfo.publisher.orEmpty(),

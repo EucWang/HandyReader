@@ -40,9 +40,8 @@ class AudioFileParser @Inject constructor(val context: Context) : FileParser {
             context.contentResolver.openFileDescriptor(uri, "r")?.use { descriptor ->
                 mediaMetadataRetriever.setDataSource(descriptor.fileDescriptor)
 
-                val title =
-                    mediaMetadataRetriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_TITLE)
-                        ?: titleName // documentFile.name ?: "Unknown"
+                val metaTitle = mediaMetadataRetriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_TITLE) ?: ""
+                val title = metaTitle.ifEmpty { titleName }
                 val artist =
                     mediaMetadataRetriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_ARTIST)
                 val album =

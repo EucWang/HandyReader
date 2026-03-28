@@ -131,8 +131,8 @@ class ContentTextView(context: Context, attrs: AttributeSet?) : View(context, at
      * 刷新可见矩形区域
      */
     fun refreshVisibleRect() {
-        val left = ChapterProvider.paddingLeft.toFloat()
-        val top = ChapterProvider.paddingTop.toFloat()
+        val left = ChapterProvider.paddingHorizontal.toFloat()
+        val top = ChapterProvider.paddingVertical.toFloat()
         val right = ChapterProvider.visibleRight.toFloat()
         val bottom = ChapterProvider.visibleBottom.toFloat()
         Logger.d("ContentTextView::refreshVisibleRect::left=$left, top=$top,right=$right,bottom=$bottom")
@@ -467,9 +467,9 @@ class ContentTextView(context: Context, attrs: AttributeSet?) : View(context, at
         lineBottom: Float,
         isTitle: Boolean
     ) {
-        var tagPaint: TextPaint? = null
+//        var tagPaint: TextPaint? = null
         var lineTextTag: TextTag? = null
-        var charTextTag: TextTag? = null
+//        var charTextTag: TextTag? = null
 
         //标题或者文本内容的textPaint
         var defaultTextPaint: TextPaint? = null
@@ -493,10 +493,6 @@ class ContentTextView(context: Context, attrs: AttributeSet?) : View(context, at
             }
         }
 
-//        if (isReadAloud) {
-//            defaultTextPaint?.color = "#FFAD1457".toColorInt()
-//        }
-
         if (textLine.withLineDot > 0) { //绘制html列表前面的 圆点/方块
             val lTop = textLine.lineTop
             val lBottom = textLine.lineBottom
@@ -514,13 +510,13 @@ class ContentTextView(context: Context, attrs: AttributeSet?) : View(context, at
             }
         }
 
-        textLine.textChars.forEachIndexed { index, ch ->
-            val charIndex = textLine.charStartOffset + index
-            var isHighlight = false     //是否高亮
-            var hightlightColor : String = "0xFFFFFF00"
-            var underlineColor : String = "0xFF575757"
-            var isUnderline = false
+        var hightlightColor : String = "0xFFFFFF00"
+        var underlineColor : String = "0xFF575757"
 
+        textLine.textChars.forEachIndexed { index, ch ->
+            var isHighlight = false     //是否高亮
+            var isUnderline = false
+            val charIndex = textLine.charStartOffset + index
             val parentPaint = if (defaultTextPaint != null) defaultTextPaint else {
                 val texttag = if (textTags.size == 1) {
                     if (textTags[0].start <= charIndex && charIndex < textTags[0].end) textTags[0] else null
@@ -562,19 +558,19 @@ class ContentTextView(context: Context, attrs: AttributeSet?) : View(context, at
                 } else if (textCssInfo.fontSize.isPx()) {
                     drawingPaint.textSize = textCssInfo.fontSize.value
                 }
-                drawingPaint.typeface = ChapterProvider.getTypeface(textCssInfo.fontWeight)
+                drawingPaint.typeface = ChapterProvider.getTypeface(textCssInfo.fontWeight, textCssInfo.fontStyle)
                 textCssInfo.fontColor.toColor()?.let { color ->
                     drawingPaint.color = color
                 }
             }
 
-            if (isHighlight) {
+            if (isHighlight) {                //绘制高亮文字时的背景
                 val verticalpadding = 10f
                 val horizontalpadding = 1f
-                //绘制高亮文字时的背景
+
                 canvas.drawRoundRect(RectF(ch.start - horizontalpadding, lineTop - verticalpadding, ch.end + horizontalpadding, lineBottom + verticalpadding), 1f, 1f, highlightPaint)
             }
-            if (isUnderline) {                                                   //设置画笔绘制下划线
+            if (isUnderline) {                //设置画笔绘制下划线
                 underlineColor.toColor()?.let { color ->
                     linePaint.color = color
                 }
@@ -582,16 +578,15 @@ class ContentTextView(context: Context, attrs: AttributeSet?) : View(context, at
 
                 canvas.drawLine(ch.start, textLine.lineBottom, ch.end,  textLine.lineBottom, linePaint)
             }
-            if (ch.selected) {
-                //绘制选择文字时的背景框
+            if (ch.selected) {              //绘制选择文字时的背景框
                 canvas.drawRect(ch.start , lineTop, ch.end, lineBottom, selectedPaint)
             }
 
-            if (ch.isImage) {
+            if (ch.isImage) {                       //绘制图片
                 val lTop = textLine.lineTop
                 val lBottom = textLine.lineBottom
                 Logger.d("ContentTextView::drawLine:drawInnerImage:lineTop=${lTop}, lineBottom=${lBottom}")
-                drawImage(canvas, ch, lTop, lBottom) //绘制图片
+                drawImage(canvas, ch, lTop, lBottom)
             } else {
                 canvas.drawText(ch.charData, ch.start, lineBase, drawingPaint) //绘制每一个字
             }

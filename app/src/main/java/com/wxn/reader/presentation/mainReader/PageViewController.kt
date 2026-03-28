@@ -910,7 +910,7 @@ class PageViewController @Inject constructor(
 
     override fun showTextActionMenu() {
         Logger.i("PageViewController::showTextActionMenu")
-        clickListener?.onSelectedText(selectedStartX, selectedStartTop + ChapterProvider.paddingTop, selectedEndX, selectedEndY + ChapterProvider.paddingTop)
+        clickListener?.onSelectedText(selectedStartX, selectedStartTop + ChapterProvider.paddingVertical, selectedEndX, selectedEndY + ChapterProvider.paddingVertical)
     }
 
     override fun showToolbarMenu() {
@@ -1046,7 +1046,7 @@ class PageViewController @Inject constructor(
                                 ch.selected = true
                                 if (startX < 0f && startY < 0f) {
                                     startX = ch.start
-                                    startY = line.lineTop + ChapterProvider.paddingTop
+                                    startY = line.lineTop + ChapterProvider.paddingVertical
                                 }
                                 lastCh = ch
                                 lastLine = line
@@ -1057,7 +1057,7 @@ class PageViewController @Inject constructor(
             }
             if (lastCh != null && lastLine != null) {
                 endX = lastCh.end
-                endY = lastLine.lineBottom + ChapterProvider.paddingTop
+                endY = lastLine.lineBottom + ChapterProvider.paddingVertical
             }
             if (startX > 0f && startY > 0f && endX > 0f && endY > 0f) {
                 Logger.d("PageViewController::clickedAnnotation::startX=$startX,startY=$startY,endX=$endX,endY=$endY")

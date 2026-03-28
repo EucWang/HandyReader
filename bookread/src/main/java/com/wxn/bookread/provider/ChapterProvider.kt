@@ -35,6 +35,7 @@ import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.launch
 import java.util.regex.Pattern
 import kotlin.collections.firstOrNull
+import kotlin.math.max
 import kotlin.math.roundToInt
 
 object ChapterProvider {
@@ -61,45 +62,49 @@ object ChapterProvider {
 
 
     /**
-     * 页面显示宽度
+     * 页面显示宽度, 整个控件的可显示宽度, 和屏幕宽度相同
      */
     var viewWidth = 0
 
     /***
-     * 页面显示高度
+     * 页面显示高度, 整个控件的可显示高度, 是屏幕高度 - 系统状态栏的高度
      */
     var viewHeight = 0
 
     /***
-     * 左边距
+     * 左边距/右边距
      */
-    var paddingLeft = 0
+    var paddingHorizontal = 0
 
     /***
-     * 上边距
+     * 上边距/下边距
      */
-    var paddingTop = 0
+    var paddingVertical = 0
 
     /**
-     * 可视宽度, 这里是排除掉了左右padding之后的宽度，而不是屏幕宽度
+     * 可视宽度,
+     * 这里是排除掉了水平方向上的边距之后的页面可显示元素的宽度
      */
     var visibleWidth = 0
 
     /***
      * 可视高度
+     * 这里是已经计算了垂直方向的边距之后的页面可显示元素的高度
      */
     var visibleHeight = 0
 
     /***
-     * 可视的右边位置
+     * 可视的右边的偏移
      */
     var visibleRight = 0
 
     /***
-     * 可视底部位置
+     * 可视底部的偏移位置
      */
     var visibleBottom = 0
 
+    //    占一屏的图片的最小高度, 450 只是一个默认值
+    private var fullImageMinHeight = 450 //
     /***
      * 行间距
      */
@@ -269,12 +274,14 @@ object ChapterProvider {
 
         val readerPreferences = readerPreferencesUtil?.readerPrefsFlow?.firstOrNull()
         if (viewWidth > 0 && viewHeight > 0) {
-            paddingLeft = (((readerPreferences?.pageHorizontalMargins?.toDouble() ?: 0.0) * 0.1 * viewWidth.toDouble()).toInt()) / 2         //页面左边距
-            paddingTop = ((readerPreferences?.pageVerticalMargins ?: 0.0) * 0.1 * viewHeight.toDouble()).toInt() / 2                 //页面顶部间距
-            visibleWidth = (viewWidth - paddingLeft * 2).toInt()                                //可视宽度
-            visibleHeight = (viewHeight - paddingTop * 2).toInt()                            //可视高度
-            visibleRight = paddingLeft + visibleWidth                                       //可视右边
-            visibleBottom = paddingTop + visibleHeight                                      //可视底部
+            paddingHorizontal = (((readerPreferences?.pageHorizontalMargins?.toDouble() ?: 0.0) * 0.1 * viewWidth.toDouble()).toInt()) / 2         //页面左边距
+            paddingVertical = ((readerPreferences?.pageVerticalMargins ?: 0.0) * 0.1 * viewHeight.toDouble()).toInt() / 2                 //页面顶部间距
+            visibleWidth = (viewWidth - paddingHorizontal * 2).toInt()                                //可视宽度
+            visibleHeight = (viewHeight - paddingVertical * 2).toInt()                            //可视高度
+            visibleRight = paddingHorizontal + visibleWidth                                       //可视右边
+            visibleBottom = paddingVertical + visibleHeight                                      //可视底部
+
+            fullImageMinHeight = max(max((visibleHeight * .075).toInt(), (viewHeight * 0.6f).toInt()), 450) //占一屏的图片的最小高度
         }
         Logger.d("ChapterProvider::upVisibleSize::viewWidth=$viewWidth, viewHeight=$viewHeight, visibleWidth=$visibleWidth,visibleHeight=$visibleHeight,visibleRight=$visibleRight,visibleBottom=$visibleBottom")
     }
@@ -474,47 +481,17 @@ object ChapterProvider {
         val isOneElePage = (contents.size == 1) //只有一个元素的页面
 
         textPages.add(TextPage())   //增加一空白页，然后给这个页面增加显示内容
-        offsetY += paddingTop
+        offsetY += paddingVertical
         contents.forEachIndexed { index, paragraph -> //遍历需要显示的内容的每一个自然段， 一个段落一个段落（图片）的遍历
             when (paragraph) {
                 is ReaderText.Image -> {
-                    val image = paragraph
-
-                    val imgStyle =
-                        if ((isOneElePage || image.textCssInfo.textAlign == CssTextAlign.CssTextAlignJustify) && (image.width >= 450 || image.height >= 450)) {
-                            "FULL"
-                        } else {
-                            imageStyles
-                        }
-
-                    offsetY = setTypeImage(
-                        image.path,
-                        image.width,
-                        image.height,
-                        offsetY,
-                        textPages,
-                        imgStyle
-                    )
+                    setTypeImageWithStyle(isOneElePage, paragraph, imageStyles, offsetY, textPages)
                 }
 
                 is ReaderText.Text -> {
                     val image = paragraph.tryParseToImage()
                     offsetY = if (image != null) {
-                        val imgStyle =
-                            if ((isOneElePage || image.textCssInfo.textAlign == CssTextAlign.CssTextAlignJustify) && (image.width >= 450 || image.height >= 450)) {
-                                "FULL"
-                            } else {
-                                imageStyles
-                            }
-
-                        setTypeImage(
-                            image.path,
-                            image.width,
-                            image.height,
-                            offsetY,
-                            textPages,
-                            imgStyle
-                        )
+                        setTypeImageWithStyle(isOneElePage, image, imageStyles, offsetY, textPages)
                     } else {
                         val title = paragraph.tryParseToChapter(chapter.chapterIndex)
                         if (title != null) {
@@ -565,6 +542,30 @@ object ChapterProvider {
         )
     }
 
+    private fun setTypeImageWithStyle(
+        isOneElePage: Boolean,
+        image: ReaderText.Image,
+        imageStyles: String,
+        offsetY: Float,
+        textPages: ArrayList<TextPage>
+    ): Float {
+        val imgStyle =
+            if ((isOneElePage || image.textCssInfo.textAlign == CssTextAlign.CssTextAlignJustify) && image.height >= fullImageMinHeight) {
+                "FULL"
+            } else {
+                imageStyles
+            }
+
+        return setTypeImage(
+            image.path,
+            image.width,
+            image.height,
+            offsetY,
+            textPages,
+            imgStyle
+        )
+    }
+
     /***
      * 根据图片设置TextLine/TextChar属性，将结果保存到textPages中，并返回offsetY，用于计算下一行内容
      */
@@ -583,100 +584,65 @@ object ChapterProvider {
             return offsetY
         }
 
-        val imgVerticalMargin = contentPaint.textHeight * 1.2f
-        var width = 0
-        var height = 0
-        var originWidth = imgWidth * imgScale  //图片的实际宽高
-        var originHeight = imgHeight * imgScale
+        val imgVerticalMargin = (contentPaint.textHeight * 1.1f).toInt() //垂直方向上,图片上下两边增加的间隔
+        //图片显示可用高度, 页面高度 - 已经显示了的内容占据的偏移 - 底部的边距(paddingTop),
+        //当图片占一屏显示时, 这个高度是完全展示的图片最大高度,
+        //当图片非独占一屏时, 这个高度还需要 - 图片上下的一个间隔
+        var usableHeight = (viewHeight - durY - paddingVertical).toInt()
+
+        //图片约束之后的宽高
+        val (originWidth, originHeight) = constraintImageSize(imgWidth, imgHeight, imgSrc, visibleWidth, visibleHeight)
         if (originWidth <= 0 || originHeight <= 0) {
-            val options: BitmapFactory.Options = BitmapFactory.Options()
-            options.inJustDecodeBounds = true // 不加载图片像素，只获取宽高
-            options.inSampleSize = 2
-            BitmapFactory.decodeFile(imgSrc, options)
-            val bmpOriginWidth = options.outWidth * imgScale
-            val bmpOriginHeight = options.outHeight * imgScale
-            if (originWidth < bmpOriginWidth || originHeight < bmpOriginHeight) {
-                originWidth = bmpOriginWidth
-                originHeight = bmpOriginHeight
-            }
+            return durY
         }
+        var width = originWidth
+        var height = originHeight
 
-        if ((durY > visibleHeight || durY + originHeight + 2 * imgVerticalMargin > visibleHeight) &&
-            textPages.lastOrNull()?.textLines?.isNullOrEmpty() != true
+        //是否需要新开一页用来显示图片
+        // 如果是FULL 类型;
+        // 如果 durY大于或者超过 visibleBottom, 即已经达到了一页的底部
+        // 如果 (图片高度 + 图片上间隔) 超过了当前页面可展示的高度
+        // 当前页不为空
+        //---------------------------------------------------------------
+        val isNewPage = if (durY >= visibleBottom ||
+            imgVerticalMargin + originHeight > usableHeight ||
+            imageStyles.uppercase() == "FULL"
         ) { // //当前可显示便宜位置超过了可视高度
-            textPages.last().height = durY    //修改上一页的高度
-            textPages.add(TextPage())                   //增加新一页
-            durY = paddingTop.toFloat()
-                                              //修改当前页的距离顶部的偏移量
+            textPages.last().height = durY      //修改上一页的高度
+            textPages.add(TextPage())           //增加新一页
+            durY = paddingVertical.toFloat()         //修改当前页的距离顶部的偏移量
+            usableHeight = (viewHeight - durY - paddingVertical).toInt()
+            true
+        } else {
+            false
         }
 
-        var usableHeight = (visibleHeight - durY).toInt()   //图片显示可用高度
-        width = originWidth.toInt()
-        height = originHeight.toInt()
-
-        //页面宽高和图片宽高的适配
-        when (imageStyles.uppercase()) {
-            "FULL" -> {                                         //占满宽度
-                width = visibleWidth
-                height = (originHeight * width / originWidth).toInt()
-                if (height > usableHeight) {
-                    height = usableHeight
-                    width = ((usableHeight / originHeight) * originWidth).toInt()
-                }
+        if (!isNewPage) {  //非新开的一页,
+            //需要重新计算,防止超过了图片可用高度
+            if (width + imgVerticalMargin > usableHeight) { //图片高度 + 图片的上边距 > 图片可显示高度
+                //对图片再次缩放
+                val (widthInPage, heightInPage) = constraintImageSize(imgWidth, imgHeight, imgSrc, visibleWidth, usableHeight - imgVerticalMargin)
+                width = widthInPage
+                height = heightInPage
             }
-
-            else -> {                                           //适配
-                if (originWidth > visibleWidth) {
-                    height = (originHeight * visibleWidth / originWidth).toInt()
-                    width = visibleWidth
-                }
-
-                if (height > usableHeight) {
-                    width = width * usableHeight / height
-                    height = usableHeight
-                }
-
-                if (durY + height + 2 * imgVerticalMargin > usableHeight) { //当前页显示不下了，则创建新页用于显示图片
-                    textPages.last().height = durY
-                    textPages.add(TextPage())
-                    durY = paddingTop.toFloat()
-
-                    usableHeight = (visibleHeight - 2 * imgVerticalMargin).toInt()  //可用高度重新计算
-                    if (originWidth > visibleWidth) {                               //重新计算显示宽高
-                        height = (originHeight * visibleWidth / originWidth).toInt()
-                        width = visibleWidth
-                    }
-
-                    if (height > usableHeight) {
-                        width = width * usableHeight / height
-                        height = usableHeight
-                    }
-                }
-            }
+            durY += imgVerticalMargin  //先加上图片的上边距
         }
-        Logger.d("ChapterProvider::setTypeImage::imageStyles=${imageStyles},calc original[width=${originWidth},height=${originHeight}] [width=$width,height=$height], [visibleWidth=$visibleWidth,visibleHeight=$visibleHeight]")
 
         //构建用于显示Image的TextLine
         val textLine = TextLine(isImage = true)
-        if (imageStyles == "FULL" && usableHeight > height) {
-            val adjustHeight = (usableHeight - height) / 2f
-            durY += adjustHeight
-        } else {
-            durY += imgVerticalMargin  //加上一行的间距，作为和文字的间隔, 防止重叠
-        }
-
         textLine.lineTop = durY     //图片的顶部
-        durY += height
+        durY += height      //偏移加上图片的高度
         textLine.lineBottom = durY  //图片的底部
+
         //图片的左边和右边, 加上页面边距
         val (start, end) = if (visibleWidth > width) {      //图片显示宽度小于可视宽度
             val adjustWidth = (visibleWidth - width) / 2f   //坐偏移量
             Pair(
-                paddingLeft.toFloat() + adjustWidth,
-                paddingLeft.toFloat() + adjustWidth + width
+                paddingHorizontal.toFloat() + adjustWidth,
+                paddingHorizontal.toFloat() + adjustWidth + width
             )
         } else {
-            Pair(paddingLeft.toFloat(), (paddingLeft + width).toFloat())
+            Pair(paddingHorizontal.toFloat(), (paddingHorizontal + width).toFloat())
         }
         Logger.d("ChapterProvider::setTypeImage::lineTop=${textLine.lineTop},lineBottom=${textLine.lineBottom},start=${start},end=${end}")
 
@@ -690,7 +656,62 @@ object ChapterProvider {
         )
         textPages.last().textLines.add(textLine)
 
-        return durY + imgVerticalMargin
+        return durY + imgVerticalMargin  //加上图片的下边距
+    }
+
+    /****
+     * 约束图片的宽高,
+     * 和系统的displayMetrics.density 系数得到一个合适的缩放大小.
+     * 然后约束到最大宽高范围之内, 即界面可视宽高之内
+     * @param imgWidth : 图片的宽度
+     * @param imgHeight : 图片的高度
+     * @param imgSrc : 图片的路径
+     * @param maxWidth: 最大图片的宽度
+     * @param maxHeight : 最大图片的高度
+     * @param useScale : 是否应用系统的density系数, 如果传入的是图片原始的宽高,则需要; 如果传入的是重新计算过的宽高,则不需要
+     * @return 约束在最大宽高之内, 重新计算之后的图片的宽高
+     */
+    private fun constraintImageSize(
+        imgWidth: Int,
+        imgHeight: Int,
+        imgSrc: String,
+        maxWidth: Int,
+        maxHeight: Int,
+        useScale: Boolean = true
+    ): Pair<Int, Int> {
+        var originWidth = imgWidth
+        var originHeight = imgHeight
+        if (originWidth <= 0 || originHeight <= 0) {
+            val options: BitmapFactory.Options = BitmapFactory.Options()
+            options.inJustDecodeBounds = true // 不加载图片像素，只获取宽高
+            options.inSampleSize = 2
+            BitmapFactory.decodeFile(imgSrc, options)
+            originWidth = options.outWidth
+            originHeight = options.outHeight
+            if(originWidth <= 0 || originHeight <= 0) {
+                Logger.e("ChapterProvider::constraintImageSize::decode image[$imgSrc][$imgWidth,$imgHeight] size failed")
+                return Pair(0, 0)
+            }
+        }
+        val scale = if (useScale) imgScale else 1.0f
+        originWidth = (imgWidth * scale).toInt()  //图片的实际宽高
+        originHeight = (imgHeight * scale).toInt()
+        if (originWidth <= 0 || originHeight <= 0) {
+            return Pair(0, 0)
+        }
+        val radio: Float = (originWidth.toFloat()/ originHeight)  //宽高比
+
+        //约束到最大范围之内的宽高,不要超过一个屏幕
+        if (originWidth > maxWidth) {
+            originWidth = maxWidth
+            originHeight = (originWidth / radio).toInt()
+        }
+        if (originHeight > maxHeight) {
+            originHeight = maxHeight
+            originWidth = (originHeight * radio).toInt()
+        }
+
+        return Pair(originWidth, originHeight)
     }
 
     private suspend fun setTypeText(
@@ -1089,7 +1110,7 @@ object ChapterProvider {
 
                             textPages.add(TextPage())
                             stringBuilder.clear()
-                            durY = paddingTop.toFloat()
+                            durY = paddingVertical.toFloat()
                         }
 
                         var words = StringBuilder()
@@ -1116,7 +1137,7 @@ object ChapterProvider {
                             lastPage.textLines.add(
                                 TextLine(
                                     isLine = true,
-                                    lineStart = Pair(marginLeft + paddingLeft, durY),
+                                    lineStart = Pair(marginLeft + paddingHorizontal, durY),
                                     lineEnd = Pair(visibleRight - marginRight, durY),
                                     lineBorder = 1f,
                                     lineColor = "#333333"
@@ -1146,8 +1167,8 @@ object ChapterProvider {
                                 lastPage.textLines.add(
                                     TextLine(
                                         isLine = true,
-                                        lineStart = Pair(left + paddingLeft + marginLeft, durY),
-                                        lineEnd = Pair(left + paddingLeft + marginLeft, durY + lineHeight),
+                                        lineStart = Pair(left + paddingHorizontal + marginLeft, durY),
+                                        lineEnd = Pair(left + paddingHorizontal + marginLeft, durY + lineHeight),
                                         lineBorder = 1f,
                                         lineColor = "#333333"
                                     )
@@ -1159,7 +1180,7 @@ object ChapterProvider {
                             lastPage.textLines.add(
                                 TextLine(
                                     isLine = true,
-                                    lineStart = Pair(marginLeft + paddingLeft, durY + lineHeight),
+                                    lineStart = Pair(marginLeft + paddingHorizontal, durY + lineHeight),
                                     lineEnd = Pair(visibleRight - marginRight, durY + lineHeight),
                                     lineBorder = 1f,
                                     lineColor = "#333333"
@@ -1297,7 +1318,7 @@ object ChapterProvider {
 
                         textPages.add(TextPage())
                         stringBuilder.clear()
-                        durY = paddingTop.toFloat()
+                        durY = paddingVertical.toFloat()
                     }
 
                     stringBuilder.append(words)
@@ -1435,7 +1456,7 @@ object ChapterProvider {
 
                 textPages.add(TextPage())
                 stringBuilder.clear()
-                durY = paddingTop.toFloat()
+                durY = paddingVertical.toFloat()
             }
 
             if (lineIndex == 0 && isListRow && listLevel > 0) { //第一行，并且是列表
@@ -1477,7 +1498,7 @@ object ChapterProvider {
             } else {
                 x + chWidth
             }
-            textLine.addTextChar(charData = char, start = paddingLeft + x, end = paddingLeft + x1)
+            textLine.addTextChar(charData = char, start = paddingHorizontal + x, end = paddingHorizontal + x1)
             x = x1
         }
         exceed(textLine, words)
@@ -1491,7 +1512,7 @@ object ChapterProvider {
         words.forEach { char ->
             val cw = StaticLayout.getDesiredWidth(char, textPaint)
             val x1 = x + cw
-            textLine.addTextChar(charData = char, start = paddingLeft + x, end = paddingLeft + x1)
+            textLine.addTextChar(charData = char, start = paddingHorizontal + x, end = paddingHorizontal + x1)
             x = x1
         }
         exceed(textLine, words)

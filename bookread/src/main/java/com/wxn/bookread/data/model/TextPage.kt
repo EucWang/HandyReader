@@ -87,10 +87,10 @@ data class TextPage(
             if (y < 0) y = 0f
             for (lineIndex in 0 until layout.lineCount) {
                 val textLine = TextLine()
-                textLine.lineTop = ChapterProvider.paddingTop + y + layout.getLineTop(lineIndex)    //行上位置
-                textLine.lineBase = ChapterProvider.paddingTop + y + layout.getLineBaseline(lineIndex)              //行基线位置
-                textLine.lineBottom = ChapterProvider.paddingTop + y + layout.getLineBottom(lineIndex)                //行底位置
-                var x = ChapterProvider.paddingLeft + (ChapterProvider.visibleWidth - layout.getLineMax(lineIndex)) / 2           //行左位置
+                textLine.lineTop = ChapterProvider.paddingVertical + y + layout.getLineTop(lineIndex)    //行上位置
+                textLine.lineBase = ChapterProvider.paddingVertical + y + layout.getLineBaseline(lineIndex)              //行基线位置
+                textLine.lineBottom = ChapterProvider.paddingVertical + y + layout.getLineBottom(lineIndex)                //行底位置
+                var x = ChapterProvider.paddingHorizontal + (ChapterProvider.visibleWidth - layout.getLineMax(lineIndex)) / 2           //行左位置
                 textLine.text = text.substring(layout.getLineStart(lineIndex), layout.getLineEnd(lineIndex))    //截取一行文字给TextLine
                 for (i in textLine.text.indices) {//遍历行文字每个字
                     val char = textLine.text[i].toString()

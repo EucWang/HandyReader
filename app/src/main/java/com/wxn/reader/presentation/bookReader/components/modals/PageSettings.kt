@@ -174,7 +174,7 @@ fun PageSettings(
 ) {
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
 
-    val minPageMargins = 0.5
+    val minPageMargins = 0.0
     val maxPageMargins = 5.0
 
     ModalBottomSheet(
