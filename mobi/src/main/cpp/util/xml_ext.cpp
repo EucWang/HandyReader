@@ -1464,11 +1464,11 @@ int xml_ext::parse(
 
     while (flag && item != nullptr) {
         std::string itemId = xml_ext::getEleAttr(item, "id");
-//        if (!endAnchorId.empty() && itemId == endAnchorId) {  //到达结束的id处, 结束, //TODO 这里需要处理完结束标签下的所有元素,才算完成,而不是直接结束,会导致界面内容缺失问题
-//            flag = false;
-//            *flagAdd = 2;
-//            break;
-//        } else
+        if (!endAnchorId.empty() && itemId == endAnchorId) {  //到达结束的id处, 结束, endAnchorId节点是不应该包含的内容的节点
+            flag = false;
+            *flagAdd = 2;
+            break;
+        } else
         if (!startAnchorId.empty() && itemId == startAnchorId) { //判断开始节点, 只有到达开始节点,才能继续处理
             *flagAdd = 1;
         }
@@ -1625,14 +1625,6 @@ int xml_ext::parse(
                 //可能是文本节点，或者其他不需要作为分割自然段落的html节点， 这里不需要处理，当判断没有兄弟节点时候，会再次尝试判断需不需要分割自然段落
             }
             //------------------------------------------------------------------
-        }
-
-        //如果当前节点已经是最后一个需要处理的节点,那么不用再寻找下一个兄弟节点,或者进入父级节点进入深度优先搜索循环了
-//        std::string itemId = xml_ext::getEleAttr(item, "id");
-        if (!endAnchorId.empty() && itemId == endAnchorId) {  //到达结束的id处, 结束
-            flag = false;
-            *flagAdd = 2;
-            break;
         }
 
         //没有子节点，则遍历兄弟节点
