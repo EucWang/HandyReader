@@ -22,14 +22,14 @@ object EpubParser {
     }
 
     fun getEpubChapter(context: Context, bookId: Long, path: String): Array<BookChapter>? {
-        Log.d("MobiParser", "getMobiChapter:path=$path")
+        Log.d("EpubParser", "getMobiChapter:path=$path")
         val chapters: Array<BookChapter>? = NativeLib.getChapters(context, bookId, path, 2)
-        Log.d("MobiParser", "getMobiChapter: = ${chapters?.size}")
+        Log.d("EpubParser", "getMobiChapter: = ${chapters?.size}")
         return chapters
     }
 
     fun getEpubChapterData(context: Context, path: String, chapter: BookChapter): Array<ReaderText>? {
-        Log.d("MobiParser", "getMobiChapterData:path=$path,chapter=$chapter")
+        Log.d("EpubParser", "getMobiChapterData:path=$path,chapter=$chapter")
         val texts: Array<ParagraphData>? = NativeLib.getChapter(context, path, chapter, 2)
         val ret = arrayListOf<ReaderText>()
         if (texts != null) {
@@ -37,19 +37,19 @@ object EpubParser {
                 ret.add(ReaderText.Text(String(text.line), text.tags))
             }
         }
-        Log.d("MobiParser", "getMobiChapterData: chapter=${chapter.chapterIndex}: texts.size = ${texts?.size}")
+        Log.d("EpubParser", "getMobiChapterData: chapter=${chapter.chapterIndex}: texts.size = ${texts?.size}")
         return ret.toTypedArray()
     }
 
     fun getEpubCssInfo(context: Context, bookId: Long, cssNames: List<String>?, tagNames: List<String> = emptyList<String>(), ids: List<String> = emptyList<String>()): List<CssInfo>? {
-        Log.d("MobiParser", "getMobiCssInfo:bookId=$bookId")
+        Log.d("EpubParser", "getMobiCssInfo:bookId=$bookId")
         val names = cssNames ?: return null
         val retVal = NativeLib.getCssInfo(context, bookId, names.toTypedArray(), tagNames.toTypedArray(), ids.toTypedArray(), 2)
         return retVal?.toList().orEmpty()
     }
 
     fun getEpubWordCount(context: Context, bookId: Long, path: String): List<Triple<Int, Int, Int>> {
-        Log.d("MobiParser", "getMobiWordCount:path=$path,bookId=$bookId")
+        Log.d("EpubParser", "getMobiWordCount:path=$path,bookId=$bookId")
         val retVal: List<CountPair>? = getWordCount(bookId, path, 2)
         if (retVal == null || retVal.isEmpty()) {
             return emptyList()

@@ -597,18 +597,21 @@ object ChapterProvider {
         // 如果 (图片高度 + 图片上间隔) 超过了当前页面可展示的高度
         // 当前页不为空
         //---------------------------------------------------------------
-        val isNewPage = if (durY >= visibleBottom ||
-            imgVerticalMargin + originHeight > usableHeight ||
-            imageStyles.uppercase() == "FULL"
-        ) { // //当前可显示便宜位置超过了可视高度
-            textPages.last().height = durY      //修改上一页的高度
-            textPages.add(TextPage())           //增加新一页
-            durY = paddingVertical.toFloat()         //修改当前页的距离顶部的偏移量
-            usableHeight = (viewHeight - durY - paddingVertical).toInt()
-            true
-        } else {
-            false
-        }
+        val isNewPage = if (textPages.last().textLines.isEmpty()) { //当前页本身就是一个空白页, 本身就是一个新页面
+                true
+            } else {
+                if (durY >= visibleBottom ||
+                    imgVerticalMargin + originHeight > usableHeight ||
+                    imageStyles.uppercase() == "FULL") {  //当前可显示便宜位置超过了可视高度
+                    textPages.last().height = durY      //修改上一页的高度
+                    textPages.add(TextPage())           //增加新一页
+                    durY = paddingVertical.toFloat()         //修改当前页的距离顶部的偏移量
+                    usableHeight = (viewHeight - durY - paddingVertical).toInt()
+                    true
+                } else {
+                    false
+                }
+            }
 
         if (!isNewPage) {  //非新开的一页,
             //需要重新计算,防止超过了图片可用高度

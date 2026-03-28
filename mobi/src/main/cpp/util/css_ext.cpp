@@ -47,6 +47,14 @@ CssInfo parse_to_css_info(future::Selector *selector, std::string &identifier, i
     return CssInfo{identifier, selector->weight(), selector->isBaseSelector(), params, selectorType};
 }
 
+/****
+ * 根据 传入的 cssClasses, cssTags, cssIds 查找对应的Css数据,并保存到cssInfos中输出
+ * @param css_data
+ * @param cssClasses
+ * @param cssTags
+ * @param cssIds
+ * @param cssInfos
+ */
 void css_ext::query_css(std::string &css_data,
                         std::vector<std::string> &cssClasses,
                         std::vector<std::string> &cssTags,

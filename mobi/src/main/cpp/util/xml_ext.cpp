@@ -25,6 +25,9 @@ const std::string &xml_ext::MediaTypeOpf = "application/oebps-package+xml";  //o
 const std::string &xml_ext::MediaTypeNcx = "application/x-dtbncx+xml";       //ncx
 const std::string &xml_ext::MediaTypeDat = "application/unknown";            //data
 
+//即使一个ReadText段落中没有任何文本,但是只要其包含这些tag,那么这一行也应该是可显示的.
+const std::string visibleTagNames[]{"h1", "h2", "h3", "h4", "ul", "ol", "li", "image", "img", "table", "tr", "th"};
+
 int totalPlayOrder = 0;
 
 std::string xml_ext::ele_name(const tinyxml2::XMLElement *elem) {
@@ -1419,6 +1422,46 @@ bool xml_ext::empty_node(const tinyxml2::XMLElement *elem) {
     return nochild && noAttr && name != "br";
 }
 
+/***
+ * 检查这个Tag是否是可见的Tag, 如果是非可见的Tag,当段落内没有文字内容时, 则不生成自然段落
+ * @param tag  Tag的名称
+ * @return bool
+ */
+bool isVisibleTag(const std::string &tag) {
+    bool needAdd = false;
+    for(auto &tagName : visibleTagNames) {
+        if (tag == tagName) {
+            needAdd = true;
+            break;
+        }
+    }
+    return needAdd;
+}
+
+/****
+ * 校验一个段落的内容是否合法,
+ * 要么文字有内容,要么标签是可见标签
+ * @param line
+ * @param tags
+ * @return
+ */
+bool validDocText(const std::string& line, const std::vector<TagInfo> &tags) {
+    bool valid = false;
+    if (line.empty()) {
+        if (!tags.empty()) {
+            for (auto &tag: tags) {
+                if (isVisibleTag(tag.name)) {
+                    valid = true;
+                    break;
+                }
+            }
+        }
+    } else {
+        valid = true;
+    }
+    return valid;
+}
+
 /****
  * 解析xhtml文档, 将文档给定开始或者结束的id属性的节点之间的数据解析成docTexts数据集合.
  * @param element  开始的节点元素
@@ -1531,7 +1574,10 @@ int xml_ext::parse(
                                 }
                             }
                             //   则需要将其作为一个段落分出去
-                            docTexts.emplace_back(DocText{ss.str(), docTags});
+                            std::string line = ss.str();
+                            if (validDocText(line, docTags)) {
+                                docTexts.emplace_back(DocText{line, docTags});
+                            }
                             ss.str("");
                             ss.clear();
                             offset = 0;
@@ -1582,7 +1628,7 @@ int xml_ext::parse(
                 //body的直接子标签全部都是自然段落
                 if (stack.empty()) {
                     std::string line = ss.str();
-                    if (!tags.empty() || string_ext::utf8Count(line) > 0) {
+                    if (validDocText(line, tags)) {
                         docTexts.emplace_back(DocText{line, tags});
                     }
                     ss.str("");
@@ -1597,7 +1643,7 @@ int xml_ext::parse(
                         tags.pop_back();
                         std::string line = ss.str();
                         //因为当前html标签内没有子元素，也就没有文本，则直接将其他html标签和文本内容作为一个段落
-                        if (!tags.empty() || !line.empty()) {
+                        if(validDocText(line, tags)) {
                             docTexts.emplace_back(DocText{line, tags});
                         }
                         //清空
@@ -1614,11 +1660,20 @@ int xml_ext::parse(
                         std::vector<TagInfo> curTags;
                         //将tags中保留的也放入当前tags中
                         curTags.reserve(tags.size());
+                        bool needAdd = false;
                         for (auto &tag: tags) {
                             curTags.push_back(tag);
+                            if (!needAdd) {
+                                needAdd = isVisibleTag(tag.name);
+                            }
                         }
                         curTags.push_back(curTag);
-                        docTexts.emplace_back(DocText{"", curTags});
+                        if (!needAdd) {
+                            needAdd = isVisibleTag(curTag.name);
+                        }
+                        if (needAdd) { //一个段落如果没有文字,那么其Tag集合中必然有可以显示的元素,否则不能成为段落
+                            docTexts.emplace_back(DocText{"", curTags});
+                        }
                     }
                 }
             } else {
@@ -1661,7 +1716,7 @@ int xml_ext::parse(
         if (!nodeTagUUIds.empty() && *flagAdd == 1) {
             if (stack.empty()) { //栈空，则全部内容作为一个段落
                 std::string line = ss.str();
-                if (!tags.empty() || string_ext::utf8Count(line) > 0) {
+                if (validDocText(line, tags)) {
                     docTexts.emplace_back(DocText{line, tags});
                 }
                 ss.str("");
@@ -1710,8 +1765,13 @@ int xml_ext::parse(
                                     partTwoTags.push_back(tag);
                                 }
                             }
-                            docTexts.push_back(DocText{partOne, partOneTags});
-                            docTexts.push_back(DocText{partTwo, partTwoTags});
+
+                            if (validDocText(partOne, partOneTags)) {
+                                docTexts.emplace_back(DocText{partOne, partOneTags});
+                            }
+                            if (validDocText(partTwo, partTwoTags)) {
+                                docTexts.emplace_back(DocText{partTwo, partTwoTags});
+                            }
                             ss.clear();
                             ss.str("");
                             offset = 0;
@@ -1734,7 +1794,7 @@ int xml_ext::parse(
                         }
                     } else {    //不需要分段
                         std::string line = ss.str();
-                        if (!tags.empty() || string_ext::utf8Count(line) > 0) {
+                        if (validDocText(line, tags)) {
                             docTexts.emplace_back(DocText{line, tags});
                         }
                         ss.str("");

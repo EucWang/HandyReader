@@ -231,6 +231,7 @@ int epub_util::epub_init() {
         while (item != nullptr) {
             std::string href = xml_ext::getEleAttr(item, "href");
             std::string id = xml_ext::getEleAttr(item, "id");
+            std::string properties = xml_ext::getEleAttr(item, "properties");
             std::string media_type = xml_ext::getEleAttr(item, "media-type");
             this->manifests.emplace_back(BookManifest{href, id, media_type});
 
@@ -241,7 +242,8 @@ int epub_util::epub_init() {
             if (!spine_toc_id.empty() && id == spine_toc_id && media_type == xml_ext::MediaTypeNcx) {
                 ncx_path = href;
             }
-            if (!spine_nav_id.empty() && id == spine_nav_id && media_type == xml_ext::MediaTypeHtml) {
+            if ((properties == "nav" || (!spine_nav_id.empty() && id == spine_nav_id))
+                    && media_type == xml_ext::MediaTypeHtml) {
                 nav_path = href;
             }
 
@@ -249,9 +251,6 @@ int epub_util::epub_init() {
         }
     }
 
-//    if (ncx_path.empty()) {
-//        ncx_path = epub_zfile_toc_ncx;
-//    }
     std::string zipNcxPath;
     for(std::string &item : this->zipEntities) {
         if (string_ext::endsWith(item, ".ncx")) {
@@ -787,12 +786,11 @@ int epub_util::getChapter(JNIEnv *env, long book_id,
         std::vector<TagInfo> tags;
         xml_ext::parse(childEle, docTexts, anchorId, endAnchorId, &flagAdd, spineSrc);
         LOGD("%s::parse done, docTexts.size = %zu", __func__, docTexts.size());
-
         if (!run_flag) {
             LOGI("%s:invoke failed, run_flag false", __func__);
             return 0;
         }
-        mockFirstPage(chapter, docTexts, meta_info.title, meta_info.author, meta_info.publisher);
+//        mockFirstPage(chapter, docTexts, meta_info.title, meta_info.author, meta_info.publisher);
         handle_tags(env, docTexts);
     } else {
         LOGE("%s: invoke failed, childEle is null", __func__);
