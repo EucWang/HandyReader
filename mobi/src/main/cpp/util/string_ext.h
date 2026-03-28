@@ -23,6 +23,7 @@ extern "C" {
 #include <jni.h>
 #include <list>
 
+#include <cctype>
 
 class string_ext {
 

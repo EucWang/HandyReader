@@ -268,6 +268,48 @@ int epub_util::epub_init() {
     return 1;
 }
 
+/****
+ * 从zip文件中获取封面
+ * @param coverItemEle zip文件的Doc文档对应的封面的节点
+ * @param book_title  书籍名称, 用于确定最终的本地保存的封面目录
+ * @param zipfiles zip中的文件目录
+ * @param uf 代表zip的文件指针
+ * @return  封面的本地绝对路径
+ */
+std::string get_and_release_cover(const tinyxml2::XMLElement * coverItemEle, std::string &book_title, std::vector<std::string> &zipfiles, unzFile uf) {
+    std::string cover_href = xml_ext::getEleAttr(coverItemEle, "href");
+    std::string cover_type = xml_ext::getEleAttr(coverItemEle, "media-type");
+    std::string ext = file_ext::get_media_type_ext(cover_type);
+
+    cover_href = string_ext::base_url_decode(cover_href); //对路径进行URL解码, 防止出现无效路径
+
+    if (!cover_href.empty() && !ext.empty()) {
+        std::string output_cover_path = file_ext::get_cover_path(book_title, ext);
+        if (!output_cover_path.empty()) {
+            LOGD("%s: output cover path [%s]", __func__, output_cover_path.c_str());
+
+            auto it = std::find_if(zipfiles.begin(), zipfiles.end(), [=](std::string &item){
+                return item.find(cover_href) != std::string::npos;
+            });
+            if (it != zipfiles.end()) {
+                cover_href = (*it);
+            }
+            LOGD("%s: cover zip href [%s]", __func__, cover_href.c_str());
+
+            if (1 == zip_ext::write_zip_item_to_file(uf, cover_href, output_cover_path)) {
+//                book_coverPath = output_cover_path;
+                return output_cover_path;
+            } else {
+                LOGE("%s dump cover to local path failed", __func__);
+            }
+        } else {
+            LOGE("%s: get cover path failed", __func__);
+        }
+    }
+    return "";
+}
+
+
 int epub_util::load_epub(std::string fullpath,  //文件路径
                          std::string &book_coverPath,    //封面路径
 
@@ -369,11 +411,6 @@ int epub_util::load_epub(std::string fullpath,  //文件路径
         return 0;
     }
 
-//    std::string &book_review,
-//    std::string &book_imprint,
-//    std::string &book_copyright,
-//    std::string &book_asin,
-//    bool &book_isEncrypted
     book_title = xml_ext::getText(opfMetadataEle->FirstChildElement("dc:title"));
     book_author = xml_ext::getText(opfMetadataEle->FirstChildElement("dc:creator"));
     book_publisher = xml_ext::getText(opfMetadataEle->FirstChildElement("dc:publisher"));
@@ -385,40 +422,25 @@ int epub_util::load_epub(std::string fullpath,  //文件路径
     book_date = xml_ext::getText(opfMetadataEle->FirstChildElement("dc:date"));
     book_isbn = xml_ext::getText(
             xml_ext::getChildByNameAndAttr(opfMetadataEle, "dc:identifier", "opf:scheme", "ISBN"));
-//    <meta content="cover-image" name="cover"/>
     std::string cover_id = xml_ext::getEleAttr(xml_ext::getChildByNameAndAttr(opfMetadataEle, "meta", "name", "cover"), "content");
+    auto manifestEle = opfRoot->FirstChildElement("manifest");
     if (!cover_id.empty()) {
         LOGD("%s: cover_id is %s", __func__, cover_id.c_str());
-        auto manifestEle = opfRoot->FirstChildElement("manifest");
         auto coverItemEle = xml_ext::getChildByNameAndAttr(manifestEle, "item", "id", cover_id);
         if (coverItemEle != nullptr) {
-            std::string cover_href = xml_ext::getEleAttr(coverItemEle, "href");
-            std::string cover_type = xml_ext::getEleAttr(coverItemEle, "media-type");
-            std::string ext = file_ext::get_media_type_ext(cover_type);
-
-
-            if (!cover_href.empty() && !ext.empty()) {
-                std::string output_cover_path = file_ext::get_cover_path(book_title, ext);
-                if (!output_cover_path.empty()) {
-                    LOGD("%s: output cover path [%s]", __func__, output_cover_path.c_str());
-
-                    auto it = std::find_if(zipfiles.begin(), zipfiles.end(), [=](std::string &item){
-                        return item.find(cover_href) != std::string::npos;
-                    });
-                    if (it != zipfiles.end()) {
-                        cover_href = (*it);
-                    }
-                    LOGD("%s: cover zip href [%s]", __func__, cover_href.c_str());
-
-                    if (1 == zip_ext::write_zip_item_to_file(uf, cover_href, output_cover_path)) {
-                        book_coverPath = output_cover_path;
-                    } else {
-                        LOGE("%s dump cover to local path failed", __func__);
-                    }
-                } else {
-                    LOGE("%s: get cover path failed", __func__);
-                }
-            }
+            book_coverPath = get_and_release_cover(coverItemEle, book_title, zipfiles, uf);
+        }
+    } else {
+        //没有配置封面,则找到第一个图片资源作为封面
+        auto firstImageItem = xml_ext::getChildByNameAndAttr(manifestEle, "item", "media-type", xml_ext::MediaTypeJpg);
+        if (firstImageItem == nullptr) {
+            firstImageItem = xml_ext::getChildByNameAndAttr(manifestEle, "item", "media-type", xml_ext::MediaTypePng);
+        }
+        if (firstImageItem == nullptr) {
+            xml_ext::getChildByNameAndAttr(manifestEle, "item", "media-type", xml_ext::MediaTypeBmp);
+        }
+        if (firstImageItem != nullptr) {
+            book_coverPath = get_and_release_cover(firstImageItem, book_title, zipfiles, uf);
         }
     }
 
