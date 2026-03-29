@@ -526,7 +526,7 @@ class ContentTextView(context: Context, attrs: AttributeSet?) : View(context, at
 //                    filterTags(charIndex, textTags)
                     val tags = arrayListOf<TextTag>()
                     for (tag in textTags) {
-                        if (tag.start <= charIndex && charIndex <= tag.end) {
+                        if (tag.start <= charIndex && charIndex < tag.end) {
                             if (tag.name in arrayOf("h1", "h2", "h3", "h4", "a")) {
                                 tags.add(tag)
                             } else if (tag.name == "underline") {
