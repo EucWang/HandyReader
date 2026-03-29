@@ -5,12 +5,15 @@ import android.util.Log
 import com.wxn.base.bean.BookChapter
 import com.wxn.base.bean.CssInfo
 import com.wxn.base.bean.ReaderText
+import com.wxn.base.bean.ReaderText.Chapter
+import com.wxn.base.bean.ReaderText.Image
 import com.wxn.mobi.data.model.CountPair
 import com.wxn.mobi.data.model.MetaInfo
 import com.wxn.mobi.data.model.ParagraphData
 import com.wxn.mobi.inative.NativeLib
 import com.wxn.mobi.inative.NativeLib.getWordCount
-import java.lang.annotation.Native
+import kotlin.text.isNotEmpty
+import kotlin.text.trim
 
 object EpubParser {
 
@@ -34,7 +37,38 @@ object EpubParser {
         val ret = arrayListOf<ReaderText>()
         if (texts != null) {
             for (text in texts) {
-                ret.add(ReaderText.Text(String(text.line), text.tags))
+                val paragraphText = String(text.line).trim()
+                val tags = text.tags
+                ret.add(if (paragraphText.isNotEmpty()) {
+                    val titleTag = tags.firstOrNull { it.name == "h1" }
+                    if (titleTag != null) {
+                        Chapter(chapter.chapterIndex.toString(), title = paragraphText, nested = false)
+                    } else {
+                        ReaderText.Text(paragraphText, tags)
+                    }
+                } else {
+                    val imgTag = tags.firstOrNull { it.name == "img" || it.name == "image" }
+                    if (imgTag != null) {
+                        var width = tags.firstOrNull { it.name.lowercase() == "width" }?.params?.toIntOrNull() ?: 0
+                        var height = tags.firstOrNull { it.name.lowercase() == "height" }?.params?.toIntOrNull() ?: 0
+                        val paramItems = imgTag.paramsPairs()
+                        var src = ""
+                        for (item in paramItems) {
+                            when (item.first) {
+                                "src" -> { src = item.second.trim() }
+                                "width" -> { width = ((item.second.toIntOrNull() ?: 0) * 1.5).toInt() }
+                                "height" -> { height = ((item.second.toIntOrNull() ?: 0) * 1.5).toInt() }
+                            }
+                        }
+                        if (src.isNotEmpty()) {
+                            Image(src, width, height)
+                        } else {
+                            ReaderText.Text(paragraphText, tags)
+                        }
+                    } else {
+                        ReaderText.Text(paragraphText, tags)
+                    }
+                })
             }
         }
         Log.d("EpubParser", "getMobiChapterData: chapter=${chapter.chapterIndex}: texts.size = ${texts?.size}")

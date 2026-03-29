@@ -472,19 +472,33 @@ object ChapterProvider {
         var offsetY = 0f    //每一行显示时，和顶部的偏移量
 
         val isOneElePage = (contents.size == 1) //只有一个元素的页面
+        var theImageStyle = imageStyles.uppercase()
+        if (contents.size > 1) {
+            var imgCount = 0
+            for(item in contents) {
+                if (item is ReaderText.Image) {
+                    imgCount++
+                }
+            }
+            if (imgCount == contents.size) {  //整个章节都是图片,章节内容也不止一条, 那么设置样式都为FULL, 让其全屏居中显示
+                if (theImageStyle.isEmpty()) {
+                    theImageStyle = "FULL"
+                }
+            }
+        }
 
         textPages.add(TextPage())   //增加一空白页，然后给这个页面增加显示内容
         offsetY += paddingVertical
         contents.forEachIndexed { index, paragraph -> //遍历需要显示的内容的每一个自然段， 一个段落一个段落（图片）的遍历
             when (paragraph) {
                 is ReaderText.Image -> {
-                    setTypeImageWithStyle(isOneElePage, paragraph, imageStyles, offsetY, textPages)
+                    setTypeImageWithStyle(isOneElePage, paragraph, theImageStyle, offsetY, textPages)
                 }
 
                 is ReaderText.Text -> {
                     val image = paragraph.tryParseToImage()
                     offsetY = if (image != null) {
-                        setTypeImageWithStyle(isOneElePage, image, imageStyles, offsetY, textPages)
+                        setTypeImageWithStyle(isOneElePage, image, theImageStyle, offsetY, textPages)
                     } else {
                         val title = paragraph.tryParseToChapter(chapter.chapterIndex)
                         if (title != null) {
@@ -499,9 +513,7 @@ object ChapterProvider {
                     offsetY = setTypeText(paragraph, index, offsetY, textPages, pageLines, pageLengths, stringBuilder, true)
                 }
 
-                else -> {
-
-                }
+                else -> {}
             }
         }
         //一个章节的全部自然段落/图片/标题都遍历完，
@@ -576,7 +588,6 @@ object ChapterProvider {
             Logger.d("ChapterProvider::setTypeImage::imgSrc=${imgSrc}, did not find the imgSrc, pass")
             return offsetY
         }
-
         val imgVerticalMargin = (contentPaint.textHeight * 1.1f).toInt() //垂直方向上,图片上下两边增加的间隔
         //图片显示可用高度, 页面高度 - 已经显示了的内容占据的偏移 - 底部的边距(paddingTop),
         //当图片占一屏显示时, 这个高度是完全展示的图片最大高度,
@@ -602,7 +613,7 @@ object ChapterProvider {
             } else {
                 if (durY >= visibleBottom ||
                     imgVerticalMargin + originHeight > usableHeight ||
-                    imageStyles.uppercase() == "FULL") {  //当前可显示便宜位置超过了可视高度
+                    imageStyles == "FULL") {  //当前可显示位置超过了可视高度
                     textPages.last().height = durY      //修改上一页的高度
                     textPages.add(TextPage())           //增加新一页
                     durY = paddingVertical.toFloat()         //修改当前页的距离顶部的偏移量
@@ -622,6 +633,13 @@ object ChapterProvider {
                 height = heightInPage
             }
             durY += imgVerticalMargin  //先加上图片的上边距
+        } else {
+            if (imageStyles == "FULL") { //全屏展示时, 居中显示
+                val (widthInPage, heightInPage) = fillImageSize(imgWidth, imgHeight, imgSrc, visibleWidth, visibleHeight)
+                durY += (visibleHeight - heightInPage) / 2f
+                width = widthInPage
+                height = heightInPage
+            }
         }
 
         //构建用于显示Image的TextLine
@@ -656,9 +674,43 @@ object ChapterProvider {
     }
 
     /****
+     * 将图片的宽高缩放到最大宽高匹配的大小,让其填满宽度或者填满高度
+     */
+    private fun fillImageSize(imgWidth: Int,
+                                 imgHeight: Int,
+                                 imgSrc: String,
+                                 maxWidth: Int,
+                                 maxHeight: Int,): Pair<Int, Int>  {
+        var originWidth = imgWidth
+        var originHeight = imgHeight
+        if (originWidth <= 0 || originHeight <= 0) {
+            val options: BitmapFactory.Options = BitmapFactory.Options()
+            options.inJustDecodeBounds = true // 不加载图片像素，只获取宽高
+            options.inSampleSize = 2
+            BitmapFactory.decodeFile(imgSrc, options)
+            originWidth = options.outWidth
+            originHeight = options.outHeight
+            if(originWidth <= 0 || originHeight <= 0) {
+                Logger.e("ChapterProvider::constraintImageSize::decode image[$imgSrc][$imgWidth,$imgHeight] size failed")
+                return Pair(0, 0)
+            }
+        }
+        val radio: Float = (originWidth.toFloat()/ originHeight)  //宽高比
+
+        var targetWidth = maxWidth
+        var targetHeight = (targetWidth / radio).toInt()
+        if (targetHeight > maxHeight) {
+            targetHeight = maxHeight
+            targetWidth = (targetHeight * radio).toInt()
+        }
+        return Pair(targetWidth, targetHeight)
+    }
+
+    /****
      * 约束图片的宽高,
      * 和系统的displayMetrics.density 系数得到一个合适的缩放大小.
-     * 然后约束到最大宽高范围之内, 即界面可视宽高之内
+     * 然后约束到最大宽高范围之内, 即界面可视宽高之内,
+     * 如果不超过,则显示默认宽高,
      * @param imgWidth : 图片的宽度
      * @param imgHeight : 图片的高度
      * @param imgSrc : 图片的路径
