@@ -492,7 +492,7 @@ object ChapterProvider {
         contents.forEachIndexed { index, paragraph -> //遍历需要显示的内容的每一个自然段， 一个段落一个段落（图片）的遍历
             when (paragraph) {
                 is ReaderText.Image -> {
-                    setTypeImageWithStyle(isOneElePage, paragraph, theImageStyle, offsetY, textPages)
+                    offsetY = setTypeImageWithStyle(isOneElePage, paragraph, theImageStyle, offsetY, textPages)
                 }
 
                 is ReaderText.Text -> {
