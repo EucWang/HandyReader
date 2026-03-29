@@ -518,6 +518,7 @@ class ContentTextView(context: Context, attrs: AttributeSet?) : View(context, at
             var isHighlight = false     //是否高亮
             var isUnderline = false
             var isBold = false
+            var isSmall = false
             val charIndex = textLine.charStartOffset + index
             val parentPaint = if (defaultTextPaint != null) defaultTextPaint else {
                 val texttag = if (textTags.size == 1) {
@@ -541,6 +542,8 @@ class ContentTextView(context: Context, attrs: AttributeSet?) : View(context, at
                                 isHighlight = true
                             } else if (tag.name == "strong" || tag.name == "b" || tag.name == "big") {
                                 isBold = true
+                            } else if (tag.name == "small") {
+                                isSmall = true
                             }
                         }
                     }
@@ -568,6 +571,10 @@ class ContentTextView(context: Context, attrs: AttributeSet?) : View(context, at
             }
             if (isBold) {       //加粗显示字体
                 drawingPaint.typeface = ChapterProvider.getTypeface(CssFontWeight.FontWeightBold)
+            } else if (isSmall) {
+                drawingPaint.textSize *= 0.8f
+            } else {
+                drawingPaint.typeface = ChapterProvider.getTypeface(CssFontWeight.FontWeightNormal)
             }
 
             if (isHighlight) {                //绘制高亮文字时的背景
