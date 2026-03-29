@@ -48,6 +48,8 @@ import androidx.compose.ui.window.Popup
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.core.content.ContextCompat
@@ -528,7 +530,7 @@ fun ReaderView(
 
                     Box(
                         modifier = Modifier.padding(horizontal = 32.dp).fillMaxWidth()
-                            .fillMaxHeight(0.5f)
+
                             .background(MaterialTheme.colorScheme.surfaceContainer)
                     ) {
                         IconButton(
@@ -544,6 +546,7 @@ fun ReaderView(
                             )
                         }
                         Column(Modifier.padding(8.dp, 36.dp, 8.dp, 8.dp)
+                            .heightIn(60.dp, 240.dp)
                            .verticalScroll(rememberScrollState())) {
                             Text(text = clickedLinkContent?.content.orEmpty(),
                                 style = MaterialTheme.typography.bodyMedium,
