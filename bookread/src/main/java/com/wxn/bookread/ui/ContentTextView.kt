@@ -523,7 +523,6 @@ class ContentTextView(context: Context, attrs: AttributeSet?) : View(context, at
                 val texttag = if (textTags.size == 1) {
                     if (textTags[0].start <= charIndex && charIndex < textTags[0].end) textTags[0] else null
                 } else {
-//                    filterTags(charIndex, textTags)
                     val tags = arrayListOf<TextTag>()
                     for (tag in textTags) {
                         if (tag.start <= charIndex && charIndex < tag.end) {
