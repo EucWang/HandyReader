@@ -43,11 +43,13 @@ import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.compose.ui.window.Popup
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
@@ -525,7 +527,9 @@ fun ReaderView(
                 ) {
 
                     Box(
-                        modifier = Modifier.padding(horizontal = 32.dp).fillMaxWidth().background(Color.Yellow)
+                        modifier = Modifier.padding(horizontal = 32.dp).fillMaxWidth()
+                            .fillMaxHeight(0.5f)
+                            .background(MaterialTheme.colorScheme.surfaceContainer)
                     ) {
                         IconButton(
                             onClick = {
@@ -535,11 +539,16 @@ fun ReaderView(
                         ) {
                             Icon(
                                 Icons.Default.Close,
-                                contentDescription = "Close Popup"
+                                contentDescription = "Close Popup",
+                                tint = MaterialTheme.colorScheme.onSurface
                             )
                         }
-                        Column(Modifier.padding(8.dp, 36.dp, 8.dp, 8.dp)) {
-                            Text(text = clickedLinkContent?.content.orEmpty(), fontSize = 14.sp)
+                        Column(Modifier.padding(8.dp, 36.dp, 8.dp, 8.dp)
+                           .verticalScroll(rememberScrollState())) {
+                            Text(text = clickedLinkContent?.content.orEmpty(),
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
                         }
                     }
                 }
