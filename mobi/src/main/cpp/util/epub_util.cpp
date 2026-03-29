@@ -480,7 +480,7 @@ int epub_util::parseOpfData(std::vector<NavPoint> &points) {
             }
         }
     }
-    if (tmp.size() != points.size()) {
+    if (!tmp.empty() && tmp.size() != points.size()) {
         points.clear();
         points.insert(points.end(), tmp.begin(), tmp.end());
         int order = 1;
