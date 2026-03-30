@@ -70,16 +70,20 @@ Java_com_wxn_mobi_inative_NativeLib_nativeFilesCrc(
             break;
         }
         std::string path = crcs.get().at(i).filepath;
-//        uint32_t crc = crcs.get().at(i).crc;
         int crc = static_cast<int>(crcs.get().at(i).crc);
+        jstring j_path = env->NewStringUTF(path.c_str());
+        if (j_path == nullptr) {
+            continue;
+        }
 
-        jobject item = env->NewObject(objClass, constructor, env->NewStringUTF(path.c_str()), crc);
-
+        jobject item = env->NewObject(objClass, constructor, j_path, crc);
+        env->DeleteLocalRef(j_path);
         if (item == nullptr) {
             break;
         }
 
         env->SetObjectArrayElement(result, i, item);
+        env->DeleteLocalRef(item);
     }
 
     return result;
@@ -247,30 +251,97 @@ Java_com_wxn_mobi_inative_NativeLib_loadMobi(
         return nullptr;
     }
 
+
+    jstring j_title = env->NewStringUTF(title.c_str());
+    jstring j_author = env->NewStringUTF(author.c_str());
+    jstring j_contributor = env->NewStringUTF(contributor.c_str());
+
+    jstring j_subject = env->NewStringUTF(subject.c_str());
+    jstring j_publisher = env->NewStringUTF(publisher.c_str());
+    jstring j_date = env->NewStringUTF(date.c_str());
+
+    jstring j_description = env->NewStringUTF(description.c_str());
+    jstring j_review = env->NewStringUTF(review.c_str());
+    jstring j_imprint = env->NewStringUTF(imprint.c_str());
+
+    jstring j_copyright = env->NewStringUTF(copyright.c_str());
+    jstring j_isbn = env->NewStringUTF(isbn.c_str());
+    jstring j_asin = env->NewStringUTF(asin.c_str());
+
+    jstring j_language = env->NewStringUTF(language.c_str());
+    jstring j_cover_path = env->NewStringUTF(coverPath.c_str());
+
+    if (j_title == nullptr || j_author == nullptr || j_contributor == nullptr ||
+            j_subject == nullptr || j_publisher == nullptr || j_date == nullptr ||
+            j_description == nullptr || j_review == nullptr || j_imprint == nullptr ||
+            j_copyright == nullptr || j_isbn == nullptr || j_asin == nullptr ||
+            j_language == nullptr || j_cover_path == nullptr) {
+
+        if (j_title) env->DeleteLocalRef(j_title);
+        if (j_author) env->DeleteLocalRef(j_author);
+        if (j_contributor) env->DeleteLocalRef(j_contributor);
+
+        if (j_subject) env->DeleteLocalRef(j_subject);
+        if (j_publisher) env->DeleteLocalRef(j_publisher);
+        if (j_date) env->DeleteLocalRef(j_date);
+
+        if (j_description) env->DeleteLocalRef(j_description);
+        if (j_review) env->DeleteLocalRef(j_review);
+        if (j_imprint) env->DeleteLocalRef(j_imprint);
+
+        if (j_copyright) env->DeleteLocalRef(j_copyright);
+        if (j_isbn) env->DeleteLocalRef(j_isbn);
+        if (j_asin) env->DeleteLocalRef(j_asin);
+
+        if (j_language) env->DeleteLocalRef(j_language);
+        if (j_cover_path) env->DeleteLocalRef(j_cover_path);
+        return nullptr;
+    }
+
     // 4. 调用构造函数创建对象
     jobject mobiInfoObj = env->NewObject(
             infoClazz,
             constructor,
-            env->NewStringUTF(title.c_str()),
-            env->NewStringUTF(author.c_str()),
-            env->NewStringUTF(contributor.c_str()),
 
-            env->NewStringUTF(subject.c_str()),
-            env->NewStringUTF(publisher.c_str()),
-            env->NewStringUTF(date.c_str()),
+            j_title,
+            j_author,
+            j_contributor,
 
-            env->NewStringUTF(description.c_str()),
-            env->NewStringUTF(review.c_str()),
-            env->NewStringUTF(imprint.c_str()),
+            j_subject,
+            j_publisher,
+            j_date,
 
-            env->NewStringUTF(copyright.c_str()),
-            env->NewStringUTF(isbn.c_str()),
-            env->NewStringUTF(asin.c_str()),
+            j_description,
+            j_review,
+            j_imprint,
 
-            env->NewStringUTF(language.c_str()),
+            j_copyright,
+            j_isbn,
+            j_asin,
+
+            j_language,
             isEncrypted,
-            env->NewStringUTF(coverPath.c_str())
-    );
+            j_cover_path);
+
+    env->DeleteLocalRef(j_title);
+    env->DeleteLocalRef(j_author);
+    env->DeleteLocalRef(j_contributor);
+
+    env->DeleteLocalRef(j_subject);
+    env->DeleteLocalRef(j_publisher);
+    env->DeleteLocalRef(j_date);
+
+    env->DeleteLocalRef(j_description);
+    env->DeleteLocalRef(j_review);
+    env->DeleteLocalRef(j_imprint);
+
+    env->DeleteLocalRef(j_copyright);
+    env->DeleteLocalRef(j_isbn);
+    env->DeleteLocalRef(j_asin);
+
+    env->DeleteLocalRef(j_language);
+    env->DeleteLocalRef(j_cover_path);
+
     return mobiInfoObj;
 }
 
@@ -372,30 +443,85 @@ Java_com_wxn_mobi_inative_NativeLib_loadEpub(
         return nullptr;
     }
 
+    jstring j_title = env->NewStringUTF(title.c_str());
+    jstring j_author = env->NewStringUTF(author.c_str());
+    jstring j_contributor = env->NewStringUTF(contributor.c_str());
+
+    jstring j_subject = env->NewStringUTF(subject.c_str());
+    jstring j_publisher = env->NewStringUTF(publisher.c_str());
+    jstring j_date = env->NewStringUTF(date.c_str());
+
+    jstring j_description = env->NewStringUTF(description.c_str());
+    jstring j_review = env->NewStringUTF(review.c_str());
+    jstring j_imprint = env->NewStringUTF(imprint.c_str());
+
+    jstring j_copyright = env->NewStringUTF(copyright.c_str());
+    jstring j_isbn = env->NewStringUTF(isbn.c_str());
+    jstring j_asin = env->NewStringUTF(asin.c_str());
+
+    jstring j_language = env->NewStringUTF(language.c_str());
+    jstring j_coverPath = env->NewStringUTF(coverPath.c_str());
+
+    if (j_title == nullptr  ||j_author == nullptr ||j_contributor == nullptr ||
+        j_subject == nullptr ||j_publisher == nullptr ||j_date == nullptr ||
+        j_description == nullptr  ||j_review == nullptr ||j_imprint == nullptr ||
+        j_copyright == nullptr ||j_isbn == nullptr || j_asin == nullptr ||
+        j_language == nullptr || j_coverPath == nullptr) {
+        if (j_title) env->DeleteLocalRef(j_title);
+        if (j_author) env->DeleteLocalRef(j_author);
+        if (j_contributor) env->DeleteLocalRef(j_contributor);
+        if (j_subject) env->DeleteLocalRef(j_subject);
+        if (j_publisher) env->DeleteLocalRef(j_publisher);
+        if (j_date) env->DeleteLocalRef(j_date);
+        if (j_description) env->DeleteLocalRef(j_description);
+        if (j_review) env->DeleteLocalRef(j_review);
+        if (j_imprint) env->DeleteLocalRef(j_imprint);
+        if (j_copyright) env->DeleteLocalRef(j_copyright);
+        if (j_isbn) env->DeleteLocalRef(j_isbn);
+        if (j_asin) env->DeleteLocalRef(j_asin);
+        if (j_language) env->DeleteLocalRef(j_language);
+        if (j_coverPath) env->DeleteLocalRef(j_coverPath);
+    }
+
     // 4. 调用构造函数创建对象
     jobject mobiInfoObj = env->NewObject(
             infoClazz,
             constructor,
-            env->NewStringUTF(title.c_str()),
-            env->NewStringUTF(author.c_str()),
-            env->NewStringUTF(contributor.c_str()),
+            j_title,
+            j_author,
+            j_contributor,
 
-            env->NewStringUTF(subject.c_str()),
-            env->NewStringUTF(publisher.c_str()),
-            env->NewStringUTF(date.c_str()),
+            j_subject,
+            j_publisher,
+            j_date,
 
-            env->NewStringUTF(description.c_str()),
-            env->NewStringUTF(review.c_str()),
-            env->NewStringUTF(imprint.c_str()),
+            j_description,
+            j_review,
+            j_imprint,
 
-            env->NewStringUTF(copyright.c_str()),
-            env->NewStringUTF(isbn.c_str()),
-            env->NewStringUTF(asin.c_str()),
+            j_copyright,
+            j_isbn,
+            j_asin,
 
-            env->NewStringUTF(language.c_str()),
+            j_language,
             isEncrypted,
-            env->NewStringUTF(coverPath.c_str())
-    );
+            j_coverPath);
+
+    env->DeleteLocalRef(j_title);
+    env->DeleteLocalRef(j_author);
+    env->DeleteLocalRef(j_contributor);
+    env->DeleteLocalRef(j_subject);
+    env->DeleteLocalRef(j_publisher);
+    env->DeleteLocalRef(j_date);
+    env->DeleteLocalRef(j_description);
+    env->DeleteLocalRef(j_review);
+    env->DeleteLocalRef(j_imprint);
+    env->DeleteLocalRef(j_copyright);
+    env->DeleteLocalRef(j_isbn);
+    env->DeleteLocalRef(j_asin);
+    env->DeleteLocalRef(j_language);
+    env->DeleteLocalRef(j_coverPath);
+
     return mobiInfoObj;
 }
 
@@ -491,33 +617,55 @@ Java_com_wxn_mobi_inative_NativeLib_getChapters(JNIEnv *env, jobject thiz, jobje
         std::string src = (*point).src;
         std::string parentId = (*point).parentId;
 
+        // 创建临时 jstring 变量
+        jstring j_id = env->NewStringUTF(id.c_str());
+        jstring j_parentId = env->NewStringUTF(parentId.c_str());
+        jstring j_content = env->NewStringUTF(content.c_str());
+        jstring j_src = env->NewStringUTF(src.c_str());
+        jstring j_empty1 = env->NewStringUTF("");
+        jstring j_empty2 = env->NewStringUTF("");
+        // 检查空字符串
+        if (j_id == nullptr || j_parentId == nullptr || j_content == nullptr ||
+            j_src == nullptr || j_empty1 == nullptr || j_empty2 == nullptr) {
+            LOGE("%s 创建字符串失败", __func__);
+            // 清理已创建的字符串
+            if (j_id) env->DeleteLocalRef(j_id);
+            if (j_parentId) env->DeleteLocalRef(j_parentId);
+            if (j_content) env->DeleteLocalRef(j_content);
+            if (j_src) env->DeleteLocalRef(j_src);
+            if (j_empty1) env->DeleteLocalRef(j_empty1);
+            if (j_empty2) env->DeleteLocalRef(j_empty2);
+            env->ReleaseStringUTFChars(path, nativeStr);
+            return nullptr;
+        }
+
         jvalue args[16];
         args[0].j = 0LL;
-        args[1].l = env->NewStringUTF(id.c_str());
-        args[2].l = env->NewStringUTF(parentId.c_str());
+        args[1].l = j_id;
+        args[2].l = j_parentId;
         args[3].j = book_id;
         args[4].i = playOrder - 1;
-        args[5].l = env->NewStringUTF(content.c_str());
+        args[5].l = j_content;
         args[6].j = 0LL;
-        args[7].l = env->NewStringUTF("");
+        args[7].l = j_empty1;
         args[8].j = 0LL;
-        args[9].l = env->NewStringUTF("");
-        args[10].l = env->NewStringUTF(src.c_str());
+        args[9].l = j_empty2;
+        args[10].l = j_src;
         args[11].i = length;
         args[12].j = 0LL;
         args[13].j = 0LL;
         args[14].j = 0LL;
         args[15].f = 0.0f;  // 直接使用 float，不会提升
         // 检查每个 NewStringUTF 返回值
-        for (int i = 1; i <= 10; i += 2) { // 检查所有 l 字段
-            if (args[i].l == nullptr) {
-                LOGE("%s Failed to create string at index %d", __func__, i);
-                // 清理已创建的字符串并返回
-                // 注意：需要释放之前创建的局部引用，但简单返回可能泄漏少量内存，建议用 PushLocalFrame
-                env->ReleaseStringUTFChars(path, nativeStr);
-                return nullptr;
-            }
-        }
+//        for (int i = 1; i <= 10; i += 2) { // 检查所有 l 字段
+//            if (args[i].l == nullptr) {
+//                LOGE("%s Failed to create string at index %d", __func__, i);
+//                // 清理已创建的字符串并返回
+//                // 注意：需要释放之前创建的局部引用，但简单返回可能泄漏少量内存，建议用 PushLocalFrame
+//                env->ReleaseStringUTFChars(path, nativeStr);
+//                return nullptr;
+//            }
+//        }
         jobject item = env->NewObjectA(objClass, constructor, args);
 
         if (item == nullptr) {
@@ -527,10 +675,26 @@ Java_com_wxn_mobi_inative_NativeLib_getChapters(JNIEnv *env, jobject thiz, jobje
                 env->ExceptionDescribe();
                 env->ExceptionClear();
             }
+            env->DeleteLocalRef(j_id); // 清理字符串
+            env->DeleteLocalRef(j_parentId);
+            env->DeleteLocalRef(j_content);
+            env->DeleteLocalRef(j_src);
+            env->DeleteLocalRef(j_empty1);
+            env->DeleteLocalRef(j_empty2);
             env->ReleaseStringUTFChars(path, nativeStr);
             return nullptr;
         }
         env->SetObjectArrayElement(result, index, item);
+
+        //删除本地引用
+        env->DeleteLocalRef(item);
+        env->DeleteLocalRef(j_id); // 清理字符串
+        env->DeleteLocalRef(j_parentId);
+        env->DeleteLocalRef(j_content);
+        env->DeleteLocalRef(j_src);
+        env->DeleteLocalRef(j_empty1);
+        env->DeleteLocalRef(j_empty2);
+
         index++;
     }
 
@@ -804,6 +968,7 @@ Java_com_wxn_mobi_inative_NativeLib_getChapter(JNIEnv *env, jobject thiz, jobjec
 
         env->DeleteLocalRef(byteArray);
         env->DeleteLocalRef(list);
+        env->DeleteLocalRef(paragraph_data);
     }
 
     env->ReleaseStringUTFChars(path, nativeStr);
@@ -860,6 +1025,7 @@ Java_com_wxn_mobi_inative_NativeLib_getCssInfo(JNIEnv *env,
                 cssNames.push_back(std::string(str));
                 env->ReleaseStringUTFChars(jstr, str);
             }
+            env->DeleteLocalRef(jstr);
         }
     }
 
@@ -876,6 +1042,7 @@ Java_com_wxn_mobi_inative_NativeLib_getCssInfo(JNIEnv *env,
                 tagNames.push_back(std::string(str));
                 env->ReleaseStringUTFChars(jstr, str);
             }
+            env->DeleteLocalRef(jstr);
         }
     }
 
@@ -892,6 +1059,7 @@ Java_com_wxn_mobi_inative_NativeLib_getCssInfo(JNIEnv *env,
                 idNames.push_back(std::string(str));
                 env->ReleaseStringUTFChars(jstr, str);
             }
+            env->DeleteLocalRef(jstr);
         }
     }
 
@@ -961,18 +1129,46 @@ Java_com_wxn_mobi_inative_NativeLib_getCssInfo(JNIEnv *env,
         jobject list = env->NewObject(listClass, listConstructor);
         if (!item.ruleDatas.empty()) {
             for (auto &data: item.ruleDatas) {
+                // 创建临时字符串
+                jstring j_name = env->NewStringUTF(data.name.c_str());
+                jstring j_value = env->NewStringUTF(data.value.c_str());
+
+                if (j_name == nullptr || j_value == nullptr) {
+                    if (j_name) env->DeleteLocalRef(j_name);
+                    if (j_value) env->DeleteLocalRef(j_value);
+                    continue;
+                }
+
                 jobject jdata = env->NewObject(ruleDataClass, ruleDataConstructor,
-                                               env->NewStringUTF(data.name.c_str()),
-                                               env->NewStringUTF(data.value.c_str()));
-                env->CallBooleanMethod(list, listAdd, jdata);
+                                               j_name, j_value);
+                if (jdata) {
+                    env->CallBooleanMethod(list, listAdd, jdata);
+                    env->DeleteLocalRef(jdata);
+                }
+                env->DeleteLocalRef(j_name);
+                env->DeleteLocalRef(j_value);
             }
         }
+
+        // 为 cssInfo 构造函数创建字符串
+        jstring j_identifier = env->NewStringUTF(item.identifier.c_str());
+        if (j_identifier == nullptr) {
+            env->DeleteLocalRef(list);
+            continue;
+        }
+
         jobject cssInfo = env->NewObject(cssInfoClass, cssInfoConstructor,
-                                         env->NewStringUTF(item.identifier.c_str()),
+                                         j_identifier,
                                          item.weight,
                                          item.isBaseSelector,
                                          list);
-        env->SetObjectArrayElement(result, i, cssInfo);
+        if (cssInfo) {
+            env->SetObjectArrayElement(result, i, cssInfo);
+            env->DeleteLocalRef(cssInfo);
+        }
+
+        env->DeleteLocalRef(j_identifier);
+        env->DeleteLocalRef(list);
     }
 
     return result;
@@ -1020,11 +1216,14 @@ Java_com_wxn_mobi_inative_NativeLib_getWordCount(JNIEnv *env, jobject thiz, jlon
     jobject jlist = env->NewObject(listClass, listConstructor);
     for (auto &count: wordCount) {
         jobject item = env->NewObject(pairClass, pairConstructor, count.chapterOrder, count.words, count.pics);
-        env->CallBooleanMethod(jlist, listAdd, item);
+        if (item) {
+            env->CallBooleanMethod(jlist, listAdd, item);
+            env->DeleteLocalRef(item);
+        }
     }
     jobject total_item = env->NewObject(pairClass, pairConstructor, -1, total, 0);
     env->CallBooleanMethod(jlist, listAdd, total_item);
-
+    env->DeleteLocalRef(total_item);
     env->ReleaseStringUTFChars(path, nativeStr);
 
     return jlist;
@@ -1153,30 +1352,91 @@ Java_com_wxn_mobi_inative_NativeLib_loadFb2(JNIEnv *env,
         return nullptr;
     }
 
+    jstring j_title         = env->NewStringUTF(title.c_str());
+    jstring j_author        = env->NewStringUTF(author.c_str());
+    jstring j_contributor   = env->NewStringUTF(contributor.c_str());
+    jstring j_subject       = env->NewStringUTF(subject.c_str());
+    jstring j_publisher     = env->NewStringUTF(publisher.c_str());
+    jstring j_date          = env->NewStringUTF(date.c_str());
+    jstring j_description   = env->NewStringUTF(description.c_str());
+    jstring j_review        = env->NewStringUTF(review.c_str());
+    jstring j_imprint       = env->NewStringUTF(imprint.c_str());
+    jstring j_copyright     = env->NewStringUTF(copyright.c_str());
+    jstring j_isbn          = env->NewStringUTF(isbn.c_str());
+    jstring j_asin          = env->NewStringUTF(asin.c_str());
+    jstring j_language      = env->NewStringUTF(language.c_str());
+    jstring j_coverPath     = env->NewStringUTF(coverPath.c_str());
+
+    if (j_title       == nullptr ||
+            j_author      == nullptr ||
+            j_contributor == nullptr ||
+            j_subject     == nullptr ||
+            j_publisher   == nullptr ||
+            j_date        == nullptr ||
+            j_description == nullptr ||
+            j_review      == nullptr ||
+            j_imprint     == nullptr ||
+            j_copyright   == nullptr ||
+            j_isbn        == nullptr ||
+            j_asin        == nullptr ||
+            j_language    == nullptr ||
+            j_coverPath   == nullptr) {
+        if (j_title      ) env->DeleteLocalRef(j_title      );
+        if (j_author     ) env->DeleteLocalRef(j_author     );
+        if (j_contributor) env->DeleteLocalRef(j_contributor);
+        if (j_subject    ) env->DeleteLocalRef(j_subject    );
+        if (j_publisher  ) env->DeleteLocalRef(j_publisher  );
+        if (j_date       ) env->DeleteLocalRef(j_date       );
+        if (j_description) env->DeleteLocalRef(j_description);
+        if (j_review     ) env->DeleteLocalRef(j_review     );
+        if (j_imprint    ) env->DeleteLocalRef(j_imprint    );
+        if (j_copyright  ) env->DeleteLocalRef(j_copyright  );
+        if (j_isbn       ) env->DeleteLocalRef(j_isbn       );
+        if (j_asin       ) env->DeleteLocalRef(j_asin       );
+        if (j_language   ) env->DeleteLocalRef(j_language   );
+        if (j_coverPath  ) env->DeleteLocalRef(j_coverPath  );
+    }
+
     // 4. 调用构造函数创建对象
     jobject mobiInfoObj = env->NewObject(
             infoClazz,
             constructor,
-            env->NewStringUTF(title.c_str()),
-            env->NewStringUTF(author.c_str()),
-            env->NewStringUTF(contributor.c_str()),
+            j_title,
+            j_author,
+            j_contributor,
 
-            env->NewStringUTF(subject.c_str()),
-            env->NewStringUTF(publisher.c_str()),
-            env->NewStringUTF(date.c_str()),
+            j_subject,
+            j_publisher,
+            j_date,
 
-            env->NewStringUTF(description.c_str()),
-            env->NewStringUTF(review.c_str()),
-            env->NewStringUTF(imprint.c_str()),
+            j_description,
+            j_review,
+            j_imprint,
 
-            env->NewStringUTF(copyright.c_str()),
-            env->NewStringUTF(isbn.c_str()),
-            env->NewStringUTF(asin.c_str()),
+            j_copyright,
+            j_isbn,
+            j_asin,
 
-            env->NewStringUTF(language.c_str()),
+            j_language,
             isEncrypted,
-            env->NewStringUTF(coverPath.c_str())
+            j_coverPath
     );
+
+    env->DeleteLocalRef(j_title      );
+    env->DeleteLocalRef(j_author     );
+    env->DeleteLocalRef(j_contributor);
+    env->DeleteLocalRef(j_subject    );
+    env->DeleteLocalRef(j_publisher  );
+    env->DeleteLocalRef(j_date       );
+    env->DeleteLocalRef(j_description);
+    env->DeleteLocalRef(j_review     );
+    env->DeleteLocalRef(j_imprint    );
+    env->DeleteLocalRef(j_copyright  );
+    env->DeleteLocalRef(j_isbn       );
+    env->DeleteLocalRef(j_asin       );
+    env->DeleteLocalRef(j_language   );
+    env->DeleteLocalRef(j_coverPath  );
+
     return mobiInfoObj;
 }
 extern "C"
@@ -1198,6 +1458,7 @@ Java_com_wxn_mobi_inative_NativeLib_searchFiles(JNIEnv *env, jobject thiz, jstri
                 strPatterns.push_back(std::string(str));
                 env->ReleaseStringUTFChars(jstr, str);
             }
+            env->DeleteLocalRef(jstr);  // 添加此行
         }
     }
 
