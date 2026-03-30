@@ -23,6 +23,8 @@ public:
      */
     static int tidy_html(std::string &format_str);
 
+    static int tidy_html_with_css(std::string &format_str, std::string &page_css_style);
+
 };
 
 

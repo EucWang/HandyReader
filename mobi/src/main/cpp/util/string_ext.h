@@ -22,8 +22,11 @@ extern "C" {
 #include <regex>
 #include <jni.h>
 #include <list>
-
 #include <cctype>
+#include <string_view>
+#include <charconv>
+#include <array>
+#include <algorithm>
 
 class string_ext {
 
@@ -43,7 +46,14 @@ public:
     static bool endsWithIgnoreCase(std::string str, std::string suffix);
 
     static bool startWith(const std::string& str, const std::string& prefix);
-    
+
+    static void removeHtmlTagWrap(std::string &page_css_style, const std::string &tag_name);
+
+    /**
+ * 移除字符串中所有 C 风格注释
+ */
+    static void remove_c_style_comments(std::string& input);
+
     /***
      * 统计utf8的字符数， 常规的std::string的size，lenght字符有问题
      * @param utf8_str
@@ -84,5 +94,18 @@ public:
      * @return
      */
     static std::string base_url_decode(const std::string &str);
+
+    /***
+     * 将字符串中的HTML特殊标志符号转换成正常的显示字符
+     * @param content
+     */
+    static void unescape_html(std::string &content);
+
+    /***
+     * 强化版本的 对字符串中的HTML特殊标志符号, 非 ASCII Unicode 实体, 无分号实体、畸形数字实体、超长实体、嵌套实体
+     * 进行解析,得到正常的字符串
+     * @param content
+     */
+    static void unescape_html_power(std::string &content);
 };
 #endif //SIMPLEREADER2_STRING_EXT_H

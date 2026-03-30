@@ -1635,7 +1635,7 @@ int xml_ext::parse(
                     ss.clear();
                     tags.clear();
                     offset = 0;
-                    //一些段落标签/img/image，非body直接子标签，也需要处理成自然段落
+                    //一些段落标签，非body直接子标签，也需要处理成自然段落
                 } else if (is_paragraph_tag(name)) {
                     if (!tags.empty()) {
                         //弹出最后一个加入的html标签

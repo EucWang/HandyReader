@@ -47,6 +47,34 @@ CssInfo parse_to_css_info(future::Selector *selector, std::string &identifier, i
     return CssInfo{identifier, selector->weight(), selector->isBaseSelector(), params, selectorType};
 }
 
+void css_ext::parse_css(std::string &css_data,
+                        std::vector<CssInfo> &cssInfos) {
+    if (css_data.empty()) {
+        return;
+    }
+    future::CSSParser cssParser;
+    bool ret = cssParser.parseByString(css_data);
+    if (ret) {
+        const std::set<future::Selector *> &set = cssParser.getSelectors();
+        for (auto it = set.begin(); it != set.end(); it++) {
+            auto type = (*it)->getType();
+            if (type == future::ClassSelector::SelectorType::ClassSelector) {
+                auto *selector = dynamic_cast<future::ClassSelector *>(*it);
+                auto cssid = selector->getClassIdentifier();
+                cssInfos.emplace_back(parse_to_css_info(selector, cssid, 0));
+            } else if (type == future::TypeSelector::SelectorType::TypeSelector) {
+                auto *selector = dynamic_cast<future::TypeSelector *>(*it);
+                std::string identifier = selector->getTagName();
+                cssInfos.emplace_back(parse_to_css_info(selector, identifier, 1));
+            } else if (type == future::IdSelector::SelectorType::IDSelector) {
+                auto *selector = dynamic_cast<future::IdSelector *>(*it);
+                std::string identifier = selector->getIdIdentifier();
+                cssInfos.emplace_back(parse_to_css_info(selector, identifier, 2));
+            }
+        }
+    }
+}
+
 /****
  * 根据 传入的 cssClasses, cssTags, cssIds 查找对应的Css数据,并保存到cssInfos中输出
  * @param css_data
@@ -68,29 +96,30 @@ void css_ext::query_css(std::string &css_data,
     }
 
     future::CSSParser cssParser;
-    cssParser.parseByString(css_data);
-    const std::set<future::Selector *> &set = cssParser.getSelectors();
-    for (auto it = set.begin(); it != set.end(); it++) {
+    bool ret = cssParser.parseByString(css_data);
+    if (ret) {
+        const std::set<future::Selector *> &set = cssParser.getSelectors();
+        for (auto it = set.begin(); it != set.end(); it++) {
+            auto type = (*it)->getType();
+            if (type == future::ClassSelector::SelectorType::ClassSelector && !cssClasses.empty()) {
+                auto *selector = dynamic_cast<future::ClassSelector *>(*it);
+                auto cssid = selector->getClassIdentifier();
+                if (std::find(cssClasses.begin(), cssClasses.end(), cssid) != cssClasses.end()) {
+                    cssInfos.emplace_back(parse_to_css_info(selector, cssid, 0));
+                }
+            } else if (type == future::TypeSelector::SelectorType::TypeSelector && !cssTags.empty()) {
+                auto *selector = dynamic_cast<future::TypeSelector *>(*it);
+                std::string identifier = selector->getTagName();
+                if (std::find(cssTags.begin(), cssTags.end(), identifier) != cssTags.end()) {
+                    cssInfos.emplace_back(parse_to_css_info(selector, identifier, 1));
+                }
 
-        auto type = (*it)->getType();
-        if (type == future::ClassSelector::SelectorType::ClassSelector && !cssClasses.empty()) {
-            auto *selector = dynamic_cast<future::ClassSelector *>(*it);
-            auto cssid = selector->getClassIdentifier();
-            if (std::find(cssClasses.begin(), cssClasses.end(), cssid) != cssClasses.end()) {
-                cssInfos.emplace_back(parse_to_css_info(selector, cssid, 0));
-            }
-        } else if (type == future::TypeSelector::SelectorType::TypeSelector && !cssTags.empty()) {
-            auto *selector = dynamic_cast<future::TypeSelector *>(*it);
-            std::string identifier = selector->getTagName();
-            if (std::find(cssTags.begin(), cssTags.end(), identifier) != cssTags.end()) {
-                cssInfos.emplace_back(parse_to_css_info(selector, identifier, 1));
-            }
-
-        } else if (type == future::IdSelector::SelectorType::IDSelector && !cssIds.empty()) {
-            auto *selector = dynamic_cast<future::IdSelector *>(*it);
-            std::string identifier = selector->getIdIdentifier();
-            if (std::find(cssIds.begin(), cssIds.end(), identifier) != cssIds.end()) {
-                cssInfos.emplace_back(parse_to_css_info(selector, identifier, 2));
+            } else if (type == future::IdSelector::SelectorType::IDSelector && !cssIds.empty()) {
+                auto *selector = dynamic_cast<future::IdSelector *>(*it);
+                std::string identifier = selector->getIdIdentifier();
+                if (std::find(cssIds.begin(), cssIds.end(), identifier) != cssIds.end()) {
+                    cssInfos.emplace_back(parse_to_css_info(selector, identifier, 2));
+                }
             }
         }
     }

@@ -38,6 +38,70 @@ bool string_ext::startWith(const std::string &str, const std::string &prefix) {
     return str.substr(0, prefix.size()) == prefix;
 }
 
+void string_ext::removeHtmlTagWrap(std::string &page_css_style, const std::string &tag_name) {
+    if (page_css_style.empty()) {
+        return;
+    }
+    string_ext::trim(page_css_style);
+    if (page_css_style.empty()) {
+        return;
+    }
+
+    std::string start_tag_pre = "<" + tag_name;
+    std::string end_tag = "</" + tag_name + ">";
+
+    if(!string_ext::startWith(page_css_style, start_tag_pre) || !endsWith(page_css_style, end_tag)) {
+        return;
+    }
+
+    size_t pos = page_css_style.find('>');
+    if(pos == std::string::npos) {
+        return;
+    }
+
+    page_css_style.erase(0, pos + 1); //移除前面n个字符
+    page_css_style.erase(page_css_style.size() - end_tag.size(), page_css_style.size());  //移除后面的字符
+    trim(page_css_style);
+
+    remove_c_style_comments(page_css_style); //移除注释
+    string_ext::unescape_html(page_css_style);  //替换字符串中的HTML特使标识
+    trim(page_css_style);
+}
+
+#include <string>
+
+/**
+ * 移除字符串中所有 C 风格注释
+ */
+void string_ext::remove_c_style_comments(std::string& input) {
+    size_t write_pos = 0;          // 当前可写入的位置
+    size_t i = 0;
+    const size_t len = input.length();
+
+    while (i < len) {
+        // 检测注释开始 "/*"
+        if (i + 1 < len && input[i] == '/' && input[i + 1] == '*') {
+            // 跳过 "/*"
+            i += 2;
+            // 查找对应的 "*/"
+            size_t end = input.find("*/", i);
+            if (end == std::string::npos) {
+                // 没有找到结束符，剩余部分全部丢弃
+                break;
+            } else {
+                // 跳过整个注释内容及 "*/"
+                i = end + 2;
+                // 继续循环，不复制任何字符
+            }
+        } else {
+            // 普通字符，移动到前面
+            input[write_pos++] = input[i++];
+        }
+    }
+    // 调整字符串长度为实际有效字符数
+    input.resize(write_pos);
+}
+
 /***
  * 统计utf8的字符数， 常规的std::string的size，lenght字符有问题
  * @param utf8_str
@@ -291,4 +355,158 @@ std::string string_ext::base_url_decode(const std::string &encoded) {
         }
     }
     return decoded.str();
+}
+
+void string_ext::unescape_html(std::string &content) {
+    if (content.empty()) {
+        return;
+    }
+    // 使用数组存储实体（线性查找更快）
+    const std::pair<std::string_view, char> entities[] = {
+            {"&lt;", '<'},
+            {"&gt;", '>'},
+            {"&quot;", '"'},
+            {"&apos;", '\''},
+            {"&amp;", '&'}
+    };
+
+    size_t i = 0;  // 读指针
+    size_t j = 0;  // 写指针
+
+    while (i < content.size()) {
+        if (content[i] == '&') {
+            bool replaced = false;
+            for (const auto& [entity, ch] : entities) {
+                if (i + entity.size() <= content.size() &&
+                        content.compare(i, entity.size(), entity.data(), entity.size()) == 0) {
+                    content[j++] = ch;
+                    i += entity.size();
+                    replaced = true;
+                    break;
+                }
+            }
+            if (!replaced) {
+                content[j++] = content[i++];
+            }
+        } else {
+            content[j++] = content[i++];
+        }
+    }
+    content.resize(j);
+}
+
+
+/***
+ * 强化版本的 对字符串中的HTML特殊标志符号, 非 ASCII Unicode 实体, 无分号实体、畸形数字实体、超长实体、嵌套实体
+ * 进行解析,得到正常的字符串
+ * @param content
+ */
+void string_ext::unescape_html_power(std::string &content) {
+    if (content.empty()) return;
+
+    auto write_utf8 = [](uint32_t code, char (&buf)[4]) -> int {
+        if (code == 0) return 0;                       // 拒绝空字符
+        if ((code >= 0xD800 && code <= 0xDFFF) || code >= 0x110000) return 0;
+        if (code < 0x80) {
+            buf[0] = static_cast<char>(code);
+            return 1;
+        } else if (code < 0x800) {
+            buf[0] = static_cast<char>(0xC0 | (code >> 6));
+            buf[1] = static_cast<char>(0x80 | (code & 0x3F));
+            return 2;
+        } else if (code < 0x10000) {
+            buf[0] = static_cast<char>(0xE0 | (code >> 12));
+            buf[1] = static_cast<char>(0x80 | ((code >> 6) & 0x3F));
+            buf[2] = static_cast<char>(0x80 | (code & 0x3F));
+            return 3;
+        } else { // code <= 0x10FFFF
+            buf[0] = static_cast<char>(0xF0 | (code >> 18));
+            buf[1] = static_cast<char>(0x80 | ((code >> 12) & 0x3F));
+            buf[2] = static_cast<char>(0x80 | ((code >> 6) & 0x3F));
+            buf[3] = static_cast<char>(0x80 | (code & 0x3F));
+            return 4;
+        }
+    };
+
+    static constexpr struct EntityMap {
+        std::string_view name;
+        uint32_t code_point;
+    } entity_map[] = {
+            {"lt", '<'}, {"gt", '>'}, {"quot", '"'}, {"apos", '\''}, {"amp", '&'},
+            {"nbsp", 0x00A0}, {"copy", 0x00A9}, {"reg", 0x00AE}, {"euro", 0x20AC}
+    };
+
+    size_t i = 0, j = 0;
+    const size_t max_entity_length = 32;
+    char utf8_buf[4];
+
+    while (i < content.size()) {
+        if (content[i] == '&') {
+            size_t limit = std::min(content.size(), i + max_entity_length + 1);
+            size_t end = std::string::npos;
+            for (size_t k = i + 1; k < limit; ++k) {
+                if (content[k] == ';') {
+                    end = k;
+                    break;
+                }
+            }
+            if (end != std::string::npos) {
+                std::string_view entity(&content[i + 1], end - i - 1);
+                bool replaced = false;
+
+                // 数字实体
+                if (!entity.empty() && entity[0] == '#') {
+                    if (entity.size() >= 2) {
+                        uint32_t code = 0;
+                        const char* start = entity.data() + 1;
+                        size_t len = entity.size() - 1;
+                        int base = 10;
+                        if (entity[1] == 'x' || entity[1] == 'X') {
+                            if (entity.size() >= 3) {
+                                start += 1;
+                                len -= 1;
+                                base = 16;
+                            }
+                        }
+                        if (len > 0) {
+                            auto result = std::from_chars(start, start + len, code, base);
+                            if (result.ec == std::errc() && result.ptr == start + len) {
+                                int bytes = write_utf8(code, utf8_buf);
+                                if (bytes > 0) {
+                                    for (int n = 0; n < bytes; ++n) content[j++] = utf8_buf[n];
+                                    i = end + 1;
+                                    replaced = true;
+                                }
+                            }
+                        }
+                    }
+                }
+                    // 命名实体
+                else {
+                    for (const auto& [name, cp] : entity_map) {
+                        if (entity.size() == name.size()) {
+                            bool match = true;
+                            for (size_t k = 0; k < name.size(); ++k) {
+                                char c = static_cast<char>(std::tolower(static_cast<unsigned char>(entity[k])));
+                                if (c != name[k]) {
+                                    match = false;
+                                    break;
+                                }
+                            }
+                            if (match) {
+                                int bytes = write_utf8(cp, utf8_buf);
+                                for (int n = 0; n < bytes; ++n) content[j++] = utf8_buf[n];
+                                i = end + 1;
+                                replaced = true;
+                                break;
+                            }
+                        }
+                    }
+                }
+                if (replaced) continue;
+            }
+        }
+        content[j++] = content[i++];
+    }
+    content.resize(j);
 }

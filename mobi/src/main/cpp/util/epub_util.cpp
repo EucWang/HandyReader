@@ -762,15 +762,17 @@ int epub_util::getChapter(JNIEnv *env, long book_id,
         }
     }
 
+    std::vector<CssInfo> cssInfos;
     if (spineSrc != currentSrc) {
         std::string chapter_data;
+        std::string page_css_style;
         LOGD("%s::transform to zip entity src is %s", __func__, spineSrc.c_str());
         if (1 != load_zip_entity_data(spineSrc, chapter_data)) {
             LOGE("%s read [%s] failed", __func__, spineSrc.c_str());
             return 0;
         }
         LOGD("%s::transform done ,chapter_data.size = %zu", __func__, chapter_data.size());
-        if (1 != tidyh5_ext::tidy_html(chapter_data)) {
+        if (1 != tidyh5_ext::tidy_html_with_css(chapter_data, page_css_style)) {
             LOGE("%s tidy html %s failed", __func__, spineSrc.c_str());
             return 0;
         }
@@ -778,6 +780,11 @@ int epub_util::getChapter(JNIEnv *env, long book_id,
         if (!run_flag) {
             LOGI("%s:invoke failed, run_flag false", __func__);
             return 0;
+        }
+
+        string_ext::removeHtmlTagWrap(page_css_style, "style");
+        if (!page_css_style.empty()) {
+            css_ext::parse_css(page_css_style, cssInfos);
         }
 
         doc.ClearError();
@@ -813,7 +820,7 @@ int epub_util::getChapter(JNIEnv *env, long book_id,
             return 0;
         }
 //        mockFirstPage(chapter, docTexts, meta_info.title, meta_info.author, meta_info.publisher);
-        handle_tags(env, docTexts);
+        handle_tags(env, docTexts, cssInfos);
     } else {
         LOGE("%s: invoke failed, childEle is null", __func__);
     }
@@ -824,13 +831,13 @@ int epub_util::getChapter(JNIEnv *env, long book_id,
     return 1;
 }
 
-void epub_util::handle_tags(JNIEnv *env, std::vector<DocText> &docTexts) {
+void epub_util::handle_tags(JNIEnv *env, std::vector<DocText> &docTexts, std::vector<CssInfo> &cssInfos) {
     auto start_time = std::chrono::high_resolution_clock::now();
     LOGI("%s:invoke", __func__);
     for (auto &doctext: docTexts) {
         if (!doctext.tagInfos.empty()) {
             auto itag = doctext.tagInfos.begin();
-            for(; itag != doctext.tagInfos.end(); ++itag) {
+            for(; itag != doctext.tagInfos.end(); ++itag) {  //图片Tag, 需要解析其宽高, 以及其本地路径
                 if ((*itag).name == "img" || (*itag).name == "image") {
                     TagInfo &imgtag = (*itag);
                     std::string params = imgtag.params;
@@ -867,6 +874,52 @@ void epub_util::handle_tags(JNIEnv *env, std::vector<DocText> &docTexts) {
                                 }
                                 imgtag.params = ss.str();
                             }
+                        }
+                    }
+                } else { //其他Tag, 需要整合页内的Css信息
+                    TagInfo &item_tag = (*itag);
+                    std::string params = item_tag.params;
+                    if (!cssInfos.empty()) {
+                        std::vector<RuleData> rule_datas;
+                        std::string css_class;
+                        if (!params.empty()) {
+                            auto kvs = xml_ext::parse_str_params(params);
+                            for(auto &kv : kvs) {
+                                if (kv.first == "class") {
+                                    css_class = kv.second;
+                                    break;
+                                }
+                            }
+                        }
+                        if (!css_class.empty()) {
+                            int add_count = 0;
+                            for(auto info : cssInfos) {
+                                if ((info.type == "class" && info.identifier == css_class) ||
+                                    (info.type == "tag" && info.identifier == item_tag.name)) {
+                                    rule_datas.insert(rule_datas.end(), info.ruleDatas.begin(), info.ruleDatas.end());
+                                    add_count++;
+                                    if (add_count >= 2) { //一次加class的,一次加tag的
+                                        break;
+                                    }
+                                }
+                            }
+                        } else {
+                            for(auto info : cssInfos) {
+                                if (info.type == "tag" && info.identifier == item_tag.name) {
+                                    rule_datas.insert(rule_datas.end(), info.ruleDatas.begin(), info.ruleDatas.end());
+                                }
+                            }
+                        }
+                        if (!rule_datas.empty()) { //加到params中
+                            std::stringstream ss;
+                            if (!params.empty()) {
+                                ss << params;
+                                ss << "&";
+                            }
+                            for(auto rule_data : rule_datas) {
+                                ss << rule_data.name << "=" << rule_data.value << "&";
+                            }
+                            item_tag.params = ss.str().substr(0, ss.str().length() - 1);
                         }
                     }
                 }

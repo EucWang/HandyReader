@@ -1,7 +1,3 @@
-//
-// Created by MAC on 2025/5/23.
-//
-
 /*
 Original code by Lee Thomason (www.grinninglizard.com)
 
@@ -35,6 +31,27 @@ distribution.
 #   include <cstddef>
 #   include <cstdarg>
 #endif
+
+// Handle fallthrough attribute for different compilers
+#ifndef __has_attribute
+#   define __has_attribute(x) 0
+#endif
+#ifndef __has_cpp_attribute
+#  define __has_cpp_attribute(x) 0
+#endif
+
+#if defined(_MSC_VER)
+#   define TIXML_FALLTHROUGH (void(0))
+#elif (__cplusplus >= 201703L && __has_cpp_attribute(fallthrough))
+#   define TIXML_FALLTHROUGH [[fallthrough]]
+#elif __has_cpp_attribute(clang::fallthrough)
+#   define TIXML_FALLTHROUGH [[clang::fallthrough]]
+#elif __has_attribute(fallthrough)
+#   define TIXML_FALLTHROUGH __attribute__((fallthrough))
+#else
+#   define TIXML_FALLTHROUGH (void(0))
+#endif
+
 
 #if defined(_MSC_VER) && (_MSC_VER >= 1400 ) && (!defined WINCE)
 // Microsoft Visual Studio, version 2005 and higher. Not WinCE.
@@ -97,6 +114,9 @@ distribution.
 #define TIXML_VSNPRINTF	vsnprintf
 static inline int TIXML_VSCPRINTF( const char* format, va_list va )
 {
+    if (!format) {
+        return 0;
+    }
     int len = vsnprintf( 0, 0, format, va );
     TIXMLASSERT( len >= 0 );
     return len;
@@ -450,17 +470,17 @@ namespace tinyxml2
                 --output;
                 *output = static_cast<char>((input | BYTE_MARK) & BYTE_MASK);
                 input >>= 6;
-                //fall through
+                TIXML_FALLTHROUGH;
             case 3:
                 --output;
                 *output = static_cast<char>((input | BYTE_MARK) & BYTE_MASK);
                 input >>= 6;
-                //fall through
+                TIXML_FALLTHROUGH;
             case 2:
                 --output;
                 *output = static_cast<char>((input | BYTE_MARK) & BYTE_MASK);
                 input >>= 6;
-                //fall through
+                TIXML_FALLTHROUGH;
             case 1:
                 --output;
                 *output = static_cast<char>(input | FIRST_BYTE_MARK[*length]);
@@ -853,9 +873,6 @@ namespace tinyxml2
         // Edge case: XMLDocuments don't have a Value. Return null.
         if ( this->ToDocument() )
             return 0;
-        if(_value.Empty()) {
-            return 0;
-        }
         return _value.GetStr();
     }
 
@@ -1056,7 +1073,7 @@ namespace tinyxml2
     {
         for( const XMLNode* node = _next; node; node = node->_next ) {
             const XMLElement* element = node->ToElementWithName( name );
-            if ( element != nullptr ) {
+            if ( element ) {
                 return element;
             }
         }
@@ -1224,17 +1241,13 @@ namespace tinyxml2
     const XMLElement* XMLNode::ToElementWithName( const char* name ) const
     {
         const XMLElement* element = this->ToElement();
-        if ( element == nullptr ) {
-            return nullptr;
+        if ( element == 0 ) {
+            return 0;
         }
-        if ( name == nullptr ) {
+        if ( name == 0 ) {
             return element;
         }
-        const char *ele_name = element->Name();
-        if (ele_name == nullptr || strlen(ele_name) == 0) {
-            return nullptr;
-        }
-        if ( XMLUtil::StringEqual(ele_name, name ) ) {
+        if ( XMLUtil::StringEqual( element->Name(), name ) ) {
             return element;
         }
         return 0;
@@ -2335,8 +2348,10 @@ namespace tinyxml2
     }
 
     void XMLDocument::DeleteNode( XMLNode* node )	{
-        TIXMLASSERT( node );
-        TIXMLASSERT(node->_document == this );
+        if(node == 0) {
+            return; // check for null pointer
+        }
+        TIXMLASSERT(node->_document == this);
         if (node->_parent) {
             node->_parent->DeleteChild( node );
         }
@@ -2588,7 +2603,7 @@ namespace tinyxml2
         --_parsingDepth;
     }
 
-    XMLPrinter::XMLPrinter( FILE* file, bool compact, int depth ) :
+    XMLPrinter::XMLPrinter( FILE* file, bool compact, int depth, EscapeAposCharsInAttributes aposInAttributes ) :
             _elementJustOpened( false ),
             _stack(),
             _firstElement( true ),
@@ -2605,9 +2620,11 @@ namespace tinyxml2
         }
         for( int i=0; i<NUM_ENTITIES; ++i ) {
             const char entityValue = entities[i].value;
-            const unsigned char flagIndex = static_cast<unsigned char>(entityValue);
-            TIXMLASSERT( flagIndex < ENTITY_RANGE );
-            _entityFlag[flagIndex] = true;
+            if ((aposInAttributes == ESCAPE_APOS_CHARS_IN_ATTRIBUTES) || (entityValue != SINGLE_QUOTE)) {
+                const unsigned char flagIndex = static_cast<unsigned char>(entityValue);
+                TIXMLASSERT( flagIndex < ENTITY_RANGE );
+                _entityFlag[flagIndex] = true;
+            }
         }
         _restrictedEntityFlag[static_cast<unsigned char>('&')] = true;
         _restrictedEntityFlag[static_cast<unsigned char>('<')] = true;
@@ -2644,7 +2661,7 @@ namespace tinyxml2
             fwrite ( data , sizeof(char), size, _fp);
         }
         else {
-            char* p = _buffer.PushArr( static_cast<int>(size) ) - 1;   // back up over the null terminator.
+            char* p = _buffer.PushArr( size ) - 1;   // back up over the null terminator.
             memcpy( p, data, size );
             p[size] = 0;
         }

@@ -161,7 +161,7 @@ private:
 
     int parseOpfData(std::vector<NavPoint> &points);
 
-    void handle_tags(JNIEnv *env, std::vector<DocText> &docTexts);
+    void handle_tags(JNIEnv *env, std::vector<DocText> &docTexts, std::vector<CssInfo> &cssInfos);
 
     /***
      * 缓存图片
