@@ -27,8 +27,9 @@
 - [√] Add volume key page-turning feature toggle
 - [√] Modify color selection panel
 - [√] Optimaze TTS server and add setter
+- [ ] Add Reading Page background image selection
 - [ ] Add font selection
-- [ ] Control the maximum height of popup for in-page annotation content
+- [√] Control the maximum height of popup for in-page annotation content
 - [ ] Continuous vertical scrolling
 - [ ] Add welcome guide on first app launch
 - [√] Add control guide on first entering the reading interface
@@ -39,6 +40,7 @@
 - [ ] Add WebView to display web content
 - [ ] support two column page diaplay on tablet
 - [ ] support open mobi/epub.. file from third app
+- [ ] offline AI TTS and Online EdgeTTS
 
 ---
 
@@ -61,3 +63,4 @@ This project is licensed under the GNU General Public License v3.0 - see the [LI
 - [CssParser](https://github.com/luojilab/CSSParser) for the CssParser library
 - [unzip](http://www.winimage.com/zLibDll/minizip.html) for the unzip library
 - [jp2ForAndroid](https://github.com/EucWang/jp2ForAndroid) for the jp2ForAndroid
+- [libxml2](https://github.com/GNOME/libxml2) for the libxml2 library
