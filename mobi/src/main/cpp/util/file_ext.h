@@ -20,6 +20,8 @@ extern "C" {
 
 namespace fs = std::filesystem;
 
+enum class PathType { WindowsAbsolute, UnixAbsolute, Relative, Invalid };
+
 class file_ext {
 
 public:
@@ -79,6 +81,13 @@ public:
      * @return
      */
     static std::string get_file_suffix(std::string &path_name);
+
+    /***
+     * // 提取文件名（支持 / 和 \）
+     * @param path
+     * @return
+     */
+    static std::string extractFilename(const std::string& path);
 };
 
 

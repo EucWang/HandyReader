@@ -452,13 +452,13 @@ int epub_util::load_epub(std::string fullpath,  //文件路径
 
 int epub_util::parseOpfData(std::vector<NavPoint> &points) {
     LOGI("%s:invoke", __func__);
-    std::vector<std::string> orderedItemSrc;
+    std::vector<std::pair<std::string, std::string>> orderedItemSrc;
     for(auto spine : spines) {
         auto it = std::find_if(manifests.begin(), manifests.end(), [=](BookManifest &item){
             return (spine.idref == item.id && item.media_type == xml_ext::MediaTypeHtml && !item.href.empty());
         });
         if (it != manifests.end()) {
-            orderedItemSrc.push_back((*it).href);
+            orderedItemSrc.push_back(std::pair<std::string, std::string>((*it).href, (*it).id));
         }
     }
 
@@ -496,7 +496,7 @@ int epub_util::parseOpfData(std::vector<NavPoint> &points) {
     if (!points.empty()) {
         while (index < points.size() && startOpfIndex < orderedItemSrc.size()) {
             auto &point = points[index];
-            auto &opf = orderedItemSrc[startOpfIndex];
+            auto &opf = orderedItemSrc[startOpfIndex].first;
 
             if (point.src.find(opf) != std::string::npos) { //找到了
                 if (startOpfIndex < orderedItemSrc.size() - 1) {
@@ -507,7 +507,7 @@ int epub_util::parseOpfData(std::vector<NavPoint> &points) {
                 int opfIndex = startOpfIndex - 1;
                 bool found = false;
                 while (opfIndex >= 0) {
-                    auto &prevOpf = orderedItemSrc[opfIndex];
+                    auto &prevOpf = orderedItemSrc[opfIndex].first;
                     if (point.src.find(prevOpf) != std::string::npos) { //在上一个找到了
                         found = true;
                         break;
@@ -520,7 +520,7 @@ int epub_util::parseOpfData(std::vector<NavPoint> &points) {
                     opfIndex = startOpfIndex + 1;
                     found = false;
                     while (opfIndex < orderedItemSrc.size()) {
-                        auto &nextOpf = orderedItemSrc[opfIndex];
+                        auto &nextOpf = orderedItemSrc[opfIndex].first;
                         if (point.src.find(nextOpf) != std::string::npos) { //在下一个找到了
                             found = true;
                             break;
@@ -531,7 +531,7 @@ int epub_util::parseOpfData(std::vector<NavPoint> &points) {
                     if (found) {    //往后找，找到了，则将没有放入到ncx中的opf作为一个新的point，放入points中
                         for (int i = startOpfIndex; i < opfIndex; i++) {
                             NavPoint newpoint;
-                            newpoint.src = orderedItemSrc[i];
+                            newpoint.src = orderedItemSrc[i].first;
                             newpoint.text = "";
                             newpoint.parentId = "";
                             newpoint.id = string_ext::generate_uuid();
@@ -554,7 +554,7 @@ int epub_util::parseOpfData(std::vector<NavPoint> &points) {
             auto &lastPoint = points[points.size() - 1];
             int opfIndex = startOpfIndex;
             for (int i = opfIndex; i < orderedItemSrc.size(); i++) {
-                auto &opf = orderedItemSrc[i];
+                auto &opf = orderedItemSrc[i].first;
                 if (lastPoint.src.find(opf) != std::string::npos) {
                     continue;
                 } else {
@@ -624,6 +624,26 @@ int epub_util::parseOpfData(std::vector<NavPoint> &points) {
         for (auto &point: newPoints) {
             point.playOrder = order++;
         }
+    } else {
+        if (orderedItemSrc.size() > 0) {
+            for (int i = 0; i < orderedItemSrc.size(); ++i) {
+                NavPoint point;
+                point.src = orderedItemSrc[i].first;
+
+                std::string item_name = orderedItemSrc[i].first;
+                item_name = file_ext::extractFilename(item_name);
+                if(!item_name.empty()) {
+                    size_t lastSep = item_name.find_last_of(".");
+                    item_name = (lastSep == std::string::npos) ? item_name : item_name.substr(0, lastSep);
+                }
+                point.text = item_name;
+
+                point.id = orderedItemSrc[i].second;
+                point.parentId = "";
+                point.playOrder = i + 1;
+                newPoints.push_back(point);
+            }
+        }
     }
 
     points.clear();
@@ -631,6 +651,97 @@ int epub_util::parseOpfData(std::vector<NavPoint> &points) {
     LOGI("%s:invoke done", __func__);
     return 1;
 }
+
+void epub_util::valid_points(/*in,out*/std::vector<NavPoint> &points) {
+    LOGI("%s:invoke", __func__);
+    if (points.empty()) {
+        return;
+    }
+    // 边界检查：如果 zipEntities 为空，记录警告并返回
+    if (zipEntities.empty()) {
+        LOGW("%s: zipEntities is empty, cannot validate points", __func__);
+        return;
+    }
+
+    std::vector<NavPoint> valid_points;
+    int invalid_count = 0;
+
+    // 遍历所有 NavPoint
+    for (const auto &point : points) {
+        // 检查 src 是否为空
+        if (point.src.empty()) {
+            LOGW("%s: NavPoint id=[%s], text=[%s] has empty src, skipping",
+                 __func__, point.id.c_str(), point.text.c_str());
+            invalid_count++;
+            continue;
+        }
+
+        // 提取文件路径（分离锚点）
+        std::string spine_src;
+        std::string anchor_id;
+        parseSrcName(const_cast<std::string&>(point.src), spine_src, anchor_id);
+
+        // 检查提取的文件路径是否为空
+        if (spine_src.empty()) {
+            LOGW("%s: NavPoint id=[%s], text=[%s] has empty spine_src after parsing, skipping",
+                 __func__, point.id.c_str(), point.text.c_str());
+            invalid_count++;
+            continue;
+        }
+
+        bool found = false; // 在 zipEntities 中查找文件
+
+        // 方法1: 直接查找（精确匹配或包含匹配）
+        auto it = std::find_if(zipEntities.begin(), zipEntities.end(),
+                               [&spine_src](const std::string &entity) {
+                                   // 精确匹配
+                                   if (entity == spine_src) {
+                                       return true;
+                                   }
+                                   // 包含匹配（entity 包含 spine_src）
+                                   if (entity.find(spine_src) != std::string::npos) {
+                                       return true;
+                                   }
+                                   return false;
+                               });
+
+        if (it != zipEntities.end()) {
+            found = true;
+            LOGD("%s: NavPoint id=[%s], text=[%s], src=[%s] found directly",
+                 __func__, point.id.c_str(), point.text.c_str(), point.src.c_str());
+        }
+        // 如果找到了有效的文件，保留该 NavPoint
+        if (found) {
+            valid_points.push_back(point);
+        } else {
+            LOGW("%s: NavPoint id=[%s], text=[%s], src=[%s] NOT FOUND in zipEntities, skipping",
+                 __func__, point.id.c_str(), point.text.c_str(), point.src.c_str());
+            invalid_count++;
+        }
+    }
+    // 如果有无效的 NavPoint 被移除，重新排序 playOrder
+    if (invalid_count > 0) {
+        LOGI("%s: Removed %d invalid NavPoints, %d valid points remaining",
+             __func__, invalid_count, (int)valid_points.size());
+
+        // 清空原数组并填充有效点
+        points.clear();
+        if(!valid_points.empty()) {  //还有一些有效的
+            points.insert(points.end(), valid_points.begin(), valid_points.end());
+        }
+
+        // 重新设置 playOrder
+        int order = 1;
+        for (auto &p : points) {
+            p.playOrder = order++;
+        }
+        LOGI("%s: Reordered playOrder for %d valid points", __func__, (int)points.size());
+    } else {
+        LOGI("%s: All %d NavPoints are valid", __func__, (int)points.size());
+    }
+    LOGI("%s:invoke done", __func__);
+}
+
 
 int epub_util::getChapters(/*out*/std::vector<NavPoint> &points) {
     LOGI("%s:invoke", __func__);
@@ -674,11 +785,13 @@ int epub_util::getChapters(/*out*/std::vector<NavPoint> &points) {
         LOGD("%s ncx_path[%s]", __func__, ncx_path.c_str());
 
         if (!ncx_data.empty()) {
+            int ret = xml2_ext::normalize_xml(ncx_data);
             if (1 != xml_ext::parseNcxData(ncx_data, points)) {
                 LOGE("%s failed, cannot pass ncx", __func__);
                 return 0;
             }
         }
+        valid_points(points);
     }
     if (1 != parseOpfData(points)) {
         LOGE("%s failed, cannot pass opf", __func__);

@@ -47,6 +47,7 @@ extern "C" {
 #include "meta_data.h"
 #include "css_ext.h"
 #include "book_util.h"
+#include "xml2_ext.h"
 
 /****
  * opf 中的清单
@@ -133,6 +134,8 @@ public:
                          bool &isEncrypted);
 
     int getChapters(/*out*/std::vector<NavPoint> &points) override;
+
+    void valid_points(/*in,out*/std::vector<NavPoint> &points);
 
     int getChapter(JNIEnv *env, long book_id, const char *path, NavPoint &chapter, std::vector<DocText> &docTexts) override;
 

@@ -152,3 +152,12 @@ std::string file_ext::calc_file_path_by_other_obsolate_path(const std::string &t
         return "";
     }
 }
+
+// 提取文件名（支持 / 和 \）
+std::string file_ext::extractFilename(const std::string& path) {
+    if(path.empty()) {
+        return "";
+    }
+    size_t lastSep = path.find_last_of("/\\");
+    return (lastSep == std::string::npos) ? path : path.substr(lastSep + 1);
+}

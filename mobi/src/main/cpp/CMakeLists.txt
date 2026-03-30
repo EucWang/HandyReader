@@ -13,6 +13,15 @@ set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++17 -pthread")
 # build script scope).
 project("appmobi")
 
+# 设置头文件搜索路径
+include_directories(${CMAKE_SOURCE_DIR}/include)
+# 添加预编译的 libxml2 动态库（每个架构的路径由 Android 构建系统自动识别）
+add_library(xml2 SHARED IMPORTED)
+#set_target_properties(xml2 PROPERTIES IMPORTED_LOCATION
+#        ${CMAKE_SOURCE_DIR}/src/main/jniLibs/${ANDROID_ABI}/libxml2.so)
+set_target_properties(xml2 PROPERTIES IMPORTED_LOCATION
+        ${CMAKE_SOURCE_DIR}/../jniLibs/${ANDROID_ABI}/libxml2.so)
+
 add_subdirectory(unzip101e)
 add_subdirectory(libmobi)
 add_subdirectory(cssparser)
@@ -86,6 +95,9 @@ add_library(${CMAKE_PROJECT_NAME} SHARED
         util/file_searcher.cpp
         util/crc_util.h
         util/crc_util.cpp
+
+        util/xml2_ext.h
+        util/xml2_ext.cpp
 )
 
 # tinyxml2 的debug开关
@@ -112,7 +124,7 @@ target_link_libraries(${CMAKE_PROJECT_NAME}
         mobi
         # List libraries link to the target library
         z
-
+        xml2
         jnigraphics
         android
         log)

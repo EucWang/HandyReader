@@ -290,17 +290,35 @@ void xml_ext::parseNavData(tinyxml2::XMLElement *firstNavPoint, std::vector<NavP
 
         LOGD("%s::id[%s],playOrder[%s],label[%s],src[%s],totalPlayOrder=%d", __func__, id.c_str(), strPlayOrder.c_str(), label.c_str(), src.c_str(), totalPlayOrder);
 
+        if (!src.empty()) {
+            if (string_ext::startWith(src, "content/file:")) { //脏数据路径的情况
+                std::string old_src = src;
+                src = string_ext::base_url_decode(src);
+                string_ext::unescape_html_power(src);
+                std::string file_and_anchor = file_ext::extractFilename(src);
+                if (file_and_anchor.empty()) {
+                    LOGD("%s error: src[%s] parse is empty.", __func__ , src.c_str());
+                    continue;
+                }
+                if (old_src != file_and_anchor) {
+                    LOGD("%s: parse src[%s] to file_and_anchor[%s]", __func__ , src.c_str(), file_and_anchor.c_str());
+                }
+                src = file_and_anchor;
+            } if (string_ext::startWith(src, "../")) {
+                src = src.substr(3);
+            } else if (string_ext::startWith(src, "./")) {
+                src = src.substr(2);
+            }
+        }
+
         NavPoint nav;
         nav.id = id;
         nav.playOrder = totalPlayOrder++;
         nav.text = label;
         nav.src = src;
         nav.parentId = parentId;
-        if (string_ext::startWith(nav.src, "../")) {
-            nav.src = nav.src.substr(3);
-        } else if (string_ext::startWith(nav.src, "./")) {
-            nav.src = nav.src.substr(2);
-        }
+        nav.src = src;
+
         vectors.push_back(nav);
 
         if (navPoint->ChildElementCount("navPoint") > 0) {

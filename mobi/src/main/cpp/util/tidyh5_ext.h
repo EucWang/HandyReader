@@ -13,7 +13,18 @@ extern "C" {
 #include "tidybuffio.h"
 #include "../unzip101e/unzip.h"
 }
-#include <string>
+#include <memory>
+#include <optional>
+
+// 错误码定义
+const int TIDY_SUCCESS           = 0;
+const int TIDY_ERR_EMPTY_INPUT   = 1;
+const int TIDY_ERR_CREATE_DOC    = 2;
+const int TIDY_ERR_SET_OPTIONS   = 3;
+const int TIDY_ERR_PARSE         = 4;
+const int TIDY_ERR_CLEAN_REPAIR  = 5;
+const int TIDY_ERR_SAVE          = 6;
+const int TIDY_ERR_EMPTY_RESULT  = 7;
 
 class tidyh5_ext {
 public:
@@ -24,7 +35,6 @@ public:
     static int tidy_html(std::string &format_str);
 
     static int tidy_html_with_css(std::string &format_str, std::string &page_css_style);
-
 };
 
 
