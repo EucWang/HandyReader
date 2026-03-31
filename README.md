@@ -27,7 +27,7 @@
 - [√] Add volume key page-turning feature toggle
 - [√] Modify color selection panel
 - [√] Optimaze TTS server and add setter
-- [ ] Add Reading Page background image selection
+- [√] Add Reading Page background image selection to gallary
 - [ ] Add font selection
 - [√] Control the maximum height of popup for in-page annotation content
 - [ ] Continuous vertical scrolling
