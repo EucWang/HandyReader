@@ -1,8 +1,11 @@
 package com.wxn.reader.presentation.mainReader
 
 import android.app.Application
+import android.content.Context
+import android.graphics.BitmapFactory
 import android.graphics.Rect
 import android.graphics.RectF
+import android.net.Uri
 import androidx.compose.runtime.Stable
 import androidx.compose.ui.graphics.Color
 import androidx.core.graphics.toRect
@@ -62,6 +65,7 @@ import com.wxn.reader.events.VolumeEventBus
 import com.wxn.reader.presentation.bookReader.BookReaderUiState
 import com.wxn.reader.presentation.bookReader.BookReaderUiState.LOAD_CHAPTER_SUCCESS
 import com.wxn.reader.ui.theme.stringResource
+import com.wxn.reader.util.ImageUtils
 import com.wxn.reader.util.LanguageInfo
 import com.wxn.reader.util.LanguageUtil
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -1353,6 +1357,18 @@ class MainReadViewModel @Inject constructor(
                 locale = locale,
                 displayName = locale.displayName
             )
+        }
+    }
+
+    fun updateReadingBgImage(context: Context, uri: Uri): String? {
+        return try {
+            val inputStream = context.contentResolver.openInputStream(uri)
+            val bitmap = BitmapFactory.decodeStream(inputStream)
+            inputStream?.close()
+            bitmap?.let { ImageUtils.saveReadingBgImage(bitmap, uri.toString(), context) }
+        } catch (e: Exception) {
+            e.printStackTrace()
+            null
         }
     }
 }

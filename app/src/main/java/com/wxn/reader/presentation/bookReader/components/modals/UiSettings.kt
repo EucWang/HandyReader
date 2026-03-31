@@ -1,5 +1,11 @@
 package com.wxn.reader.presentation.bookReader.components.modals
 
+import android.Manifest
+import android.net.Uri
+import android.os.Build
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.PickVisualMediaRequest
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -23,6 +29,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ColorLens
+import androidx.compose.material.icons.filled.PhotoSizeSelectActual
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
@@ -44,11 +51,13 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavHostController
+import coil3.compose.rememberAsyncImagePainter
 import com.wxn.reader.util.Presets
 import com.elixer.palette.constraints.HorizontalAlignment
 import com.elixer.palette.constraints.VerticalAlignment
@@ -59,6 +68,7 @@ import com.wxn.reader.data.model.AppPreferences
 import com.wxn.reader.navigation.Screens
 import com.wxn.reader.presentation.mainReader.MainReadViewModel
 import com.wxn.reader.util.ColorPicker
+import com.wxn.reader.util.PermissionHandler
 import kotlinx.coroutines.launch
 
 enum class ColorType(val displayName: String) {
@@ -74,6 +84,7 @@ fun UiSettings(
     readerPreferences: ReaderPreferences,
     onDismiss: () -> Unit,
 ) {
+    val context = LocalContext.current
     var editingColorType by remember { mutableStateOf(ColorType.BACKGROUND) }
     val uiScope = rememberCoroutineScope()
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
@@ -98,6 +109,46 @@ fun UiSettings(
     }
 
     val pagerState = rememberPagerState(0) { 2 }
+
+
+    // Content picker launcher
+    val imagePicker = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.GetContent()
+    ) { uri: Uri? ->
+        uri?.let {
+            val readingBgPath = viewModel.updateReadingBgImage(context, uri)
+            if (readingBgPath != null) {
+                viewModel.updateReaderPreferences(
+                    readerPreferences.copy(backgroundImage =readingBgPath)
+                )
+            }
+        }
+    }
+    // 1. 注册一个用于选择单个图片/视频的启动器
+    val pickMedia = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.PickVisualMedia()) { uri ->
+        // 回调：用户选择后的处理
+        uri?.let {
+            val readingBgPath = viewModel.updateReadingBgImage(context, uri)
+            if (readingBgPath != null) {
+                viewModel.updateReaderPreferences(
+                    readerPreferences.copy(backgroundImage = readingBgPath)
+                )
+            }
+        }
+    }
+
+    // Permission launcher
+    val permissionLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.RequestMultiplePermissions()
+    ) { permissions ->
+        when {
+            permissions.getOrDefault(Manifest.permission.READ_MEDIA_IMAGES, false) ||
+                    permissions.getOrDefault(Manifest.permission.READ_EXTERNAL_STORAGE, false) -> {
+                imagePicker.launch("image/*")
+            }
+        }
+    }
 
     ModalBottomSheet(
         onDismissRequest = onDismiss,
@@ -201,6 +252,17 @@ fun UiSettings(
                                             readerPreferences.copy(backgroundImage =image)
                                         )
                                     },
+                                    onCustomImageClicked = { image ->
+                                        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                                            pickMedia.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly))
+                                        } else {
+                                            if (PermissionHandler.hasPermissions(context)) {
+                                                imagePicker.launch("image/*")
+                                            } else {
+                                                PermissionHandler.requestPermissions(permissionLauncher)
+                                            }
+                                        }
+                                    }
                                 )
 
                                 Spacer(modifier = Modifier.height(8.dp))
@@ -276,6 +338,7 @@ private fun ImageSection(
     currentImage: String,
     predefinedImages: Map<String, String>,
     onImageSelected: (String) -> Unit,
+    onCustomImageClicked: (String) ->Unit,
 ) {
     Text(
         title,
@@ -300,6 +363,12 @@ private fun ImageSection(
                 onClick = { onImageSelected(image) }
             )
         }
+        ImageBox(
+            image = currentImage,
+            isSelected = !predefinedImages.containsValue(currentImage),
+            isCustomImage = true,
+            onClick = onCustomImageClicked
+        )
     }
 }
 
@@ -386,7 +455,8 @@ private fun ColorBox(
 private fun ImageBox(
     image: String,
     isSelected: Boolean,
-    onClick: () -> Unit,
+    isCustomImage: Boolean = false,
+    onClick: (String) -> Unit,
 ) {
     Box(
         modifier = Modifier
@@ -402,23 +472,40 @@ private fun ImageBox(
                 shape = RoundedCornerShape(40.dp)
             )
             .background(Color(0xFF575757))
-            .clickable(onClick = onClick),
+            .clickable(onClick = {
+                onClick.invoke(image)
+            }),
         contentAlignment = Alignment.Center
     ) {
         Image(
+            if (isCustomImage) {
+                if (image.startsWith("/")) {
+                    rememberAsyncImagePainter(image)
+                } else {
+                    painterResource(com.wxn.bookread.R.drawable.ic_bg_none)
+                }
+            } else {
                 when(image) {
                     "ic_read_bg1" -> painterResource(com.wxn.bookread.R.drawable.ic_read_bg1)
                     "ic_read_bg2" -> painterResource(com.wxn.bookread.R.drawable.ic_read_bg2)
                     "ic_read_bg3" -> painterResource(com.wxn.bookread.R.drawable.ic_read_bg3)
                     "ic_read_bg4" -> painterResource(com.wxn.bookread.R.drawable.ic_read_bg4)
                     else -> painterResource(com.wxn.bookread.R.drawable.ic_bg_none)
-                },
+                }
+            },
             contentDescription = image,
             modifier = Modifier
                 .fillMaxSize()
                 .clip(RoundedCornerShape(40.dp)),
             contentScale = ContentScale.FillBounds
         )
+
+        if (isCustomImage) {
+            Icon(
+                imageVector = Icons.Default.PhotoSizeSelectActual,
+                contentDescription = "Custom Color Picker",
+                tint = MaterialTheme.colorScheme.onSurface
+            )
+        }
     }
 }
-

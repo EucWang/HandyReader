@@ -10,6 +10,8 @@ import java.security.MessageDigest
 private const val HOME_BACKGROUND_PREFIX = "home_bg_"
 private const val COVER_PREFIX = "cover_"
 
+private const val READING_BG_PREFIX = "reading_bg_"
+
 object ImageUtils {
 
     fun saveHomeBackgroundImage(context: Context, uri: Uri): String? {
@@ -41,6 +43,23 @@ object ImageUtils {
 
             context.filesDir.listFiles { _, name ->
                 name.startsWith("$COVER_PREFIX$uriHash") && name != fileName
+            }?.forEach { it.delete() }
+
+            file.writeBytes(imageBytes)
+            file.absolutePath
+        }.getOrNull()
+    }
+
+    fun saveReadingBgImage(bitmap: Bitmap, uri: String, context: Context): String? {
+        return runCatching {
+            val uriHash = uri.md5Hash()
+            val imageBytes = bitmap.toByteArray()
+            val imageHash = imageBytes.md5Hash()
+            val fileName = "$READING_BG_PREFIX${uriHash}_$imageHash.jpg"
+            val file = File(context.filesDir, fileName)
+
+            context.filesDir.listFiles { _, name ->
+                name.startsWith("$READING_BG_PREFIX$uriHash") && name != fileName
             }?.forEach { it.delete() }
 
             file.writeBytes(imageBytes)

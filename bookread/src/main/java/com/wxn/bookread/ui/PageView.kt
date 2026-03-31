@@ -11,6 +11,7 @@ import android.widget.FrameLayout
 import com.wxn.bookread.data.model.TextChapter
 import com.wxn.bookread.ui.delegate.PageDelegate
 import android.graphics.Paint
+import android.graphics.drawable.BitmapDrawable
 import android.view.MotionEvent
 import androidx.appcompat.content.res.AppCompatResources
 import androidx.compose.ui.util.fastJoinToString
@@ -826,7 +827,17 @@ class PageView : FrameLayout, IDataSource, PageCallback {
                     "ic_read_bg2" -> AppCompatResources.getDrawable(context, R.drawable.ic_read_bg2)
                     "ic_read_bg3" -> AppCompatResources.getDrawable(context, R.drawable.ic_read_bg3)
                     "ic_read_bg4" -> AppCompatResources.getDrawable(context, R.drawable.ic_read_bg4)
-                    else -> null
+                    else -> {
+                        if (preference.backgroundImage.isNotEmpty()) {
+                            try {
+                                BitmapDrawable.createFromPath(preference.backgroundImage)
+                            }catch (ex : Exception) {
+                                null
+                            }
+                        } else {
+                            null
+                        }
+                    }
                 }
                 if (bgDrawable != null) {
                     curPage.setBg(bgDrawable)
@@ -834,9 +845,10 @@ class PageView : FrameLayout, IDataSource, PageCallback {
                     nextPage.setBg(bgDrawable)
                 } else {
                     val bgColor = preference.backgroundColor
-                    curPage.setBg(bgColor)
-                    prevPage.setBg(bgColor)
-                    nextPage.setBg(bgColor)
+                    val cleanBg = preference.backgroundImage.isEmpty()
+                    curPage.setBg(bgColor, cleanBg)
+                    prevPage.setBg(bgColor, cleanBg)
+                    nextPage.setBg(bgColor, cleanBg)
                 }
             }
         }

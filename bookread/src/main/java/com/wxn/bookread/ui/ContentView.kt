@@ -5,6 +5,7 @@ import android.graphics.Color
 import android.graphics.drawable.Drawable
 import android.view.LayoutInflater
 import android.widget.FrameLayout
+import android.widget.ImageView
 import com.wxn.base.ext.getCompatColor
 import com.wxn.base.ext.statusBarHeight
 import com.wxn.base.util.Coroutines
@@ -297,11 +298,15 @@ class ContentView(context: Context) : FrameLayout(context) {
      * 更新背景显示
      */
     fun setBg(bg: Drawable?) {
-        binding.pagePanel.background = bg
+        binding.ivPageBg.setScaleType(ImageView.ScaleType.CENTER_CROP)
+        binding.ivPageBg.setImageDrawable(bg)
     }
 
-    fun setBg(bgColor: Int) {
-        binding.pagePanel.setBackgroundColor(bgColor)
+    fun setBg(bgColor: Int, cleanImage:Boolean = false) {
+        if (cleanImage) {
+            binding.ivPageBg.setImageDrawable(null)
+        }
+        binding.ivPageBg.setBackgroundColor(bgColor)
     }
 
     /**
