@@ -462,20 +462,17 @@ int epub_util::parseOpfData(std::vector<NavPoint> &points) {
         }
     }
 
-    //指向相同位置的章节合并
+    //指向相同位置的章节合并, 已经是拍好顺序了的,只需要前后比较即可
     std::vector<NavPoint> tmp;
     if (!points.empty()) {
         for (int i = 0; i < points.size() - 1; ++i) {
             auto &point = points[i];
-            auto &nextPoint = points[i + 1];
-            if (point.src == nextPoint.src) {
-                point.text.append(" ").append(nextPoint.text);
+            if (tmp.empty()) {
                 tmp.push_back(point);
-                i++;
             } else {
-                tmp.push_back(point);
-                if (i == points.size() - 2) {
-                    tmp.push_back(nextPoint);
+                auto top_item = tmp[tmp.size() - 1];
+                if (top_item.src != point.src) {
+                    tmp.push_back(point);
                 }
             }
         }
