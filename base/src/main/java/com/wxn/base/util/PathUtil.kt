@@ -16,6 +16,17 @@ import java.io.IOException
 
 object PathUtil {
 
+
+    /****
+     * 获得阅读背景图的下载目录
+     */
+    fun getBgImageDownloadDir(context: Context) : File {
+        return File(context.filesDir, "read_bgs").apply {
+            if(!exists()) {
+                mkdirs()
+            }
+        }
+    }
     /***
      * 获取章节对应的缓存文件
      */

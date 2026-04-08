@@ -82,6 +82,7 @@ import com.wxn.reader.presentation.bookReader.components.toolbars.TopToolbar
 import com.wxn.reader.presentation.bookReader.components.ReaderGuideOverlay
 import com.wxn.reader.presentation.bookReader.components.ReaderGuideOverlay2
 import com.wxn.reader.presentation.bookReader.components.TtsPlayer
+import com.wxn.reader.presentation.bookReader.components.modals.readbglist.ReadBgListPage
 import com.wxn.reader.util.LogCompositions
 import com.wxn.reader.util.TopPopupPositionProvider
 import kotlinx.coroutines.launch
@@ -119,6 +120,7 @@ fun ReaderView(
     val showReaderSettings by viewModel.showReaderSettings.collectAsStateWithLifecycle()
     val showNoteDialog by viewModel.showNoteDialog.collectAsStateWithLifecycle()
     val noteDialogSelectedText by viewModel.noteDialogSelectedText.collectAsStateWithLifecycle()
+    val showReadBgList by viewModel.showReadBgList.collectAsStateWithLifecycle()
 
     val selectedNote by viewModel.selectedNote.collectAsStateWithLifecycle()
 
@@ -509,6 +511,12 @@ fun ReaderView(
                     readerPreferences = readerPreferences,
                     onDismiss = { viewModel.readerSettingsOpen(false) }
                 )
+            }
+
+            if (showReadBgList) {
+                ReadBgListPage(viewModel){
+                    viewModel.showReadBgList(false)
+                }
             }
 
             var dp16 = remember { 0f }

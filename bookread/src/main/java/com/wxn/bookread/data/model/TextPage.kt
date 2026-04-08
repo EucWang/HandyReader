@@ -102,7 +102,7 @@ data class TextPage(
                 textLines.add(textLine)
             }
             height = ChapterProvider.visibleHeight.toFloat()
-            Logger.e("TextPage::format::textLines is empty and visibleWidth[${ChapterProvider.visibleWidth}] > 0 and text.size=${text.length}")
+            Logger.d("TextPage::format::textLines is empty and visibleWidth[${ChapterProvider.visibleWidth}] > 0 and text.size=${text.length}")
         }
         return this
     }

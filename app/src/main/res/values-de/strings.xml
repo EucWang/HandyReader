@@ -109,7 +109,7 @@
     <string name="publisher_styles">Verleger-Stile</string>
     <string name="text_normalization">Textnormalisierung</string>
     <string name="color_settings">Farbeinstellungen</string>
-    <string name="background_color">Hintergrundfarbe</string>
+    <string name="background_color">Hintergrundfarbe oder Bild</string>
     <string name="text_color">Textfarbe</string>
     <string name="select_color">%1$s Farbe auswählen</string>
     <string name="no_books_in">Keine Bücher in %1$s</string>
@@ -349,4 +349,11 @@
     <string name="notification_permission_explanation_title">Benachrichtigungen für TTS aktivieren</string>
     <string name="notification_permission_explanation_message">Um die Text-to-Speech-Funktion zu nutzen, muss HandyReader eine Benachrichtigung mit Wiedergabesteuerelementen anzeigen. Dies ermöglicht es Ihnen, die TTS-Wiedergabe zu steuern, auch wenn die App im Hintergrund läuft.</string>
     <string name="notification_permission_continue">Weiter</string>
+    
+    <string name="change_reading_background">Lese-Hintergrund ändern</string>
+    <string name="select_from_online">Online auswählen</string>
+    <string name="error_reach_max_download_limit">Download-Limit erreicht</string>
+    <string name="download_failed">Download fehlgeschlagen</string>
+    <string name="no_more_data">Keine weiteren Daten</string>
+    <string name="no_data">Keine Daten</string>
 </resources>

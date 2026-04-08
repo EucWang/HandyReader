@@ -110,7 +110,7 @@
     <string name="publisher_styles">أنماط الناشر</string>
     <string name="text_normalization">تطبيع النص</string>
     <string name="color_settings">إعدادات اللون</string>
-    <string name="background_color">لون الخلفية</string>
+    <string name="background_color">لون الخلفية أو صورة</string>
     <string name="text_color">لون النص</string>
     <string name="select_color">حدد لون %1$s</string>
     <string name="no_books_in">لا توجد كتب في %1$s</string>
@@ -349,4 +349,11 @@
     <string name="notification_permission_explanation_title">تفعيل الإشعارات لـ TTS</string>
     <string name="notification_permission_explanation_message">لاستخدام وظيفة تحويل النص إلى كلام، يحتاج HandyReader إلى عرض إشعار يحتوي على عناصر التحكم في التشغيل. هذا يسمح لك بالتحكم في تشغيل TTS حتى عندما يكون التطبيق في الخلفية.</string>
     <string name="notification_permission_continue">متابعة</string>
+    
+    <string name="change_reading_background">تغيير خلفية القراءة</string>
+    <string name="select_from_online">اختيار من الإنترنت</string>
+    <string name="error_reach_max_download_limit">تم الوصول للحد الأقصى للتنزيل</string>
+    <string name="download_failed">فشل التنزيل</string>
+    <string name="no_more_data">لا توجد المزيد من البيانات</string>
+    <string name="no_data">لا توجد بيانات</string>
 </resources>

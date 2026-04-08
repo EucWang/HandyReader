@@ -110,7 +110,7 @@
     <string name="publisher_styles">Publisher Styles</string>
     <string name="text_normalization">Text Normalization</string>
     <string name="color_settings">Color Settings</string>
-    <string name="background_color">Background Color</string>
+    <string name="background_color">Background Color or Image</string>
     <string name="text_color">Text Color</string>
     <string name="select_color">Select %1$s Color</string>
     <string name="no_books_in">No books in %1$s</string>
@@ -347,4 +347,11 @@
     <string name="feedback_content_too_short">Content must be at least 10 characters</string>
     <string name="feedback_email_invalid">Please enter a valid email address</string>
     <string name="submit">Submit</string>
+
+    <string name="change_reading_background">Change ReadPage Background</string>
+    <string name="select_from_online">Select From Online</string>
+    <string name="error_reach_max_download_limit">Max downloading limit</string>
+    <string name="download_failed">Download fail</string>
+    <string name="no_more_data">No more</string>
+    <string name="no_data">No data</string>
 </resources>

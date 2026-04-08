@@ -21,6 +21,7 @@ import com.wxn.base.ext.screenshot
 import com.wxn.base.ext.statusBarHeight
 import com.wxn.base.util.Coroutines
 import com.wxn.base.util.Logger
+import com.wxn.base.util.PathUtil
 import com.wxn.bookread.R
 import com.wxn.bookread.data.model.TextLine
 import com.wxn.bookread.provider.ChapterProvider
@@ -32,6 +33,7 @@ import com.wxn.bookread.ui.delegate.SlidePageDelegate
 import com.wxn.bookread.ui.delegate.SlideVerticalPageDelegate
 import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.launch
+import java.io.File
 import kotlin.math.abs
 
 /****
@@ -822,23 +824,38 @@ class PageView : FrameLayout, IDataSource, PageCallback {
     override fun upBg() {
         Coroutines.mainScope().launch {
             ChapterProvider.readerPreferencesUtil?.readerPrefsFlow?.firstOrNull()?.let { preference ->
-                val bgDrawable = when (preference.backgroundImage) {
-                    "ic_read_bg1" -> AppCompatResources.getDrawable(context, R.drawable.ic_read_bg1)
-                    "ic_read_bg2" -> AppCompatResources.getDrawable(context, R.drawable.ic_read_bg2)
-                    "ic_read_bg3" -> AppCompatResources.getDrawable(context, R.drawable.ic_read_bg3)
-                    "ic_read_bg4" -> AppCompatResources.getDrawable(context, R.drawable.ic_read_bg4)
-                    else -> {
+                val bgDrawable =
+//                    when (preference.backgroundImage) {
+//                    "ic_read_bg1" -> AppCompatResources.getDrawable(context, R.drawable.ic_read_bg1)
+//                    "ic_read_bg2" -> AppCompatResources.getDrawable(context, R.drawable.ic_read_bg2)
+//                    "ic_read_bg3" -> AppCompatResources.getDrawable(context, R.drawable.ic_read_bg3)
+//                    "ic_read_bg4" -> AppCompatResources.getDrawable(context, R.drawable.ic_read_bg4)
+//                    else -> {
                         if (preference.backgroundImage.isNotEmpty()) {
-                            try {
-                                BitmapDrawable.createFromPath(preference.backgroundImage)
-                            }catch (ex : Exception) {
-                                null
+                            val imgPath = preference.backgroundImage
+                            if (imgPath.startsWith("/")) {
+                                try {
+                                    BitmapDrawable.createFromPath(imgPath)
+                                }catch (ex : Exception) {
+                                    null
+                                }
+                            } else {
+                                try {
+                                    val file = File(PathUtil.getBgImageDownloadDir(context), imgPath + ".webp")
+                                    if (file.exists() && file.canRead()) {
+                                        BitmapDrawable.createFromPath(file.absolutePath)
+                                    } else {
+                                        null
+                                    }
+                                }catch (ex : Exception) {
+                                    null
+                                }
                             }
                         } else {
                             null
                         }
-                    }
-                }
+//                    }
+//                }
                 if (bgDrawable != null) {
                     curPage.setBg(bgDrawable)
                     prevPage.setBg(bgDrawable)

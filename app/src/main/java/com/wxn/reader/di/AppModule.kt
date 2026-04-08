@@ -19,13 +19,17 @@ import com.wxn.reader.data.mapper.bookshelf.BookShelfMapper
 import com.wxn.reader.data.mapper.bookshelf.BookShelfMapperImpl
 import com.wxn.reader.data.mapper.note.NoteMapper
 import com.wxn.reader.data.mapper.note.NoteMapperImpl
+import com.wxn.reader.data.mapper.readbg.ReadBgMapper
+import com.wxn.reader.data.mapper.readbg.ReadBgMapperImpl
 import com.wxn.reader.data.mapper.readingactive.ReadingActiveMapper
 import com.wxn.reader.data.mapper.readingactive.ReadingActiveMapperImpl
 import com.wxn.reader.data.mapper.shelf.ShelfMapper
 import com.wxn.reader.data.mapper.shelf.ShelfMapperImpl
+import com.wxn.reader.data.remote.api.ReadBgsApi
 import com.wxn.reader.data.repository.BooksRepositoryImpl
 import com.wxn.reader.data.repository.ChaptersRepositoryImpl
 import com.wxn.reader.data.repository.PermissionRepositoryImpl
+import com.wxn.reader.data.repository.ReadBgRepositoryImpl
 import com.wxn.reader.data.repository.ShelfRepositoryImpl
 import com.wxn.reader.data.source.local.AppDatabase
 import com.wxn.reader.data.source.local.AppPreferencesUtil
@@ -36,11 +40,13 @@ import com.wxn.reader.data.source.local.dao.BookShelfDao
 import com.wxn.reader.data.source.local.dao.BookmarkDao
 import com.wxn.reader.data.source.local.dao.ChapterDao
 import com.wxn.reader.data.source.local.dao.NoteDao
+import com.wxn.reader.data.source.local.dao.ReadBgDao
 import com.wxn.reader.data.source.local.dao.ReadingActivityDao
 import com.wxn.reader.data.source.local.dao.ShelfDao
 import com.wxn.reader.domain.repository.BooksRepository
 import com.wxn.reader.domain.repository.ChaptersRepository
 import com.wxn.reader.domain.repository.PermissionRepository
+import com.wxn.reader.domain.repository.ReadBgRepository
 import com.wxn.reader.domain.repository.ShelfRepository
 import com.wxn.reader.domain.use_case.annotations.GetAnnotationsUseCase
 import com.wxn.reader.domain.use_case.bookmarks.GetBookmarksForBookUseCase
@@ -124,6 +130,12 @@ object AppModule {
         return ShelfMapperImpl()
     }
 
+    @Provides
+    @Singleton
+    fun provideReadBgMapper(): ReadBgMapper {
+        return ReadBgMapperImpl()
+    }
+
 //    @Provides
 //    @Singleton
 //    fun provideAppDatabase(@ApplicationContext appContext: Context): AppDatabase {
@@ -143,6 +155,7 @@ object AppModule {
     fun provideAppDatabase(@ApplicationContext context: Context): AppDatabase {
         return Room.databaseBuilder(context, AppDatabase::class.java, DATABASE_NAME)
             .addMigrations(AppDatabase.MIGRATION_1_2)
+            .addMigrations(AppDatabase.Migration_2_3)
             .build()
     }
 
@@ -150,6 +163,12 @@ object AppModule {
     @Singleton
     fun provideBookDao(appDatabase: AppDatabase): BookDao {
         return appDatabase.bookDao()
+    }
+
+    @Provides
+    @Singleton
+    fun provideReadBgDao(appDatabase: AppDatabase): ReadBgDao {
+        return appDatabase.readBgDao()
     }
 
 
@@ -396,6 +415,18 @@ object AppModule {
     fun provideTtsPreferencesUtil(@ApplicationContext context: Context) : TtsPreferencesUtil {
         return TtsPreferencesUtil(context)
     }
+
+
+    @Provides
+    @Singleton
+    fun provideReadBgRepository(
+        readBgsApi: ReadBgsApi,
+        dao: ReadBgDao,
+        readBgMapper: ReadBgMapper
+    ) : ReadBgRepository {
+        return ReadBgRepositoryImpl(readBgsApi, dao, readBgMapper)
+    }
+
 }
 //
 //@Singleton

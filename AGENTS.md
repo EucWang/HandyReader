@@ -2,6 +2,32 @@
 
 This guide helps agentic coding agents work effectively in the HandyReader Android project.
 
+## ⚠️ Critical Operating Constraints
+
+### 🚫 **MANDATORY: Windows 11 Native Environment Only**
+- **REQUIRED**: This project MUST run on Windows 11 system
+- **ALLOWED**: Use **cmd** or **PowerShell** ONLY for running scripts and commands
+- **FORBIDDEN**: **NEVER use WSL bash** to execute any commands
+- **Reason**: Java path issues, Gradle daemon conflicts, and native module compilation failures in WSL
+
+**Examples**:
+```cmd
+# ✅ CORRECT - Windows CMD
+gradlew :app:assembleDebug
+
+# ✅ CORRECT - PowerShell
+.\gradlew :app:build
+
+# ❌ FORBIDDEN - WSL Bash
+./gradlew build  # DO NOT USE
+```
+
+### 🚫 **MANDATORY: No Git Commands**
+- **FORBIDDEN**: **DO NOT use any git commands** for version control or code commits
+- **Reason**: Git operations are handled externally by development team
+- **What to avoid**: `git add`, `git commit`, `git push`, `git status`, `git diff`, etc.
+- **Allowed**: File operations (read/write/edit) using appropriate tools, bash commands for non-git operations
+
 ## Build Commands
 
 ### Core Build Operations

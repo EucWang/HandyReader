@@ -131,41 +131,6 @@
     public void set*(...);
 }
 
-# 保留枚举类不被混淆
--keepclassmembers enum * {
-    public static **[] values();
-    public static ** valueOf(java.lang.String);
-}
-
-# 保留本地native方法不被混淆
--keepclasseswithmembers class * {
-    native <methods>;
-}
-
-# 对于带有回调函数的onXXEvent、**On*Listener的，不能被混淆
--keepclassmembers class * {
-    void *(**On*Event);
-    void *(**On*Listener);
-}
-
--keepclassmembers public class * extends android.view.View {
-   void set*(***);
-   *** get*();
-}
-
-#保留在Activity中的方法参数是view的方法，
--keepclassmembers class * extends android.app.Activity {
-   public void *(android.view.View);
-}
-
-# For XML inflating, keep views' constructoricon.png    自定义view
--keep public class * extends android.view.View {
-    public <init>(android.content.Context);
-    public <init>(android.content.Context, android.util.AttributeSet);
-    public <init>(android.content.Context, android.util.AttributeSet, int);
-    public void set*(...);
-}
-
 # androidx 混淆
 -keep class com.google.android.material.** {*;}
 -keep class androidx.** {*;}
@@ -338,18 +303,7 @@
 -keep public class com.facebook.ads.** {
    public protected *;
 }
--keepclassmembers class * extends com.google.android.gms.internal.measurement.zzkf {
-  <fields>;
-}
--keepclassmembers class * extends com.google.android.gms.internal.measurement.zzkf {
-  <fields>;
-}
--keepclassmembers class * extends com.google.android.gms.internal.measurement.zzkf {
-  <fields>;
-}
--keepclassmembers class * extends com.google.android.gms.internal.measurement.zzkf {
-  <fields>;
-}
+
 -dontwarn android.security.NetworkSecurityPolicy
 # non-required dependencies.
 -dontwarn javax.annotation.**
@@ -611,19 +565,6 @@ kotlin.coroutines.Continuation suspend*(...);
 -keep public class androidx.compose.ui.platform.AndroidCompositionLocals_androidKt {
     public static *** getLocalLifecycleOwner();
 }
--keepclassmembers,allowobfuscation class * extends androidx.lifecycle.ViewModel {
-    <init>(androidx.lifecycle.SavedStateHandle);
-}
-
--keepclassmembers,allowobfuscation class * extends androidx.lifecycle.AndroidViewModel {
-    <init>(android.app.Application,androidx.lifecycle.SavedStateHandle);
-}
--keepclassmembers,allowobfuscation class * implements androidx.savedstate.SavedStateRegistry$AutoRecreated {
-    <init>();
-}
--dontwarn android.view.RenderNode
--dontwarn android.view.DisplayListCanvas
--dontwarn android.view.HardwareCanvas
 
 -keepclassmembers class androidx.compose.ui.platform.ViewLayerContainer {
     protected void dispatchGetDisplayList();
@@ -632,37 +573,14 @@ kotlin.coroutines.Continuation suspend*(...);
 -keepclassmembers class androidx.compose.ui.platform.AndroidComposeView {
     android.view.View findViewByAccessibilityIdTraversal(int);
 }
--keepclassmembers,allowshrinking,allowobfuscation class androidx.compose.**.* {
-    static void throw*Exception(...);
-    static void throw*ExceptionForNullCheck(...);
-    # For methods returning Nothing
-    static java.lang.Void throw*Exception(...);
-    static java.lang.Void throw*ExceptionForNullCheck(...);
-    # For functions generating error messages
-    static java.lang.String exceptionMessage*(...);
-    java.lang.String exceptionMessage*(...);
-}
+
 -keepnames class androidx.compose.ui.input.pointer.PointerInputEventHandler {
     *;
 }
 -keepclasseswithmembers class androidx.graphics.path.** {
     native <methods>;
 }
--keepclassmembernames,allowobfuscation,allowshrinking class androidx.core.view.ViewCompat$Api* {
-  <methods>;
-}
--keepclassmembernames,allowobfuscation,allowshrinking class androidx.core.view.WindowInsetsCompat$*Impl* {
-  <methods>;
-}
--keepclassmembernames,allowobfuscation,allowshrinking class androidx.core.app.NotificationCompat$*$Api*Impl {
-  <methods>;
-}
--keepclassmembernames,allowobfuscation,allowshrinking class androidx.core.os.UserHandleCompat$Api*Impl {
-  <methods>;
-}
--keepclassmembernames,allowobfuscation,allowshrinking class androidx.core.widget.EdgeEffectCompat$Api*Impl {
-  <methods>;
-}
+
 -keepattributes AnnotationDefault,
                 RuntimeVisibleAnnotations,
                 RuntimeVisibleParameterAnnotations,
@@ -745,12 +663,7 @@ kotlin.coroutines.Continuation suspend*(...);
 -keepclassmembers class * extends com.google.android.gms.internal.measurement.zzme {
   <fields>;
 }
-# We keep all fields for every generated proto file as the runtime uses
-# reflection over them that ProGuard cannot detect. Without this keep
-# rule, fields may be removed that would cause runtime failures.
--keepclassmembers class * extends com.google.android.gms.internal.measurement.zzme {
-  <fields>;
-}
+
 # Needed when building against pre-Marshmallow SDK.
 -dontwarn android.security.NetworkSecurityPolicy
 
@@ -778,7 +691,7 @@ kotlin.coroutines.Continuation suspend*(...);
     public static final *** NULL;
 }
 
-# Needed for Parcelable/SafeParcelable classes & their creators to not get renamed, as they are
+# Needed for Parcelable/SafeParcelable classes \u0026 their creators to not get renamed, as they are
 # found via reflection.
 -keep class com.google.android.gms.common.internal.ReflectedParcelable
 -keepnames class * implements com.google.android.gms.common.internal.ReflectedParcelable
@@ -850,12 +763,6 @@ kotlin.coroutines.Continuation suspend*(...);
     private ** descriptor;
 }
 
- -keep, allowshrinking, allowoptimization, allowobfuscation class <1>
-
--keepclassmembers @kotlinx.serialization.Serializable class ** {
-    public static ** INSTANCE;
-    kotlinx.serialization.KSerializer serializer(...);
-}
 -keepnames class * extends androidx.startup.Initializer
 -keep class * extends androidx.startup.Initializer {
     # Keep the public no-argument constructor while allowing other methods to be optimized.
@@ -956,16 +863,14 @@ kotlin.coroutines.Continuation suspend*(...);
 -keep class com.example.handyreader.data.remote.dto.** { *; }
 -keep class kotlinx.serialization.json.** { *; }
 
-# Prevent proguard from stripping interface information from TypeAdapterFactory,
-# JsonSerializer, JsonDeserializer instances (so they can be used in @JsonAdapter)
-#-keep class * implements com.google.gson.TypeAdapterFactory
-#-keep class * implements com.google.gson.JsonSerializer
-#-keep class * implements com.google.gson.JsonDeserializer
-#
-## Prevent R8 from leaving Data object members always null
-#-keepclassmembers,allowobfuscation class * {
-#  @com.google.gson.annotations.SerializedName <fields>;
-#}
+# Fix for AndroidRuntime log spam/errors related to java.lang.Object methods
+-keepclassmembers class java.lang.Object {
+    *** internalClone();
+    *** clone();
+    *** equals(...);
+    *** finalize();
+    *** getClass();
+}
 
 -obfuscationdictionary bt-proguard.txt
 -classobfuscationdictionary bt-proguard.txt

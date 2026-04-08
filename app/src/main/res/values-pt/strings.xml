@@ -109,7 +109,7 @@
     <string name="publisher_styles">Estilos do Publicador</string>
     <string name="text_normalization">Normalização de Texto</string>
     <string name="color_settings">Configurações de Cor</string>
-    <string name="background_color">Cor de Fundo</string>
+    <string name="background_color">Cor de fundo ou imagem</string>
     <string name="text_color">Cor do Texto</string>
     <string name="select_color">Selecionar Cor de %1$s</string>
     <string name="no_books_in">Sem livros em %1$s</string>
@@ -347,4 +347,11 @@
     <string name="notification_permission_explanation_title">Ativar notificações para TTS</string>
     <string name="notification_permission_explanation_message">Para usar a função de texto em voz, o HandyReader precisa exibir uma notificação com controles de reprodução. Isso permite que você controle a reprodução TTS mesmo quando o aplicativo está em segundo plano.</string>
     <string name="notification_permission_continue">Continuar</string>
+    
+    <string name="change_reading_background">Alterar fundo de leitura</string>
+    <string name="select_from_online">Selecionar da internet</string>
+    <string name="error_reach_max_download_limit">Limite máximo de download</string>
+    <string name="download_failed">Download falhou</string>
+    <string name="no_more_data">Não há mais dados</string>
+    <string name="no_data">Sem dados</string>
 </resources>

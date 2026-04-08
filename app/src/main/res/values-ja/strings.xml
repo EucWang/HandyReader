@@ -109,7 +109,7 @@
     <string name="publisher_styles">出版社のスタイル</string>
     <string name="text_normalization">テキストの正規化</string>
     <string name="color_settings">色の設定</string>
-    <string name="background_color">背景色</string>
+    <string name="background_color">背景色または画像</string>
     <string name="text_color">テキストの色</string>
     <string name="select_color">%1$sの色を選択</string>
     <string name="no_books_in">%1$sに本がありません</string>
@@ -347,4 +347,11 @@
     <string name="notification_permission_explanation_title">TTSの通知を有効にする</string>
     <string name="notification_permission_explanation_message">テキスト読み上げ機能を使用するには、HandyReaderが再生コントロール付きの通知を表示する必要があります。これにより、アプリがバックグラウンドにある場合でもTTSの再生を制御できます。</string>
     <string name="notification_permission_continue">続行</string>
+    
+    <string name="change_reading_background">読書背景を変更</string>
+    <string name="select_from_online">オンラインから選択</string>
+    <string name="error_reach_max_download_limit">最大ダウンロード数に達しました</string>
+    <string name="download_failed">ダウンロードに失敗しました</string>
+    <string name="no_more_data">これ以上ありません</string>
+    <string name="no_data">データがありません</string>
 </resources>

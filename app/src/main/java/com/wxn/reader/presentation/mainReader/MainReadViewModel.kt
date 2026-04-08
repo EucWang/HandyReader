@@ -180,6 +180,9 @@ class MainReadViewModel @Inject constructor(
     private val _showUISettings = MutableStateFlow<Boolean>(false)
     val showUISettings: StateFlow<Boolean> = _showUISettings.asStateFlow()
 
+    private val _showReadBgList = MutableStateFlow<Boolean>(false)
+    val showReadBgList: StateFlow<Boolean> = _showReadBgList.asStateFlow()
+
     private val _showFontSettings = MutableStateFlow<Boolean>(false)
     val showFontSettings: StateFlow<Boolean> = _showFontSettings.asStateFlow()
 
@@ -916,6 +919,10 @@ class MainReadViewModel @Inject constructor(
 
     fun readerSettingsOpen(open: Boolean = true) {
         _showReaderSettings.value = open
+    }
+
+    fun showReadBgList(open: Boolean = true) {
+        _showReadBgList.value = open
     }
 
     fun onToolbarsVisibilityChanged() {

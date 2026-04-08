@@ -109,7 +109,7 @@
     <string name="publisher_styles">出版社样式</string>
     <string name="text_normalization">文本规范化</string>
     <string name="color_settings">颜色设置</string>
-    <string name="background_color">背景颜色</string>
+    <string name="background_color">背景颜色或图片</string>
     <string name="text_color">文本颜色</string>
     <string name="select_color">选择 %1$s 颜色</string>
     <string name="no_books_in">%1$s 中没有书籍</string>
@@ -347,4 +347,11 @@
     <string name="notification_permission_explanation_title">为 TTS 启用通知</string>
     <string name="notification_permission_explanation_message">要使用朗读功能，随阅需要显示一个带有播放控制的通知。这允许您即使在应用后台运行时也能控制 TTS 播放。</string>
     <string name="notification_permission_continue">继续</string>
+    
+    <string name="change_reading_background">更换阅读背景</string>
+    <string name="select_from_online">从在线资源选择</string>
+    <string name="error_reach_max_download_limit">已达到最大下载限制</string>
+    <string name="download_failed">下载失败</string>
+    <string name="no_more_data">没有更多了</string>
+    <string name="no_data">暂无数据</string>
 </resources>

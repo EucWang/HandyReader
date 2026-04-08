@@ -109,7 +109,7 @@
     <string name="publisher_styles">Стили издателя</string>
     <string name="text_normalization">Нормализация текста</string>
     <string name="color_settings">Настройки цвета</string>
-    <string name="background_color">Цвет фона</string>
+    <string name="background_color">Цвет фона или изображение</string>
     <string name="text_color">Цвет текста</string>
     <string name="select_color">Выбрать цвет %1$s</string>
     <string name="no_books_in">Нет книг в %1$s</string>
@@ -347,4 +347,11 @@
     <string name="notification_permission_explanation_title">Включить уведомления для TTS</string>
     <string name="notification_permission_explanation_message">Для использования функции синтеза речи HandyReader должен отображать уведомление с элементами управления воспроизведением. Это позволяет вам управлять воспроизведением TTS, даже когда приложение находится в фоне.</string>
     <string name="notification_permission_continue">Продолжить</string>
+    
+    <string name="change_reading_background">Изменить фон чтения</string>
+    <string name="select_from_online">Выбрать из сети</string>
+    <string name="error_reach_max_download_limit">Достигнут лимит загрузки</string>
+    <string name="download_failed">Ошибка загрузки</string>
+    <string name="no_more_data">Больше нет данных</string>
+    <string name="no_data">Нет данных</string>
 </resources>

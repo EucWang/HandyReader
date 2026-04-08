@@ -1,8 +1,10 @@
 package com.wxn.reader.presentation.bookReader.components.modals
 
 import android.Manifest
+import android.content.Context
 import android.net.Uri
 import android.os.Build
+import androidx.compose.material3.AlertDialog
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
@@ -30,6 +32,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ColorLens
 import androidx.compose.material.icons.filled.PhotoSizeSelectActual
+import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
@@ -56,16 +59,19 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavHostController
 import coil3.compose.rememberAsyncImagePainter
 import com.wxn.reader.util.Presets
 import com.elixer.palette.constraints.HorizontalAlignment
 import com.elixer.palette.constraints.VerticalAlignment
 import com.wxn.base.ext.toComposeColor
+import com.wxn.base.util.PathUtil
 import com.wxn.bookread.data.model.preference.ReaderPreferences
 import com.wxn.reader.R
 import com.wxn.reader.data.model.AppPreferences
-import com.wxn.reader.navigation.Screens
+import com.wxn.reader.presentation.bookReader.components.modals.readbglist.ReadBgListPage
+import com.wxn.reader.presentation.bookReader.components.modals.readbglist.ReadBgListViewModel
 import com.wxn.reader.presentation.mainReader.MainReadViewModel
 import com.wxn.reader.util.ColorPicker
 import com.wxn.reader.util.PermissionHandler
@@ -89,25 +95,18 @@ fun UiSettings(
     val uiScope = rememberCoroutineScope()
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
 
+    val readBgListViewModel = hiltViewModel<ReadBgListViewModel>()
+    var showDialog by remember { mutableStateOf(false) }
+
     val predefinedColors = remember {
         mapOf(
             com.wxn.reader.ui.theme.stringResource(R.string.white) to Color.White,
             com.wxn.reader.ui.theme.stringResource(R.string.black) to Color.Black,
             com.wxn.reader.ui.theme.stringResource(R.string.gray) to Color(0xFFEBEBE4),
             com.wxn.reader.ui.theme.stringResource(R.string.light_yellow) to Color(0xFFFAF9DE),
-            com.wxn.reader.ui.theme.stringResource(R.string.pale_brown) to Color(0xFFFFF2E2),
+//            com.wxn.reader.ui.theme.stringResource(R.string.pale_brown) to Color(0xFFFFF2E2),
         )
     }
-    val predefinedImages = remember {
-        mapOf(
-            com.wxn.reader.ui.theme.stringResource(R.string.none) to "",
-            com.wxn.reader.ui.theme.stringResource(R.string.parchment) to "ic_read_bg1",            //羊皮纸
-            com.wxn.reader.ui.theme.stringResource(R.string.old_paper) to "ic_read_bg2",            //旧纸张
-            com.wxn.reader.ui.theme.stringResource(R.string.leather) to "ic_read_bg3",              //皮革纸
-            com.wxn.reader.ui.theme.stringResource(R.string.broken_parchment) to "ic_read_bg4",    //破羊皮纸
-        )
-    }
-
     val pagerState = rememberPagerState(0) { 2 }
 
 
@@ -206,171 +205,210 @@ fun UiSettings(
                 modifier = Modifier
                     .fillMaxWidth().fillMaxHeight(0.5f)
             ) { index ->
-                    when(index) {
-                        0 -> {
-                            Column(
-                                modifier = Modifier
-                                    .fillMaxSize()
-                                    .padding(horizontal = 8.dp)
-                                    .verticalScroll(rememberScrollState()),
-                                horizontalAlignment = Alignment.CenterHorizontally
-                            ) {
-                                ColorSection(
-                                    title = stringResource(R.string.background_color),
-                                    currentColor = readerPreferences.backgroundColor.toComposeColor(),
-                                    predefinedColors = predefinedColors,
-                                    onColorSelected = { color ->
-                                        viewModel.updateReaderPreferences(
-                                            readerPreferences.copy(
-                                                backgroundColor = color.toArgb(),
-                                                backgroundImage = ""
-                                            )
-                                        )
-                                    },
-                                    onCustomColorClicked = {
-                                        if (appPreferences.isPremium) {
-                                            editingColorType = ColorType.BACKGROUND
-                                            uiScope.launch{
-                                                pagerState.animateScrollToPage(1)
-                                            }
-                                        } else {
-                                            navController.navigate(Screens.PremiumScreen.route);
-                                        }
-                                    },
-                                )
-
-                                Spacer(modifier = Modifier.height(8.dp))
-                                HorizontalDivider()
-                                Spacer(modifier = Modifier.height(8.dp))
-
-                                ImageSection(
-                                    title = stringResource(R.string.background_image),
-                                    currentImage = readerPreferences.backgroundImage,
-                                    predefinedImages = predefinedImages,
-                                    onImageSelected = { image ->
-                                        viewModel.updateReaderPreferences(
-                                            readerPreferences.copy(backgroundImage =image)
-                                        )
-                                    },
-                                    onCustomImageClicked = { image ->
-                                        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-                                            pickMedia.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly))
-                                        } else {
-                                            if (PermissionHandler.hasPermissions(context)) {
-                                                imagePicker.launch("image/*")
-                                            } else {
-                                                PermissionHandler.requestPermissions(permissionLauncher)
-                                            }
-                                        }
-                                    }
-                                )
-
-                                Spacer(modifier = Modifier.height(8.dp))
-                                HorizontalDivider()
-                                Spacer(modifier = Modifier.height(8.dp))
-
-                                ColorSection(
-                                    title = stringResource(R.string.text_color),
-                                    currentColor = readerPreferences.textColor.toComposeColor(),
-                                    predefinedColors = predefinedColors,
-                                    onColorSelected = { color ->
-                                        viewModel.updateReaderPreferences(readerPreferences.copy(textColor = color.toArgb()))
-                                    },
-                                    onCustomColorClicked = {
-                                        if (appPreferences.isPremium) {
-                                            editingColorType = ColorType.TEXT
-                                            uiScope.launch {
-                                                pagerState.animateScrollToPage(1)
-                                            }
-                                        } else {
-                                            navController.navigate(Screens.PremiumScreen.route);
-                                        }
-                                    },
-                                )
-
-                                Spacer(modifier = Modifier.height(8.dp))
-                                HorizontalDivider()
-                                Spacer(modifier = Modifier.height(8.dp))
-                            }
-                        }
-                        1 -> {
-                            ColorPicker(
-                                defaultColor = when (editingColorType) {
-                                    ColorType.BACKGROUND -> readerPreferences.backgroundColor.toComposeColor()
-                                    ColorType.TEXT -> readerPreferences.textColor.toComposeColor()
-                                },
-                                buttonSize = 70.dp,
-                                swatches = Presets.material(),
-                                innerRadius = 200f,
-                                strokeWidth = 80f,
-                                spacerRotation = 0f,
-                                spacerOutward = 3f,
-                                verticalAlignment = VerticalAlignment.Bottom,
-                                horizontalAlignment = HorizontalAlignment.End,
+                when(index) {
+                    0 -> {
+                        Column(
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .padding(horizontal = 8.dp)
+                                .verticalScroll(rememberScrollState()),
+                            horizontalAlignment = Alignment.CenterHorizontally
+                        ) {
+                            ColorSection(
+                                title = stringResource(R.string.background_color),
+                                currentColor = readerPreferences.backgroundColor.toComposeColor(),
+                                currentImage = readerPreferences.backgroundImage,
+                                predefinedColors = predefinedColors,
                                 onColorSelected = { color ->
                                     viewModel.updateReaderPreferences(
-                                        when (editingColorType) {
-                                            ColorType.BACKGROUND -> readerPreferences.copy(
-                                                backgroundColor = color.toArgb(),
-                                                backgroundImage = ""
-                                            )
-
-                                            ColorType.TEXT -> readerPreferences.copy(textColor = color.toArgb())
-                                        }
+                                        readerPreferences.copy(
+                                            backgroundColor = color.toArgb(),
+                                            backgroundImage = ""
+                                        )
                                     )
+                                },
+                                onCustomColorClicked = {
+                                    editingColorType = ColorType.BACKGROUND
+                                    uiScope.launch{
+                                        pagerState.animateScrollToPage(1)
+                                    }
+                                },
+                                onCustomImageClicked = {
+                                    showDialog = true
+                                }
+                            )
+
+                            Spacer(modifier = Modifier.height(8.dp))
+                            HorizontalDivider()
+                            Spacer(modifier = Modifier.height(8.dp))
+
+                            ColorSection(
+                                title = stringResource(R.string.text_color),
+                                currentColor = readerPreferences.textColor.toComposeColor(),
+                                predefinedColors = predefinedColors,
+                                onColorSelected = { color ->
+                                    viewModel.updateReaderPreferences(readerPreferences.copy(textColor = color.toArgb()))
+                                },
+                                onCustomColorClicked = {
+                                    editingColorType = ColorType.TEXT
                                     uiScope.launch {
                                         pagerState.animateScrollToPage(1)
                                     }
-                                }
+                                },
                             )
+
+                            Spacer(modifier = Modifier.height(8.dp))
+                            HorizontalDivider()
+                            Spacer(modifier = Modifier.height(8.dp))
                         }
+                    }
+                    1 -> {
+                        ColorPicker(
+                            defaultColor = when (editingColorType) {
+                                ColorType.BACKGROUND -> readerPreferences.backgroundColor.toComposeColor()
+                                ColorType.TEXT -> readerPreferences.textColor.toComposeColor()
+                            },
+                            buttonSize = 70.dp,
+                            swatches = Presets.material(),
+                            innerRadius = 200f,
+                            strokeWidth = 80f,
+                            spacerRotation = 0f,
+                            spacerOutward = 3f,
+                            verticalAlignment = VerticalAlignment.Bottom,
+                            horizontalAlignment = HorizontalAlignment.End,
+                            onColorSelected = { color ->
+                                viewModel.updateReaderPreferences(
+                                    when (editingColorType) {
+                                        ColorType.BACKGROUND -> readerPreferences.copy(
+                                            backgroundColor = color.toArgb(),
+                                            backgroundImage = ""
+                                        )
+
+                                        ColorType.TEXT -> readerPreferences.copy(textColor = color.toArgb())
+                                    }
+                                )
+                                uiScope.launch {
+                                    pagerState.animateScrollToPage(1)
+                                }
+                            }
+                        )
+                    }
+                }
+            }
+        }
+    }
+
+    if (showDialog) {
+        ReadBgSelectionDialog(context, {
+            showDialog = false
+        }) { type ->
+            when(type) {
+                1 -> {
+                    viewModel.showReadBgList(true)
+                }
+                2 -> {
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                        pickMedia.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly))
+                    } else {
+                        if (PermissionHandler.hasPermissions(context)) {
+                            imagePicker.launch("image/*")
+                        } else {
+                            PermissionHandler.requestPermissions(permissionLauncher)
+                        }
+                    }
                 }
             }
         }
     }
 }
 
-
-
 @Composable
-private fun ImageSection(
-    title: String,
-    currentImage: String,
-    predefinedImages: Map<String, String>,
-    onImageSelected: (String) -> Unit,
-    onCustomImageClicked: (String) ->Unit,
+fun ReadBgSelectionDialog(
+    context: Context,
+    onDismiss: () -> Unit,
+    onSelect: (type:Int) -> Unit = {},
 ) {
-    Text(
-        title,
-        style = MaterialTheme.typography.titleMedium,
-        textAlign = TextAlign.Center
-    )
-    Spacer(modifier = Modifier.height(6.dp))
-    Text(
-        text = predefinedImages.entries.find { it.value == currentImage }?.key.orEmpty(), // ?: "Custom Color",
-        style = MaterialTheme.typography.titleMedium,
-        textAlign = TextAlign.Center
-    )
-    Spacer(modifier = Modifier.height(6.dp))
-    Row(
-        modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.SpaceAround
-    ) {
-        predefinedImages.forEach { (_, image) ->
-            ImageBox(
-                image = image,
-                isSelected = image == currentImage,
-                onClick = { onImageSelected(image) }
-            )
+    AlertDialog(
+        onDismissRequest = {
+            onDismiss()
+        },
+        title = {
+            Text(stringResource(R.string.change_reading_background))
+        },
+        text = {
+            Column() {
+                Button(
+                    onClick = {
+                        onSelect(1)
+                        onDismiss()
+                    },
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Text(stringResource(R.string.select_from_online))
+                }
+                Button(
+                    onClick = {
+                        onSelect(2)
+                        onDismiss()
+                    },
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Text(stringResource(R.string.select_from_gallery))
+                }
+            }
+        },
+        confirmButton = {},
+        dismissButton = {
+            Button(
+                onClick = {
+                    onDismiss()
+                }
+            ) {
+                Text(stringResource(R.string.cancel))
+            }
         }
-        ImageBox(
-            image = currentImage,
-            isSelected = !predefinedImages.containsValue(currentImage),
-            isCustomImage = true,
-            onClick = onCustomImageClicked
-        )
-    }
+    )
 }
+
+//@Composable
+//private fun ImageSection(
+//    title: String,
+//    currentImage: String,
+////    predefinedImages: Map<String, String>,
+//    onImageSelected: (String) -> Unit,
+//    onCustomImageClicked: (String) ->Unit,
+//) {
+//    Text(
+//        title,
+//        style = MaterialTheme.typography.titleMedium,
+//        textAlign = TextAlign.Center
+//    )
+//    Spacer(modifier = Modifier.height(6.dp))
+//    Text(
+//        text = predefinedImages.entries.find { it.value == currentImage }?.key.orEmpty(), // ?: "Custom Color",
+//        style = MaterialTheme.typography.titleMedium,
+//        textAlign = TextAlign.Center
+//    )
+//    Spacer(modifier = Modifier.height(6.dp))
+//    Row(
+//        modifier = Modifier.fillMaxWidth(),
+//        horizontalArrangement = Arrangement.SpaceAround
+//    ) {
+////        predefinedImages.forEach { (_, image) ->
+////            ImageBox(
+////                image = image,
+////                isSelected = image == currentImage,
+////                onClick = { onImageSelected(image) }
+////            )
+////        }
+//        ImageBox(
+//            image = currentImage,
+//            isSelected = currentImage.isNotEmpty(),
+//            isCustomImage = true,
+//            onClick = onCustomImageClicked
+//        )
+//    }
+//}
 
 
 
@@ -379,9 +417,11 @@ private fun ImageSection(
 fun ColorSection(
     title: String,
     currentColor: Color,
+    currentImage: String? = null,
     predefinedColors: Map<String, Color>,
     onColorSelected: (Color) -> Unit,
     onCustomColorClicked: () -> Unit,
+    onCustomImageClicked: (()->Unit)? = null
 ) {
     Text(
         title,
@@ -413,6 +453,14 @@ fun ColorSection(
             onClick = onCustomColorClicked,
             isCustomColor = true
         )
+        if (currentImage != null) {
+            ImageBox(
+                image = currentImage,
+                isSelected = currentImage.isNotEmpty(),
+                isCustomImage = true,
+                onClick = { onCustomImageClicked?.invoke() }
+            )
+        }
     }
 }
 
@@ -458,6 +506,7 @@ private fun ImageBox(
     isCustomImage: Boolean = false,
     onClick: (String) -> Unit,
 ) {
+    val context = LocalContext.current
     Box(
         modifier = Modifier
             .size(50.dp)
@@ -482,14 +531,14 @@ private fun ImageBox(
                 if (image.startsWith("/")) {
                     rememberAsyncImagePainter(image)
                 } else {
-                    painterResource(com.wxn.bookread.R.drawable.ic_bg_none)
+                    rememberAsyncImagePainter(PathUtil.getBgImageDownloadDir(context).absolutePath + "/" + image + ".webp")
                 }
             } else {
                 when(image) {
-                    "ic_read_bg1" -> painterResource(com.wxn.bookread.R.drawable.ic_read_bg1)
-                    "ic_read_bg2" -> painterResource(com.wxn.bookread.R.drawable.ic_read_bg2)
-                    "ic_read_bg3" -> painterResource(com.wxn.bookread.R.drawable.ic_read_bg3)
-                    "ic_read_bg4" -> painterResource(com.wxn.bookread.R.drawable.ic_read_bg4)
+//                    "ic_read_bg1" -> painterResource(com.wxn.bookread.R.drawable.ic_read_bg1)
+//                    "ic_read_bg2" -> painterResource(com.wxn.bookread.R.drawable.ic_read_bg2)
+//                    "ic_read_bg3" -> painterResource(com.wxn.bookread.R.drawable.ic_read_bg3)
+//                    "ic_read_bg4" -> painterResource(com.wxn.bookread.R.drawable.ic_read_bg4)
                     else -> painterResource(com.wxn.bookread.R.drawable.ic_bg_none)
                 }
             },

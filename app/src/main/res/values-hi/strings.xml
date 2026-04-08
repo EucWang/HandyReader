@@ -110,7 +110,7 @@
     <string name="publisher_styles">प्रकाशक शैलियाँ</string>
     <string name="text_normalization">टेक्स्ट मानकीकरण</string>
     <string name="color_settings">रंग सेटिंग्स</string>
-    <string name="background_color">पृष्ठभूमि रंग</string>
+    <string name="background_color">पृष्ठभूमि रंग या छवि</string>
     <string name="text_color">टेक्स्ट रंग</string>
     <string name="select_color">%1$s रंग चुनें</string>
     <string name="no_books_in">%1$s में कोई पुस्तक नहीं</string>
@@ -349,4 +349,11 @@
     <string name="notification_permission_explanation_title">TTS के लिए अधिसूचनाएं सक्षम करें</string>
     <string name="notification_permission_explanation_message">टेक्स्ट-टू-स्पीच फ़ंक्शन का उपयोग करने के लिए, HandyReader को प्लेबैक नियंत्रण के साथ एक अधिसूचना प्रदर्शित करने की आवश्यकता है। इससे आप TTS प्लेबैक को तब भी नियंत्रित कर सकते हैं जब ऐप बैकग्राउंड में हो।</string>
     <string name="notification_permission_continue">जारी रखें</string>
+    
+    <string name="change_reading_background">पढ़ने की पृष्ठभूमि बदलें</string>
+    <string name="select_from_online">ऑनलाइन से चुनें</string>
+    <string name="error_reach_max_download_limit">अधिकतम डाउनलोड सीमा पहुंची</string>
+    <string name="download_failed">डाउनलोड विफल</string>
+    <string name="no_more_data">कोई और डेटा नहीं</string>
+    <string name="no_data">कोई डेटा नहीं</string>
 </resources>

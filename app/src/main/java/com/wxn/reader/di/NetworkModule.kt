@@ -1,11 +1,17 @@
 package com.wxn.reader.di
 
+import android.content.Context
 import com.wxn.reader.BuildConfig
 import com.wxn.reader.data.remote.api.FeedbackApi
 import com.wxn.reader.data.remote.api.FeedbackApiImpl
+import com.wxn.reader.data.remote.api.ReadBgsApi
+import com.wxn.reader.data.remote.api.ReadBgsApiImpl
+import com.wxn.reader.domain.repository.ReadBgRepository
+import com.wxn.reader.presentation.bookReader.components.modals.readbglist.BgImageDownloadManager
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
+import dagger.hilt.android.qualifiers.ApplicationContext
 import dagger.hilt.components.SingletonComponent
 import io.ktor.client.HttpClient
 import io.ktor.client.engine.okhttp.OkHttp
@@ -119,5 +125,25 @@ object NetworkModule {
     @Singleton
     fun provideFeedbackApi(httpClient: HttpClient): FeedbackApi {
         return FeedbackApiImpl(httpClient)
+    }
+
+    @Provides
+    @Singleton
+    fun provideReadBgsApi(httpClient: HttpClient): ReadBgsApi {
+        return ReadBgsApiImpl(httpClient)
+    }
+
+    @Provides
+    @Singleton
+    fun provideBgImageDownloader(
+        @ApplicationContext context: Context,
+        repository: ReadBgRepository,
+        httpClient: HttpClient
+        ) : BgImageDownloadManager {
+        return BgImageDownloadManager(
+            context,
+            repository,
+            httpClient
+        )
     }
 }
