@@ -1,9 +1,9 @@
-![banner](./resources/商店横幅图.png)
+![banner](./resources/banner_en_mini.png)
 ---
 [download](https://play.google.com/store/apps/details?id=com.wxn.reader)
 ---
 
-version: 1.11.260331
+version: 1.12.260428
 
 ## 👀 Overview
 
@@ -42,7 +42,7 @@ version: 1.11.260331
 - [ ] Add WebView to display web content
 - [ ] support two column page diaplay on tablet
 - [ ] support open mobi/epub.. file from third app
-- [ ] offline AI TTS and Online EdgeTTS
+- [√] offline AI TTS and Online EdgeTTS
 
 ---
 
@@ -66,3 +66,4 @@ This project is licensed under the GNU General Public License v3.0 - see the [LI
 - [unzip](http://www.winimage.com/zLibDll/minizip.html) for the unzip library
 - [jp2ForAndroid](https://github.com/EucWang/jp2ForAndroid) for the jp2ForAndroid
 - [libxml2](https://github.com/GNOME/libxml2) for the libxml2 library
+- [sherpaOnnx](https://github.com/k2-fsa/sherpa-onnx) for the AI TTS Engine
