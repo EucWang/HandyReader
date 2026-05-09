@@ -1,9 +1,8 @@
-![banner](./resources/banner_en_mini.png)
+![banner](./resources/商店横幅图.png)
 ---
 [download](https://play.google.com/store/apps/details?id=com.wxn.reader)
 ---
-
-version: 1.12.260428
+version: 1.13.260509
 
 ## 👀 Overview
 
@@ -30,7 +29,7 @@ version: 1.12.260428
 - [√] Modify color selection panel
 - [√] Optimaze TTS server and add setter
 - [√] Add Reading Page background image selection to gallary
-- [ ] Add font selection
+- [√] Add font selection
 - [√] Control the maximum height of popup for in-page annotation content
 - [ ] Continuous vertical scrolling
 - [ ] Add welcome guide on first app launch
@@ -42,7 +41,11 @@ version: 1.12.260428
 - [ ] Add WebView to display web content
 - [ ] support two column page diaplay on tablet
 - [ ] support open mobi/epub.. file from third app
-- [√] offline AI TTS and Online EdgeTTS
+- [√] offline AI TTS
+- [ ] Online EdgeTTS
+- [ ] optimize PDF parse
+- [ ] support OPDS
+- [ ] support CBR, CBZ
 
 ---
 
@@ -66,4 +69,4 @@ This project is licensed under the GNU General Public License v3.0 - see the [LI
 - [unzip](http://www.winimage.com/zLibDll/minizip.html) for the unzip library
 - [jp2ForAndroid](https://github.com/EucWang/jp2ForAndroid) for the jp2ForAndroid
 - [libxml2](https://github.com/GNOME/libxml2) for the libxml2 library
-- [sherpaOnnx](https://github.com/k2-fsa/sherpa-onnx) for the AI TTS Engine
+- [sherpa](https://github.com/k2-fsa/sherpa) for the offline text-to-speech engine library
