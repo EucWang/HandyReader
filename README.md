@@ -2,9 +2,7 @@
 ---
 [download](https://play.google.com/store/apps/details?id=com.wxn.reader)
 ---
-version: 1.13.260509
-
-new version: 1.16.260604
+latest version: 1.16.260604
 
 ## 👀 Overview
 
@@ -39,7 +37,7 @@ new version: 1.16.260604
 - [√] Modify storage directory and file loading method
 - [ ] Add WebDAV synchronization
 - [ ] UI redesign and optimization
-- [ ] Add in-app third-party translation display
+- [√] Add in-app third-party translation display
 - [ ] Add WebView to display web content
 - [ ] support two column page diaplay on tablet
 - [√] support open mobi/epub.. file from third app
