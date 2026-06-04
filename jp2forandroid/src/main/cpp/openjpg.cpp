@@ -166,7 +166,7 @@ static int imagetoargb(opj_image_t *image, image_data_t *outImage) {
         w = image->comps[0].w;        
         h = image->comps[0].h;
         
-        outImage->pixels = (int *) malloc(sizeof(int) * w * h);
+        outImage->pixels = (w > 0 && h > 0 && h <= SIZE_MAX / (sizeof(int) * w)) ? (int *) malloc(sizeof(int) * w * h) : NULL;
         outImage->height = h;
         outImage->width = w;
         
@@ -597,6 +597,9 @@ typedef struct opj_byte_array_source {
 static OPJ_SIZE_T opj_read_from_byte_array (void * p_buffer, OPJ_SIZE_T p_nb_bytes, opj_byte_array_source * p_user_data)
 {
     //LOGD("opj_read_from_byte_array started");
+    if (p_user_data->offset >= p_user_data->length) {
+        return (OPJ_SIZE_T)-1;
+    }
     size_t toRead = MIN(p_nb_bytes, p_user_data->length - p_user_data->offset);
     memcpy(p_buffer, p_user_data->data + p_user_data->offset, toRead);
     p_user_data->offset += toRead;
