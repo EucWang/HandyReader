@@ -4,7 +4,7 @@
 ---
 version: 1.13.260509
 
-new version: 1.14.260513
+new version: 1.16.260604
 
 ## 👀 Overview
 
@@ -34,20 +34,22 @@ new version: 1.14.260513
 - [√] Add font selection
 - [√] Control the maximum height of popup for in-page annotation content
 - [ ] Continuous vertical scrolling
-- [ ] Add welcome guide on first app launch
+- [√] Add welcome guide on first app launch
 - [√] Add control guide on first entering the reading interface
-- [ ] Modify storage directory and file loading method
+- [√] Modify storage directory and file loading method
 - [ ] Add WebDAV synchronization
 - [ ] UI redesign and optimization
 - [ ] Add in-app third-party translation display
 - [ ] Add WebView to display web content
 - [ ] support two column page diaplay on tablet
-- [ ] support open mobi/epub.. file from third app
+- [√] support open mobi/epub.. file from third app
 - [√] offline AI TTS
 - [ ] Online EdgeTTS
 - [ ] optimize PDF parse
-- [ ] support OPDS
+- [√] support OPDS 1.x
+- [ ] support OPDS 2.0
 - [ ] support CBR, CBZ
+- [ ] optimize txt/html/md parse
 
 ---
 
