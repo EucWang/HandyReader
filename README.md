@@ -1,8 +1,8 @@
-![banner](./resources/商店横幅图.png)
+![banner](https://images.handyreader.top/images/screenshots/banner_en_mini.webp)
 ---
 [download](https://play.google.com/store/apps/details?id=com.wxn.reader)
 ---
-latest version: 1.16.260604
+latest version: 1.17.260618
 
 ## 👀 Overview
 
@@ -31,10 +31,11 @@ latest version: 1.16.260604
 - [√] Add Reading Page background image selection to gallary
 - [√] Add font selection
 - [√] Control the maximum height of popup for in-page annotation content
-- [ ] Continuous vertical scrolling
+- [√] Continuous vertical scrolling
 - [√] Add welcome guide on first app launch
 - [√] Add control guide on first entering the reading interface
 - [√] Modify storage directory and file loading method
+- [√] Add text search in-book for reading page
 - [ ] Add WebDAV synchronization
 - [ ] UI redesign and optimization
 - [√] Add in-app third-party translation display
