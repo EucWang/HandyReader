@@ -2,7 +2,7 @@
 ---
 [download](https://play.google.com/store/apps/details?id=com.wxn.reader)
 ---
-latest version: 1.18.2606225
+latest version: 1.19.260710
 
 ## 👀 Overview
 
@@ -36,12 +36,15 @@ latest version: 1.18.2606225
 - [√] Add control guide on first entering the reading interface
 - [√] Modify storage directory and file loading method
 - [√] Add text search in-book for reading page
+- [√] Add backup and restore functionality
 - [ ] Add WebDAV synchronization
 - [√] UI redesign and optimization
 - [√]  Share with Quote of Book content
 - [√] Add in-app third-party translation display
 - [ ] Add WebView to display web content
 - [ ] support two column page diaplay on tablet
+- [ ] support alignment setting for reading page
+- [ ] support for collections for books
 - [√] support open mobi/epub.. file from third app
 - [√] offline AI TTS
 - [ ] Online EdgeTTS
