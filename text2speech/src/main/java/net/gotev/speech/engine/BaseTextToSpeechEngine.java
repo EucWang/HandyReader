@@ -11,6 +11,7 @@ import net.gotev.speech.TextToSpeechCallback;
 import net.gotev.speech.TtsProgressListener;
 import com.wxn.base.util.Logger;
 
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.*;
 
 public class BaseTextToSpeechEngine implements TextToSpeechEngine {
@@ -26,7 +27,7 @@ public class BaseTextToSpeechEngine implements TextToSpeechEngine {
     private int mTtsQueueMode = TextToSpeech.QUEUE_FLUSH;
     private int mAudioStream = TextToSpeech.Engine.DEFAULT_STREAM;
 
-    private final Map<String, TextToSpeechCallback> mTtsCallbacks = new HashMap<>();
+    private final Map<String, TextToSpeechCallback> mTtsCallbacks = new ConcurrentHashMap<>();
 
     @Override
     public void initTextToSpeech(Context context) {
@@ -35,18 +36,30 @@ public class BaseTextToSpeechEngine implements TextToSpeechEngine {
         }
 
         mTtsProgressListener = new TtsProgressListener(context, mTtsCallbacks);
-        mTextToSpeech = new TextToSpeech(context.getApplicationContext(), mTttsInitListener);
-        mTextToSpeech.setOnUtteranceProgressListener(mTtsProgressListener);
-        mTextToSpeech.setLanguage(mLocale);
-        mTextToSpeech.setPitch(mTtsPitch);
-        mTextToSpeech.setSpeechRate(mTtsRate);
+        mTextToSpeech = new TextToSpeech(context.getApplicationContext(), new TextToSpeech.OnInitListener() {
+            @Override
+            public void onInit(int status) {
+                    if (status == TextToSpeech.SUCCESS) {
+                        Logger.INSTANCE.d("BaseTextToSpeechEngine: TextToSpeech initialized successfully");
+                        mTextToSpeech.setLanguage(mLocale);
+                        mTextToSpeech.setPitch(mTtsPitch);
+                        mTextToSpeech.setSpeechRate(mTtsRate);
 
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
-            if (voice == null) {
-                voice = mTextToSpeech.getDefaultVoice();
+                        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+                            if (voice != null) {
+                                mTextToSpeech.setVoice(voice);
+                            }
+                        }
+                        mTextToSpeech.setOnUtteranceProgressListener(mTtsProgressListener);
+                    } else {
+                        Logger.INSTANCE.e("BaseTextToSpeechEngine: TextToSpeech initialization failed with status: " + status);
+                    }
+
+                if (mTttsInitListener != null) {
+                    mTttsInitListener.onInit(status);
+                }
             }
-            mTextToSpeech.setVoice(voice);
-        }
+        });
     }
 
     @Override
@@ -80,15 +93,33 @@ public class BaseTextToSpeechEngine implements TextToSpeechEngine {
             mTtsCallbacks.put(utteranceId, callback);
         }
 
+        if (mTextToSpeech == null) {
+            Logger.INSTANCE.e(getClass().getSimpleName() + " say: mTextToSpeech is null!");
+            if (callback != null) {
+                mTtsCallbacks.remove(utteranceId);
+                callback.onError();
+            }
+            return;
+        }
+
+        int result;
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
             final Bundle params = new Bundle();
             params.putString(TextToSpeech.Engine.KEY_PARAM_STREAM, String.valueOf(mAudioStream));
-            mTextToSpeech.speak(message, mTtsQueueMode, params, utteranceId);
+            result = mTextToSpeech.speak(message, mTtsQueueMode, params, utteranceId);
         } else {
             final HashMap<String, String> params = new HashMap<>();
             params.put(TextToSpeech.Engine.KEY_PARAM_STREAM, String.valueOf(mAudioStream));
             params.put(TextToSpeech.Engine.KEY_PARAM_UTTERANCE_ID, utteranceId);
-            mTextToSpeech.speak(message, mTtsQueueMode, params);
+            result = mTextToSpeech.speak(message, mTtsQueueMode, params);
+        }
+
+        if (result != TextToSpeech.SUCCESS) {
+            Logger.INSTANCE.e(getClass().getSimpleName() + " speak failed with error code: " + result);
+            if (callback != null) {
+                mTtsCallbacks.remove(utteranceId);
+                callback.onError();
+            }
         }
     }
 
@@ -99,6 +130,8 @@ public class BaseTextToSpeechEngine implements TextToSpeechEngine {
                 mTtsCallbacks.clear();
                 mTextToSpeech.stop();
                 mTextToSpeech.shutdown();
+                mTextToSpeech = null;
+                mTtsProgressListener = null;
             } catch (final Exception exc) {
                 Logger.INSTANCE.e(getClass().getSimpleName() + "Warning while de-initing text to speech" + exc);
             }

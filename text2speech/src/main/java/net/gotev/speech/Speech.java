@@ -29,7 +29,7 @@ import java.util.*;
  */
 public class Speech {
 
-    private static Speech instance = null;
+    private static volatile Speech instance = null;
     protected static String GOOGLE_APP_PACKAGE = "com.google.android.googlequicksearchbox";
 
     private Context mContext;
@@ -88,6 +88,11 @@ public class Speech {
     public static Speech init(final Context context, final String callingPackage, TextToSpeech.OnInitListener onInitListener) {
         if (instance == null) {
             instance = new Speech(context, callingPackage, onInitListener, new BaseSpeechRecognitionEngine(), new BaseTextToSpeechEngine());
+        } else {
+            if (onInitListener != null) {
+                // Already initialized, notify the listener immediately
+                onInitListener.onInit(TextToSpeech.SUCCESS);
+            }
         }
 
         return instance;
@@ -96,6 +101,10 @@ public class Speech {
     public static Speech init(final Context context, final String callingPackage, TextToSpeech.OnInitListener onInitListener, SpeechRecognitionEngine speechRecognitionEngine, TextToSpeechEngine textToSpeechEngine) {
         if (instance == null) {
             instance = new Speech(context, callingPackage, onInitListener, speechRecognitionEngine, textToSpeechEngine);
+        } else {
+            if (onInitListener != null) {
+                onInitListener.onInit(TextToSpeech.SUCCESS);
+            }
         }
 
         return instance;
@@ -104,7 +113,7 @@ public class Speech {
     /**
      * Must be called inside Activity's onDestroy.
      */
-    public synchronized void shutdown() {
+    public void shutdown() {
         speechRecognitionEngine.shutdown();
         textToSpeechEngine.shutdown();
 
@@ -122,6 +131,15 @@ public class Speech {
         }
 
         return instance;
+    }
+
+    /**
+     * Checks if the speech recognition has been initialized.
+     *
+     * @return true if initialized, false otherwise
+     */
+    public static boolean isInitialized() {
+        return instance != null;
     }
 
     /**

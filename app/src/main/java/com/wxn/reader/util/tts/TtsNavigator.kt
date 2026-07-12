@@ -8,15 +8,22 @@ import com.wxn.bookread.data.model.TextLine
 import com.wxn.bookread.data.source.local.TtsPreferencesUtil
 import com.wxn.reader.util.LanguageInfo
 import com.wxn.reader.util.LanguageUtil
+import kotlinx.coroutines.CompletableDeferred
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import net.gotev.speech.Speech
 import net.gotev.speech.SpeechRecognitionNotAvailable
 import net.gotev.speech.TextToSpeechCallback
 import java.util.Locale
 import kotlin.coroutines.resume
 import kotlin.coroutines.suspendCoroutine
+import kotlin.concurrent.timer
 
 class TtsNavigator(
     val context: Context,
@@ -158,15 +165,84 @@ class TtsNavigator(
     //---------------------------
 
     init {
-        Speech.init(context)
+        // Speech.init is now called when needed in getSpeechReady()
     }
 
+    private var isEngineReady = false
+
+    private suspend fun getSpeechReady(): Speech {
+        return withContext(Dispatchers.Main) {
+            if (Speech.isInitialized() && isEngineReady) {
+                Speech.getInstance()
+            } else {
+                isEngineReady = false
+                val initDeferred = CompletableDeferred<Speech>()
+                Speech.init(context, null, object : TextToSpeech.OnInitListener {
+                    override fun onInit(status: Int) {
+                        if (status == TextToSpeech.SUCCESS) {
+                            Logger.d("TtsNavigator::getSpeechReady SUCCESS")
+                            isEngineReady = true
+                            if (!initDeferred.isCompleted) {
+                                initDeferred.complete(Speech.getInstance())
+                            }
+                        } else {
+                            Logger.e("TtsNavigator::getSpeechReady FAILED: status=$status")
+                            isEngineReady = false
+                            if (!initDeferred.isCompleted) {
+                                initDeferred.complete(Speech.getInstance())
+                            }
+                        }
+                    }
+                })
+                initDeferred.await()
+                // Small delay to allow the engine to fully stabilize after SUCCESS
+                delay(100)
+                Speech.getInstance()
+            }
+        }
+    }
+
+    private val navigatorScope = CoroutineScope(Dispatchers.Main + SupervisorJob())
     private var ttsLocale : Locale = LanguageUtil.LANG_EN.locale
     private var speed = 1.0f
     private var pitch = 1.0f
 
+    class Timer(private val delayMillis: Long, private val action: () -> Unit) {
+        private var timerJob: Job? = null
+        private val scope = CoroutineScope(Dispatchers.Main + SupervisorJob())
+
+        fun startTimer() {
+            timerJob?.cancel()
+            timerJob = scope.launch {
+                delay(delayMillis)
+                action()
+            }
+        }
+
+        fun cancelTimer() {
+            timerJob?.cancel()
+            timerJob = null
+        }
+    }
+    private var unloadEngineTimer : Timer = Timer(300000) {
+        if (Speech.isInitialized()) {
+            navigatorScope.launch {
+                try {
+                    Speech.getInstance().shutdown()
+                    Logger.i("TtsNavigator::unloadEngineTimer engine shut down on Main thread")
+                } catch (e: Exception) {
+                    Logger.e("TtsNavigator::unloadEngineTimer shutdown error: ${e.message}")
+                }
+            }
+        }
+    }
+
     suspend fun play(textLines: List<TextLine>?, onReadLine: (List<TextLine>, Boolean)->Unit) : Int {
         Logger.i("TtsNavigator::play")
+        unloadEngineTimer.cancelTimer()
+        
+        val speech = getSpeechReady()
+        
         var status = 1
         try {
             val ttsPreferences = ttsPreferencesUtil.ttsPreferencesFlow.firstOrNull()
@@ -178,15 +254,17 @@ class TtsNavigator(
                 speed = ttsPreferences.speed
                 pitch = ttsPreferences.pitch
 
-//                val localeSuppported = Speech.getInstance().setLocale(ttsLocale)
+//                val localeSuppported = speech.setLocale(ttsLocale)
 //                if (localeSuppported < 0) {
 //                    return localeSuppported;
 //                }
 //                Logger.d("TtsNavigator::play[language[$ttsLocale]], localeSupported[$localeSuppported]")
-                Speech.getInstance().setTextToSpeechRate(speed)
-                Speech.getInstance().setTextToSpeechPitch(pitch)
-                Speech.getInstance().setTextToSpeechQueueMode(TextToSpeech.QUEUE_ADD)
-                Speech.getInstance().setGetPartialResults(true)
+                withContext(Dispatchers.Main) {
+                    speech.setTextToSpeechRate(speed)
+                    speech.setTextToSpeechPitch(pitch)
+                    speech.setTextToSpeechQueueMode(TextToSpeech.QUEUE_FLUSH) // Reset queue for fresh start
+                    speech.setGetPartialResults(true)
+                }
 
                 var ret  = 1
                 val textLineMap = hashMapOf<Int, ArrayList<TextLine>>()
@@ -211,12 +289,12 @@ class TtsNavigator(
                 for(key in keys) {
                     val lines = textLineMap[key] ?: continue
                     val text = texts.getOrNull(index++) ?: continue
-                    with(Dispatchers.Main) {
+                    withContext(Dispatchers.Main) {
                         onReadLine(lines, true)
                     }
                     ret = innerPlay(text.toString())
                     Logger.d("TtsNavigator::play::innerPlay result[$ret],text[$text], key=$key, index=$index, lines.size[${lines.size}]")
-                    with(Dispatchers.Main) {
+                    withContext(Dispatchers.Main) {
                         onReadLine(lines, false)
                     }
                     if (ret != 1) {
@@ -236,7 +314,8 @@ class TtsNavigator(
         Logger.d("TtsNavigator::innerPlay:text[$text]")
         var start = System.currentTimeMillis()
         return suspendCoroutine { coroutination ->
-            Speech.getInstance().say(text,
+            val speech = Speech.getInstance()
+            speech.say(text,
                 object : TextToSpeechCallback{
                     override fun onStart() {
                         Logger.d("TtsNavigator::innerPlay say callback onStart")
@@ -263,7 +342,12 @@ class TtsNavigator(
         val speechSpeed = speed.coerceIn(0.25f, 2.0f)
         if (speechSpeed != this.speed) {
             this.speed = speechSpeed
-            Speech.getInstance().setTextToSpeechRate(speechSpeed)
+            if (Speech.isInitialized()) {
+                try {
+                    Speech.getInstance().setTextToSpeechRate(speechSpeed)
+                } catch (e: Exception) {
+                }
+            }
 
             Coroutines.scope().launch {
                 ttsPreferencesUtil.ttsPreferencesFlow.firstOrNull()?.let { preferences ->
@@ -279,7 +363,12 @@ class TtsNavigator(
         val speechPitch = pitch.coerceIn(0.25f, 2.0f)
         if (speechPitch != this.pitch) {
             this.pitch = speechPitch
-            Speech.getInstance().setTextToSpeechPitch(speechPitch)
+            if (Speech.isInitialized()) {
+                try {
+                    Speech.getInstance().setTextToSpeechPitch(speechPitch)
+                } catch (e: Exception) {
+                }
+            }
             Coroutines.scope().launch {
                 ttsPreferencesUtil.ttsPreferencesFlow.firstOrNull()?.let { preferences ->
                     preferences.pitch = speechPitch
@@ -293,11 +382,16 @@ class TtsNavigator(
         val newlocale = language?.locale ?: return false
         if (newlocale != this.ttsLocale) {
             this.ttsLocale = newlocale
-            val supportLanguage = Speech.getInstance().setLocale(language.locale)
-            if (supportLanguage < 0) {
-                return false
+            if (Speech.isInitialized()) {
+                try {
+                    val supportLanguage = Speech.getInstance().setLocale(language.locale)
+                    if (supportLanguage < 0) {
+                        return false
+                    }
+                    Logger.d("TtsNavigator::setLanguage::language[$language], supportLanguage[$supportLanguage]")
+                } catch (e: Exception) {
+                }
             }
-            Logger.d("TtsNavigator::setLanguage::language[$language], supportLanguage[$supportLanguage]")
             Coroutines.scope().launch {
                 ttsPreferencesUtil.ttsPreferencesFlow.firstOrNull()?.let { preferences ->
                     preferences.localeCode = language.code
@@ -310,7 +404,17 @@ class TtsNavigator(
 
     fun stop() {
         Logger.i("TtsNavigator::stop")
-        Speech.getInstance().stopTextToSpeech()
+        isEngineReady = false
+        if (Speech.isInitialized()) {
+            try {
+                Speech.getInstance().stopTextToSpeech()
+            } catch (e: Exception) {
+                // Already shutdown or not initialized
+            }
+        }
+
+
+        unloadEngineTimer.startTimer()
     }
 
     fun onDestroy() {
