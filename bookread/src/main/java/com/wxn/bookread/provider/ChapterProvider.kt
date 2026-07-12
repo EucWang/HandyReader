@@ -33,6 +33,7 @@ import com.wxn.bookread.ext.dp
 import com.wxn.bookread.textHeight
 import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.runBlocking
 import java.util.regex.Pattern
 import kotlin.collections.firstOrNull
 import kotlin.math.roundToInt
@@ -227,7 +228,7 @@ object ChapterProvider {
     /**
      * 更新绘制尺寸
      */
-    private suspend fun upVisibleSize(context: Context) {
+    private fun upVisibleSize(context: Context) {
         Logger.i("ChapterProvider:upVisibleSize")
 
         if (viewWidth == 0 || viewHeight == 0) {
@@ -237,7 +238,7 @@ object ChapterProvider {
             Logger.d("ChapterProvider::set screen size to view::viewWidth=$viewWidth,viewHeight=$viewHeight")
         }
 
-        val readerPreferences = readerPreferencesUtil?.readerPrefsFlow?.firstOrNull()
+        val readerPreferences = runBlocking { readerPreferencesUtil?.readerPrefsFlow?.firstOrNull() }
         if (viewWidth > 0 && viewHeight > 0) {
             paddingLeft = (((readerPreferences?.pageHorizontalMargins?.toDouble() ?: 0.0) * 0.1 * viewWidth.toDouble()).toInt()) / 2         //页面左边距
             paddingTop = ((readerPreferences?.pageVerticalMargins ?: 0.0) * 0.1 * viewHeight.toDouble()).toInt() / 2                 //页面顶部间距
@@ -1497,8 +1498,8 @@ object ChapterProvider {
         if (width > 0 && height > 0 && refreshStyle) {
             viewWidth = width
             viewHeight = height
+            upVisibleSize(context)
             Coroutines.mainScope().launch {
-                upVisibleSize(context)
                 upStyle(context)
             }
         }
