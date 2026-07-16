@@ -2,6 +2,9 @@ package com.wxn.reader.util.tts
 
 import android.content.Context
 import android.speech.tts.TextToSpeech
+import androidx.lifecycle.DefaultLifecycleObserver
+import androidx.lifecycle.LifecycleOwner
+import androidx.lifecycle.ProcessLifecycleOwner
 import com.wxn.base.util.Coroutines
 import com.wxn.base.util.Logger
 import com.wxn.bookread.data.model.TextLine
@@ -28,10 +31,11 @@ import kotlin.concurrent.timer
 class TtsNavigator(
     val context: Context,
     val ttsPreferencesUtil: TtsPreferencesUtil
-//    var speed: Float,// 语速
-//    var pitch: Float, //音调
-//    var language: AppLanguage
-) {
+) : DefaultLifecycleObserver {
+
+    init {
+        ProcessLifecycleOwner.get().lifecycle.addObserver(this)
+    }
 
 //    var initSuccess: Boolean = false
 //
@@ -419,7 +423,31 @@ class TtsNavigator(
 
     fun onDestroy() {
         Logger.i("TtsNavigator::onDestroy")
+        ProcessLifecycleOwner.get().lifecycle.removeObserver(this)
         stop()
+    }
+
+    override fun onStop(owner: LifecycleOwner) {
+        Logger.i("TtsNavigator::onStop - App moved to background")
+        if (Speech.isInitialized()) {
+            val speech = Speech.getInstance()
+
+            // Only shutdown if the speech isn't speaking when it goes to background
+            if (speech.isSpeaking) {
+                Logger.i("TtsNavigator::onStop - TTS is speaking, keeping engine loaded")
+                return
+            }
+
+            // Perform actual shutdown if idle
+            try {
+                speech.shutdown()
+                Logger.i("TtsNavigator::onStop - TTS Engine shut down (Idle)")
+            } catch (e: Exception) {
+                Logger.e("TtsNavigator::onStop shutdown error: ${e.message}")
+            }
+            isEngineReady = false
+            unloadEngineTimer.cancelTimer()
+        }
     }
 //
 //    fun isPlaying() : Boolean {
