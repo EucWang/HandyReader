@@ -2,7 +2,7 @@
 ---
 [download](https://play.google.com/store/apps/details?id=com.wxn.reader)
 ---
-latest version: 1.19.260710
+latest version: 1.20.260718
 
 ## 👀 Overview
 
@@ -42,8 +42,8 @@ latest version: 1.19.260710
 - [√]  Share with Quote of Book content
 - [√] Add in-app third-party translation display
 - [ ] Add WebView to display web content
-- [ ] support two column page diaplay on tablet
-- [ ] support alignment setting for reading page
+- [√] support two column page diaplay on tablet
+- [√] support alignment setting for reading page
 - [ ] support for collections for books
 - [√] support open mobi/epub.. file from third app
 - [√] offline AI TTS
@@ -52,7 +52,9 @@ latest version: 1.19.260710
 - [√] support OPDS 1.x
 - [ ] support OPDS 2.0
 - [ ] support CBR, CBZ
-- [ ] optimize txt/html/md parse
+- [ ] optimize txt parse
+- [ ] optimize html parse
+- [ ] optimize md parse
 
 ---
 
