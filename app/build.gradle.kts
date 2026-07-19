@@ -271,10 +271,14 @@ fun resolveLlvmObjcopy(): String {
             ?: error("NDK not found: set android.ndkVersion or ANDROID_NDK_HOME (${e.message})")
     }
     // prebuilt 下只有一个 host 目录（windows-x86_64 / linux-x86_64 / darwin-x86_64），取第一个。
-    val exe = ndkRoot.resolve("toolchains/llvm/prebuilt")
+    // 可执行文件后缀按宿主 OS 决定：Windows 是 llvm-objcopy.exe，Linux/macOS 无后缀。
+    // 之前把 .exe 写死、并把 fallback 写成 windows-x86_64，导致 CI（ubuntu）找不到工具。
+    val isWindows = System.getProperty("os.name").startsWith("Windows", ignoreCase = true)
+    val exeName = if (isWindows) "llvm-objcopy.exe" else "llvm-objcopy"
+    val hostDir = ndkRoot.resolve("toolchains/llvm/prebuilt")
         .listFiles()?.firstOrNull { it.isDirectory }
-        ?.resolve("bin/llvm-objcopy.exe")
-        ?: ndkRoot.resolve("toolchains/llvm/prebuilt/windows-x86_64/bin/llvm-objcopy.exe")
+        ?: error("llvm-objcopy prebuilt dir not found under toolchains/llvm/prebuilt (NDK root: $ndkRoot)")
+    val exe = hostDir.resolve("bin/$exeName")
     check(exe.exists()) { "llvm-objcopy not found at $exe (NDK root: $ndkRoot)" }
     return exe.absolutePath
 }
