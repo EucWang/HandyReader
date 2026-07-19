@@ -18,6 +18,7 @@ import com.wxn.bookread.data.model.TextChapter
 import com.wxn.bookread.data.model.TextChar
 import com.wxn.bookread.data.model.TextLine
 import com.wxn.bookread.data.model.TextPage
+import com.wxn.bookread.data.model.preference.ReaderPreferences
 import com.wxn.bookread.provider.ChapterProvider
 import com.wxn.bookread.provider.ImageProvider
 import com.wxn.bookread.ui.PageCallback
@@ -1515,8 +1516,8 @@ class PageViewController @OptIn(UnstableApi::class)
      *        collector 无法区分触发源，且 loadChapter 已按章节进度重算 durPageIndex，
      *        分页变化后位置自动适配。顺带修复"用户调字号跳回章节首页"的体验问题。
      */
-    fun updatePageViews(resetPageOffset: Boolean = false) {
-        ChapterProvider.upStyle(context) {
+    fun updatePageViews(prefs: ReaderPreferences? = null, resetPageOffset: Boolean = false) {
+        ChapterProvider.upStyle(context, prefs) {
             loadContent(resetPageOffset)
             callBack?.upContent()
             callBack?.upStyle()
