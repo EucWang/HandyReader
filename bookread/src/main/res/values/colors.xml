@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="btn_bg_press_2">#63858585</color>
+    <color name="divider">#66666666</color>
+    <color name="background">#FF9E9E9E</color>
+    <color name="highlight">#FFFFFF00</color>
+</resources>

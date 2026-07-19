@@ -1,0 +1,18 @@
+<resources>
+    <style name="Theme.App.Starting" parent="Theme.SplashScreen">
+        <item name="windowSplashScreenBackground">@color/splash_background_dark</item>
+        <item name="windowSplashScreenAnimatedIcon">@drawable/splash_icon</item>
+        <item name="windowSplashScreenAnimationDuration">1500</item>
+        <item name="postSplashScreenTheme">@style/Theme.App.Main</item>
+    </style>
+
+    <style name="Theme.App.Starting.Dark" parent="Theme.App.Starting">
+        <!-- Dark-specific attributes -->
+    </style>
+
+    <!-- postSplashScreenTheme 必须是框架级主题，详见 values/themes.xml 中 Theme.App.Main 注释 -->
+    <style name="Theme.App.Main" parent="android:Theme.Material.NoActionBar">
+        <item name="android:statusBarColor">@android:color/transparent</item>
+        <item name="android:navigationBarColor">@android:color/transparent</item>
+    </style>
+</resources>

@@ -1,0 +1,61 @@
+package net.gotev.speech.engine;
+
+import android.content.Context;
+import android.speech.tts.TextToSpeech;
+import android.speech.tts.Voice;
+
+import com.wxn.base.bean.EngineModelConfig;
+import com.wxn.base.bean.SpeakSentence;
+
+import net.gotev.speech.OnShutdownListener;
+import net.gotev.speech.TextToSpeechCallback;
+
+import java.util.List;
+import java.util.Locale;
+import java.util.Set;
+
+public interface TextToSpeechEngine {
+
+    void initTextToSpeech(Context context);
+
+    boolean isSpeaking();
+
+    void say(SpeakSentence message, TextToSpeechCallback callback);
+
+    void stop();
+
+    void stopAndWait();
+
+    void shutdown(OnShutdownListener listener);
+
+    void setTextToSpeechQueueMode(int mode);
+
+    void setTextToSpeechSpeakerIndex(int speakerIndex);
+
+    void setAudioStream(int audioStream);
+
+    void setOnInitListener(TextToSpeech.OnInitListener onInitListener);
+
+    int setPitch(float pitch);
+
+    int setSpeechRate(float rate);
+
+    /****
+     *
+     * @param locale
+     * @return Code indicating the support status for the locale. See {@link #TextToSpeech.LANG_AVAILABLE},
+     * {@link #TextToSpeech.LANG_COUNTRY_AVAILABLE}, {@link #TextToSpeech.LANG_COUNTRY_VAR_AVAILABLE},
+     * {@link #TextToSpeech.LANG_MISSING_DATA} and {@link #TextToSpeech.LANG_NOT_SUPPORTED}.
+     */
+    int setLocale(Locale locale);
+
+    int setVoice(Voice voice);
+
+    List<Voice> getSupportedVoices();
+
+    Voice getCurrentVoice();
+
+    Set<Locale> getAvailableLanguages();
+
+    EngineModelConfig getConfig();
+}

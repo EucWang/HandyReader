@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="no_next_page">没有更多页面</string>
+    <string name="no_prev_page">没有上一页</string>
+    <string name="toc_updating">正在更新章节</string>
+</resources>

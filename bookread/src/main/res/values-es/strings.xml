@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="no_next_page">No hay más páginas</string>
+    <string name="no_prev_page">No hay página anterior</string>
+    <string name="toc_updating">Actualizando capítulos</string>
+</resources>

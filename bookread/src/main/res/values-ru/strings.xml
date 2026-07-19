@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="no_next_page">Нет больше страниц</string>
+    <string name="no_prev_page">Нет предыдущей страницы</string>
+    <string name="toc_updating">Обновление глав</string>
+</resources>

@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="copy_complete">कॉपी हो गया</string>
+    <string name="no_google">Google Play उपलब्ध नहीं है</string>
+    <string name="error_occurred">त्रुटि</string>
+    <string name="open_url_error">URL खोलने में त्रुटि</string>
+    <string name="choose_browser">ब्राउज़र चुनें</string>
+</resources>

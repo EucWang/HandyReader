@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="copy_complete">Copiado</string>
+    <string name="no_google">Google Play no disponible</string>
+    <string name="error_occurred">Error</string>
+    <string name="open_url_error">Error al abrir URL</string>
+    <string name="choose_browser">Elegir navegador</string>
+</resources>

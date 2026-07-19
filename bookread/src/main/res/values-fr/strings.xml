@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="no_next_page">Plus de pages</string>
+    <string name="no_prev_page">Aucune page précédente</string>
+    <string name="toc_updating">Mise à jour des chapitres</string>
+</resources>

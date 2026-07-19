@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="copy_complete">Copied</string>
+    <string name="no_google">No google</string>
+    <string name="error_occurred">Error</string>
+    <string name="open_url_error">Open URL error</string>
+    <string name="choose_browser">Choose browser</string>
+</resources>

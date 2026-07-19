@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="copy_complete">تم النسخ</string>
+    <string name="no_google">متجر Google غير متاح</string>
+    <string name="error_occurred">خطأ</string>
+    <string name="open_url_error">خطأ في فتح URL</string>
+    <string name="choose_browser">اختيار المتصفح</string>
+</resources>

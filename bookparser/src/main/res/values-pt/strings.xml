@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="unknown_author">Autor desconhecido</string>
+    <string name="chapter_default_name">Capítulo</string>
+</resources>

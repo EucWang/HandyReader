@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="copy_complete">Скопировано</string>
+    <string name="no_google">Google Play недоступен</string>
+    <string name="error_occurred">Ошибка</string>
+    <string name="open_url_error">Ошибка открытия URL</string>
+    <string name="choose_browser">Выбрать браузер</string>
+</resources>

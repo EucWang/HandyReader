@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+
+        <style name="Theme.App.Starting.Light" parent="Theme.App.Starting">
+        </style>
+
+    <style name="Theme.App.Starting" parent="Theme.SplashScreen">
+        <item name="windowSplashScreenBackground">@color/splash_background_light</item>
+        <item name="windowSplashScreenAnimatedIcon">@drawable/splash_icon</item>
+        <item name="windowSplashScreenAnimationDuration">1500</item>
+        <item name="postSplashScreenTheme">@style/Theme.App.Main</item>
+    </style>
+
+    <!--
+      postSplashScreenTheme 必须是框架级主题。
+      AppCompat 主题缺少 android: 命名空间 window 属性，在部分 OEM ROM 的
+      Activity.onApplyThemeResource() 中以 getColor() 解析会抛 UnsupportedOperationException。
+
+      设计要点：
+      1. parent 用框架 android:Theme.Material.*，不依赖 AppCompat（本应用为纯 Compose）
+      2. statusBarColor/navigationBarColor 设 transparent（纯 color，绕开崩溃点；
+         Android 12-14 生效；15+ 被 enableEdgeToEdge 覆盖亦无害）
+      3. 【不】显式设 windowBackground/colorBackground，避免 splash 结束后引入
+         与原 AppCompat 主题不一致的闪屏（原行为：框架默认 windowBackground）
+    -->
+    <style name="Theme.App.Main" parent="android:Theme.Material.Light.NoActionBar">
+        <item name="android:statusBarColor">@android:color/transparent</item>
+        <item name="android:navigationBarColor">@android:color/transparent</item>
+    </style>
+
+</resources>

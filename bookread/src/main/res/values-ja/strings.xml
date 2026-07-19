@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="no_next_page">次のページはありません</string>
+    <string name="no_prev_page">前のページはありません</string>
+    <string name="toc_updating">目次を更新中</string>
+</resources>

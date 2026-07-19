@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="copy_complete">已複製</string>
+    <string name="no_google">未安裝 Google Play</string>
+    <string name="error_occurred">錯誤</string>
+    <string name="open_url_error">開啟URL錯誤</string>
+    <string name="choose_browser">選擇瀏覽器</string>
+</resources>
