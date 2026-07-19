@@ -32,8 +32,10 @@ import com.wxn.bookread.data.source.local.ReadTipPreferencesUtil
 import com.wxn.bookread.data.source.local.ReaderPreferencesUtil
 import com.wxn.bookread.ext.dp
 import com.wxn.bookread.textHeight
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.runBlocking
 import java.io.File
 import java.util.regex.Pattern
 import kotlin.math.max
@@ -263,18 +265,18 @@ object ChapterProvider {
     /***
      * 标题的TextPaint
      */
-    lateinit var titlePaint: TextPaint
+    val titlePaint: TextPaint = TextPaint()
 
     /***
      * 文本内容的TextPaint
      */
-    lateinit var contentPaint: TextPaint
+    val contentPaint: TextPaint = TextPaint()
 
-    lateinit var h1Paint: TextPaint
-    lateinit var h2Paint: TextPaint
-    lateinit var h3Paint: TextPaint
-    lateinit var h4Paint: TextPaint
-    lateinit var aPaint: TextPaint
+    val h1Paint: TextPaint = TextPaint()
+    val h2Paint: TextPaint = TextPaint()
+    val h3Paint: TextPaint = TextPaint()
+    val h4Paint: TextPaint = TextPaint()
+    val aPaint: TextPaint = TextPaint()
 
 //    private var oneWordWidth = 0f
 
@@ -400,7 +402,7 @@ object ChapterProvider {
      * 更新绘制尺寸
      * @param readerPreferences 调用方已读取的偏好（Q-08 冗余读消除：避免重复 firstOrNull() 读 DataStore）
      */
-    private suspend fun upVisibleSize(
+    private fun upVisibleSize(
         context: Context,
         readerPreferences: ReaderPreferences? = null
     ) {
@@ -413,7 +415,15 @@ object ChapterProvider {
             Logger.d("ChapterProvider::set screen size to view::viewWidth=$viewWidth,viewHeight=$viewHeight")
         }
 
-        val prefs = readerPreferences ?: readerPreferencesUtil?.readerPrefsFlow?.firstOrNull()
+        // Q-08 冗余读消除：避免在主线程调用 runBlocking 读 DataStore。
+        // 如果 readerPreferences 已提供，则直接使用；否则仅在非主线程尝试同步读取，
+        // 或者回退到默认值。注意：此函数应尽量由 upStyle (已在协程中) 或 setViewSize 调用。
+        val prefs = readerPreferences ?: if (android.os.Looper.myLooper() == android.os.Looper.getMainLooper()) {
+            null // 主线程不执行 runBlocking
+        } else {
+            runBlocking { readerPreferencesUtil?.readerPrefsFlow?.firstOrNull() }
+        }
+
         if (viewWidth > 0 && viewHeight > 0) {
             paddingHorizontal = (((prefs?.pageHorizontalMargins?.toDouble()
                 ?: 0.0) * 0.1 * viewWidth.toDouble()).toInt()) / 2         //页面左边距
@@ -484,262 +494,212 @@ object ChapterProvider {
 
     var imgScale = 1.0f
 
+    @Volatile
+    private var upStyleJob: Job? = null
+
     /**
      * 更新样式
+     * @param readerPreferences 可选的偏好值。如果提供，则直接使用；否则从 DataStore 读取。
+     *                          (Q-08 冗余读消除：在高频更新如滑动滑块时，由 ViewModel 直接传入新值)
      */
-    fun upStyle(context: Context, onFinish: (() -> Unit)? = null) {
+    fun upStyle(context: Context, readerPreferences: ReaderPreferences? = null, onFinish: (() -> Unit)? = null) {
         imgScale = context.resources.displayMetrics.density
-
-//        oneWordWidth = 0f
         Logger.i("ChapterProvider::upStyle")
-        Coroutines.mainScope().launch {
-            val readerPreferences = readerPreferencesUtil?.readerPrefsFlow?.firstOrNull()
-//            Logger.d("ChapterProvider::upStyle::readerPreferences =${readerPreferences}")
-            //更新字体
-            val fontPath = readerPreferences?.font.orEmpty()
-            val fontVariant = readerPreferences?.fontVariant ?: "regular"
-            isVScrollMode = (readerPreferences?.scroll == 6) //是否是连续垂直滚动阅读模式
-            //region v5 双列：读取开关（S2：放 ReaderPreferences）+ 互斥防御（P8）
-            // 互斥：双列与连续垂直滚动（scroll=6）语义冲突（scroll 模式不分页、无「列」概念），
-            // 即使 DataStore 异步瞬态出现 dualColumn=true && scroll=6，这里强制降级为单列，
-            // 保证排版层永不进入「双列 + scroll=6」的非法组合。
-            dualColumnEnabled = (readerPreferences?.columns == 2)
-            if (dualColumnEnabled && isVScrollMode) {
-                Logger.d("ChapterProvider::upStyle::dualColumn conflicts with scroll=6, fallback to single column")
-                dualColumnEnabled = false
+
+        // 如果提供了 prefs，我们可以在主线程同步更新 paints，消除异步跳变
+        if (readerPreferences != null) {
+            upStyleJob?.cancel()
+            applyStyleInternal(context, readerPreferences)
+            Logger.d("ChapterProvider::upStyle synchronous done")
+            onFinish?.invoke()
+            return
+        }
+
+        // 异步更新路径（无传入 prefs）
+        upStyleJob?.cancel()
+        upStyleJob = Coroutines.mainScope().launch {
+            val prefs = readerPreferencesUtil?.readerPrefsFlow?.firstOrNull()
+            if (prefs != null) {
+                applyStyleInternal(context, prefs)
             }
-            //endregion
-
-            typeface = try {
-                Logger.d("ChapterProvider::upStyle::fontPath=$fontPath, fontVariant=$fontVariant")
-                // Q-08 Typeface 缓存：字体路径+变体未变时复用，避免主线程重复解码大字体文件。
-                val fontCacheKey = "$fontPath|$fontVariant"
-                if (fontCacheKey == cachedFontPath && cachedTypeface != null) {
-                    cachedTypeface!!
-                } else {
-                    val isSystemFont = fontPath in listOf("serif", "sans_serif", "monospace")
-                    val resolved = when {
-                        fontPath == "serif" -> Typeface.SERIF
-                        fontPath == "sans_serif" -> Typeface.SANS_SERIF
-                        fontPath == "monospace" -> Typeface.MONOSPACE
-                        fontPath.isContentPath() && Build.VERSION.SDK_INT >= Build.VERSION_CODES.O -> {
-                            // Q-08 FD 泄露修复：openFileDescriptor 必须用 .use {} 关闭，否则每次切换/重渲染泄露一个文件描述符，
-                            // 长期累积触发 "Too many open files" 崩溃。
-                            context.contentResolver
-                                .openFileDescriptor(Uri.parse(fontPath), "r")!!.use { pfd ->
-                                    Typeface.Builder(pfd.fileDescriptor).build()
-                                }
-                        }
-
-                        fontPath.isContentPath() -> {
-                            Typeface.createFromFile(PathUtil.getPath(context, Uri.parse(fontPath)))
-                        }
-
-                        fontPath.isNotEmpty() && !isSystemFont -> {
-                            val fontDir = File(fontPath)
-                            val variantFile = fontDir.listFiles()?.firstOrNull {
-                                it.nameWithoutExtension.equals(fontVariant, ignoreCase = true)
-                                        && (it.extension.equals("ttf", ignoreCase = true)
-                                        || it.extension.equals("otf", ignoreCase = true))
-                            }
-                            if (variantFile != null && variantFile.exists()) {
-                                Typeface.createFromFile(variantFile)
-                            } else {
-                                val anyFont = fontDir.listFiles()?.firstOrNull {
-                                    it.extension.equals("ttf", ignoreCase = true)
-                                            || it.extension.equals("otf", ignoreCase = true)
-                                }
-                                if (anyFont != null) Typeface.createFromFile(anyFont)
-                                else Typeface.SANS_SERIF
-                            }
-                        }
-
-                        fontPath.isNotEmpty() -> Typeface.createFromFile(fontPath)
-                        else -> Typeface.SANS_SERIF
-                    }
-                    cachedFontPath = fontCacheKey
-                    cachedTypeface = resolved
-                    resolved
-                }
-            } catch (e: Exception) {
-                readerPreferencesUtil?.updateFontPrefs("", "")
-                Typeface.SANS_SERIF
-            }
-            // 字体实际变更时才清空派生缓存（typerfaceMap 缓存 Typeface.create 衍生样式）
-            typerfaceMap.clear()
-
-            //回退字体: 使用系统字体作为统一回退
-            fallbackTypeface = Typeface.SANS_SERIF
-
-            //标题字体: 优先使用 bold 变体文件, 否则使用系统加粗
-            // Q-08 标题字体同样缓存：与主字体同路径时复用，避免重复 createFromFile。
-            val titleTypeface = try {
-                val titleFontPath = readerPreferences?.font.orEmpty()
-                if (titleFontPath == cachedTitleFontPath && cachedTitleTypeface != null) {
-                    cachedTitleTypeface!!
-                } else {
-                    val isSystemFont =
-                        titleFontPath in listOf("serif", "sans_serif", "monospace", "")
-                    val resolved = if (!isSystemFont && titleFontPath.isNotEmpty()) {
-                        val fontDir = File(titleFontPath)
-                        val boldFile = fontDir.listFiles()?.firstOrNull {
-                            it.nameWithoutExtension.equals("bold", ignoreCase = true)
-                                    && (it.extension.equals("ttf", ignoreCase = true)
-                                    || it.extension.equals("otf", ignoreCase = true))
-                        }
-                        if (boldFile != null && boldFile.exists()) {
-                            Typeface.createFromFile(boldFile)
-                        } else {
-                            Typeface.create(typeface, Typeface.BOLD)
-                        }
-                    } else {
-                        Typeface.create(typeface, Typeface.BOLD)
-                    }
-                    cachedTitleFontPath = titleFontPath
-                    cachedTitleTypeface = resolved
-                    resolved
-                }
-            } catch (e: Exception) {
-                Typeface.create(typeface, Typeface.BOLD)
-            }
-
-            val titleFont = titleTypeface
-            val textFont = typeface
-
-            // 标题随 fontSize 联动（方案A）：标题字号基于正文字号按固定比例缩放，
-            // 用户调整 fontSize 时标题等比放大，永不出现"标题比正文小"的层级倒挂。
-            // 乘数等价于原 titleSize×BASE_TITLE_FONT_SIZE(24)×倍率（titleSize 默认1.0, BASE_FONT_SIZE=16）：
-            //   章标题 1.8 = 24×1.2/16, h1 1.5 = 24×1.0/16, h2 1.35 = 24×0.9/16, h3 1.2 = 24×0.8/16, h4 1.05 = 24×0.7/16
-            // 默认态(fontSize=1.0)下各标题字号与旧公式完全一致，老用户零视觉变化。
-            val baseTextSize = (readerPreferences?.fontSize?.toFloat() ?: 1.0f) * BASE_FONT_SIZE
-
-            //标题的Paint
-            titlePaint = TextPaint()
-            titlePaint.color =
-                readerPreferences?.textColor ?: Color.BLACK                       //设置标题文字颜色
-//            Logger.d("ChapterProvider::upStyle::titlePaint.color=0x${titlePaint.color.toString(16)}")
-            titlePaint.letterSpacing =
-                readerPreferences?.letterSpacing?.toFloat() ?: 0f        //设置标题字母间距
-//            Logger.d("ChapterProvider::upStyle::titlePaint.letterSpacing=${titlePaint.letterSpacing}")
-            titlePaint.typeface =
-                titleFont                                                     //设置标题字体
-//        titlePaint.textSize = with(ReadBookConfig) { textSize + titleSize }.sp.toFloat()    //设置标题字体大小
-            titlePaint.textSize =
-                baseTextSize * 1.8f                                            //标题随 fontSize 联动(方案A)
-//            Logger.d("ChapterProvider::upStyle::titlePaint.textSize=${titlePaint.textSize}")
-            titlePaint.isAntiAlias =
-                true                                                       //设置抗锯齿
-
-            //h1的Paint
-            h1Paint = TextPaint()
-            h1Paint.color =
-                readerPreferences?.textColor ?: Color.BLACK                       //设置标题文字颜色
-//            Logger.d("ChapterProvider::upStyle::titlePaint.color=0x${h1Paint.color.toString(16)}")
-            h1Paint.letterSpacing =
-                readerPreferences?.letterSpacing?.toFloat() ?: 0f        //设置标题字母间距
-//            Logger.d("ChapterProvider::upStyle::titlePaint.letterSpacing=${h1Paint.letterSpacing}")
-            h1Paint.typeface =
-                titleFont                                                     //设置标题字体
-            h1Paint.textSize =
-                baseTextSize * 1.5f                                              //标题随 fontSize 联动(方案A)
-//            Logger.d("ChapterProvider::upStyle::titlePaint.textSize=${h1Paint.textSize}")
-            h1Paint.isAntiAlias = true                                                       //设置抗锯齿
-
-            //h2的Paint
-            h2Paint = TextPaint()
-            h2Paint.color =
-                readerPreferences?.textColor ?: Color.BLACK                       //设置标题文字颜色
-//            Logger.d("ChapterProvider::upStyle::titlePaint.color=0x${h2Paint.color.toString(16)}")
-            h2Paint.letterSpacing =
-                readerPreferences?.letterSpacing?.toFloat() ?: 0f        //设置标题字母间距
-//            Logger.d("ChapterProvider::upStyle::titlePaint.letterSpacing=${h2Paint.letterSpacing}")
-            h2Paint.typeface =
-                titleFont                                                     //设置标题字体
-            h2Paint.textSize =
-                baseTextSize * 1.35f                                             //标题随 fontSize 联动(方案A)
-//            Logger.d("ChapterProvider::upStyle::titlePaint.textSize=${h2Paint.textSize}")
-            h2Paint.isAntiAlias = true                                                       //设置抗锯齿
-
-            //h3的Paint
-            h3Paint = TextPaint()
-            h3Paint.color =
-                readerPreferences?.textColor ?: Color.BLACK                       //设置标题文字颜色
-//            Logger.d("ChapterProvider::upStyle::titlePaint.color=0x${h3Paint.color.toString(16)}")
-            h3Paint.letterSpacing =
-                readerPreferences?.letterSpacing?.toFloat() ?: 0f        //设置标题字母间距
-//            Logger.d("ChapterProvider::upStyle::titlePaint.letterSpacing=${h3Paint.letterSpacing}")
-            h3Paint.typeface =
-                titleFont                                                     //设置标题字体
-            h3Paint.textSize =
-                baseTextSize * 1.2f                                              //标题随 fontSize 联动(方案A)
-//            Logger.d("ChapterProvider::upStyle::titlePaint.textSize=${h3Paint.textSize}")
-            h3Paint.isAntiAlias = true                                                       //设置抗锯齿
-
-            //h4的Paint
-            h4Paint = TextPaint()
-            h4Paint.color =
-                readerPreferences?.textColor ?: Color.BLACK                       //设置标题文字颜色
-//            Logger.d("ChapterProvider::upStyle::titlePaint.color=0x${h4Paint.color.toString(16)}")
-            h4Paint.letterSpacing =
-                readerPreferences?.letterSpacing?.toFloat() ?: 0f        //设置标题字母间距
-//            Logger.d("ChapterProvider::upStyle::titlePaint.letterSpacing=${h4Paint.letterSpacing}")
-            h4Paint.typeface =
-                titleFont                                                     //设置标题字体
-            h4Paint.textSize =
-                baseTextSize * 1.05f                                             //标题随 fontSize 联动(方案A)
-//            Logger.d("ChapterProvider::upStyle::titlePaint.textSize=${h4Paint.textSize}")
-            h4Paint.isAntiAlias = true                                                       //设置抗锯齿
-
-            //正文的Paint
-            contentPaint = TextPaint()
-            contentPaint.color =
-                readerPreferences?.textColor ?: Color.BLACK                    //设置正文文字颜色
-            contentPaint.letterSpacing =
-                readerPreferences?.letterSpacing?.toFloat() ?: 0.0f               //设置正文文字间距
-//            Logger.d("ChapterProvider::upStyle::contentPaint.letterSpacing=${contentPaint.letterSpacing}")
-            contentPaint.typeface =
-                textFont                                                    //设置正文字体
-            contentPaint.textSize = (readerPreferences?.fontSize?.toFloat()
-                ?: 1.0f) * BASE_FONT_SIZE                   //设置字体大小
-//            Logger.d("ChapterProvider::upStyle::contentPaint.textSize=${contentPaint.textSize}")
-            contentPaint.isAntiAlias =
-                true                                                     //设置抗锯齿
-
-            //<a>标签的Paint
-            aPaint = TextPaint()
-            aPaint.color = Color.BLUE
-            if (Build.VERSION.SDK_INT > Build.VERSION_CODES.Q) {
-                aPaint.underlineColor = Color.BLUE
-            }
-            aPaint.isUnderlineText = true
-            aPaint.letterSpacing =
-                readerPreferences?.letterSpacing?.toFloat() ?: 0.0f               //设置正文文字间距
-//            Logger.d("ChapterProvider::upStyle::contentPaint.letterSpacing=${aPaint.letterSpacing}")
-            aPaint.typeface = textFont                                                    //设置正文字体
-            aPaint.textSize = (readerPreferences?.fontSize?.toFloat()
-                ?: 1.0f) * BASE_FONT_SIZE                   //设置字体大小
-//            Logger.d("ChapterProvider::upStyle::contentPaint.textSize=${aPaint.textSize}")
-            aPaint.isAntiAlias = true                                                     //设置抗锯齿
-
-            //间距
-            lineSpacingExtra = readerPreferences?.lineHeight?.toFloat()
-                ?: 1.2f                //行间距系数，除上10 再和lineHeight相乘
-//            Logger.d("ChapterProvider::upStyle::lineSpacingExtra=${lineSpacingExtra}")
-            paragraphSpacing =
-                readerPreferences?.paragraphSpacing?.toInt() ?: 0                 //段落间距
-//            Logger.d("ChapterProvider::upStyle::paragraphSpacing=${paragraphSpacing}")
-            titleTopSpacing =
-                readerPreferences?.titleTopSpacing?.dp?.toInt() ?: 0               //标题顶部间距
-//            Logger.d("ChapterProvider::upStyle::titleTopSpacing=${titleTopSpacing}")
-            titleBottomSpacing = readerPreferences?.titleBottomSpacing?.dp?.toInt()
-                ?: 0                           //标题底部间距
-//            Logger.d("ChapterProvider::upStyle::titleBottomSpacing=${titleBottomSpacing}")
-            //更新屏幕参数（Q-08 冗余读消除：复用已读取的 readerPreferences，避免二次 firstOrNull() 读 DataStore）
-            upVisibleSize(context, readerPreferences)
-            Logger.d("ChapterProvider::upStyle done")
+            Logger.d("ChapterProvider::upStyle asynchronous done")
             onFinish?.invoke()
         }
     }
+
+    /**
+     * 内部应用样式到画笔和全局几何变量。
+     * 必须在主线程调用（更新 lateinit var paints 且 onDraw 在主线程读取）。
+     */
+    private fun applyStyleInternal(context: Context, prefs: ReaderPreferences) {
+        //更新字体
+        val fontPath = prefs.font.orEmpty()
+        val fontVariant = prefs.fontVariant ?: "regular"
+        isVScrollMode = (prefs.scroll == 6) //是否是连续垂直滚动阅读模式
+        //region v5 双列：读取开关（S2：放 ReaderPreferences）+ 互斥防御（P8）
+        dualColumnEnabled = (prefs.columns == 2)
+        if (dualColumnEnabled && isVScrollMode) {
+            Logger.d("ChapterProvider::upStyle::dualColumn conflicts with scroll=6, fallback to single column")
+            dualColumnEnabled = false
+        }
+        //endregion
+
+        typeface = try {
+            Logger.d("ChapterProvider::upStyle::fontPath=$fontPath, fontVariant=$fontVariant")
+            // Q-08 Typeface 缓存
+            val fontCacheKey = "$fontPath|$fontVariant"
+            if (fontCacheKey == cachedFontPath && cachedTypeface != null) {
+                cachedTypeface!!
+            } else {
+                val isSystemFont = fontPath in listOf("serif", "sans_serif", "monospace")
+                val resolved = when {
+                    fontPath == "serif" -> Typeface.SERIF
+                    fontPath == "sans_serif" -> Typeface.SANS_SERIF
+                    fontPath == "monospace" -> Typeface.MONOSPACE
+                    fontPath.isContentPath() && Build.VERSION.SDK_INT >= Build.VERSION_CODES.O -> {
+                        context.contentResolver
+                            .openFileDescriptor(Uri.parse(fontPath), "r")!!.use { pfd ->
+                                Typeface.Builder(pfd.fileDescriptor).build()
+                            }
+                    }
+                    fontPath.isContentPath() -> {
+                        Typeface.createFromFile(PathUtil.getPath(context, Uri.parse(fontPath)))
+                    }
+                    fontPath.isNotEmpty() && !isSystemFont -> {
+                        val fontDir = File(fontPath)
+                        val variantFile = fontDir.listFiles()?.firstOrNull {
+                            it.nameWithoutExtension.equals(fontVariant, ignoreCase = true)
+                                    && (it.extension.equals("ttf", ignoreCase = true)
+                                    || it.extension.equals("otf", ignoreCase = true))
+                        }
+                        if (variantFile != null && variantFile.exists()) {
+                            Typeface.createFromFile(variantFile)
+                        } else {
+                            val anyFont = fontDir.listFiles()?.firstOrNull {
+                                it.extension.equals("ttf", ignoreCase = true)
+                                        || it.extension.equals("otf", ignoreCase = true)
+                            }
+                            if (anyFont != null) Typeface.createFromFile(anyFont)
+                            else Typeface.SANS_SERIF
+                        }
+                    }
+                    fontPath.isNotEmpty() -> Typeface.createFromFile(fontPath)
+                    else -> Typeface.SANS_SERIF
+                }
+                cachedFontPath = fontCacheKey
+                cachedTypeface = resolved
+                resolved
+            }
+        } catch (e: Exception) {
+            Coroutines.scope().launch {
+                readerPreferencesUtil?.updateFontPrefs("", "")
+            }
+            Typeface.SANS_SERIF
+        }
+        typerfaceMap.clear()
+
+        //回退字体
+        fallbackTypeface = Typeface.SANS_SERIF
+
+        //标题字体
+        val titleTypeface = try {
+            val titleFontPath = prefs.font.orEmpty()
+            if (titleFontPath == cachedTitleFontPath && cachedTitleTypeface != null) {
+                cachedTitleTypeface!!
+            } else {
+                val isSystemFont =
+                    titleFontPath in listOf("serif", "sans_serif", "monospace", "")
+                val resolved = if (!isSystemFont && titleFontPath.isNotEmpty()) {
+                    val fontDir = File(titleFontPath)
+                    val boldFile = fontDir.listFiles()?.firstOrNull {
+                        it.nameWithoutExtension.equals("bold", ignoreCase = true)
+                                && (it.extension.equals("ttf", ignoreCase = true)
+                                || it.extension.equals("otf", ignoreCase = true))
+                    }
+                    if (boldFile != null && boldFile.exists()) {
+                        Typeface.createFromFile(boldFile)
+                    } else {
+                        Typeface.create(typeface, Typeface.BOLD)
+                    }
+                } else {
+                    Typeface.create(typeface, Typeface.BOLD)
+                }
+                cachedTitleFontPath = titleFontPath
+                cachedTitleTypeface = resolved
+                resolved
+            }
+        } catch (e: Exception) {
+            Typeface.create(typeface, Typeface.BOLD)
+        }
+
+        val titleFont = titleTypeface
+        val textFont = typeface
+
+        val baseTextSize = (prefs.fontSize.toFloat() ?: 1.0f) * BASE_FONT_SIZE
+
+        //标题的Paint
+        titlePaint.color = prefs.textColor ?: Color.BLACK
+        titlePaint.letterSpacing = prefs.letterSpacing.toFloat() ?: 0f
+        titlePaint.typeface = titleFont
+        titlePaint.textSize = baseTextSize * 1.8f
+        titlePaint.isAntiAlias = true
+
+        //h1的Paint
+        h1Paint.color = prefs.textColor ?: Color.BLACK
+        h1Paint.letterSpacing = prefs.letterSpacing.toFloat() ?: 0f
+        h1Paint.typeface = titleFont
+        h1Paint.textSize = baseTextSize * 1.5f
+        h1Paint.isAntiAlias = true
+
+        //h2的Paint
+        h2Paint.color = prefs.textColor ?: Color.BLACK
+        h2Paint.letterSpacing = prefs.letterSpacing.toFloat() ?: 0f
+        h2Paint.typeface = titleFont
+        h2Paint.textSize = baseTextSize * 1.35f
+        h2Paint.isAntiAlias = true
+
+        //h3的Paint
+        h3Paint.color = prefs.textColor ?: Color.BLACK
+        h3Paint.letterSpacing = prefs.letterSpacing.toFloat() ?: 0f
+        h3Paint.typeface = titleFont
+        h3Paint.textSize = baseTextSize * 1.2f
+        h3Paint.isAntiAlias = true
+
+        //h4的Paint
+        h4Paint.color = prefs.textColor ?: Color.BLACK
+        h4Paint.letterSpacing = prefs.letterSpacing.toFloat() ?: 0f
+        h4Paint.typeface = titleFont
+        h4Paint.textSize = baseTextSize * 1.05f
+        h4Paint.isAntiAlias = true
+
+        //正文的Paint
+        contentPaint.color = prefs.textColor ?: Color.BLACK
+        contentPaint.letterSpacing = prefs.letterSpacing.toFloat() ?: 0.0f
+        contentPaint.typeface = textFont
+        contentPaint.textSize = (prefs.fontSize.toFloat() ?: 1.0f) * BASE_FONT_SIZE
+        contentPaint.isAntiAlias = true
+
+        //<a>标签的Paint
+        aPaint.color = Color.BLUE
+        if (Build.VERSION.SDK_INT > Build.VERSION_CODES.Q) {
+            aPaint.underlineColor = Color.BLUE
+        }
+        aPaint.isUnderlineText = true
+        aPaint.letterSpacing = prefs.letterSpacing.toFloat() ?: 0.0f
+        aPaint.typeface = textFont
+        aPaint.textSize = (prefs.fontSize.toFloat() ?: 1.0f) * BASE_FONT_SIZE
+        aPaint.isAntiAlias = true
+
+        //间距
+        lineSpacingExtra = prefs.lineHeight.toFloat() ?: 1.2f
+        paragraphSpacing = prefs.paragraphSpacing.toInt() ?: 0
+        titleTopSpacing = prefs.titleTopSpacing.dp.toInt() ?: 0
+        titleBottomSpacing = prefs.titleBottomSpacing.dp.toInt() ?: 0
+
+        //更新屏幕参数
+        upVisibleSize(context, prefs)
+    }
+
 
     suspend fun getTextChapter(
         chapter: BookChapter,
@@ -2349,9 +2309,9 @@ object ChapterProvider {
         if (refreshStyle) {
             viewWidth = width
             viewHeight = height
+            upVisibleSize(context)
             recomputeDerivedSizes()
             Coroutines.mainScope().launch {
-                upVisibleSize(context)
                 upStyle(context)
             }
         }

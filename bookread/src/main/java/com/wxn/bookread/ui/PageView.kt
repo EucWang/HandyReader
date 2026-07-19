@@ -876,7 +876,7 @@ class PageView : FrameLayout, IDataSource, PageCallback {
      * 更新显示样式
      */
     override fun upStyle() {
-        ChapterProvider.upStyle(context)
+//        ChapterProvider.upStyle(context)
         curPage.upStyle()
         prevPage.upStyle()
         nextPage.upStyle()
