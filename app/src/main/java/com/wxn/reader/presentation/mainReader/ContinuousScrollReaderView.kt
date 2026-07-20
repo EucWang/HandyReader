@@ -86,7 +86,6 @@ import com.wxn.bookread.data.model.TextLine
 import com.wxn.bookread.data.model.TextPage
 import com.wxn.bookread.data.model.preference.ReaderPreferences
 import com.wxn.bookread.provider.ChapterProvider
-import com.wxn.bookread.provider.ChapterProvider.contentPaint
 import com.wxn.bookread.provider.ImageProvider
 import com.wxn.bookread.ui.RenderResources
 import com.wxn.bookread.ui.TextPageFactory
@@ -1189,7 +1188,7 @@ private fun drawTextChars(
         defaultTextPaint = ChapterProvider.titlePaint
     } else {
         if (textTags.isEmpty()) {
-            defaultTextPaint = contentPaint
+            defaultTextPaint = ChapterProvider.contentPaint
         } else if (textTags.size == 1) {
             val tagStart = textTags[0].start
             val tagEnd = textTags[0].end
@@ -1197,7 +1196,7 @@ private fun drawTextChars(
             val lineEndIndex = textLine.charEndOffset
 
             if (tagEnd <= lineStartIndex || tagStart >= lineEndIndex) {
-                defaultTextPaint = contentPaint
+                defaultTextPaint = ChapterProvider.contentPaint
             } else if (lineStartIndex >= tagStart && lineEndIndex <= tagEnd) {
                 lineTextTag = textTags[0]
                 val tagName = textTags[0].name

@@ -1202,7 +1202,7 @@ class MainReadViewModel @Inject constructor(
             if (isBgOnlyChange && !isOtherChange) {
                 pageController.updateBg()
             } else {
-                pageController.updatePageViews()
+                pageController.updatePageViews(newPref)
             }
         }
 

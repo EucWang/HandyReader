@@ -23,7 +23,6 @@ import com.wxn.bookread.data.model.TextChar
 import com.wxn.bookread.data.model.TextLine
 import com.wxn.bookread.data.model.TextPage
 import com.wxn.bookread.provider.ChapterProvider
-import com.wxn.bookread.provider.ChapterProvider.contentPaint
 import com.wxn.bookread.provider.ImageProvider
 import kotlin.math.min
 
@@ -608,7 +607,7 @@ class ContentTextView(context: Context, attrs: AttributeSet?) : View(context, at
         } else {
             if (textTags.isEmpty()) {
                 defaultTextPaint =
-                    contentPaint                                                         //没有修饰标签， 默认文字
+                    ChapterProvider.contentPaint                                                         //没有修饰标签， 默认文字
             } else if (textTags.size == 1) {
                 val tagStart =
                     textTags[0].start                                                        //修饰标签相对于段落的开始偏移位置
@@ -618,7 +617,7 @@ class ContentTextView(context: Context, attrs: AttributeSet?) : View(context, at
                 val lineEndIndex = textLine.charEndOffset      //基于段落的行结束偏移位置
 
                 if (tagEnd <= lineStartIndex || tagStart >= lineEndIndex) { //修饰标签位置和行文字没有对上， 默认文字
-                    defaultTextPaint = contentPaint
+                    defaultTextPaint = ChapterProvider.contentPaint
                 } else if (lineStartIndex >= tagStart && lineEndIndex <= tagEnd) {  //修饰标签位置和行文字完全吻合， 修饰标签
                     lineTextTag = textTags[0]
                     val tagName = textTags[0].name

@@ -26,7 +26,9 @@ plugins {
 
 val apikeyPropertiesFile = rootProject.file("key.properties")
 val apikeyProperties = Properties().apply {
-    load(FileInputStream(apikeyPropertiesFile))
+    if (apikeyPropertiesFile.exists()) {
+        apikeyPropertiesFile.inputStream().use { load(it) }
+    }
 }
 
 // 是否上传 ProGuard/源码映射到 Sentry 与 Firebase Crashlytics。
@@ -59,20 +61,23 @@ android {
 
         buildConfigField("String", "RELEASE_DATE", "\"${SimpleDateFormat("yyyy-MM-dd HH:mm:ss").format(Date())}\"")
         buildConfigField("String", "FEEDBACK_API_URL", "\"https://handyreader.top\"")
-        buildConfigField("String", "API_KEY", apikeyProperties["apiKey"] as String)
-        buildConfigField("String", "EDGE_TTS_KEY", apikeyProperties["EDGE_TTS_API_KEY"] as String)
+        buildConfigField("String", "API_KEY", "\"${apikeyProperties.getProperty("apiKey", "")}\"")
+        buildConfigField("String", "EDGE_TTS_KEY", "\"${apikeyProperties.getProperty("EDGE_TTS_API_KEY", "")}\"")
     }
 
     signingConfigs {
         create("release") {
-            storeFile = rootProject.file(
-                apikeyProperties.getProperty("storeFile")
-                    .removePrefix("file(").removeSuffix(")")
-                    .trim('"').removePrefix("./")
-            )
-            storePassword = apikeyProperties.getProperty("storePassword")
-            keyAlias = apikeyProperties.getProperty("keyAlias")
-            keyPassword = apikeyProperties.getProperty("keyPassword")
+            val storeFileProp = apikeyProperties.getProperty("storeFile", "")
+            if (storeFileProp.isNotEmpty()) {
+                storeFile = rootProject.file(
+                    storeFileProp
+                        .removePrefix("file(").removeSuffix(")")
+                        .trim('"').removePrefix("./")
+                )
+            }
+            storePassword = apikeyProperties.getProperty("storePassword", "")
+            keyAlias = apikeyProperties.getProperty("keyAlias", "")
+            keyPassword = apikeyProperties.getProperty("keyPassword", "")
             enableV1Signing = apikeyProperties.getProperty("enableV1Signing", "true").toBoolean()
             enableV2Signing = apikeyProperties.getProperty("enableV2Signing", "true").toBoolean()
         }
