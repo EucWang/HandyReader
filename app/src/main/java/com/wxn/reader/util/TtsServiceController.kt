@@ -287,12 +287,7 @@ class TtsServiceController @Inject constructor(
             putExtra(EXTRA_SPEED, validSpeed)
         }
         try {
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                context.startForegroundService(intent)
-
-            } else {
-                context.startService(intent)
-            }
+            launchServiceIntent(context, intent)
             // 立即更新状态（乐观更新）
             stateHolder.update { it.copy(speed = validSpeed) }
             onComplete(true)
@@ -327,11 +322,7 @@ class TtsServiceController @Inject constructor(
             putExtra(EXTRA_PITCH, validPitch)
         }
         try {
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                context.startForegroundService(intent)
-            } else {
-                context.startService(intent)
-            }
+            launchServiceIntent(context, intent)
             // 立即更新状态（乐观更新）
             stateHolder.update { it.copy(pitch = validPitch) }
             onComplete(true)
@@ -397,11 +388,7 @@ class TtsServiceController @Inject constructor(
             putExtra(EXTRA_SPEAKER_INDEX, speakerIndex)
         }
         try {
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                context.startForegroundService(intent)
-            } else {
-                context.startService(intent)
-            }
+            launchServiceIntent(context, intent)
             // 立即更新状态（乐观更新）
             stateHolder.update { it.copy(modelSpeaker = speakerIndex) }
             onComplete(true)
@@ -425,11 +412,7 @@ class TtsServiceController @Inject constructor(
             putExtra(EXTRA_LANG, newlocale)
         }
         try {
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                context.startForegroundService(intent)
-            } else {
-                context.startService(intent)
-            }
+            launchServiceIntent(context, intent)
             // 立即更新状态（乐观更新）
             stateHolder.update { it.copy(language = newlocale) }
             onComplete(true)
@@ -459,16 +442,20 @@ class TtsServiceController @Inject constructor(
 
         // ... 启动服务
         return try {
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                context.startForegroundService(intent)
-            } else {
-                context.startService(intent)
-            }
+            launchServiceIntent(context, intent)
             true
         } catch (e: Exception) {
             Logger.w("发送命令失败 [$action]: ${e.message}")
             stateHolder.reportError(error, context)
             false
+        }
+    }
+
+    private fun launchServiceIntent(context: Context, intent: Intent) {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            context.startForegroundService(intent)
+        } else {
+            context.startService(intent)
         }
     }
 
@@ -484,11 +471,7 @@ class TtsServiceController @Inject constructor(
 
     private fun startAndBindService(context: Context) {
         val intent = Intent(context, TtsPlaybackService::class.java)
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            context.startForegroundService(intent)
-        } else {
-            context.startService(intent)
-        }
+        launchServiceIntent(context, intent)
         context.bindService(intent, this, Context.BIND_AUTO_CREATE)
     }
 

@@ -60,12 +60,15 @@ abstract class TTSController(
     
     private fun isTtsAvailable(): Boolean {
         return try {
-            val tts = android.speech.tts.TextToSpeech(context) { status ->
-                // 只检查初始化状态
-            }
-            val available = tts.engines.isNotEmpty()
-            tts.shutdown()
-            available
+            // Query installed TTS engines through PackageManager rather than constructing a
+            // TextToSpeech. The TextToSpeech constructor binds to the default engine
+            // asynchronously; calling shutdown() on the next line (before onInit fires) races
+            // the bind and can leave an orphaned ServiceConnection that keeps the system TTS
+            // engine alive with nothing left to release it. The manifest already declares a
+            // <queries> entry for android.intent.action.TTS_SERVICE, so these services stay
+            // visible under package-visibility filtering (API 30+).
+            val intent = android.content.Intent(android.speech.tts.TextToSpeech.Engine.INTENT_ACTION_TTS_SERVICE)
+            context.packageManager.queryIntentServices(intent, 0).isNotEmpty()
         } catch (e: Exception) {
             Logger.e("检查TTS可用性失败: ${e.message}")
             false
