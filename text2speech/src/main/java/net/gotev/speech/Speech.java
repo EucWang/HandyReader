@@ -98,15 +98,27 @@ public class Speech {
     /**
      * Must be called inside Activity's onDestroy.
      */
-    public synchronized void shutdown(OnShutdownListener shutdownListener) {
+    public synchronized void shutdown(final OnShutdownListener shutdownListener) {
         if (textToSpeechEngine != null) {
-            textToSpeechEngine.shutdown(shutdownListener);
+            textToSpeechEngine.shutdown(new OnShutdownListener() {
+                @Override
+                public void onDone() {
+                    instance = null;
+                    engineType = -1;
+                    if (shutdownListener != null) {
+                        shutdownListener.onDone();
+                    }
+                }
+            });
+        } else {
+            instance = null;
+            engineType = -1;
+            if (shutdownListener != null) {
+                shutdownListener.onDone();
+            }
         }
         textToSpeechEngine = null;
-
-        instance = null;
-        engineType = -1;
-        Logger.INSTANCE.d("Speech:shutdown:done");
+        Logger.INSTANCE.d("Speech:shutdown:invoked");
     }
 
     /**
