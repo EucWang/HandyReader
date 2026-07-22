@@ -1186,8 +1186,8 @@ int epub_util::getChapter(JNIEnv *env, long book_id,
         }
     }
 
-    std::vector<CssInfo> cssInfos;
     if (spineSrc != currentSrc) {
+        cssInfos.clear();
         std::string chapter_data;
         std::string page_css_style;
         LOGD("%s::transform to zip entity src is %s", __func__, spineSrc.c_str());
@@ -1329,6 +1329,10 @@ int epub_util::getChapter(JNIEnv *env, long book_id,
 void epub_util::handle_tags(JNIEnv *env, std::vector<DocText> &docTexts, std::vector<CssInfo> &cssInfos) {
     auto start_time = std::chrono::high_resolution_clock::now();
     LOGI("%s:invoke", __func__);
+    // v4.0 新增:对累积后的 cssInfos 做 sort + deduplicate
+    // 修复 specificity bug(weight dead field)和重复注入问题
+    // 调用时机:parse_css 已累积完内联 <style> + 外链 <link> CSS 后
+    css_ext::sort_and_deduplicate_inplace(cssInfos);
     for (auto &doctext: docTexts) {
         if (!doctext.tagInfos.empty()) {
             auto itag = doctext.tagInfos.begin();
@@ -1419,21 +1423,11 @@ void epub_util::handle_tags(JNIEnv *env, std::vector<DocText> &docTexts, std::ve
                         }
 
                         if (!rule_datas.empty()) {
-                            std::stringstream ss;
-                            if (!params.empty()) {
-                                ss << params;
-                                ss << "&";
-                            }
-                            for (auto rule_data : rule_datas) {
-                                if (rule_data.name == "background") {
-                                    continue;
-                                }
-                                ss << rule_data.name << "=" << rule_data.value << "&";
-                            }
-                            std::string result = ss.str();
-                            if (!result.empty() && result.back() == '&') {
-                                result = result.substr(0, result.length() - 1);
-                            }
+                            // v4.0:调共享函数 apply_css_to_params
+                            // - 前置条件:cssInfos 已在 handle_tags 入口按 weight 升序排序(高 specificity 在后)
+                            // - 该函数做 last-wins 合并同名属性,让 params 字符串无重复 key
+                            // - v4.0:不再显式 continue background(native 透传所有 CSS 属性)
+                            std::string result = css_ext::apply_css_to_params(params, rule_datas);
                             if (result != params) {
                                 item_tag.params = result;
                             }
@@ -1451,8 +1445,9 @@ void epub_util::handle_tags(JNIEnv *env, std::vector<DocText> &docTexts, std::ve
 }
 
 int epub_util::parse_css_list() {
-//    LOGI("%s:invoke", __func__);
+    LOGI("%s:invoke", __func__);
     if (isEmptyCss) {
+        LOGI("%s:invoke isEmptyCss=true, done", __func__);
         return 0;
     }
     if (cssSrc.empty()) {
@@ -1465,7 +1460,7 @@ int epub_util::parse_css_list() {
     if (cssSrc.empty()) {
         isEmptyCss = true;
     }
-//    LOGI("%s:invoke done", __func__);
+    LOGI("%s:invoke done, cssSrc.size=%d", __func__, cssSrc.size());
     return 1;
 }
 

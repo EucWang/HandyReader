@@ -138,6 +138,8 @@ public:
 private:
 protected:
     tinyxml2::XMLDocument doc;
+    std::vector<CssInfo> cssInfos;  //缓存的章节的cssInfos集合
+
     std::vector<std::string> cssSrc;
     std::vector<NavPoint> allChapters;
     bool initStatus;

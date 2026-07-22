@@ -935,8 +935,8 @@ int mobi_util::getChapter(JNIEnv *env,
         }
     }
 
-    std::vector<CssInfo> cssInfos;
     if (spineSrc != currentSrc) {
+        cssInfos.clear();
         std::string chapter_data;
         if (1 != load_entity_data(spineSrc, chapter_data)) {
             LOGE("%s load chapter data failed [%s]", __func__, spineSrc.c_str());
@@ -1115,6 +1115,8 @@ int mobi_util::getChapter(JNIEnv *env,
 void mobi_util::handle_tags(JNIEnv *env, std::vector<DocText> &docTexts, std::vector<CssInfo> &cssInfos) {
     auto start_time = std::chrono::high_resolution_clock::now();
     LOGI("%s:invoke", __func__);
+    // v4.0 新增:对累积后的 cssInfos 做 sort + deduplicate
+    css_ext::sort_and_deduplicate_inplace(cssInfos);
     for (auto &doctext: docTexts) {
         if (!doctext.tagInfos.empty()) {
             auto itag = doctext.tagInfos.begin();
@@ -1214,21 +1216,8 @@ void mobi_util::handle_tags(JNIEnv *env, std::vector<DocText> &docTexts, std::ve
                         }
 
                         if (!rule_datas.empty()) {
-                            std::stringstream ss;
-                            if (!params.empty()) {
-                                ss << params;
-                                ss << "&";
-                            }
-                            for (auto rule_data : rule_datas) {
-                                if (rule_data.name == "background") {
-                                    continue;
-                                }
-                                ss << rule_data.name << "=" << rule_data.value << "&";
-                            }
-                            std::string result = ss.str();
-                            if (!result.empty() && result.back() == '&') {
-                                result = result.substr(0, result.length() - 1);
-                            }
+                            // v4.0:调共享函数 apply_css_to_params
+                            std::string result = css_ext::apply_css_to_params(params, rule_datas);
                             if (result != params) {
                                 item_tag.params = result;
                             }

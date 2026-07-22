@@ -71,6 +71,8 @@ import com.wxn.base.bean.Book
 import com.wxn.base.bean.CssFontStyle
 import com.wxn.base.bean.CssFontWeight
 import com.wxn.base.bean.DownloadFileType
+import com.wxn.base.bean.InlineFontSize
+import com.wxn.base.bean.ReaderText
 import com.wxn.base.bean.TextCssInfo
 import com.wxn.base.bean.TextTag
 import com.wxn.base.bean.TtsPlaybackStatus
@@ -1109,6 +1111,11 @@ private fun drawPageContent(
                 textLine.charEndOffset + offset
             ) ?: (emptyList<TextTag>() to null)
 
+            // 新增:每行预算一次 inlineFontSizes(避免每字符查 getReaderText)
+            val pageFactory = pageProvider.pageController.pageFactory
+            val inlineFontSizes = (pageFactory?.getReaderText(chapterIndex, paragraphIndex)
+                    as? ReaderText.Text)?.inlineFontSizes
+
             if (textLine.isImage) {
                 textLine.textChars.forEach { ch ->
                     canvas.drawRect(
@@ -1152,7 +1159,8 @@ private fun drawPageContent(
                     tags,
                     cssInfo,
                     res,
-                    isTitle = textLine.isTitle
+                    isTitle = textLine.isTitle,
+                    inlineFontSizes
                 )
             }
         }
@@ -1179,7 +1187,8 @@ private fun drawTextChars(
     textTags: List<TextTag>,
     textCssInfo: TextCssInfo?,
     res: RenderResources,
-    isTitle: Boolean
+    isTitle: Boolean,
+    inlineFontSizes: List<InlineFontSize>? = null
 ) {
     var lineTextTag: TextTag? = null
 
@@ -1274,35 +1283,13 @@ private fun drawTextChars(
         }
 
         res.drawingPaint.set(parentPaint)
-
-        if (!isTitle && textCssInfo != null) {
-            if (textCssInfo.fontSize.isEm()) {
-                res.drawingPaint.textSize *= textCssInfo.fontSize.value
-            } else if (textCssInfo.fontSize.isPx()) {
-                res.drawingPaint.textSize = textCssInfo.fontSize.value
-            }
-            textCssInfo.fontColor.toColor()?.let { color ->
-                res.drawingPaint.color = color
-            }
+        val inlineScale = if (!isTitle && !ch.isImage && !textLine.isTableCell && !inlineFontSizes.isNullOrEmpty()) {
+            val charOffsetInParagraph = textLine.charStartOffset + index
+            inlineFontSizes.lastOrNull { charOffsetInParagraph in it.start until it.end }?.scale ?: 1f
+        } else {
+            1f
         }
-
-        val effectiveFontWeight = when {
-            isBold -> CssFontWeight.FontWeightBold
-            textCssInfo != null -> textCssInfo.fontWeight
-            else -> CssFontWeight.FontWeightNormal
-        }
-        val effectiveFontStyle = textCssInfo?.fontStyle
-            ?: CssFontStyle.CssFontStyleNormal
-        res.drawingPaint.typeface =
-            ChapterProvider.getTypeface(effectiveFontWeight, effectiveFontStyle)
-
-        if (ch.charData.isNotEmpty() && !res.drawingPaint.hasGlyph(ch.charData)) {
-            res.drawingPaint.typeface = ChapterProvider.fallbackTypeface
-        }
-
-        if (isSmall) {
-            res.drawingPaint.textSize *= 0.8f
-        }
+        res.applyCharPaint(ch, isTitle, isBold, isSmall, textCssInfo, inlineScale)
 
         if (ch.isImage) {
             drawImage(canvas, ch, textLine.lineTop, textLine.lineBottom)

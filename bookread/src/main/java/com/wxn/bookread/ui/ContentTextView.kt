@@ -10,7 +10,9 @@ import android.view.View
 import androidx.core.graphics.withClip
 import com.wxn.base.bean.CssFontStyle
 import com.wxn.base.bean.CssFontWeight
+import com.wxn.base.bean.InlineFontSize
 import com.wxn.base.bean.Locator
+import com.wxn.base.bean.ReaderText
 import com.wxn.base.bean.TextCssInfo
 import com.wxn.base.bean.TextTag
 import com.wxn.base.bean.TtsPlaybackStatus
@@ -240,12 +242,15 @@ class ContentTextView(context: Context, attrs: AttributeSet?) : View(context, at
                 endOffset
             )
 
+            // F6 新增:取本段落的原始 ReaderText(供 per-char 字号反查)
+            val paragraphInlineFontSizes = (factory.getReaderText(chapterIndex, paragraphIndex) as? ReaderText.Text)?.inlineFontSizes
+
             drawRelativePage = 0
             drawLineIndex = index
             tryDrawReadAloudBg(canvas, textLine, relativeOffset, marginTop, marginBottom)
             tryDrawSearchResultsBg(canvas, textPage, textLine, relativeOffset)
             tryDrawNote(canvas, textLine, tags, relativeOffset, noteIds, marginTop, marginBottom)
-            drawLine(canvas, textLine, tags, textCssInfo, relativeOffset)
+            drawLine(canvas, textLine, tags, textCssInfo, relativeOffset, paragraphInlineFontSizes)
         }
 
         Logger.i("ContentTextView::drawPage:when(no scroll and no next): spend:${System.currentTimeMillis() - startTime}")
@@ -278,6 +283,9 @@ class ContentTextView(context: Context, attrs: AttributeSet?) : View(context, at
                     endOffset
                 )
 
+                // F6 新增:nextPage 跨章反查
+                val paragraphInlineFontSizes = (factory.getReaderText(chapterIdx, paragraphIndex) as? ReaderText.Text)?.inlineFontSizes
+
                 drawRelativePage = 1
                 drawLineIndex = index
                 tryDrawReadAloudBg(canvas, textLine, relativeOffset, marginTop, marginBottom)
@@ -291,7 +299,7 @@ class ContentTextView(context: Context, attrs: AttributeSet?) : View(context, at
                     marginTop,
                     marginBottom
                 )
-                drawLine(canvas, textLine, tags, textCssInfo, relativeOffset)
+                drawLine(canvas, textLine, tags, textCssInfo, relativeOffset, paragraphInlineFontSizes)
             }
         }
 
@@ -321,6 +329,9 @@ class ContentTextView(context: Context, attrs: AttributeSet?) : View(context, at
                         endOffset
                     )
 
+                    // F6 新增:nextNextPage 跨章反查
+                    val paragraphInlineFontSizes = (factory.getReaderText(chapterIdx, paragraphIndex) as? ReaderText.Text)?.inlineFontSizes
+
                     drawRelativePage = 2
                     drawLineIndex = index
                     tryDrawReadAloudBg(canvas, textLine, relativeOffset, marginTop, marginBottom)
@@ -334,7 +345,7 @@ class ContentTextView(context: Context, attrs: AttributeSet?) : View(context, at
                         marginTop,
                         marginBottom
                     )
-                    drawLine(canvas, textLine, tags, textCssInfo, relativeOffset)
+                    drawLine(canvas, textLine, tags, textCssInfo, relativeOffset, paragraphInlineFontSizes)
                 }
             }
         }
@@ -550,7 +561,8 @@ class ContentTextView(context: Context, attrs: AttributeSet?) : View(context, at
         textLine: TextLine,
         tags: List<TextTag>,
         textCssInfo: TextCssInfo?,
-        relativeOffset: Float
+        relativeOffset: Float,
+        inlineFontSizes: List<InlineFontSize>? = null   // F6 新增(默认 null 向后兼容)
     ) {
 
         val lineTop = textLine.lineTop + relativeOffset
@@ -575,7 +587,8 @@ class ContentTextView(context: Context, attrs: AttributeSet?) : View(context, at
             } else {                                            //绘制一行文字
                 drawChars(
                     this, textLine, tags, textCssInfo, lineTop, lineBase, lineBottom,
-                    isTitle = textLine.isTitle
+                    isTitle = textLine.isTitle,
+                    inlineFontSizes = inlineFontSizes   // F6 透传
                 )
             }
         }
@@ -594,7 +607,8 @@ class ContentTextView(context: Context, attrs: AttributeSet?) : View(context, at
         lineTop: Float,
         lineBase: Float,
         lineBottom: Float,
-        isTitle: Boolean
+        isTitle: Boolean,
+        inlineFontSizes: List<InlineFontSize>? = null   // F6 新增(默认 null 向后兼容)
     ) {
 //        var tagPaint: TextPaint? = null
         var lineTextTag: TextTag? = null
@@ -724,33 +738,15 @@ class ContentTextView(context: Context, attrs: AttributeSet?) : View(context, at
 
             RenderResources.drawingPaint.set(parentPaint)
 
-            if (!isTitle && textCssInfo != null) {
-                if (textCssInfo.fontSize.isEm()) {
-                    RenderResources.drawingPaint.textSize *= textCssInfo.fontSize.value
-                } else if (textCssInfo.fontSize.isPx()) {
-                    RenderResources.drawingPaint.textSize = textCssInfo.fontSize.value
-                }
-                textCssInfo.fontColor.toColor()?.let { color ->
-                    RenderResources.drawingPaint.color = color
-                }
+            // 计算 inlineScale(原有 F6 块的查询逻辑,保留 isTableCell 守卫)
+            val inlineScale = if (!isTitle && !ch.isImage && !textLine.isTableCell && !inlineFontSizes.isNullOrEmpty()) {
+                val charOffsetInParagraph = textLine.charStartOffset + index   // isTableCell 已排除,rowLineOffset 分支不达
+                inlineFontSizes.lastOrNull { charOffsetInParagraph in it.start until it.end }?.scale ?: 1f
+            } else {
+                1f
             }
+            RenderResources.applyCharPaint(ch, isTitle, isBold, isSmall, textCssInfo, inlineScale)
 
-            val effectiveFontWeight = when {
-                isBold -> CssFontWeight.FontWeightBold
-                textCssInfo != null -> textCssInfo.fontWeight
-                else -> CssFontWeight.FontWeightNormal
-            }
-            val effectiveFontStyle = textCssInfo?.fontStyle
-                ?: CssFontStyle.CssFontStyleNormal
-            RenderResources.drawingPaint.typeface = ChapterProvider.getTypeface(effectiveFontWeight, effectiveFontStyle)
-
-            if (ch.charData.isNotEmpty() && !RenderResources.drawingPaint.hasGlyph(ch.charData)) {
-                RenderResources.drawingPaint.typeface = ChapterProvider.fallbackTypeface
-            }
-
-            if (isSmall) {
-                RenderResources.drawingPaint.textSize *= 0.8f
-            }
 
             if (isHighlight) {                //绘制高亮文字时的背景
                 val verticalpadding = 10f
@@ -792,6 +788,10 @@ class ContentTextView(context: Context, attrs: AttributeSet?) : View(context, at
                 Logger.d("ContentTextView::drawLine:drawInnerImage:lineTop=${lTop}, lineBottom=${lBottom}")
                 drawImage(canvas, ch, lTop, lBottom)
             } else {
+                // [TEMP-DEBUG v4.0] 排查 capitularR 不放大问题 - 实际 drawText 前的最终 textSize
+                if (ch.charData == "L" || ch.charData == "a") {
+                    Logger.d("F6-DRAW: char='${ch.charData}' FINAL_textSize=${RenderResources.drawingPaint.textSize} lineBase=$lineBase ch.start=${ch.start}")
+                }
                 canvas.drawText(ch.charData, ch.start, lineBase, RenderResources.drawingPaint) //绘制每一个字
             }
         }

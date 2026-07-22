@@ -72,6 +72,20 @@ data class TextLine(
         lineBase = lineBottom - textPaint.fontMetrics.descent
     }
 
+    /**
+     * F7 新增:用于混合字号行(lineHeight/descent 来自 layout.getLineAscent/getLineDescent)。
+     *
+     * - [lineHeight]: 实际行高(已含 lineSpacingExtra 系数,见 setNormalText F3 公式)
+     * - [descent]:   实际 descent(已含 lineSpacingExtra 系数;基线 = bottom - descent)
+     *
+     * 与原 `upTopBottom(durY, textPaint)` 重载并存,非 inline 段落继续用原重载(零影响)。
+     */
+    fun upTopBottom(durY: Float, lineHeight: Float, descent: Float) {
+        lineTop = durY
+        lineBottom = lineTop + lineHeight
+        lineBase = lineBottom - descent
+    }
+
     fun addTextChar(charData: String, start: Float, end: Float) {
         textChars.add(TextChar(charData, start = start, end = end))
     }

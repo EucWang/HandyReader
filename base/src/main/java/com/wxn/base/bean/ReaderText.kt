@@ -6,6 +6,22 @@ import com.wxn.base.unit.CssUnit.Companion.Em
 import com.wxn.base.unit.CssUnit.Companion.Px
 import com.wxn.base.util.Logger
 
+/**
+ * 段落内子区间的字号缩放信息(Phase 1:仅 font-size em 倍数)。
+ *
+ * - [start]/[end]: 段落内字符 offset(与 [TextTag.start]/[TextTag.end] 语义一致,
+ *   start inclusive, end exclusive)
+ * - [scale]: 字号倍数(如 1.5f = 1.5em),来自子区间 TextTag 的 `params="font-size=1.5em"`
+ *
+ * 不可变 data class。Phase 2 可扩展 color/weight 等而无需破坏 TextChar(它继续只承载几何)。
+ * inline 字号段落才会出现非空列表。
+ */
+data class InlineFontSize(
+    val start: Int,
+    val end: Int,
+    val scale: Float
+)
+
 data class TextTag(
     val uuid: String,                //标签的唯一uuid值
     val anchorId: String = "",     //如果是锚点，则有值
@@ -79,6 +95,22 @@ sealed class ReaderText {
     data class Text(var line: String, var annotations: List<TextTag> = emptyList<TextTag>()) :
         ReaderText() {
 
+        /**
+         * 本段所有 inline font-size 子区间(Phase 1)。
+         *
+         * - null:尚未解析(parseTextCss 未调用)
+         * - empty:已解析但无子区间字号(90%+ 段落)
+         * - nonEmpty:含至少一个 InlineFontSize
+         *
+         * 运行时排版数据,不持久化(项目无序列化框架,ReaderText 不进 DB/Intent,无需 @Transient)。
+         * parseTextCss() 仍解析整段 CSS 到 [textCssInfo];本字段在 parseTextCss() 内顺带填充。
+         *
+         * parseTextCss() 全项目仅在 BookHelper.kt:98 调用一次(已核实),F2 中 parseTextCss 兜底是
+         * 双保险(防御单元测试或其他入口跳过 BookHelper 直接进 ChapterProvider 的场景)。
+         */
+        var inlineFontSizes: List<InlineFontSize>? = null
+            internal set
+
         val isText: Boolean
             get() {
                 var ret = true
@@ -138,6 +170,7 @@ sealed class ReaderText {
          */
         fun parseTextCss() {
             var parsedCss = TextCssInfo()
+            val inlineList = ArrayList<InlineFontSize>()   // F1 新增:子区间字号收集
 
             annotations.forEach { tag ->
                 if (tag.start == 0 && tag.end >= line.length - 1) {
@@ -321,6 +354,24 @@ sealed class ReaderText {
                             }
                         }
                     }
+                } else {
+                    // ── F1 新增:整段守卫未命中 → 收集子区间 font-size(Phase 1 仅 em) ──
+                    // 不排序:按 annotations 原始顺序(DOM 遍历序)收集,F4/F6 用 lastOrNull
+                    // 实现"后到覆盖先到"语义,匹配 C++ 深度优先遍历产出顺序
+                    // [TEMP-DEBUG v4.0] 排查 capitularR 不放大问题
+                    Logger.d("F1-DEBUG: tag.name=${tag.name} start=${tag.start} end=${tag.end} params=${tag.params}")
+                    tag.paramsPairs().forEach { kv ->
+                        if (kv.first == "font-size") {
+                            val cssUnit = CssUnit.format(kv.second.trim())
+                            Logger.d("F1-DEBUG: font-size kv=$kv cssUnit=$cssUnit isEm=${cssUnit.isEm()}")
+                            if (cssUnit.isEm() && cssUnit.value > 0f) {
+                                val scale = cssUnit.value.coerceIn(MIN_INLINE_SCALE, MAX_INLINE_SCALE)
+                                inlineList.add(InlineFontSize(tag.start, tag.end, scale))
+                                Logger.d("F1-DEBUG: COLLECTED start=${tag.start} end=${tag.end} scale=$scale")
+                            }
+                            // px 暂不处理(需段落基准 px 才能换算 em);Phase 2 再补
+                        }
+                    }
                 }
             }
 
@@ -387,6 +438,15 @@ sealed class ReaderText {
             }
 
             this.textCssInfo = parsedCss
+            this.inlineFontSizes = inlineList.ifEmpty { emptyList() }   // F1 新增
+            // [TEMP-DEBUG v4.0] 排查 capitularR 不放大问题
+            Logger.d("F1-DEBUG: FINAL line.length=${line.length} inlineFontSizes=${this.inlineFontSizes} textCssInfo.fontSize=${parsedCss.fontSize}")
+        }
+
+        companion object {
+            /** F1:子区间字号倍数 clamp 范围,防御损坏 EPUB(0.5em ~ 5.0em) */
+            private const val MIN_INLINE_SCALE = 0.5f
+            private const val MAX_INLINE_SCALE = 5.0f
         }
     }
 

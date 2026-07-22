@@ -1,5 +1,6 @@
 package com.wxn.bookread.ui
 
+import com.wxn.base.bean.ReaderText
 import com.wxn.base.bean.TextCssInfo
 import com.wxn.base.bean.TextTag
 import com.wxn.bookread.data.model.SpeekBookStatus
@@ -200,5 +201,34 @@ class TextPageFactory(dataSource: IDataSource, val provider: PageViewDataProvide
 
     override fun getSpeekBookStatus(): SpeekBookStatus {
         return provider.getSpeakBookStatus()
+    }
+
+    /**
+     * F5 新增:按 chapterIndex + paragraphIndex 反查原始 ReaderText(供绘制层取 inlineFontSizes)。
+     *
+     * - 跨章选择逻辑与 [getPagesAnnotation] 一致(预取 -1/0/+1 章)
+     * - 找不到章节/段落越界 → 返回 null(绘制层降级为段落默认字号)
+     *
+     * 时序安全:readerTexts 在 PageViewController.loadChapter L976 回填 → L997 赋给 curTextChapter →
+     * L1057 upContent 触发绘制,严格顺序、单线程(limitedParallelism(1)),绘制期访问必非空。
+     *
+     * 注:本方法加到 TextPageFactory 子类(非抽象父类 IPageFactory),因为 ContentTextView.pageFactory
+     * 类型是 TextPageFactory?(已核实),可直接调用。
+     */
+    fun getReaderText(chapterIndex: Int, paragraphIndex: Int): ReaderText? {
+        val curTextChapter = provider.textChapter(0)
+        val preTextChapter = provider.textChapter(-1)
+        val nextTextChapter = provider.textChapter(1)
+
+        val chapter = when (chapterIndex) {
+            curTextChapter?.position -> curTextChapter
+            preTextChapter?.position -> preTextChapter
+            nextTextChapter?.position -> nextTextChapter
+            else -> dataSource.findChapterByPosition(chapterIndex)   // 兜底(IDataSource 接口方法)
+        } ?: return null
+
+        val readerTexts = chapter.readerTexts
+        if (paragraphIndex < 0 || paragraphIndex >= readerTexts.size) return null
+        return readerTexts[paragraphIndex]
     }
 }

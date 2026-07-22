@@ -901,7 +901,10 @@ class PageViewController @OptIn(UnstableApi::class)
             try {
                 val readerTexts: List<ReaderText> =
                     BookHelper.loadChapterContent(context, curBook, chapter, textParser)
-            Logger.i("PageViewController::loadContent:index=$chapterIndex,chapter.index=${chapter.chapterIndex} readerTexts.size=${readerTexts.size}")
+                Logger.i("PageViewController::loadContent:index=$chapterIndex,chapter.index=${chapter.chapterIndex} readerTexts.size=${readerTexts.size}")
+                for ((index, text) in readerTexts.withIndex()) {
+                    Logger.d("PageViewController::loadContent:index=$index,text=$text")
+                }
 
             var tags = hashMapOf<Int, List<TextTag>>()  //章节全部标签信息
             readerTexts.forEachIndexed { index, content ->
