@@ -156,17 +156,22 @@ public class BaseTextToSpeechEngine implements TextToSpeechEngine {
     @Override
     public void shutdown(OnShutdownListener listener) {
         if (mTextToSpeech != null) {
+            mTtsCallbacks.clear();
             try {
-                mTtsCallbacks.clear();
                 mTextToSpeech.stop();
+            } catch (final Exception exc) {
+                Logger.INSTANCE.e(getClass().getSimpleName() + "Warning while stopping text to speech" + exc);
+            }
+            try {
                 mTextToSpeech.shutdown();
             } catch (final Exception exc) {
-                Logger.INSTANCE.e(getClass().getSimpleName() + "Warning while de-initing text to speech" + exc);
+                Logger.INSTANCE.e(getClass().getSimpleName() + "Warning while shutting down text to speech" + exc);
             } finally {
-                if (listener != null) {
-                    listener.onDone();
-                }
+                mTextToSpeech = null;
             }
+        }
+        if (listener != null) {
+            listener.onDone();
         }
     }
 
