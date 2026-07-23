@@ -76,7 +76,7 @@ class TtsPlaybackService : MediaSessionService() {
     }
 
     companion object {
-        const val NOTIFICATION_CHANNEL_ID = "tts_playback_channel"
+        const val NOTIFICATION_CHANNEL_ID = "tts_playback_channel_v2"
         const val NOTIFICATION_ID = 1007
 
         const val ACTION_PAUSE = "com.wxn.reader.action.PAUSE_TTS"
@@ -764,6 +764,7 @@ class TtsPlaybackService : MediaSessionService() {
             .addAction(stopAction)
             .setContentIntent(createContentIntent())
             .setOngoing(true)
+            .setOnlyAlertOnce(true)
             .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
             .setForegroundServiceBehavior(NotificationCompat.FOREGROUND_SERVICE_IMMEDIATE)
 
@@ -880,6 +881,8 @@ class TtsPlaybackService : MediaSessionService() {
                 description = getString(R.string.tts_notification_channel_description)
                 setShowBadge(false)
                 lockscreenVisibility = Notification.VISIBILITY_PUBLIC
+                setSound(null, null)
+                enableVibration(false)
             }
             manager.createNotificationChannel(channel)
         }
