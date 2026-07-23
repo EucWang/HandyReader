@@ -16,6 +16,7 @@ import com.wxn.base.util.toLocale
 import com.wxn.bookread.data.model.SpeekBookStatus
 import com.wxn.bookread.data.model.TextChapter
 import com.wxn.bookread.data.model.TextPage
+import com.wxn.bookread.provider.ChapterProvider
 import com.wxn.reader.R
 import com.wxn.reader.service.TtsEngineStatus
 import com.wxn.reader.service.TtsError
@@ -375,12 +376,16 @@ abstract class TTSController(
         val nextChapter = textChapter(1)
         val currentChapter = textChapter(0)
         val prevChapter = textChapter(-1)
-        return when (targetChapterIndex) {
+        val chapter = when (targetChapterIndex) {
             nextChapter?.position -> nextChapter
             currentChapter?.position -> currentChapter
             prevChapter?.position -> prevChapter
             else -> null
         }
+        // A cached slot may have been paginated before a later style change (font size, etc.)
+        // landed. Reject a stale hit so callers fall back to a fresh pagination instead of
+        // using a chapter laid out for a different style.
+        return chapter?.takeIf { it.styleVersion == ChapterProvider.styleVersion.get() }
     }
 
     @OptIn(UnstableApi::class)

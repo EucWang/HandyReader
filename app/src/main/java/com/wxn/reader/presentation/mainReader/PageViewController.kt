@@ -1130,7 +1130,10 @@ class PageViewController @OptIn(UnstableApi::class)
         durPageIndex = 0
         durChapterIndex++
         prevTextChapter = curTextChapter
-        curTextChapter = nextTextChapter
+        // nextTextChapter may have been paginated before a later font-size (or other style)
+        // change; showing it as-is would flash the old layout at the new size. Treat a
+        // style-version mismatch as a cache miss and force a fresh pagination instead.
+        curTextChapter = nextTextChapter?.takeIf { it.styleVersion == ChapterProvider.styleVersion.get() }
         nextTextChapter = null
         if (curTextChapter == null) {
             navigationLoadingListener?.onNavigationLoadingStart(durChapterIndex, immediate = true)
@@ -1165,7 +1168,8 @@ class PageViewController @OptIn(UnstableApi::class)
         durChapterIndex--
 
         nextTextChapter = curTextChapter
-        curTextChapter = prevTextChapter
+        // See moveToNextChapter: prevTextChapter can be similarly stale.
+        curTextChapter = prevTextChapter?.takeIf { it.styleVersion == ChapterProvider.styleVersion.get() }
         prevTextChapter = null
 
         if (curTextChapter == null) {
@@ -1515,17 +1519,25 @@ class PageViewController @OptIn(UnstableApi::class)
      *        F4-01：偏好变更（切主题/调字号/行距/字体）默认保留阅读位置——
      *        collector 无法区分触发源，且 loadChapter 已按章节进度重算 durPageIndex，
      *        分页变化后位置自动适配。顺带修复"用户调字号跳回章节首页"的体验问题。
+     *
+     * suspend: waits for the on-screen chapter to be repaginated with the new style before
+     * triggering a redraw. ChapterProvider.upStyle already applied the new style (e.g. font
+     * size) to the paint objects synchronously; firing upContent() immediately, before
+     * durChapterIndex is repaginated, would draw the new paint size against the old layout —
+     * the mis-sized flash seen while dragging the font-size slider (imperceptible on a fast
+     * emulator, visible on a slower device where repagination can't keep up). durChapterIndex
+     * ± 1 aren't on screen, so they still refresh in the background via loadContent().
      */
-    fun updatePageViews(prefs: ReaderPreferences? = null, resetPageOffset: Boolean = false) {
-        ChapterProvider.upStyle(context, prefs) {
-            loadContent(resetPageOffset)
-            callBack?.upContent()
-            callBack?.upStyle()
-            callBack?.upTipStyle()
-            callBack?.upBg()
-            callBack?.upPageAnim()
-            callBack?.upPageControl()
-        }
+    suspend fun updatePageViews(prefs: ReaderPreferences? = null, resetPageOffset: Boolean = false) {
+        ChapterProvider.upStyle(context, prefs)
+        loadChapter(durChapterIndex, upContent = false, resetPageOffset = resetPageOffset)
+        loadContent(resetPageOffset)
+        callBack?.upContent()
+        callBack?.upStyle()
+        callBack?.upTipStyle()
+        callBack?.upBg()
+        callBack?.upPageAnim()
+        callBack?.upPageControl()
     }
 
     override fun clear(ownerToken: Long?) {
