@@ -132,7 +132,7 @@ class AudiobookReaderViewModel @Inject constructor(
         viewModelScope.launch {
             appPrefsUtil.appPrefsFlow.stateIn(viewModelScope).collect { pref ->
                 _appPreferences.value = pref
-                Logger.d("MainReadViewModel::init appPreferences[$pref]")
+//                Logger.d("MainReadViewModel::init appPreferences[$pref]")
             }
         }
 

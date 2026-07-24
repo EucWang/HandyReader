@@ -153,16 +153,17 @@ object RenderResources {
         isBold: Boolean,
         isSmall: Boolean,
         textCssInfo: TextCssInfo?,
-        inlineScale: Float
+        inlineScale: Float,
+        inlineColor : String? = null
     ) {
-        // ① paragraph fontSize + color : pass title
-        if (!isTitle && textCssInfo != null) {
+        // ① display=block， apply book's CSS style for text size and text color, not the user's preferences
+        if (!isTitle && textCssInfo != null && textCssInfo.display == "block") {
             if (textCssInfo.fontSize.isEm()) {
                 drawingPaint.textSize *= textCssInfo.fontSize.value
             } else if (textCssInfo.fontSize.isPx()) {
                 drawingPaint.textSize = textCssInfo.fontSize.value
             }
-            textCssInfo.fontColor.toColor()?.let { color ->
+            textCssInfo.fontColor.takeIf { it.isNotEmpty() }?.toColor()?.let { color ->
                 drawingPaint.color = color
             }
         }
@@ -172,7 +173,14 @@ object RenderResources {
             drawingPaint.textSize *= inlineScale
         }
 
-        // ③ fontWeight / fontStyle
+        // ③ inline color
+        if (!isTitle && !ch.isImage) {
+            inlineColor?.toColor()?.let { color ->
+                drawingPaint.color = color
+            }
+        }
+
+        // ④ fontWeight / fontStyle
         val effectiveFontWeight = when {
             isBold -> CssFontWeight.FontWeightBold
             textCssInfo != null -> textCssInfo.fontWeight

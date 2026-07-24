@@ -39,7 +39,6 @@ class ReadBgListViewModel @Inject constructor(
         viewModelScope.launch {
             readerPrefsUtil.readerPrefsFlow.stateIn(viewModelScope).collect { pref ->
                 _readerPreferences.value = pref
-                Logger.d("MainReadViewModel::init readerPreferences[$pref],  pref.backgroundImage=${pref.backgroundImage}")
                 _uiState.value = _uiState.value.copy(
                     currentBgTextureId = pref.backgroundImage
                 )

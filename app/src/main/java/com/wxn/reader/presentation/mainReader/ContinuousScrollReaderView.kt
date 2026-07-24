@@ -68,10 +68,10 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewModelScope
 import coil3.compose.AsyncImage
 import com.wxn.base.bean.Book
-import com.wxn.base.bean.CssFontStyle
-import com.wxn.base.bean.CssFontWeight
+import com.wxn.base.bean.CssVerticalAlign
 import com.wxn.base.bean.DownloadFileType
-import com.wxn.base.bean.InlineFontSize
+import com.wxn.base.bean.InlineCssProps
+import com.wxn.base.bean.InlineStyle
 import com.wxn.base.bean.ReaderText
 import com.wxn.base.bean.TextCssInfo
 import com.wxn.base.bean.TextTag
@@ -82,7 +82,6 @@ import com.wxn.base.ext.toColor
 import com.wxn.base.ext.toComposeColor
 import com.wxn.base.util.Logger
 import com.wxn.base.util.PathUtil
-import com.wxn.base.util.launchIO
 import com.wxn.bookread.data.model.TextChar
 import com.wxn.bookread.data.model.TextLine
 import com.wxn.bookread.data.model.TextPage
@@ -1113,8 +1112,8 @@ private fun drawPageContent(
 
             // 新增:每行预算一次 inlineFontSizes(避免每字符查 getReaderText)
             val pageFactory = pageProvider.pageController.pageFactory
-            val inlineFontSizes = (pageFactory?.getReaderText(chapterIndex, paragraphIndex)
-                    as? ReaderText.Text)?.inlineFontSizes
+            val inlineStyles = (pageFactory?.getReaderText(chapterIndex, paragraphIndex)
+                    as? ReaderText.Text)?.inlineStyles
 
             if (textLine.isImage) {
                 textLine.textChars.forEach { ch ->
@@ -1160,7 +1159,7 @@ private fun drawPageContent(
                     cssInfo,
                     res,
                     isTitle = textLine.isTitle,
-                    inlineFontSizes
+                    inlineStyles
                 )
             }
         }
@@ -1188,7 +1187,7 @@ private fun drawTextChars(
     textCssInfo: TextCssInfo?,
     res: RenderResources,
     isTitle: Boolean,
-    inlineFontSizes: List<InlineFontSize>? = null
+    inlineStyles: List<InlineStyle>? = null
 ) {
     var lineTextTag: TextTag? = null
 
@@ -1283,18 +1282,32 @@ private fun drawTextChars(
         }
 
         res.drawingPaint.set(parentPaint)
-        val inlineScale = if (!isTitle && !ch.isImage && !textLine.isTableCell && !inlineFontSizes.isNullOrEmpty()) {
+        val resolved = if (!isTitle && !ch.isImage && !textLine.isTableCell) {
             val charOffsetInParagraph = textLine.charStartOffset + index
-            inlineFontSizes.lastOrNull { charOffsetInParagraph in it.start until it.end }?.scale ?: 1f
+            InlineStyle.resolve(inlineStyles, charOffsetInParagraph)
         } else {
-            1f
+            InlineCssProps()
         }
-        res.applyCharPaint(ch, isTitle, isBold, isSmall, textCssInfo, inlineScale)
+        val inlineScale = resolved.fontScale ?: 1.0f
+        val inlineColor = resolved.color
+        val inlineVerticalAlign = resolved.verticalAlign
+        res.applyCharPaint(ch, isTitle, isBold, isSmall, textCssInfo, inlineScale, inlineColor)
+
+        // 计算 sup/sub 垂直偏移（在 applyCharPaint 之后，textSize 已是最终值）
+        val baselineOffset = if (!ch.isImage && inlineVerticalAlign != null
+            && inlineVerticalAlign != CssVerticalAlign.CssVerticalAlignBaseLine) {
+            val parentSize = res.drawingPaint.textSize / inlineScale.coerceAtLeast(0.01f)  // 还原父字号
+            when (inlineVerticalAlign) {
+                CssVerticalAlign.CssVerticalAlignSuper -> -parentSize * 0.34f   // 上移（y 减小）
+                CssVerticalAlign.CssVerticalAlignSub   ->  parentSize * 0.20f   // 下移（y 增大）
+                else -> 0f
+            }
+        } else 0f
 
         if (ch.isImage) {
             drawImage(canvas, ch, textLine.lineTop, textLine.lineBottom)
         } else {
-            canvas.drawText(ch.charData, ch.start, textLine.lineBase, res.drawingPaint)
+            canvas.drawText(ch.charData, ch.start, textLine.lineBase + baselineOffset, res.drawingPaint)
         }
     }
 }

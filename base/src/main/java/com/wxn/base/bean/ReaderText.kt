@@ -16,10 +16,55 @@ import com.wxn.base.util.Logger
  * 不可变 data class。Phase 2 可扩展 color/weight 等而无需破坏 TextChar(它继续只承载几何)。
  * inline 字号段落才会出现非空列表。
  */
-data class InlineFontSize(
+data class InlineStyle(
     val start: Int,
     val end: Int,
-    val scale: Float
+    val props: InlineCssProps
+) {
+    companion object {
+        /**
+         * 按 offset 查询命中的样式（属性级 lastOrNull）。
+         * **算法**：正序遍历全部区间，对每个命中的区间，用其非 null 属性覆盖累积值。
+         * 等价于"每个属性各自做 lastOrNull，但一次遍历完成"。
+         *
+         * **CSS 层叠正确性**：
+         * - 同属性嵌套（外层 color=#333, 内层 4~6 color=#fff）→ offset=5 取内层 #fff ✓
+         * - 不同属性错位重叠（A 设字号, B 设颜色, 区间重叠）→ 字号取 A、颜色取 B，各自独立 ✓（修复了"整个对象 lastOrNull 导致未设属性被遮蔽"的缺陷）
+         * - CSS 继承（外层设 color, 内层未设 color 但设了别的）→ 内层 props.color==null 不覆盖，保留外层 color ✓
+         *
+         * @param styles inline 样式列表（null/empty → 返回全 null 的默认 props）
+         * @param offset 段落内字符 offset
+         * @return 命中区间解析后的 [InlineCssProps]（未命中属性为 null）；列表空返回 [InlineCssProps] 默认实例
+         */
+        fun resolve(styles: List<InlineStyle>?, offset: Int): InlineCssProps {
+            if (styles.isNullOrEmpty()) return InlineCssProps()
+            var fontScale: Float? = null
+            var color: String? = null
+            var verticalAlign: CssVerticalAlign? = null
+            for (style in styles) {
+                if (offset in style.start until style.end) {
+                    style.props.fontScale?.let { fontScale = it }
+                    style.props.color?.let { color = it }
+                    style.props.verticalAlign?.let {
+                        verticalAlign = it
+                    }
+                }
+            }
+            return InlineCssProps(fontScale, color, verticalAlign)
+        }
+    }
+}
+
+/**
+ * 段落内子区间的 inline CSS 属性集合（可扩展）。
+ * 每个属性 null = 该区间未显式设置此属性（回退到段落级/用户级，或继承外层区间）。
+ * ⚠️ 硬约束：未设置的属性**必须为 null**，不能是空字符串或默认值。
+ * 否则会破坏 [InlineStyle.resolve] 的 CSS 继承语义（属性级 lastOrNull 依赖 null 判断"是否覆盖"）。
+ */
+data class InlineCssProps(
+    val fontScale: Float? = null,   // 来自 font-size(em)，已 clamp 到 [0.5, 5.0]
+    val color: String? = null,       // 颜色字符串原样保留（#hex / 命名色 / rgb()），渲染期解析
+    val verticalAlign: CssVerticalAlign? = null  // super/sub 垂直对齐
 )
 
 data class TextTag(
@@ -75,6 +120,8 @@ data class TextCssInfo(
     var paddingRight: CssUnit = Em(0f),
     var paddingTop: CssUnit = Em(0f),
     var paddingBottom: CssUnit = Em(0f),
+
+    var display: String = "", //如果值为block，则需要应用CSS样式的文字颜色大小显示，而不是用户设置的文字颜色大小显示
 )
 
 @Immutable
@@ -96,19 +143,13 @@ sealed class ReaderText {
         ReaderText() {
 
         /**
-         * 本段所有 inline font-size 子区间(Phase 1)。
-         *
-         * - null:尚未解析(parseTextCss 未调用)
-         * - empty:已解析但无子区间字号(90%+ 段落)
-         * - nonEmpty:含至少一个 InlineFontSize
-         *
-         * 运行时排版数据,不持久化(项目无序列化框架,ReaderText 不进 DB/Intent,无需 @Transient)。
-         * parseTextCss() 仍解析整段 CSS 到 [textCssInfo];本字段在 parseTextCss() 内顺带填充。
-         *
-         * parseTextCss() 全项目仅在 BookHelper.kt:98 调用一次(已核实),F2 中 parseTextCss 兜底是
-         * 双保险(防御单元测试或其他入口跳过 BookHelper 直接进 ChapterProvider 的场景)。
+         * 本段所有 inline 样式子区间（fontScale / color，可扩展）。
+         * - null: 尚未解析（parseTextCss 未调用）
+         * - empty: 已解析但无子区间样式（90%+ 段落）
+         * - nonEmpty: 含至少一个 InlineStyle
+         * 运行时排版数据，不持久化。parseTextCss() 内填充。
          */
-        var inlineFontSizes: List<InlineFontSize>? = null
+        var inlineStyles: List<InlineStyle>? = null
             internal set
 
         val isText: Boolean
@@ -170,7 +211,7 @@ sealed class ReaderText {
          */
         fun parseTextCss() {
             var parsedCss = TextCssInfo()
-            val inlineList = ArrayList<InlineFontSize>()   // F1 新增:子区间字号收集
+            val innerStyleList = ArrayList<InlineStyle>()   // 子区间样式收集
 
             annotations.forEach { tag ->
                 if (tag.start == 0 && tag.end >= line.length - 1) {
@@ -352,25 +393,41 @@ sealed class ReaderText {
                                     }
                                 }
                             }
+                            "display" -> {
+                                parsedCss.display = kv.second
+                            }
                         }
                     }
                 } else {
-                    // ── F1 新增:整段守卫未命中 → 收集子区间 font-size(Phase 1 仅 em) ──
-                    // 不排序:按 annotations 原始顺序(DOM 遍历序)收集,F4/F6 用 lastOrNull
-                    // 实现"后到覆盖先到"语义,匹配 C++ 深度优先遍历产出顺序
-                    // [TEMP-DEBUG v4.0] 排查 capitularR 不放大问题
-                    Logger.d("F1-DEBUG: tag.name=${tag.name} start=${tag.start} end=${tag.end} params=${tag.params}")
+                    var fontScale : Float? = null
+                    var color : String? = null
+                    var verticalAlign: CssVerticalAlign? = null
                     tag.paramsPairs().forEach { kv ->
-                        if (kv.first == "font-size") {
-                            val cssUnit = CssUnit.format(kv.second.trim())
-                            Logger.d("F1-DEBUG: font-size kv=$kv cssUnit=$cssUnit isEm=${cssUnit.isEm()}")
-                            if (cssUnit.isEm() && cssUnit.value > 0f) {
-                                val scale = cssUnit.value.coerceIn(MIN_INLINE_SCALE, MAX_INLINE_SCALE)
-                                inlineList.add(InlineFontSize(tag.start, tag.end, scale))
-                                Logger.d("F1-DEBUG: COLLECTED start=${tag.start} end=${tag.end} scale=$scale")
+                        when(kv.first) {
+                            "font-size" -> {
+                                val cssUnit = CssUnit.format(kv.second.trim())
+                                if (cssUnit.isEm() && cssUnit.value > 0f) {
+                                    fontScale = cssUnit.value.coerceIn(MIN_INLINE_SCALE, MAX_INLINE_SCALE)
+                                }
                             }
-                            // px 暂不处理(需段落基准 px 才能换算 em);Phase 2 再补
+                            "color" -> {
+                                val v = kv.second.trim()
+                                if (v.isNotEmpty()) color = v
+                            }
+                            "vertical-align" -> {
+                                verticalAlign = CssVerticalAlign.format(kv.second.trim())
+                            }
                         }
+                    }
+                    if (verticalAlign == null) {
+                        verticalAlign = when (tag.name) {
+                            "sup" -> CssVerticalAlign.CssVerticalAlignSuper
+                            "sub" -> CssVerticalAlign.CssVerticalAlignSub
+                            else -> null
+                        }
+                    }
+                    if (fontScale != null || color != null || verticalAlign != null) {
+                        innerStyleList.add(InlineStyle(tag.start, tag.end, InlineCssProps(fontScale, color, verticalAlign)))
                     }
                 }
             }
@@ -438,9 +495,7 @@ sealed class ReaderText {
             }
 
             this.textCssInfo = parsedCss
-            this.inlineFontSizes = inlineList.ifEmpty { emptyList() }   // F1 新增
-            // [TEMP-DEBUG v4.0] 排查 capitularR 不放大问题
-            Logger.d("F1-DEBUG: FINAL line.length=${line.length} inlineFontSizes=${this.inlineFontSizes} textCssInfo.fontSize=${parsedCss.fontSize}")
+            this.inlineStyles = innerStyleList
         }
 
         companion object {

@@ -130,7 +130,6 @@ class PdfReaderViewModel @Inject constructor(
         viewModelScope.launch {
             readerPrefsUtil.readerPrefsFlow.stateIn(viewModelScope).collect { pref ->
                 _readerPreferences.value = pref
-                Logger.d("MainReadViewModel::init readerPreferences[$pref]")
                 VolumeEventBus.volumeKeyPageTurning =  pref.volumeKeyPageTurning
             }
         }

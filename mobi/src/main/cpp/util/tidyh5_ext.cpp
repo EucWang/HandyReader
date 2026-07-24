@@ -6,7 +6,7 @@
 
 
 std::string extract_style_with_tidy(TidyDoc &tdoc) {
-    LOGD("%s start", __func__);
+//    LOGD("%s start", __func__);
     TidyNode node = nullptr;
     std::string css;
     TidyNode head = tidyGetHead(tdoc);
@@ -23,7 +23,7 @@ std::string extract_style_with_tidy(TidyDoc &tdoc) {
             }
         }
     }
-    LOGD("%s return css: %s", __func__, css.c_str());
+//    LOGD("%s return css: %s", __func__, css.c_str());
     return css;
 }
 

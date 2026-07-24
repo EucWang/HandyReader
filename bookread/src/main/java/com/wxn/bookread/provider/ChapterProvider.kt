@@ -16,7 +16,7 @@ import com.wxn.base.bean.BookChapter
 import com.wxn.base.bean.CssFontStyle
 import com.wxn.base.bean.CssFontWeight
 import com.wxn.base.bean.CssTextAlign
-import com.wxn.base.bean.InlineFontSize
+import com.wxn.base.bean.InlineStyle
 import com.wxn.base.bean.ReaderText
 import com.wxn.base.bean.TextTag
 import com.wxn.base.ext.isContentPath
@@ -417,7 +417,7 @@ object ChapterProvider {
         context: Context,
         readerPreferences: ReaderPreferences? = null
     ) {
-        Logger.i("ChapterProvider:upVisibleSize")
+//        Logger.i("ChapterProvider:upVisibleSize，paddingHorizontal=$paddingHorizontal")
 
         if (viewWidth == 0 || viewHeight == 0) {
             val metrics = context.resources.displayMetrics
@@ -436,17 +436,21 @@ object ChapterProvider {
         }
 
         if (viewWidth > 0 && viewHeight > 0) {
-            paddingHorizontal = (((prefs?.pageHorizontalMargins?.toDouble()
-                ?: 0.0) * 0.1 * viewWidth.toDouble()).toInt()) / 2         //页面左边距
-            paddingVertical = if (!isVScrollMode) { //非连续垂直滚动阅读模式，才会设置这个值
-                ((prefs?.pageVerticalMargins
-                    ?: 0.0) * 0.1 * viewHeight.toDouble()).toInt() / 2                 //页面顶部间距
-            } else {
-                0
+            if (prefs != null) {
+                paddingHorizontal = ((prefs.pageHorizontalMargins * 0.1 * viewWidth.toDouble()).toInt()) / 2         //页面左边距
+                paddingVertical = if (!isVScrollMode) { //非连续垂直滚动阅读模式，才会设置这个值
+                    (prefs.pageVerticalMargins * 0.1 * viewHeight.toDouble()).toInt() / 2                 //页面顶部间距
+                } else {
+                    0
+                }
             }
             recomputeDerivedSizes()
         }
-        Logger.d("ChapterProvider::upVisibleSize::viewWidth=$viewWidth, viewHeight=$viewHeight, visibleWidth=$visibleWidth,visibleHeight=$visibleHeight,visibleRight=$visibleRight,visibleBottom=$visibleBottom")
+//        Logger.d("ChapterProvider::upVisibleSize::viewWidth=$viewWidth, viewHeight=$viewHeight, " +
+//                "visibleWidth=$visibleWidth,visibleHeight=$visibleHeight," +
+//                "visibleRight=$visibleRight,visibleBottom=$visibleBottom," +
+//                "paddingHorizontal=$paddingHorizontal,paddingVertical=$paddingVertical," +
+//                "prefs is null? ${if (prefs != null) "no" else "yes" }")
     }
 
     //region v5 同步布局尺寸计算（消除旋转时 loadContent 与 async upVisibleSize 的竞争条件）
@@ -718,7 +722,10 @@ object ChapterProvider {
         imageStyles: String = "",
         chapterSize: Int,
     ): TextChapter? {
-        Logger.d("ChapterProvider::getTextChapter::chapterIndex=[${chapter.chapterIndex}]")
+//        Logger.d("ChapterProvider::getTextChapter::chapterIndex=[${chapter.chapterIndex}]," +
+//                "paddingHorizontal=$paddingHorizontal,paddingVertical=$paddingVertical," +
+//                "visibleWidth=$visibleWidth,visibleHeight=$visibleHeight," +
+//                "viewWidth=$viewWidth,viewHeight=$viewHeight")
         val textPages = arrayListOf<TextPage>()   //一个章节的内容，可以拆分成多少页进行显示
         val pageLines = arrayListOf<Int>()          //每一个页面上，显示的行数的集合
         val pageLengths = arrayListOf<Int>()        //每一个页面上，显示的字符数的集合
@@ -1160,26 +1167,23 @@ object ChapterProvider {
     /**
      * F2 新增:把纯文本 + inline 字号区间转成 SpannableStringBuilder,
      * 挂 RelativeSizeSpan 让 StaticLayout 自动 per-char 度量。
-     *
-     * - inlineFontSizes null/empty → 直接返回原 String 引用(零开销,90%+ 段落)
-     * - 区间越界/反向 → clamp 到合法范围,跳过零长度区间
-     *
-     * 不做缓存(D12 决策):parseTextCss 仅在 BookHelper.kt:98 全项目唯一处调一次(已核实),
-     * SpannableStringBuilder 构造本身不是瓶颈。强引用缓存会导致读多本书后几十 MB 内存泄漏。
+     * - inlineStyles null/empty → 直接返回原 String 引用(零开销,90%+ 段落)
      */
     private fun buildSpannedText(
         text: String,
-        inlineFontSizes: List<InlineFontSize>?
+        inlineStyles: List<InlineStyle>?
     ): CharSequence {
-        if (inlineFontSizes.isNullOrEmpty()) return text
+        if (inlineStyles.isNullOrEmpty() ||
+            inlineStyles.none { it.props.fontScale != null }) return text
         val ssb = SpannableStringBuilder(text)
-        inlineFontSizes.forEach { span ->
-            val s = span.start.coerceIn(0, text.length)
-            val e = span.end.coerceIn(s, text.length)
-            if (e > s) {
+        inlineStyles.forEach { style ->
+            val start = style.start.coerceIn(0, text.length)
+            val end = style.end.coerceIn(start, text.length)
+            val fontScale = style.props.fontScale
+            if (end > start && fontScale != null) {
                 ssb.setSpan(
-                    RelativeSizeSpan(span.scale),
-                    s, e,
+                    RelativeSizeSpan(fontScale),
+                    start, end,
                     Spanned.SPAN_EXCLUSIVE_EXCLUSIVE
                 )
             }
@@ -1204,21 +1208,55 @@ object ChapterProvider {
         stringBuilder: StringBuilder,
         isTitle: Boolean
     ): LayoutCursor {
-        Logger.d("ChapterProvider::setTypeText::paragraph=${paragraph}")
+//        Logger.d("ChapterProvider::setTypeText::paragraph=${paragraph}")
         val offsetY = cursor.offsetY
         val bounds = cursor.bounds
+
+        val readerPrefs = readerPreferencesUtil?.readerPrefsFlow?.firstOrNull()
+        val userSetParagraphSpacing = (readerPrefs?.paragraphSpacing?.toFloat() ?: 0.0f).coerceAtLeast(0.0f)
+        var durY = if (isTitle) offsetY + titleTopSpacing else offsetY
 
         var text: String = when (paragraph) {
             is ReaderText.Chapter -> paragraph.title
             is ReaderText.Text -> paragraph.line
             else -> ""
         }.toString()
-
         if (text.isEmpty() || text.isBlank()) { //对于无显示内容的空行，显示一个空白符
-            text = "\u3000"
+            val lineHeight = if (isTitle) {
+                titlePaint.textHeight
+            } else {
+                contentPaint.textHeight
+            }
+//            Logger.d("ChapterProvider::setTypeText::empty text::lineHeight=$lineHeight,durY=$durY")
+            val lineSpace = userSetParagraphSpacing * lineHeight
+            durY += lineSpace
+//            Logger.d("ChapterProvider::setTypeText::empty text::lineSpace=$lineSpace,durY=$durY")
+            var curBounds = bounds
+            if (durY + lineHeight > visibleBottom) {
+                if (curBounds.isLeftColumn) {
+                    // 左列满 → 切右列（同页），不建新页
+                    curBounds = LayoutBounds.rightColumn()
+                    durY = paddingVertical.toFloat()
+                } else {
+                    // 右列满 / 单列装不下 → 建新页，回左列（或单列 page）
+                    val lastPage = textPages.last()
+                    lastPage.text = stringBuilder.toString()
+                    pageLines.add(lastPage.textLines.size)
+                    pageLengths.add(lastPage.text.length)
+                    lastPage.height = durY
+
+                    textPages.add(TextPage())
+                    stringBuilder.clear()
+                    durY = paddingVertical.toFloat()
+                    curBounds = if (dualColumnEnabled) LayoutBounds.leftColumn() else LayoutBounds.page()
+                }
+            } else {
+                durY += lineHeight
+            }
+            Logger.d("ChapterProvider::setTypeText::empty text:: after add lineHeight, then durY=$durY")
+            return LayoutCursor(durY, curBounds)
         }
 
-        var durY = if (isTitle) offsetY + titleTopSpacing else offsetY
 
         val textPaint = TextPaint()
         val parentPaint = if (paragraph is ReaderText.Text) {
@@ -1236,7 +1274,6 @@ object ChapterProvider {
         }
         textPaint.set(parentPaint)
 
-        val readerPrefs = readerPreferencesUtil?.readerPrefsFlow?.firstOrNull()
 
         var marginLeft = 0f
         var marginRight = 0f
@@ -1253,18 +1290,19 @@ object ChapterProvider {
         var lineHeightParam = 1f    //行高系数
         var oneWordWidth = 0f
         if (paragraph is ReaderText.Text) {
-            //文字大小
-            if (paragraph.textCssInfo.fontSize.isEm()) {
-                textPaint.textSize *= paragraph.textCssInfo.fontSize.value
-            } else if (paragraph.textCssInfo.fontSize.isPx()) {
-                textPaint.textSize = paragraph.textCssInfo.fontSize.value
-            }
             //文字粗体
             textPaint.typeface =
                 getTypeface(paragraph.textCssInfo.fontWeight, paragraph.textCssInfo.fontStyle)
             textAlign = paragraph.textCssInfo.textAlign
             if (paragraph.textCssInfo.fontStyle == CssFontStyle.CssFontStyleItalic) {   //设置斜体
                 textPaint.textSkewX = -0.25f
+            }
+            if (paragraph.textCssInfo.display == "block") {
+                val fs = paragraph.textCssInfo.fontSize
+                when {
+                    fs.isEm() -> textPaint.textSize *= fs.value
+                    fs.isPx() -> textPaint.textSize = fs.value
+                }
             }
 
             val userSetIndent = (readerPrefs?.paragraphIndent?.toFloat() ?: 0f)   //用户设置的首航缩进
@@ -1396,11 +1434,9 @@ object ChapterProvider {
         }
 
         if (!isTableRow && !isListRow) {
-            val userSetParagraphSpacing = readerPrefs?.paragraphSpacing?.toFloat() ?: 0.0f
 //            Logger.d("ChapterProvider::userSetParagraphSpacing=$userSetParagraphSpacing")
             durY += if (userSetParagraphSpacing > 0) (userSetParagraphSpacing * textPaint.textHeight) else marginTop
         }
-
 
         // v4：子函数返回 LayoutCursor，透传 bounds
         val result = if (isTableRow) {               //是表格行
@@ -1439,10 +1475,8 @@ object ChapterProvider {
         } else {                    //没有段落内的图片
             // F2: 构造含 Span 的 CharSequence(仅当段落有 inline 字号时)
             // ★ 命名注意:局部变量用 paragraphInlineFontSizes(避免与 setNormalText 参数 inlineFontSizes 同名遮蔽)
-            val paragraphInlineFontSizes: List<InlineFontSize>? = if (paragraph is ReaderText.Text) {
-                paragraph.inlineFontSizes ?: run {
-                    paragraph.inlineFontSizes
-                }
+            val paragraphInlineFontSizes: List<InlineStyle>? = if (paragraph is ReaderText.Text) {
+                paragraph.inlineStyles
             } else {
                 null  // 标题(ReaderText.Chapter)/图片走旧路径
             }
@@ -2077,7 +2111,7 @@ object ChapterProvider {
      */
     private suspend fun setNormalText(
         text: CharSequence,                          // F3: String → CharSequence(支持 Spannable)
-        inlineFontSizes: List<InlineFontSize>?,      // F3 新增:几何轨 per-char scale 反查数据源
+        inlineFontSizes: List<InlineStyle>?,      // F3 新增:几何轨 per-char scale 反查数据源
         textPaint: TextPaint,
         marginLeft: Float,
         marginRight: Float,
@@ -2119,7 +2153,7 @@ object ChapterProvider {
             { 1f }   // 零开销:无 inline 字号,所有字符 scale=1
         } else {
             { offset ->
-                inlineFontSizes.lastOrNull { offset in it.start until it.end }?.scale ?: 1f
+                inlineFontSizes.lastOrNull { offset in it.start until it.end }?.props?.fontScale ?: 1f
             }
         }
 
@@ -2421,7 +2455,8 @@ object ChapterProvider {
      * 无效参数（<=0）不更新状态，返回 false，避免无意义的重排。
      */
     fun setViewSize(context: Context, width: Int, height: Int): Boolean {
-        Logger.d("ChapterProvider::setViewSize,width=$width, height=$height")
+        Logger.d("ChapterProvider::setViewSize,width=$width, height=$height," +
+                "paddingHorizontal=$paddingHorizontal, paddingVertical=$paddingVertical")
         if (width <= 0 || height <= 0) {
             Logger.d("ChapterProvider::setViewSize invalid dimensions, changed=false")
             return false

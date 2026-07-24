@@ -610,7 +610,7 @@ int epub_util::load_epub(std::string fullpath,  //文件路径
 }
 
 int epub_util::parseOpfData(std::vector<NavPoint> &points) {
-    LOGI("%s:bookload:invoke", __func__);
+//    LOGI("%s:bookload:invoke", __func__);
     std::vector<std::pair<std::string, std::string>> orderedItemSrc;
     for(auto spine : spines) {
         auto it = std::find_if(manifests.begin(), manifests.end(), [=](BookManifest &item){
@@ -740,7 +740,7 @@ int epub_util::parseOpfData(std::vector<NavPoint> &points) {
 
     //遍历的路径，如果某几个章节对应同一个资源，但是这些章节都不包含这个资源的开头部分
     if (!newPoints.empty()) {
-        LOGI("%s:bookload:newPoints.size=%d", __func__, newPoints.size());
+//        LOGI("%s:bookload:newPoints.size=%d", __func__, newPoints.size());
         for(int i = 0; i< newPoints.size(); ++i) {
             auto &point = newPoints[i];
             if (point.src.find("#") != std::string::npos) { //章节链接中有锚点
@@ -806,7 +806,7 @@ int epub_util::parseOpfData(std::vector<NavPoint> &points) {
         }
     }
 
-    LOGI("%s:bookload:orderedItemSrc.size=%d", __func__, orderedItemSrc.size());
+//    LOGI("%s:bookload:orderedItemSrc.size=%d", __func__, orderedItemSrc.size());
 
     // 检测超大单文件 spine 项，触发虚拟切分
     if (orderedItemSrc.size() <= 2 && newPoints.size() <= 2) {
@@ -884,7 +884,7 @@ int epub_util::parseOpfData(std::vector<NavPoint> &points) {
         }
     }
 
-    LOGI("%s:bookload:invoke ready done, newPoints.size=%d", __func__, newPoints.size());
+//    LOGI("%s:bookload:invoke ready done, newPoints.size=%d", __func__, newPoints.size());
 
     points.clear();
     points.insert(points.end(), newPoints.begin(), newPoints.end());
@@ -893,7 +893,7 @@ int epub_util::parseOpfData(std::vector<NavPoint> &points) {
 }
 
 void epub_util::valid_points(/*in,out*/std::vector<NavPoint> &points) {
-    LOGI("%s:invoke", __func__);
+//    LOGI("%s:invoke", __func__);
     if (points.empty()) {
         return;
     }
@@ -947,8 +947,8 @@ void epub_util::valid_points(/*in,out*/std::vector<NavPoint> &points) {
 
         if (it != zipEntities.end()) {
             found = true;
-            LOGD("%s: NavPoint id=[%s], text=[%s], src=[%s] found directly",
-                 __func__, point.id.c_str(), point.text.c_str(), point.src.c_str());
+//            LOGD("%s: NavPoint id=[%s], text=[%s], src=[%s] found directly",
+//                 __func__, point.id.c_str(), point.text.c_str(), point.src.c_str());
         }
         // 如果找到了有效的文件，保留该 NavPoint
         if (found) {
@@ -1019,25 +1019,25 @@ int epub_util::getChapters(/*out*/std::vector<NavPoint> &points) {
             }
         }
     } else if (!ncx_path.empty()) {
-        LOGI("%s:bookload:ncx_path=%s", __func__, ncx_path.c_str());
+//        LOGI("%s:bookload:ncx_path=%s", __func__, ncx_path.c_str());
         ncx_path = cover_to_zip_entity(ncx_path);
         if (1 != load_zip_entity_data(ncx_path, ncx_data)) {
             LOGE("%s failed get0 [%s] ncx data failed", __func__, ncx_path.c_str());
             return 0;
         }
-        LOGD("%s ncx_path[%s]", __func__, ncx_path.c_str());
+//        LOGD("%s ncx_path[%s]", __func__, ncx_path.c_str());
 
         if (!ncx_data.empty()) {
-            LOGI("%s:bookload:ncx_data=%s", __func__, ncx_data.c_str());
+//            LOGI("%s:bookload:ncx_data=%s", __func__, ncx_data.c_str());
             int ret = xml2_ext::normalize_xml(ncx_data);
             if (1 != xml_ext::parseNcxData(ncx_data, points)) {
                 LOGE("%s failed, cannot pass ncx", __func__);
                 return 0;
             }
         }
-        LOGI("%s:bookload:then start valid_points", __func__);
+//        LOGI("%s:bookload:then start valid_points", __func__);
         valid_points(points);
-        LOGI("%s:bookload:then valid_points done", __func__);
+//        LOGI("%s:bookload:then valid_points done", __func__);
     }
     if (1 != parseOpfData(points)) {
         LOGE("%s failed, cannot pass opf", __func__);
@@ -1059,7 +1059,7 @@ int epub_util::getChapter(JNIEnv *env, long book_id,
                           const char *path,
                           NavPoint &chapter,
                           std::vector<DocText> &docTexts) {
-    LOGI("%s:invoke", __func__);
+//    LOGI("%s:invoke", __func__);
     if (!run_flag) {
         LOGI("%s:invoke failed, run_flag false", __func__);
         return 0;
@@ -1067,7 +1067,7 @@ int epub_util::getChapter(JNIEnv *env, long book_id,
 
     auto start_time = std::chrono::high_resolution_clock::now();
     std::lock_guard<std::mutex> lock(m_Mutex2);
-    LOGD("%s invoke,playOrder[%d],src[%s]", __func__, chapter.playOrder, chapter.src.c_str());
+//    LOGD("%s invoke,playOrder[%d],src[%s]", __func__, chapter.playOrder, chapter.src.c_str());
     if (!initStatus) {
         LOGE("%s:init status failed, so pass", __func__);
         return 0;
@@ -1080,7 +1080,7 @@ int epub_util::getChapter(JNIEnv *env, long book_id,
     std::string spineSrc;
     std::string anchorId;
     parseSrcName(chapter.src, spineSrc, anchorId);
-    LOGD("%s chapter spineSrc[%s] anchorId=[%s]", __func__, spineSrc.c_str(), anchorId.c_str());
+//    LOGD("%s chapter spineSrc[%s] anchorId=[%s]", __func__, spineSrc.c_str(), anchorId.c_str());
 
     // === 虚拟切分章节：从文件缓存按段读取小正文，交给解析器 ===
     if (chapter.type == 1) {

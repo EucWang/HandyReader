@@ -315,7 +315,7 @@ void xml_ext::parseNavData(tinyxml2::XMLElement *firstNavPoint, std::vector<NavP
             id = string_ext::generate_uuid();
         }
 
-        LOGD("%s::id[%s],playOrder[%s],label[%s],src[%s],totalPlayOrder=%d", __func__, id.c_str(), strPlayOrder.c_str(), label.c_str(), src.c_str(), totalPlayOrder);
+//        LOGD("%s::id[%s],playOrder[%s],label[%s],src[%s],totalPlayOrder=%d", __func__, id.c_str(), strPlayOrder.c_str(), label.c_str(), src.c_str(), totalPlayOrder);
 
         if (!src.empty()) {
             if (string_ext::startWith(src, "content/file:")) { //脏数据路径的情况
