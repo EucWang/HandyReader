@@ -174,6 +174,7 @@ fun ReaderSettings(
                     onValueChangeFinished = {
                         viewModel.commitBrightness()
                     },
+                    liveDrag = true,
                     valueRange = 0.0f..1.0f,
                     valueDisplay = {
                         it.roundWithDot(1)
@@ -588,8 +589,20 @@ fun SettingsSlider(
     valueDisplay: (Float) -> String,
     enabled: Boolean = true,
     onValueChangeFinished: (() -> Unit)? = null,
+    // When false (default), [onValueChange] fires only once — on release. Use this for values
+    // whose commit is expensive (font size, spacing, margins…): each such commit persists to
+    // DataStore and triggers a full chapter repagination, so firing it on every drag increment
+    // causes lag and mis-sized flashing. Set true only for cheap live-preview values (e.g.
+    // brightness) that should update continuously while dragging; those must commit/persist in
+    // [onValueChangeFinished].
+    liveDrag: Boolean = false,
     modifier : Modifier = Modifier.fillMaxWidth()
 ) {
+    // The thumb tracks the finger via purely-local state so the label + thumb move smoothly even
+    // when the commit is deferred to release. `remember(value)` re-seeds the local state whenever
+    // the persisted value changes from outside (theme switch, reset-to-default), keeping the thumb
+    // in sync with external updates.
+    var sliderValue by remember(value) { mutableStateOf(value) }
     Column(
         modifier = modifier,
         horizontalAlignment = Alignment.CenterHorizontally,
@@ -605,16 +618,22 @@ fun SettingsSlider(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             Slider(
-                value = value,
-                onValueChange = onValueChange,
-                onValueChangeFinished = onValueChangeFinished,
+                value = sliderValue,
+                onValueChange = {
+                    sliderValue = it
+                    if (liveDrag) onValueChange(it)
+                },
+                onValueChangeFinished = {
+                    if (!liveDrag) onValueChange(sliderValue)
+                    onValueChangeFinished?.invoke()
+                },
                 valueRange = valueRange,
                 enabled = enabled,
                 modifier = Modifier.weight(1f).height(32.dp),
             )
 
             Text(
-                text = valueDisplay(value),
+                text = valueDisplay(sliderValue),
                 style = MaterialTheme.typography.bodyMedium,
                 modifier = Modifier.wrapContentWidth(),
                 textAlign = TextAlign.Center,

@@ -2325,7 +2325,9 @@ object ChapterProvider {
         Logger.d("ChapterProvider::init,then invoke ChapterProvider::upStyle")
         this.readTipPreferencesUtil = readTipPreferencesUtil
         this.readerPreferencesUtil = readerPreferencesUtil
-        upStyle(context)
+        Coroutines.mainScope().launch {
+            upStyle(context)
+        }
     }
 
     private fun userTextAlignToCss(userTextAlign: Int): CssTextAlign {
