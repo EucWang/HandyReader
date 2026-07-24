@@ -1846,7 +1846,20 @@ object ChapterProvider {
         var durY = offsetY
         var currentBounds = bounds   // v4：局部变量，随列切换更新
         if (paragraph is ReaderText.Text) {
-            // [P7 修复] 函数入口深拷贝 annotation 列表，全程操作副本，绝不写回 paragraph.annotations
+
+            val paragraphInlineStyles: List<InlineStyle>? = paragraph.inlineStyles
+            val hasInlineScale = !paragraphInlineStyles.isNullOrEmpty() &&
+                    paragraphInlineStyles.any { it.props.fontScale != null }
+            //根据偏移位置，查找该位置的字符是否存在字体大小的缩放
+            val charScaleLookup: (Int) -> Float = if (hasInlineScale) {
+                { offset ->
+                    paragraphInlineStyles.lastOrNull { offset in it.start until it.end }
+                        ?.props?.fontScale ?: 1f
+                }
+            } else {
+                { 1f }   // 零开销：无 inline 字号，所有字符 scale=1
+            }
+
             // imgTags 深拷贝：避免原地修改 paragraph.annotations 中的 TextTag
             var imgTags = paragraph.annotations.filter { tag ->
                 tag.name == "img" || tag.name == "image"
@@ -1891,10 +1904,17 @@ object ChapterProvider {
             var newPartWithNewLine = true   //新的分段是否需要新的分行，
             var latestPartLine: TextLine? = null
             var pentingImg: TextTag? = null //上一小分段中，图片塞不下了， 放入到下一行第一个位置显示
+            var segBaseOriginal = 0   // 段在原始 paragraph.line 的起始 offset（C1，不含占位字）
             for ((partIndex, text) in texts.withIndex()) {  //对每一部分都进行布局测量
-
+                val layoutSource: CharSequence = if (hasInlineScale) {
+                    buildSegmentSpanned(text, segBaseOriginal, paragraphInlineStyles)
+                } else {
+                    text   // 无 inline：保持纯 String（零开销，行为与改造前逐行等价）
+                }
                 val layout = StaticLayout.Builder.obtain(
-                    text, 0, text.length,
+                    layoutSource,
+                    0,
+                    layoutSource.length,
                     textPaint,
                     currentBounds.width - marginLeft.roundToInt() - marginRight.roundToInt()   // v4：currentBounds.width
                 )
@@ -1994,7 +2014,9 @@ object ChapterProvider {
                             layoutLineWords.toStringArray(),
                             textPaint,
                             marginLeft + (if (layoutLineIndex == 0) morePartIndent else 0f),
-                            currentBounds   // v4：透传当前列（此时已是切列后的正确列）
+                            currentBounds,
+                            charScaleLookup,
+                            segBaseOriginal + offsetStart
                         )
 
                         CssTextAlign.CssTextAlignRight -> addCharsToLineRight(
@@ -2003,7 +2025,9 @@ object ChapterProvider {
                             textPaint,
                             desiredWidth,
                             marginRight,
-                            currentBounds
+                            currentBounds,
+                            charScaleLookup,
+                            segBaseOriginal + offsetStart
                         )
 
                         CssTextAlign.CssTextAlignCenter -> addCharsToLineCenter(
@@ -2011,7 +2035,9 @@ object ChapterProvider {
                             layoutLineWords.toStringArray(),
                             textPaint,
                             desiredWidth,
-                            currentBounds
+                            currentBounds,
+                            charScaleLookup,
+                            segBaseOriginal + offsetStart
                         )
 //                        CssTextAlign.CssTextAlignJustify -> {
 //                            if (layout.lineCount == 1) {
@@ -2093,10 +2119,40 @@ object ChapterProvider {
                         newPartWithNewLine = true
                     }
                 }
+                segBaseOriginal += text.length
             }
             // [P7 修复] 注意：函数结束时 NEVER 把 allTags 写回 paragraph.annotations（副本被丢弃）
         }
         return LayoutCursor(durY, currentBounds)
+    }
+
+    /***
+     * 为 setTextWithInnerImg 构造 每个小段内的 inlineStyle 的SpannableString
+     */
+    private fun buildSegmentSpanned(
+        segment: String,
+        segBaseOriginal: Int,
+        inlineStyles: List<InlineStyle>
+    ): CharSequence {
+        val segEndOriginal = segBaseOriginal + segment.length
+        val hits = inlineStyles.filter {
+            it.props.fontScale != null && it.start < segEndOriginal && it.end > segBaseOriginal
+        }
+        if (hits.isEmpty()) return segment // no inline Style, pass
+        val ssb = SpannableStringBuilder(segment)
+        hits.forEach { style ->
+            val start = (style.start - segBaseOriginal).coerceIn(0, segment.length)
+            val end = (style.end - segBaseOriginal).coerceIn(start, segment.length)
+            val scale = style.props.fontScale ?: 1.0f
+            if (end > start) {
+                ssb.setSpan(
+                    RelativeSizeSpan(scale),
+                    start,
+                    end,
+                    Spanned.SPAN_EXCLUSIVE_EXCLUSIVE)
+            }
+        }
+        return ssb
     }
 
 
