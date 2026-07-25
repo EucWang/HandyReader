@@ -65,7 +65,8 @@ CssInfo parse_to_css_info_with_rules(future::Selector *selector,
         }
     }
 
-    return CssInfo{identifier, selector->weight(), selector->isBaseSelector(), params, selectorType};
+    // sourceOrder=0 占位,真实值由 emit_css_infos_iterative 在 emplace_back 后回填
+    return CssInfo{identifier, selector->weight(), selector->isBaseSelector(), params, selectorType, 0};
 }
 
 /****
@@ -73,6 +74,8 @@ CssInfo parse_to_css_info_with_rules(future::Selector *selector,
  * - 用显式栈替代递归,避免栈溢出
  * - ruleData 从父级(GroupSelector/SequenceSelector/CombineSelector)向下透传
  * - CombineSelector 用 getCombineType() != NoCombine 判断(getBefore/getAfter 在未配置时返回 UB)
+ * - v4.0.1:每次 emplace_back 后回填 sourceOrder = cssInfos.size()-1(= CSS 源码出现顺序),
+ *   作为 sort 的全序 tiebreaker。跨多次 parse_css 调用单调递增,自然形成全局源码顺序。
  * @param root 顶层 selector
  * @param rootRuleData 顶层 selector 的 ruleData(顶层 selector 通常已 setRuleData)
  * @param cssInfos 输出:累积 CssInfo 列表(不在内部去重,去重推迟到 handle_tags 入口)
@@ -112,16 +115,19 @@ static void emit_css_infos_iterative(future::Selector *root,
             auto *s = dynamic_cast<future::ClassSelector *>(selector);
             if (s) {
                 cssInfos.emplace_back(parse_to_css_info_with_rules(s, s->getClassIdentifier(), 0, ruleData));
+                cssInfos.back().sourceOrder = cssInfos.size() - 1;  // v4.0.1: 回填源码顺序
             }
         } else if (type == future::TypeSelector::SelectorType::TypeSelector) {
             auto *s = dynamic_cast<future::TypeSelector *>(selector);
             if (s) {
                 cssInfos.emplace_back(parse_to_css_info_with_rules(s, s->getTagName(), 1, ruleData));
+                cssInfos.back().sourceOrder = cssInfos.size() - 1;  // v4.0.1: 回填源码顺序
             }
         } else if (type == future::IdSelector::SelectorType::IDSelector) {
             auto *s = dynamic_cast<future::IdSelector *>(selector);
             if (s) {
                 cssInfos.emplace_back(parse_to_css_info_with_rules(s, s->getIdIdentifier(), 2, ruleData));
+                cssInfos.back().sourceOrder = cssInfos.size() - 1;  // v4.0.1: 回填源码顺序
             }
         } else if (type == future::Selector::SelectorGroup) {
             auto *group = dynamic_cast<future::GroupSelector *>(selector);
@@ -169,10 +175,11 @@ void css_ext::parse_css(std::string &css_data,
     future::CSSParser cssParser;
     bool ret = cssParser.parseByString(css_data);
     if (ret) {
-        const std::set<future::Selector *> &set = cssParser.getSelectors();
+        // v4.0.1: getSelectors 现返回 vector<(CSS 源码顺序),不再按指针地址排序
+        const std::vector<future::Selector *> &selectors = cssParser.getSelectors();
         // v4.0:预留空间,避免多次 emplace_back 触发多次 reallocate
-        cssInfos.reserve(cssInfos.size() + set.size() * 2);
-        for (auto it = set.begin(); it != set.end(); it++) {
+        cssInfos.reserve(cssInfos.size() + selectors.size() * 2);
+        for (auto it = selectors.begin(); it != selectors.end(); it++) {
             // 顶层 selector 的 ruleData 已被 CSSParser.cpp:170/178 set 过,
             // 传空串作为初始 parentRuleData,emit_css_infos_iterative 内部会用 selector 自身的 ruleData
             emit_css_infos_iterative(*it, std::string(), cssInfos);
@@ -193,9 +200,19 @@ void css_ext::sort_and_deduplicate_inplace(std::vector<CssInfo> &cssInfos) {
         return;
     }
 
+    //stable_sort + tiebreaker（weight 相同时按 type+identifier+原始下标定序）
     // 1. 按 weight 升序排序(低 specificity 在前,高在后;后续 last-wins 时高获胜)
-    std::sort(cssInfos.begin(), cssInfos.end(),
-              [](const CssInfo &a, const CssInfo &b) { return a.weight < b.weight; });
+    // v4.0.1 修复:stable_sort + sourceOrder 全序 tiebreaker。
+    //   sourceOrder 由 emit_css_infos_iterative 在 emplace_back 后回填 = CSS 源码出现顺序,
+    //   跨多次 parse_css 调用单调递增。等 weight 规则按源码顺序排列,后写胜出,
+    //   与浏览器 CSS cascade 一致,且跨进程启动完全确定。
+    //   删除原 &a - &orig[0] 跨数组指针减法(C++ [expr.add]/5 UB);删除 (type, identifier)
+    //   字典序中间层——sourceOrder 已是全序,字典序多余且会把同 selector 多规则按字母序打散。
+    std::stable_sort(cssInfos.begin(), cssInfos.end(),
+                     [](const CssInfo &a, const CssInfo &b) {
+                         if (a.weight != b.weight) return a.weight < b.weight;
+                         return a.sourceOrder < b.sourceOrder;
+                     });
 
     // 2. 按 type+identifier 分组聚合
     // 使用 map<key, vector<size_t>> 记录每组的索引
@@ -295,54 +312,4 @@ std::string css_ext::apply_css_to_params(const std::string &params,
         result = result.substr(0, result.length() - 1);
     }
     return result;
-}
-
-/****
- * 根据 传入的 cssClasses, cssTags, cssIds 查找对应的Css数据,并保存到cssInfos中输出
- * @param css_data
- * @param cssClasses
- * @param cssTags
- * @param cssIds
- * @param cssInfos
- */
-void css_ext::query_css(std::string &css_data,
-                        std::vector<std::string> &cssClasses,
-                        std::vector<std::string> &cssTags,
-                        std::vector<std::string> &cssIds,
-                        std::vector<CssInfo> &cssInfos) {
-    if (css_data.empty()) {
-        return;
-    }
-    if (cssClasses.empty() && cssTags.empty() && cssIds.empty()) {
-        return;
-    }
-
-    future::CSSParser cssParser;
-    bool ret = cssParser.parseByString(css_data);
-    if (ret) {
-        const std::set<future::Selector *> &set = cssParser.getSelectors();
-        for (auto it = set.begin(); it != set.end(); it++) {
-            auto type = (*it)->getType();
-            if (type == future::ClassSelector::SelectorType::ClassSelector && !cssClasses.empty()) {
-                auto *selector = dynamic_cast<future::ClassSelector *>(*it);
-                auto cssid = selector->getClassIdentifier();
-                if (std::find(cssClasses.begin(), cssClasses.end(), cssid) != cssClasses.end()) {
-                    cssInfos.emplace_back(parse_to_css_info(selector, cssid, 0));
-                }
-            } else if (type == future::TypeSelector::SelectorType::TypeSelector && !cssTags.empty()) {
-                auto *selector = dynamic_cast<future::TypeSelector *>(*it);
-                std::string identifier = selector->getTagName();
-                if (std::find(cssTags.begin(), cssTags.end(), identifier) != cssTags.end()) {
-                    cssInfos.emplace_back(parse_to_css_info(selector, identifier, 1));
-                }
-
-            } else if (type == future::IdSelector::SelectorType::IDSelector && !cssIds.empty()) {
-                auto *selector = dynamic_cast<future::IdSelector *>(*it);
-                std::string identifier = selector->getIdIdentifier();
-                if (std::find(cssIds.begin(), cssIds.end(), identifier) != cssIds.end()) {
-                    cssInfos.emplace_back(parse_to_css_info(selector, identifier, 2));
-                }
-            }
-        }
-    }
 }

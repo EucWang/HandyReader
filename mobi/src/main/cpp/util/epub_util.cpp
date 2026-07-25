@@ -1332,6 +1332,8 @@ void epub_util::handle_tags(JNIEnv *env, std::vector<DocText> &docTexts, std::ve
     // v4.0 新增:对累积后的 cssInfos 做 sort + deduplicate
     // 修复 specificity bug(weight dead field)和重复注入问题
     // 调用时机:parse_css 已累积完内联 <style> + 外链 <link> CSS 后
+    // v4.0.1:cssInfos 顺序已由上游 parse_css(getSelectors 返回 vector,保持 CSS 源码顺序)
+    //   和 sourceOrder 字段保证确定;本函数下方按 cssInfos 顺序拼接 rule_datas 也因此确定。
     css_ext::sort_and_deduplicate_inplace(cssInfos);
     for (auto &doctext: docTexts) {
         if (!doctext.tagInfos.empty()) {

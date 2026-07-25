@@ -12,7 +12,7 @@
 #include <stdio.h>
 #include <iostream>
 #include <stack>
-#include <set>
+#include <vector>
 #include "CSSLex.hpp"
 #include "CSSParserStatus.h"
 #include "Selectors/SelectorsHeader.h"
@@ -50,8 +50,13 @@ namespace future {
         
         /**
          * Get the selector models
+         *
+         * v4.0.1 修复:返回插入顺序(CSS 源码出现顺序)的 vector 引用,
+         * 不再按指针地址排序。这是 CSS cascade 的自然 tiebreaker:
+         * 源码顺序靠后的规则胜出,与浏览器一致。
+         * 返回 const 引用避免每次调用拷贝整个容器。
          */
-        std::set<Selector *>       getSelectors();
+        const std::vector<Selector *>&  getSelectors();
         
         /**
          * Get the Keyworld models
@@ -104,7 +109,12 @@ namespace future {
         Lex*                        m_lexer;
         CSSParserStatus             m_status;
         std::string                 m_hostCssFile;
-        std::set<Selector *>       m_selectors;
+        // v4.0.1 修复:由 std::set<Selector*> 改为 std::vector<Selector*>,
+        // 原因:set 无自定义比较器时按指针地址排序,跨进程启动随机,
+        // 导致下游 cssInfos 顺序随机 → tag.params 随机 → pageSize 抖动。
+        // vector 保持插入顺序(= CSS 源码顺序),是确定性的。
+        // 不需要去重:每次 new ClassSelector 等都是新对象,指针必不同。
+        std::vector<Selector *>     m_selectors;
         std::list<KeywordItem *>    m_keywords;
         std::list<Selector *> 		 m_signSelecors;
     };

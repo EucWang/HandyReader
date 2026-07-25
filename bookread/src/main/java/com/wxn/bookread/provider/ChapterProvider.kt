@@ -2243,10 +2243,6 @@ object ChapterProvider {
             val lineAscent = layout.getLineAscent(lineIndex).toFloat()        // 负值
             val lineDescent = layout.getLineDescent(lineIndex).toFloat()      // 正值
             val actualLineHeight = (lineDescent - lineAscent) * lineSpacingExtra * lineHeightParam
-            // [TEMP-DEBUG v4.0] 排查 capitularR 不放大问题 - 看首行行高是否含放大 L
-            if (inlineFontSizes?.isNotEmpty() == true && lineIndex == 0) {
-                Logger.d("F3-DEBUG: para=$paragraphIndex line=$lineIndex offsetStart=$offsetStart offsetEnd=$offsetEnd ascent=$lineAscent descent=$lineDescent actualLineHeight=$actualLineHeight inlineFontSizes=$inlineFontSizes")
-            }
             val actualDescent = lineDescent * lineSpacingExtra * lineHeightParam   // upTopBottom 用(基线 = bottom - descent)
 
             //v4 方案 B：逐行判断「装不下当前列 → 切列/建新页」，与单列分页同构。

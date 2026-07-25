@@ -4,20 +4,16 @@ import android.os.Build
 import androidx.compose.runtime.Stable
 import androidx.compose.ui.graphics.toArgb
 import androidx.core.graphics.toColorInt
-import com.wxn.base.util.Logger
 import android.graphics.Color as AndroidColor
 import androidx.compose.ui.graphics.Color as ComposeColor
 
 //在 Android 中，颜色值可以以多种格式表示，包括 rgb、argb、rrggbb、aarrggbb 等，Color.parseColor 支持这些格式
 fun String.toColor(): Int? {
-    Logger.d("ColorExt::color=${this}")
     if (this.isEmpty()) return null
     return try {
         val ret = parseCssColor() ?: this.toColorInt()
-        Logger.d("ColorExt::ret=${ret.toHexString(HexFormat.UpperCase)}")
         ret
     } catch (ex: Exception) {
-        Logger.d("ColorExt::ex=$ex")
         null
     }
 }
