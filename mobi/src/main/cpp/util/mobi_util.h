@@ -68,6 +68,7 @@ public:
         }
         allChapters.clear();
         currentSrc = "";
+        currentCssInfos.clear();
     }
 
     /***
@@ -80,6 +81,7 @@ public:
         doc.ClearError();
         doc.Clear();
         currentSrc = "";
+        currentCssInfos.clear();
         isSingleSrc = false;
     }
 
@@ -121,6 +123,12 @@ private:
     MOBIData *mobi_data;
 
     std::string currentSrc;
+    /**
+     * CSS parsed for [currentSrc] — cached with the `doc` / [currentSrc] pair, since getChapter()
+     * only re-reads and re-parses the spine document when spineSrc != currentSrc. A repeat call for
+     * the same document must reuse this rather than apply no CSS at all.
+     */
+    std::vector<CssInfo> currentCssInfos;
 
     int init();
 

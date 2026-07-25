@@ -1273,6 +1273,14 @@ int epub_util::getChapter(JNIEnv *env, long book_id,
         }
 
         currentSrc = spineSrc;
+        // Cache the CSS with the document it was parsed from: the branch above is skipped when the
+        // same spine document is requested twice in a row, and cssInfos would then stay empty.
+        currentCssInfos = cssInfos;
+    } else {
+        // Same spine document as the previous call — `doc` is still the parsed one, so reuse its
+        // CSS. Without this the chapter gets paginated with no publisher stylesheet at all, making
+        // the rendered font size depend on the order in which chapters happen to be loaded.
+        cssInfos = currentCssInfos;
     }
 
     if (!run_flag) {

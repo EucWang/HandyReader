@@ -74,6 +74,7 @@ public:
         }
         allChapters.clear();
         currentSrc = "";
+        currentCssInfos.clear();
         isEmptyCss = false;
     }
 
@@ -83,6 +84,7 @@ public:
         doc.ClearError();
         doc.Clear();
         currentSrc = "";
+        currentCssInfos.clear();
         isSingleSrc = false;
         isEmptyCss = false;
         epub_release();
@@ -148,6 +150,13 @@ private:
     mutable std::mutex m_Mutex4;
     unzFile bookzip;
     std::string currentSrc;
+    /**
+     * CSS parsed for [currentSrc]. Must be cached together with the `doc` / [currentSrc] pair:
+     * getChapter() only re-reads and re-parses the spine document when spineSrc != currentSrc, so
+     * a repeat call for the same document has to reuse this instead of applying no CSS at all
+     * (which silently paginated the chapter without the publisher stylesheet).
+     */
+    std::vector<CssInfo> currentCssInfos;
     bool isEmptyCss;
     std::vector<BookManifest> manifests;
     std::vector<BookSpine> spines;
