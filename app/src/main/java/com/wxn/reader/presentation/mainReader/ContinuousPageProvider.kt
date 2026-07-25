@@ -11,6 +11,7 @@ import com.wxn.bookread.data.model.TextChapter
 import com.wxn.bookread.data.model.TextChar
 import com.wxn.bookread.data.model.TextLine
 import com.wxn.bookread.data.model.TextPage
+import com.wxn.bookread.provider.ChapterProvider
 import com.wxn.bookread.ui.IDataSource
 import com.wxn.bookread.ui.PageCallback
 import com.wxn.reader.presentation.mainReader.models.PreloadState
@@ -133,7 +134,7 @@ class ContinuousPageProvider(
     }
 
     override fun findChapterByPosition(position: Int): TextChapter? {
-        return pageController.getCachedChapter(position) ?: preloadedChapters[position]
+        return pageController.getCachedChapter(position) ?: freshPreloadedChapter(position)
     }
 
     // 预加载 Job
@@ -156,6 +157,13 @@ class ContinuousPageProvider(
 
     // 预加载的章节缓存（超出3槽位范围的章节）
     private val preloadedChapters = ConcurrentHashMap<Int, TextChapter>()
+
+    // A preloaded chapter may have been paginated before a later style change (font size,
+    // etc.) landed - upStyle() clears this map on change, but an in-flight preload job can
+    // still race past that clear and write a stale entry right after. Reject stale hits here
+    // too so callers always fall back to a fresh pagination instead of a wrongly-sized one.
+    private fun freshPreloadedChapter(position: Int): TextChapter? =
+        preloadedChapters[position]?.takeIf { it.styleVersion == ChapterProvider.styleVersion.get() }
 
     // --- 文本选区状态 ---
     /**
@@ -431,7 +439,7 @@ class ContinuousPageProvider(
 
         // 快速路径：章节已在 3 槽位缓存或预加载缓存中
         val cached = pageController.getCachedChapter(theChapterIndex)
-            ?: preloadedChapters[theChapterIndex]
+            ?: freshPreloadedChapter(theChapterIndex)
         if (cached != null) {
             Logger.d("ContinuousPageProvider::loadChaptersForScroll: fast path (cached)")
             cancelOutdatedPreloads(theChapterIndex)
@@ -508,7 +516,7 @@ class ContinuousPageProvider(
         val chapterSize = pageController.chapterSize
         if (nextChapterIndex >= chapterSize) return
         if (pageController.getCachedChapter(nextChapterIndex) != null) return
-        if (preloadedChapters.containsKey(nextChapterIndex)) return
+        if (freshPreloadedChapter(nextChapterIndex) != null) return
 
         if (scrollLoadJob?.isActive == true) return  // 章节切换中，不预加载
         Logger.d("ContinuousPageProvider:preloadNextChapter: nextChapterIndex=$nextChapterIndex")
@@ -596,7 +604,7 @@ class ContinuousPageProvider(
         val prevChapterIndex = firstChapterInPages - 1
         if (prevChapterIndex < 0) return
         if (pageController.getCachedChapter(prevChapterIndex) != null) return
-        if (preloadedChapters.containsKey(prevChapterIndex)) return
+        if (freshPreloadedChapter(prevChapterIndex) != null) return
         if (scrollLoadJob?.isActive == true) return  // 章节切换中，不预加载
         Logger.d("ContinuousPageProvider:preloadPrevChapter: prevChapterIndex=$prevChapterIndex")
         val state = preloadPrevState
@@ -794,7 +802,7 @@ class ContinuousPageProvider(
 
         for (chapterIdx in validStart..validEnd) {
             val chapter = pageController.getCachedChapter(chapterIdx)
-                ?: preloadedChapters[chapterIdx]
+                ?: freshPreloadedChapter(chapterIdx)
             if (chapter != null && chapter.pages.isNotEmpty()) {
                 chapter.pages.forEachIndexed { pageIdx, page ->
                     mergedList.add(

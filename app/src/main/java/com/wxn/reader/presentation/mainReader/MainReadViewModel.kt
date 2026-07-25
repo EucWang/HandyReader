@@ -1133,8 +1133,14 @@ class MainReadViewModel @Inject constructor(
      * 6. 活跃主题 `*` 标记实时维护（per-book 模式下改为按 delta 判定，见下方分支）
      *
      * @param newPref effective 流算出的最终生效偏好（全局或 基线∪delta）
+     *
+     * suspend: pageController.updatePageViews() now awaits the on-screen chapter's repagination
+     * before redrawing (fixes the mis-sized flash while dragging the font-size slider), so this
+     * needs to be suspend too. Its only caller is the effectiveReaderPrefsFlow collector below,
+     * already inside a coroutine — Flow.collect naturally serializes/conflates rapid emissions,
+     * so a slower device just lags slightly behind the slider instead of flashing.
      */
-    private fun applyReaderPreferences(newPref: ReaderPreferences) {
+    private suspend fun applyReaderPreferences(newPref: ReaderPreferences) {
         val oldPref = _readerPreferences.value
         _readerPreferences.value = newPref
         // ★ v11 per-book：推入 override 层，让渲染层（ChapterProvider 等）通过 readerPrefsFlow 自动拿到 effective 值

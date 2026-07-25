@@ -23,6 +23,7 @@ data class TextChapter(
     var picCount: Long = 0L,                                                        //图片数
     var chapterProgress: Float = 0f,
     var totalWordCount: Long = 0L,
+    val styleVersion: Int = -1,       //style version active at pagination time, used to detect a stale pre-paginated cache
 ) {
 
     fun page(index: Int): TextPage? {

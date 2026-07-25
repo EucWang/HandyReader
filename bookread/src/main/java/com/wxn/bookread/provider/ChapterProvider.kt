@@ -36,7 +36,6 @@ import com.wxn.bookread.data.source.local.ReadTipPreferencesUtil
 import com.wxn.bookread.data.source.local.ReaderPreferencesUtil
 import com.wxn.bookread.ext.dp
 import com.wxn.bookread.textHeight
-import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
@@ -283,6 +282,14 @@ object ChapterProvider {
     val aPaint: TextPaint = TextPaint()
 
     /**
+     * Incremented every time applyStyleInternal takes effect. Stamped onto each TextChapter
+     * at pagination time so pre-paginated caches (nextTextChapter/prevTextChapter, etc.) can
+     * be checked for staleness before being reused (e.g. font size changed after they were
+     * paginated but before they were displayed).
+     */
+    val styleVersion = java.util.concurrent.atomic.AtomicInteger(0)
+    
+    /*
      * F4 新增:几何轨工作 paint,用于 addCharsToLineXxx 按字符 scale 算宽度时临时切 textSize。
      * 与现有 contentPaint/titlePaint 等共享相同线程模型(getTextChapter 在 launchIO 单协程内串行调用,
      * PageViewController.loadChapterDispatcher = limitedParallelism(1)),无新增线程安全风险。
@@ -509,37 +516,25 @@ object ChapterProvider {
 
     var imgScale = 1.0f
 
-    @Volatile
-    private var upStyleJob: Job? = null
-
     /**
      * 更新样式
      * @param readerPreferences 可选的偏好值。如果提供，则直接使用；否则从 DataStore 读取。
      *                          (Q-08 冗余读消除：在高频更新如滑动滑块时，由 ViewModel 直接传入新值)
+     *
+     * suspend: the caller (PageViewController.updatePageViews) needs this style change to be
+     * fully applied before it triggers a redraw — otherwise the redraw would pair the new
+     * paint size with the old pagination, causing a visible mis-sized flash (most noticeable
+     * while dragging the font-size slider on a device slower than an emulator).
      */
-    fun upStyle(context: Context, readerPreferences: ReaderPreferences? = null, onFinish: (() -> Unit)? = null) {
+    suspend fun upStyle(context: Context, readerPreferences: ReaderPreferences? = null) {
         imgScale = context.resources.displayMetrics.density
         Logger.i("ChapterProvider::upStyle")
 
-        // 如果提供了 prefs，我们可以在主线程同步更新 paints，消除异步跳变
-        if (readerPreferences != null) {
-            upStyleJob?.cancel()
-            applyStyleInternal(context, readerPreferences)
-            Logger.d("ChapterProvider::upStyle synchronous done")
-            onFinish?.invoke()
-            return
+        val prefs = readerPreferences ?: readerPreferencesUtil?.readerPrefsFlow?.firstOrNull()
+        if (prefs != null) {
+            applyStyleInternal(context, prefs)
         }
-
-        // 异步更新路径（无传入 prefs）
-        upStyleJob?.cancel()
-        upStyleJob = Coroutines.mainScope().launch {
-            val prefs = readerPreferencesUtil?.readerPrefsFlow?.firstOrNull()
-            if (prefs != null) {
-                applyStyleInternal(context, prefs)
-            }
-            Logger.d("ChapterProvider::upStyle asynchronous done")
-            onFinish?.invoke()
-        }
+        Logger.d("ChapterProvider::upStyle done")
     }
 
     /**
@@ -713,6 +708,8 @@ object ChapterProvider {
 
         //更新屏幕参数
         upVisibleSize(context, prefs)
+
+        styleVersion.incrementAndGet()
     }
 
 
@@ -876,6 +873,7 @@ object ChapterProvider {
             pageLines = pageLines,
             pageLengths = pageLengths,
             chaptersSize = chapterSize,
+            styleVersion = styleVersion.get(),
         )
     }
 
@@ -2539,7 +2537,9 @@ object ChapterProvider {
         Logger.d("ChapterProvider::init,then invoke ChapterProvider::upStyle")
         this.readTipPreferencesUtil = readTipPreferencesUtil
         this.readerPreferencesUtil = readerPreferencesUtil
-        upStyle(context)
+        Coroutines.mainScope().launch {
+            upStyle(context)
+        }
     }
 
     private fun userTextAlignToCss(userTextAlign: Int): CssTextAlign {
