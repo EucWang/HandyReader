@@ -49,7 +49,7 @@ android {
     defaultConfig {
         applicationId = "com.wxn.reader"
         minSdk = 23
-        targetSdk = 35
+        targetSdk = 36
         versionCode = 24
         versionName = "1.20.260718"
         multiDexEnabled = true

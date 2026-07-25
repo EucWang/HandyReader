@@ -7,12 +7,16 @@ import android.graphics.Typeface
 import android.net.Uri
 import android.os.Build
 import android.text.Layout
+import android.text.SpannableStringBuilder
+import android.text.Spanned
 import android.text.StaticLayout
 import android.text.TextPaint
+import android.text.style.RelativeSizeSpan
 import com.wxn.base.bean.BookChapter
 import com.wxn.base.bean.CssFontStyle
 import com.wxn.base.bean.CssFontWeight
 import com.wxn.base.bean.CssTextAlign
+import com.wxn.base.bean.InlineStyle
 import com.wxn.base.bean.ReaderText
 import com.wxn.base.bean.TextTag
 import com.wxn.base.ext.isContentPath
@@ -284,6 +288,13 @@ object ChapterProvider {
      * paginated but before they were displayed).
      */
     val styleVersion = java.util.concurrent.atomic.AtomicInteger(0)
+    
+    /*
+     * F4 新增:几何轨工作 paint,用于 addCharsToLineXxx 按字符 scale 算宽度时临时切 textSize。
+     * 与现有 contentPaint/titlePaint 等共享相同线程模型(getTextChapter 在 launchIO 单协程内串行调用,
+     * PageViewController.loadChapterDispatcher = limitedParallelism(1)),无新增线程安全风险。
+     */
+    private val workPaint = TextPaint()
 
 //    private var oneWordWidth = 0f
 
@@ -413,7 +424,7 @@ object ChapterProvider {
         context: Context,
         readerPreferences: ReaderPreferences? = null
     ) {
-        Logger.i("ChapterProvider:upVisibleSize")
+//        Logger.i("ChapterProvider:upVisibleSize，paddingHorizontal=$paddingHorizontal")
 
         if (viewWidth == 0 || viewHeight == 0) {
             val metrics = context.resources.displayMetrics
@@ -432,17 +443,21 @@ object ChapterProvider {
         }
 
         if (viewWidth > 0 && viewHeight > 0) {
-            paddingHorizontal = (((prefs?.pageHorizontalMargins?.toDouble()
-                ?: 0.0) * 0.1 * viewWidth.toDouble()).toInt()) / 2         //页面左边距
-            paddingVertical = if (!isVScrollMode) { //非连续垂直滚动阅读模式，才会设置这个值
-                ((prefs?.pageVerticalMargins
-                    ?: 0.0) * 0.1 * viewHeight.toDouble()).toInt() / 2                 //页面顶部间距
-            } else {
-                0
+            if (prefs != null) {
+                paddingHorizontal = ((prefs.pageHorizontalMargins * 0.1 * viewWidth.toDouble()).toInt()) / 2         //页面左边距
+                paddingVertical = if (!isVScrollMode) { //非连续垂直滚动阅读模式，才会设置这个值
+                    (prefs.pageVerticalMargins * 0.1 * viewHeight.toDouble()).toInt() / 2                 //页面顶部间距
+                } else {
+                    0
+                }
             }
             recomputeDerivedSizes()
         }
-        Logger.d("ChapterProvider::upVisibleSize::viewWidth=$viewWidth, viewHeight=$viewHeight, visibleWidth=$visibleWidth,visibleHeight=$visibleHeight,visibleRight=$visibleRight,visibleBottom=$visibleBottom")
+//        Logger.d("ChapterProvider::upVisibleSize::viewWidth=$viewWidth, viewHeight=$viewHeight, " +
+//                "visibleWidth=$visibleWidth,visibleHeight=$visibleHeight," +
+//                "visibleRight=$visibleRight,visibleBottom=$visibleBottom," +
+//                "paddingHorizontal=$paddingHorizontal,paddingVertical=$paddingVertical," +
+//                "prefs is null? ${if (prefs != null) "no" else "yes" }")
     }
 
     //region v5 同步布局尺寸计算（消除旋转时 loadContent 与 async upVisibleSize 的竞争条件）
@@ -704,7 +719,10 @@ object ChapterProvider {
         imageStyles: String = "",
         chapterSize: Int,
     ): TextChapter? {
-        Logger.d("ChapterProvider::getTextChapter::chapterIndex=[${chapter.chapterIndex}]")
+//        Logger.d("ChapterProvider::getTextChapter::chapterIndex=[${chapter.chapterIndex}]," +
+//                "paddingHorizontal=$paddingHorizontal,paddingVertical=$paddingVertical," +
+//                "visibleWidth=$visibleWidth,visibleHeight=$visibleHeight," +
+//                "viewWidth=$viewWidth,viewHeight=$viewHeight")
         val textPages = arrayListOf<TextPage>()   //一个章节的内容，可以拆分成多少页进行显示
         val pageLines = arrayListOf<Int>()          //每一个页面上，显示的行数的集合
         val pageLengths = arrayListOf<Int>()        //每一个页面上，显示的字符数的集合
@@ -1145,6 +1163,33 @@ object ChapterProvider {
     }
 
     /**
+     * F2 新增:把纯文本 + inline 字号区间转成 SpannableStringBuilder,
+     * 挂 RelativeSizeSpan 让 StaticLayout 自动 per-char 度量。
+     * - inlineStyles null/empty → 直接返回原 String 引用(零开销,90%+ 段落)
+     */
+    private fun buildSpannedText(
+        text: String,
+        inlineStyles: List<InlineStyle>?
+    ): CharSequence {
+        if (inlineStyles.isNullOrEmpty() ||
+            inlineStyles.none { it.props.fontScale != null }) return text
+        val ssb = SpannableStringBuilder(text)
+        inlineStyles.forEach { style ->
+            val start = style.start.coerceIn(0, text.length)
+            val end = style.end.coerceIn(start, text.length)
+            val fontScale = style.props.fontScale
+            if (end > start && fontScale != null) {
+                ssb.setSpan(
+                    RelativeSizeSpan(fontScale),
+                    start, end,
+                    Spanned.SPAN_EXCLUSIVE_EXCLUSIVE
+                )
+            }
+        }
+        return ssb
+    }
+
+    /**
      * v4（方案 B）：参数从 `offsetY: Float` 改为 `cursor: LayoutCursor`，
      * 返回类型从 Float 改为 [LayoutCursor]。透传 cursor.bounds 给所有子函数。
      *
@@ -1161,20 +1206,55 @@ object ChapterProvider {
         stringBuilder: StringBuilder,
         isTitle: Boolean
     ): LayoutCursor {
+//        Logger.d("ChapterProvider::setTypeText::paragraph=${paragraph}")
         val offsetY = cursor.offsetY
         val bounds = cursor.bounds
+
+        val readerPrefs = readerPreferencesUtil?.readerPrefsFlow?.firstOrNull()
+        val userSetParagraphSpacing = (readerPrefs?.paragraphSpacing?.toFloat() ?: 0.0f).coerceAtLeast(0.0f)
+        var durY = if (isTitle) offsetY + titleTopSpacing else offsetY
 
         var text: String = when (paragraph) {
             is ReaderText.Chapter -> paragraph.title
             is ReaderText.Text -> paragraph.line
             else -> ""
         }.toString()
-
         if (text.isEmpty() || text.isBlank()) { //对于无显示内容的空行，显示一个空白符
-            text = "\u3000"
+            val lineHeight = if (isTitle) {
+                titlePaint.textHeight
+            } else {
+                contentPaint.textHeight
+            }
+//            Logger.d("ChapterProvider::setTypeText::empty text::lineHeight=$lineHeight,durY=$durY")
+            val lineSpace = userSetParagraphSpacing * lineHeight
+            durY += lineSpace
+//            Logger.d("ChapterProvider::setTypeText::empty text::lineSpace=$lineSpace,durY=$durY")
+            var curBounds = bounds
+            if (durY + lineHeight > visibleBottom) {
+                if (curBounds.isLeftColumn) {
+                    // 左列满 → 切右列（同页），不建新页
+                    curBounds = LayoutBounds.rightColumn()
+                    durY = paddingVertical.toFloat()
+                } else {
+                    // 右列满 / 单列装不下 → 建新页，回左列（或单列 page）
+                    val lastPage = textPages.last()
+                    lastPage.text = stringBuilder.toString()
+                    pageLines.add(lastPage.textLines.size)
+                    pageLengths.add(lastPage.text.length)
+                    lastPage.height = durY
+
+                    textPages.add(TextPage())
+                    stringBuilder.clear()
+                    durY = paddingVertical.toFloat()
+                    curBounds = if (dualColumnEnabled) LayoutBounds.leftColumn() else LayoutBounds.page()
+                }
+            } else {
+                durY += lineHeight
+            }
+            Logger.d("ChapterProvider::setTypeText::empty text:: after add lineHeight, then durY=$durY")
+            return LayoutCursor(durY, curBounds)
         }
 
-        var durY = if (isTitle) offsetY + titleTopSpacing else offsetY
 
         val textPaint = TextPaint()
         val parentPaint = if (paragraph is ReaderText.Text) {
@@ -1192,7 +1272,6 @@ object ChapterProvider {
         }
         textPaint.set(parentPaint)
 
-        val readerPrefs = readerPreferencesUtil?.readerPrefsFlow?.firstOrNull()
 
         var marginLeft = 0f
         var marginRight = 0f
@@ -1209,18 +1288,19 @@ object ChapterProvider {
         var lineHeightParam = 1f    //行高系数
         var oneWordWidth = 0f
         if (paragraph is ReaderText.Text) {
-            //文字大小
-            if (paragraph.textCssInfo.fontSize.isEm()) {
-                textPaint.textSize *= paragraph.textCssInfo.fontSize.value
-            } else if (paragraph.textCssInfo.fontSize.isPx()) {
-                textPaint.textSize = paragraph.textCssInfo.fontSize.value
-            }
             //文字粗体
             textPaint.typeface =
                 getTypeface(paragraph.textCssInfo.fontWeight, paragraph.textCssInfo.fontStyle)
             textAlign = paragraph.textCssInfo.textAlign
             if (paragraph.textCssInfo.fontStyle == CssFontStyle.CssFontStyleItalic) {   //设置斜体
                 textPaint.textSkewX = -0.25f
+            }
+            if (paragraph.textCssInfo.display == "block") {
+                val fs = paragraph.textCssInfo.fontSize
+                when {
+                    fs.isEm() -> textPaint.textSize *= fs.value
+                    fs.isPx() -> textPaint.textSize = fs.value
+                }
             }
 
             val userSetIndent = (readerPrefs?.paragraphIndent?.toFloat() ?: 0f)   //用户设置的首航缩进
@@ -1352,7 +1432,6 @@ object ChapterProvider {
         }
 
         if (!isTableRow && !isListRow) {
-            val userSetParagraphSpacing = readerPrefs?.paragraphSpacing?.toFloat() ?: 0.0f
 //            Logger.d("ChapterProvider::userSetParagraphSpacing=$userSetParagraphSpacing")
             durY += if (userSetParagraphSpacing > 0) (userSetParagraphSpacing * textPaint.textHeight) else marginTop
         }
@@ -1392,8 +1471,18 @@ object ChapterProvider {
                 bounds   // v4：透传
             )
         } else {                    //没有段落内的图片
+            // F2: 构造含 Span 的 CharSequence(仅当段落有 inline 字号时)
+            // ★ 命名注意:局部变量用 paragraphInlineFontSizes(避免与 setNormalText 参数 inlineFontSizes 同名遮蔽)
+            val paragraphInlineFontSizes: List<InlineStyle>? = if (paragraph is ReaderText.Text) {
+                paragraph.inlineStyles
+            } else {
+                null  // 标题(ReaderText.Chapter)/图片走旧路径
+            }
+            val charSequence: CharSequence = buildSpannedText(text, paragraphInlineFontSizes)
+            // buildSpannedText 内部判断 null/empty → 直接返回原 String 引用(零开销)
             setNormalText(
-                text,
+                charSequence,            // ← F3 CharSequence 替代 String
+                paragraphInlineFontSizes,   // ← F4 几何轨用
                 textPaint,
                 marginLeft,
                 marginRight,
@@ -1755,7 +1844,20 @@ object ChapterProvider {
         var durY = offsetY
         var currentBounds = bounds   // v4：局部变量，随列切换更新
         if (paragraph is ReaderText.Text) {
-            // [P7 修复] 函数入口深拷贝 annotation 列表，全程操作副本，绝不写回 paragraph.annotations
+
+            val paragraphInlineStyles: List<InlineStyle>? = paragraph.inlineStyles
+            val hasInlineScale = !paragraphInlineStyles.isNullOrEmpty() &&
+                    paragraphInlineStyles.any { it.props.fontScale != null }
+            //根据偏移位置，查找该位置的字符是否存在字体大小的缩放
+            val charScaleLookup: (Int) -> Float = if (hasInlineScale) {
+                { offset ->
+                    paragraphInlineStyles.lastOrNull { offset in it.start until it.end }
+                        ?.props?.fontScale ?: 1f
+                }
+            } else {
+                { 1f }   // 零开销：无 inline 字号，所有字符 scale=1
+            }
+
             // imgTags 深拷贝：避免原地修改 paragraph.annotations 中的 TextTag
             var imgTags = paragraph.annotations.filter { tag ->
                 tag.name == "img" || tag.name == "image"
@@ -1800,10 +1902,17 @@ object ChapterProvider {
             var newPartWithNewLine = true   //新的分段是否需要新的分行，
             var latestPartLine: TextLine? = null
             var pentingImg: TextTag? = null //上一小分段中，图片塞不下了， 放入到下一行第一个位置显示
+            var segBaseOriginal = 0   // 段在原始 paragraph.line 的起始 offset（C1，不含占位字）
             for ((partIndex, text) in texts.withIndex()) {  //对每一部分都进行布局测量
-
+                val layoutSource: CharSequence = if (hasInlineScale) {
+                    buildSegmentSpanned(text, segBaseOriginal, paragraphInlineStyles)
+                } else {
+                    text   // 无 inline：保持纯 String（零开销，行为与改造前逐行等价）
+                }
                 val layout = StaticLayout.Builder.obtain(
-                    text, 0, text.length,
+                    layoutSource,
+                    0,
+                    layoutSource.length,
                     textPaint,
                     currentBounds.width - marginLeft.roundToInt() - marginRight.roundToInt()   // v4：currentBounds.width
                 )
@@ -1903,7 +2012,9 @@ object ChapterProvider {
                             layoutLineWords.toStringArray(),
                             textPaint,
                             marginLeft + (if (layoutLineIndex == 0) morePartIndent else 0f),
-                            currentBounds   // v4：透传当前列（此时已是切列后的正确列）
+                            currentBounds,
+                            charScaleLookup,
+                            segBaseOriginal + offsetStart
                         )
 
                         CssTextAlign.CssTextAlignRight -> addCharsToLineRight(
@@ -1912,7 +2023,9 @@ object ChapterProvider {
                             textPaint,
                             desiredWidth,
                             marginRight,
-                            currentBounds
+                            currentBounds,
+                            charScaleLookup,
+                            segBaseOriginal + offsetStart
                         )
 
                         CssTextAlign.CssTextAlignCenter -> addCharsToLineCenter(
@@ -1920,7 +2033,9 @@ object ChapterProvider {
                             layoutLineWords.toStringArray(),
                             textPaint,
                             desiredWidth,
-                            currentBounds
+                            currentBounds,
+                            charScaleLookup,
+                            segBaseOriginal + offsetStart
                         )
 //                        CssTextAlign.CssTextAlignJustify -> {
 //                            if (layout.lineCount == 1) {
@@ -2002,10 +2117,40 @@ object ChapterProvider {
                         newPartWithNewLine = true
                     }
                 }
+                segBaseOriginal += text.length
             }
             // [P7 修复] 注意：函数结束时 NEVER 把 allTags 写回 paragraph.annotations（副本被丢弃）
         }
         return LayoutCursor(durY, currentBounds)
+    }
+
+    /***
+     * 为 setTextWithInnerImg 构造 每个小段内的 inlineStyle 的SpannableString
+     */
+    private fun buildSegmentSpanned(
+        segment: String,
+        segBaseOriginal: Int,
+        inlineStyles: List<InlineStyle>
+    ): CharSequence {
+        val segEndOriginal = segBaseOriginal + segment.length
+        val hits = inlineStyles.filter {
+            it.props.fontScale != null && it.start < segEndOriginal && it.end > segBaseOriginal
+        }
+        if (hits.isEmpty()) return segment // no inline Style, pass
+        val ssb = SpannableStringBuilder(segment)
+        hits.forEach { style ->
+            val start = (style.start - segBaseOriginal).coerceIn(0, segment.length)
+            val end = (style.end - segBaseOriginal).coerceIn(start, segment.length)
+            val scale = style.props.fontScale ?: 1.0f
+            if (end > start) {
+                ssb.setSpan(
+                    RelativeSizeSpan(scale),
+                    start,
+                    end,
+                    Spanned.SPAN_EXCLUSIVE_EXCLUSIVE)
+            }
+        }
+        return ssb
     }
 
 
@@ -2019,7 +2164,8 @@ object ChapterProvider {
      * 默认 [LayoutBounds.page] 保证单列模式行为完全不变。
      */
     private suspend fun setNormalText(
-        text: String,
+        text: CharSequence,                          // F3: String → CharSequence(支持 Spannable)
+        inlineFontSizes: List<InlineStyle>?,      // F3 新增:几何轨 per-char scale 反查数据源
         textPaint: TextPaint,
         marginLeft: Float,
         marginRight: Float,
@@ -2049,6 +2195,21 @@ object ChapterProvider {
             .setIncludePad(true)
             .setIndents(intArrayOf(firstLineIndent.toInt(), 0), intArrayOf(0, 0))
             .build()
+        // F3: text 是 SpannableStringBuilder 时,系统自动检测 Spanned 接口并应用 RelativeSizeSpan,
+        // 分行点正确;text 是 String 时(无 inline 字号),行为与改造前完全一致。
+
+        // F3 几何轨 scale 反查闭包(每段构造一次,行循环复用)
+        // ★ 用 lastOrNull:与 parseTextCss 的"后到覆盖"语义一致,匹配 C++ xml_ext::parse 深度优先
+        //   遍历(外层 span 先 push,内层 span 后 push → 后到的更内层)。
+        //   Phase 1 不处理真正的 DOM 嵌套优先级(需 parentUuid 建树,过度设计),
+        //   重叠 span 的边缘情况留 Phase 2。
+        val charScaleLookup: (Int) -> Float = if (inlineFontSizes.isNullOrEmpty()) {
+            { 1f }   // 零开销:无 inline 字号,所有字符 scale=1
+        } else {
+            { offset ->
+                inlineFontSizes.lastOrNull { offset in it.start until it.end }?.props?.fontScale ?: 1f
+            }
+        }
 
         for (lineIndex in 0 until layout.lineCount) {  //排版，按行遍历
             val offsetStart = layout.getLineStart(lineIndex)
@@ -2059,16 +2220,34 @@ object ChapterProvider {
                 charStartOffset = offsetStart,
                 charEndOffset = offsetEnd
             )
-            val words = text.substring(offsetStart, offsetEnd)
+            val words = text.substring(offsetStart, offsetEnd)   // F3: CharSequence.substring 返回 String
 //            textLine.text = if (lineIndex == layout.lineCount - 1) "$words\n" else words        //  //增加一次换行
             textLine.text = words        //  //增加一次换行
             val desiredWidth = layout.getLineWidth(lineIndex)   //排版要求的宽度
-            var isLastLine = (lineIndex == layout.lineCount - 1)
+            val isLastLine = (lineIndex == layout.lineCount - 1)
+
+            // ── F3 统一行高公式(无 inline/有 inline 都走这条,T0a/T0e 已验证)──
+            // actualLineHeight = (descent - ascent) × lineSpacingExtra × lineHeightParam
+            // - descent - ascent: 系统返回的实际行盒(T0a/T0e 证明 == bottom - top,leading 已隐含)
+            // - lineSpacingExtra: 用户行间距系数(ReaderPreferences.lineHeight,默认 1.5)
+            // - lineHeightParam:  CSS line-height 单段系数(默认 1f,有 CSS line-height 时非 1)
+            //   ★ 顺带修既有 bug(§0.4):原切页判断用三重乘积但 durY 累加只两重(lineHeightParam 被丢),
+            //     本方案切页判断和 durY 累加都用 actualLineHeight(含 lineSpacingExtra × lineHeightParam)。
+            //     注:这会改变有 CSS line-height 段落的翻页点(有意的行为变更,D14 决策),T11b 回归验证。
+            val lineAscent = layout.getLineAscent(lineIndex).toFloat()        // 负值
+            val lineDescent = layout.getLineDescent(lineIndex).toFloat()      // 正值
+            val actualLineHeight = (lineDescent - lineAscent) * lineSpacingExtra * lineHeightParam
+            // [TEMP-DEBUG v4.0] 排查 capitularR 不放大问题 - 看首行行高是否含放大 L
+            if (inlineFontSizes?.isNotEmpty() == true && lineIndex == 0) {
+                Logger.d("F3-DEBUG: para=$paragraphIndex line=$lineIndex offsetStart=$offsetStart offsetEnd=$offsetEnd ascent=$lineAscent descent=$lineDescent actualLineHeight=$actualLineHeight inlineFontSizes=$inlineFontSizes")
+            }
+            val actualDescent = lineDescent * lineSpacingExtra * lineHeightParam   // upTopBottom 用(基线 = bottom - descent)
 
             //v4 方案 B：逐行判断「装不下当前列 → 切列/建新页」，与单列分页同构。
             // ★ 必须在 addCharsToLineXxx 之前判断——否则切列后 textLine 的 X 坐标仍用旧列的 currentBounds 计算，
             //   导致溢出行落到新列却带着旧列的 X 坐标（文字错位/重叠）。
-            if (durY + textPaint.textHeight * lineSpacingExtra * lineHeightParam > visibleBottom) {
+            // F3: 用 actualLineHeight(已含 lineSpacingExtra × lineHeightParam 三重乘积,与 durY 累加对齐)
+            if (durY + actualLineHeight > visibleBottom) {
                 if (currentBounds.isLeftColumn) {
                     // 左列满 → 切右列（同页），不建新页
                     currentBounds = LayoutBounds.rightColumn()
@@ -2094,7 +2273,8 @@ object ChapterProvider {
                     words.toStringArray(),
                     textPaint,
                     marginLeft + (if (lineIndex == 0) firstLineIndent.toFloat() else 0f),
-                    currentBounds   // v4：透传当前列（此时已是切列后的正确列）
+                    currentBounds,   // v4：透传当前列（此时已是切列后的正确列）
+                    charScaleLookup, offsetStart   // F4
                 )
 
                 CssTextAlign.CssTextAlignRight -> addCharsToLineRight(
@@ -2103,7 +2283,8 @@ object ChapterProvider {
                     textPaint,
                     desiredWidth,
                     marginRight,
-                    currentBounds
+                    currentBounds,
+                    charScaleLookup, offsetStart   // F4
                 )
 
                 CssTextAlign.CssTextAlignCenter -> addCharsToLineCenter(
@@ -2111,7 +2292,8 @@ object ChapterProvider {
                     words.toStringArray(),
                     textPaint,
                     desiredWidth,
-                    currentBounds
+                    currentBounds,
+                    charScaleLookup, offsetStart   // F4
                 )
 
                 CssTextAlign.CssTextAlignJustify -> {
@@ -2121,7 +2303,8 @@ object ChapterProvider {
                             words.toStringArray(),
                             textPaint,
                             marginLeft + (if (lineIndex == 0) firstLineIndent.toFloat() else 0f),
-                            currentBounds
+                            currentBounds,
+                            charScaleLookup, offsetStart   // F4
                         )
                     } else {
                         if (isLastLine) {    //两端对齐，除了最后一行
@@ -2130,7 +2313,8 @@ object ChapterProvider {
                                 words.toStringArray(),
                                 textPaint,
                                 marginLeft + (if (lineIndex == 0) firstLineIndent.toFloat() else 0f),
-                                currentBounds
+                                currentBounds,
+                                charScaleLookup, offsetStart   // F4
                             )
                         } else {
                             addCharsToLineMiddle(
@@ -2139,7 +2323,8 @@ object ChapterProvider {
                                 textPaint,
                                 desiredWidth,
                                 marginLeft + (if (lineIndex == 0) firstLineIndent.toFloat() else 0f),
-                                currentBounds
+                                currentBounds,
+                                charScaleLookup, offsetStart   // F4
                             )
                         }
                     }
@@ -2155,9 +2340,8 @@ object ChapterProvider {
 
             val lastPage = textPages.last()
             lastPage.textLines.add(textLine)    //将新生成的一行加入到最后一页中
-            textLine.upTopBottom(durY, textPaint)       //设置行的上，下，以及基线位置
-//            durY += textPaint.textHeight * lineSpacingExtra * lineHeightParam   //将行高度，行间距加入到durY值中
-            durY += textPaint.textHeight * lineSpacingExtra   //将行高度，行间距加入到durY值中
+            textLine.upTopBottom(durY, actualLineHeight, actualDescent)   // F3+F7: 新重载,混合字号行高
+            durY += actualLineHeight                                            // F3: 统一三重乘积累加
             lastPage.height = durY
         }
         return LayoutCursor(durY, currentBounds)
@@ -2169,6 +2353,10 @@ object ChapterProvider {
      * v4（P4 修复）：新增 [bounds] 参数，内部用 bounds.width 替代单例 visibleWidth，
      * 用 bounds.startX 替代 paddingHorizontal。切列后传 rightColumn() 即可让字符 X 坐标落到新列起点。
      * 默认 LayoutBounds.page() 保证单列模式行为完全不变。
+     *
+     * F4: 新增 [charScaleLookup]/[paragraphOffset],按字符实际 scale 算宽度(混合字号)。
+     *      desiredWidth 已是 layout.getLineWidth 返回的混合字号宽度(Span 路径下正确),
+     *      无需自己重算总宽,直接用(避免与几何轨自算总宽不一致,触发 exceed 误判)。
      */
     private suspend fun addCharsToLineMiddle(
         textLine: TextLine,
@@ -2176,7 +2364,9 @@ object ChapterProvider {
         textPaint: TextPaint,
         desiredWidth: Float,
         offsetX: Float,
-        bounds: LayoutBounds = LayoutBounds.page()
+        bounds: LayoutBounds = LayoutBounds.page(),
+        charScaleLookup: (Int) -> Float = { 1f },   // F4 新增(默认向后兼容)
+        paragraphOffset: Int = 0                     // F4 新增:words[0] 在段落中的全局 offset
     ) {
 //        val tipPreference = readTipPreferencesUtil?.readTIpPreferencesFlow?.firstOrNull()
 //        val textFullJustify = tipPreference?.textFullJustify == true
@@ -2187,10 +2377,14 @@ object ChapterProvider {
 
         //两端对齐显示
         val gapCount: Int = words.lastIndex                 //空白间隔的个数
-        val gapWidth = (bounds.width - desiredWidth) / gapCount    //得到每个间隔的平均宽度（v4：bounds.width）
+        val gapWidth = if (gapCount > 0) (bounds.width - desiredWidth) / gapCount else 0f
         var x = offsetX
+        workPaint.set(textPaint)
+        val baseTextSize = textPaint.textSize
         words.forEachIndexed { index, char ->               //遍历每个显示的字符
-            val chWidth: Float = StaticLayout.getDesiredWidth(char, textPaint) //单个字符的显示宽度
+            val scale = charScaleLookup(paragraphOffset + index)
+            workPaint.textSize = baseTextSize * scale   // scale=1 跳过赋值,避免 native fontMetrics 重算
+            val chWidth: Float = StaticLayout.getDesiredWidth(char, workPaint) //单个字符的显示宽度(含 scale)
             val x1 = if (index != words.lastIndex) {
                 x + chWidth + gapWidth
             } else {
@@ -2210,17 +2404,25 @@ object ChapterProvider {
      * 从左向右自然排列一行字符, 即左对齐。
      *
      * v4（P4 修复）：新增 [bounds] 参数（同 [addCharsToLineMiddle]）。
+     *
+     * F4: 新增 [charScaleLookup]/[paragraphOffset],按字符实际 scale 算宽度(混合字号)。
      */
     private fun addCharsToLineLeft(
         textLine: TextLine,
         words: Array<String>,
         textPaint: TextPaint,
         offsetX: Float,
-        bounds: LayoutBounds = LayoutBounds.page()
+        bounds: LayoutBounds = LayoutBounds.page(),
+        charScaleLookup: (Int) -> Float = { 1f },   // F4 新增(默认向后兼容)
+        paragraphOffset: Int = 0                     // F4 新增:words[0] 在段落中的全局 offset
     ) {
         var x = offsetX
-        words.forEach { char ->
-            val cw = StaticLayout.getDesiredWidth(char, textPaint)
+        workPaint.set(textPaint)
+        val baseTextSize = textPaint.textSize
+        words.forEachIndexed { i, char ->
+            val scale = charScaleLookup(paragraphOffset + i)
+            workPaint.textSize = baseTextSize * scale   // scale=1 跳过赋值,避免 native fontMetrics 重算
+            val cw = StaticLayout.getDesiredWidth(char, workPaint)
             val x1 = x + cw
             textLine.addTextChar(
                 charData = char,
@@ -2236,22 +2438,29 @@ object ChapterProvider {
      * 居中显示文本。
      *
      * v4（P4 修复）：新增 [bounds] 参数，居中按 bounds.width 计算（v4）。
+     *
+     * F4: 透传 [charScaleLookup]/[paragraphOffset]。
      */
     private fun addCharsToLineCenter(
         textLine: TextLine,
         words: Array<String>,
         textPaint: TextPaint,
         desiredWidth: Float,
-        bounds: LayoutBounds = LayoutBounds.page()
+        bounds: LayoutBounds = LayoutBounds.page(),
+        charScaleLookup: (Int) -> Float = { 1f },   // F4 新增(默认向后兼容)
+        paragraphOffset: Int = 0                     // F4 新增
     ) {
         val x = (bounds.width - desiredWidth) / 2  //标题栏居中显示，左偏移（v4：bounds.width）
-        addCharsToLineLeft(textLine, words, textPaint, x, bounds)
+        addCharsToLineLeft(textLine, words, textPaint, x, bounds, charScaleLookup, paragraphOffset)
     }
 
     /**
      * 右对齐显示文本。
      *
      * v4（P4 修复）：新增 [bounds] 参数，右对齐按 bounds.width 计算（v4）。
+     *
+     * F4: 透传 [charScaleLookup]/[paragraphOffset]。desiredWidth 已是 layout.getLineWidth
+     *      返回的混合字号宽度(Span 路径下正确),无需重算。
      */
     private fun addCharsToLineRight(
         textLine: TextLine,
@@ -2259,10 +2468,12 @@ object ChapterProvider {
         textPaint: TextPaint,
         desiredWidth: Float,
         marginRight: Float,
-        bounds: LayoutBounds = LayoutBounds.page()
+        bounds: LayoutBounds = LayoutBounds.page(),
+        charScaleLookup: (Int) -> Float = { 1f },   // F4 新增(默认向后兼容)
+        paragraphOffset: Int = 0                     // F4 新增
     ) {
         val x = bounds.width - desiredWidth - marginRight  //标题栏居中显示，左偏移（v4：bounds.width）
-        addCharsToLineLeft(textLine, words, textPaint, x, bounds)
+        addCharsToLineLeft(textLine, words, textPaint, x, bounds, charScaleLookup, paragraphOffset)
     }
 
 
@@ -2298,7 +2509,8 @@ object ChapterProvider {
      * 无效参数（<=0）不更新状态，返回 false，避免无意义的重排。
      */
     fun setViewSize(context: Context, width: Int, height: Int): Boolean {
-        Logger.d("ChapterProvider::setViewSize,width=$width, height=$height")
+        Logger.d("ChapterProvider::setViewSize,width=$width, height=$height," +
+                "paddingHorizontal=$paddingHorizontal, paddingVertical=$paddingVertical")
         if (width <= 0 || height <= 0) {
             Logger.d("ChapterProvider::setViewSize invalid dimensions, changed=false")
             return false

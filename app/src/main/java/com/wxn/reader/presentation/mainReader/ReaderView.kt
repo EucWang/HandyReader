@@ -55,7 +55,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalLifecycleOwner
@@ -600,55 +599,57 @@ fun ReaderView(
         }
 
         if (showTextToolbar) {
-            TextToolbar(
-                navController = navController,
-                viewModel = viewModel,
-                selectedText = viewModel.selectedTextForSearch, // actionSelectedText,
-                rect = textToolbarRect,
-                onHighlight = { color ->    //高亮
-                    viewModel.handleHighlight(color)
-                },
-                onUnderline = { color ->    //下划线
-                    viewModel.handleUnderline(color)
-                },
-                onNote = {                  //新增笔记
-                    viewModel.handleNote()
-                    viewModel.textToolbarOpen(false)
-                    //                showTextToolbar = false
-                },
-                onDismiss = {
-                    viewModel.textToolbarOpen(false)
-                    viewModel.cancelTextSelected()
-                },
-                onTranslatePanel = {
-                    viewModel.onTranslateClicked()
-                },
-                onSearch = {
-                    val text = viewModel.selectedTextForSearch
-                    if (text != null) {
-                        viewModel.startSearch(text)
-                    }
-                },
-                onShare = {
-                    // 分享本身不需要任何存储权限（FileProvider URI + ACTION_SEND）
-                    // 保存到相册的 WRITE_EXTERNAL_STORAGE 权限申请延迟到 Dialog 内"保存到相册"按钮
-                    viewModel.snapshotQuoteData()
-                    showQuoteDialog = true
-                },
-                appPreferences = appPreferences!!,
-                selectedAnnotation = selectedAnnotation,
-                onRemoveAnnotation = {
-                    viewModel.deleteAnnotation(it)
-                },
-                colorHistory = readerPreferences.colorHistory.map { it ->
-                    Color(it.toCompatibleArgb())
-                },
-                onColorHistoryUpdated = { newHistory ->
-                    viewModel.updateColorHistory(newHistory.mapNotNull { it -> it.toAndroidColor() }
-                    )
-                },
-                showColorSelectionPanel = showColorSelectionPanel
-            )
+            Box(modifier = Modifier.fillMaxSize()) {
+                TextToolbar(
+                    navController = navController,
+                    viewModel = viewModel,
+                    selectedText = viewModel.selectedTextForSearch, // actionSelectedText,
+                    rect = textToolbarRect,
+                    onHighlight = { color ->    //高亮
+                        viewModel.handleHighlight(color)
+                    },
+                    onUnderline = { color ->    //下划线
+                        viewModel.handleUnderline(color)
+                    },
+                    onNote = {                  //新增笔记
+                        viewModel.handleNote()
+                        viewModel.textToolbarOpen(false)
+                        //                showTextToolbar = false
+                    },
+                    onDismiss = {
+                        viewModel.textToolbarOpen(false)
+                        viewModel.cancelTextSelected()
+                    },
+                    onTranslatePanel = {
+                        viewModel.onTranslateClicked()
+                    },
+                    onSearch = {
+                        val text = viewModel.selectedTextForSearch
+                        if (text != null) {
+                            viewModel.startSearch(text)
+                        }
+                    },
+                    onShare = {
+                        // 分享本身不需要任何存储权限（FileProvider URI + ACTION_SEND）
+                        // 保存到相册的 WRITE_EXTERNAL_STORAGE 权限申请延迟到 Dialog 内"保存到相册"按钮
+                        viewModel.snapshotQuoteData()
+                        showQuoteDialog = true
+                    },
+                    appPreferences = appPreferences!!,
+                    selectedAnnotation = selectedAnnotation,
+                    onRemoveAnnotation = {
+                        viewModel.deleteAnnotation(it)
+                    },
+                    colorHistory = readerPreferences.colorHistory.map { it ->
+                        Color(it.toCompatibleArgb())
+                    },
+                    onColorHistoryUpdated = { newHistory ->
+                        viewModel.updateColorHistory(newHistory.mapNotNull { it -> it.toAndroidColor() }
+                        )
+                    },
+                    showColorSelectionPanel = showColorSelectionPanel
+                )
+            }
         }
 
         // 书摘分享弹窗：Surface 叠加 + 渐显渐隐动画（X5 BackHandler 放外层，覆盖 exit 动画期间）

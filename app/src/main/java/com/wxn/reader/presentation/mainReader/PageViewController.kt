@@ -281,7 +281,6 @@ class PageViewController @OptIn(UnstableApi::class)
     suspend fun resetBook(book: Book, initChapterLoadListener: ((Boolean) -> Unit)): Long {
         val token = ownerTokenGenerator.incrementAndGet()
         currentOwnerToken.set(token)
-        Logger.i("PageViewController::resetBook:book=$book")
         contentLoadVersion.set(0)  // 原子操作重置版本锁
         loadContentJob?.cancel()  // 取消之前的加载任务
         loadContentJob = null
@@ -525,7 +524,10 @@ class PageViewController @OptIn(UnstableApi::class)
     }
 
     override fun loadContent(resetPageOffset: Boolean) {
-        Logger.i("PageViewController::loadContent:resetPageOffset=$resetPageOffset,durChapterIndex=$durChapterIndex, isInitFinish=$isInitFinish, contentLoadVersion=$contentLoadVersion")
+//        Logger.i("PageViewController::loadContent:resetPageOffset=$resetPageOffset," +
+//                "durChapterIndex=$durChapterIndex, isInitFinish=$isInitFinish," +
+//                "contentLoadVersion=$contentLoadVersion,paddingHorizontal=${ChapterProvider.paddingHorizontal}," +
+//                "paddingVertical=${ChapterProvider.paddingVertical}")
         if (!isInitFinish) {
             Logger.w("PageViewController::loadContent skipped - not initialized")
             return
@@ -901,7 +903,7 @@ class PageViewController @OptIn(UnstableApi::class)
             try {
                 val readerTexts: List<ReaderText> =
                     BookHelper.loadChapterContent(context, curBook, chapter, textParser)
-            Logger.i("PageViewController::loadContent:index=$chapterIndex,chapter.index=${chapter.chapterIndex} readerTexts.size=${readerTexts.size}")
+                Logger.i("PageViewController::loadContent:index=$chapterIndex,chapter.index=${chapter.chapterIndex} readerTexts.size=${readerTexts.size}")
 
             var tags = hashMapOf<Int, List<TextTag>>()  //章节全部标签信息
             readerTexts.forEachIndexed { index, content ->

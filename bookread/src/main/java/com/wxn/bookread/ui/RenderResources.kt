@@ -8,10 +8,16 @@ import android.graphics.Path
 import android.graphics.RectF
 import android.text.TextPaint
 import androidx.core.graphics.toColorInt
+import com.wxn.base.bean.CssFontStyle
+import com.wxn.base.bean.CssFontWeight
+import com.wxn.base.bean.TextCssInfo
 import com.wxn.base.ext.DpExt
 import com.wxn.base.ext.getCompatColor
+import com.wxn.base.ext.toColor
 import com.wxn.bookread.R
+import com.wxn.bookread.data.model.TextChar
 import com.wxn.bookread.ext.BitmapExt
+import com.wxn.bookread.provider.ChapterProvider
 
 /**
  * 阅读器渲染资源单例。
@@ -130,5 +136,67 @@ object RenderResources {
         handleLineHeightPx = DpExt.dp2px(ctx, 24f)
 
         initialized = true
+    }
+
+    /***
+     * apply one single character paint to drawingPaint
+     * @param ch
+     * @param isTitle    current Character is Title
+     * @param isBold
+     * @param isSmall    current Character font is small size
+     * @param textCssInfo  paragraph css info
+     * @param inlineScale current Character font size scale
+     */
+    fun applyCharPaint(
+        ch: TextChar,
+        isTitle: Boolean,
+        isBold: Boolean,
+        isSmall: Boolean,
+        textCssInfo: TextCssInfo?,
+        inlineScale: Float,
+        inlineColor : String? = null
+    ) {
+        // ① display=block， apply book's CSS style for text size and text color, not the user's preferences
+        if (!isTitle && textCssInfo != null && textCssInfo.display == "block") {
+            if (textCssInfo.fontSize.isEm()) {
+                drawingPaint.textSize *= textCssInfo.fontSize.value
+            } else if (textCssInfo.fontSize.isPx()) {
+                drawingPaint.textSize = textCssInfo.fontSize.value
+            }
+            textCssInfo.fontColor.takeIf { it.isNotEmpty() }?.toColor()?.let { color ->
+                drawingPaint.color = color
+            }
+        }
+
+        // ② inline scale
+        if (!isTitle && !ch.isImage && inlineScale != 1f) {
+            drawingPaint.textSize *= inlineScale
+        }
+
+        // ③ inline color
+        if (!isTitle && !ch.isImage) {
+            inlineColor?.toColor()?.let { color ->
+                drawingPaint.color = color
+            }
+        }
+
+        // ④ fontWeight / fontStyle
+        val effectiveFontWeight = when {
+            isBold -> CssFontWeight.FontWeightBold
+            textCssInfo != null -> textCssInfo.fontWeight
+            else -> CssFontWeight.FontWeightNormal
+        }
+        val effectiveFontStyle = textCssInfo?.fontStyle ?: CssFontStyle.CssFontStyleNormal
+
+        drawingPaint.typeface = ChapterProvider.getTypeface(effectiveFontWeight, effectiveFontStyle)
+
+        // ④ hasGlyph fallback(字形缺失时换 fallback 字体;hasGlyph 不依赖 textSize,时序无关)
+        if (ch.charData.isNotEmpty() && !drawingPaint.hasGlyph(ch.charData)) {
+            drawingPaint.typeface = ChapterProvider.fallbackTypeface
+        }
+        // ⑤ <small> 缩小
+        if (isSmall) {
+            drawingPaint.textSize *= 0.8f
+        }
     }
 }

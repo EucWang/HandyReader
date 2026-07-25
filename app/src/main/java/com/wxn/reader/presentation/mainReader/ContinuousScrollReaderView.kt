@@ -68,9 +68,11 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewModelScope
 import coil3.compose.AsyncImage
 import com.wxn.base.bean.Book
-import com.wxn.base.bean.CssFontStyle
-import com.wxn.base.bean.CssFontWeight
+import com.wxn.base.bean.CssVerticalAlign
 import com.wxn.base.bean.DownloadFileType
+import com.wxn.base.bean.InlineCssProps
+import com.wxn.base.bean.InlineStyle
+import com.wxn.base.bean.ReaderText
 import com.wxn.base.bean.TextCssInfo
 import com.wxn.base.bean.TextTag
 import com.wxn.base.bean.TtsPlaybackStatus
@@ -80,7 +82,6 @@ import com.wxn.base.ext.toColor
 import com.wxn.base.ext.toComposeColor
 import com.wxn.base.util.Logger
 import com.wxn.base.util.PathUtil
-import com.wxn.base.util.launchIO
 import com.wxn.bookread.data.model.TextChar
 import com.wxn.bookread.data.model.TextLine
 import com.wxn.bookread.data.model.TextPage
@@ -1109,6 +1110,11 @@ private fun drawPageContent(
                 textLine.charEndOffset + offset
             ) ?: (emptyList<TextTag>() to null)
 
+            // 新增:每行预算一次 inlineFontSizes(避免每字符查 getReaderText)
+            val pageFactory = pageProvider.pageController.pageFactory
+            val inlineStyles = (pageFactory?.getReaderText(chapterIndex, paragraphIndex)
+                    as? ReaderText.Text)?.inlineStyles
+
             if (textLine.isImage) {
                 textLine.textChars.forEach { ch ->
                     canvas.drawRect(
@@ -1152,7 +1158,8 @@ private fun drawPageContent(
                     tags,
                     cssInfo,
                     res,
-                    isTitle = textLine.isTitle
+                    isTitle = textLine.isTitle,
+                    inlineStyles
                 )
             }
         }
@@ -1179,7 +1186,8 @@ private fun drawTextChars(
     textTags: List<TextTag>,
     textCssInfo: TextCssInfo?,
     res: RenderResources,
-    isTitle: Boolean
+    isTitle: Boolean,
+    inlineStyles: List<InlineStyle>? = null
 ) {
     var lineTextTag: TextTag? = null
 
@@ -1274,40 +1282,32 @@ private fun drawTextChars(
         }
 
         res.drawingPaint.set(parentPaint)
+        val resolved = if (!isTitle && !ch.isImage && !textLine.isTableCell) {
+            val charOffsetInParagraph = textLine.charStartOffset + index
+            InlineStyle.resolve(inlineStyles, charOffsetInParagraph)
+        } else {
+            InlineCssProps()
+        }
+        val inlineScale = resolved.fontScale ?: 1.0f
+        val inlineColor = resolved.color
+        val inlineVerticalAlign = resolved.verticalAlign
+        res.applyCharPaint(ch, isTitle, isBold, isSmall, textCssInfo, inlineScale, inlineColor)
 
-        if (!isTitle && textCssInfo != null) {
-            if (textCssInfo.fontSize.isEm()) {
-                res.drawingPaint.textSize *= textCssInfo.fontSize.value
-            } else if (textCssInfo.fontSize.isPx()) {
-                res.drawingPaint.textSize = textCssInfo.fontSize.value
+        // 计算 sup/sub 垂直偏移（在 applyCharPaint 之后，textSize 已是最终值）
+        val baselineOffset = if (!ch.isImage && inlineVerticalAlign != null
+            && inlineVerticalAlign != CssVerticalAlign.CssVerticalAlignBaseLine) {
+            val parentSize = res.drawingPaint.textSize / inlineScale.coerceAtLeast(0.01f)  // 还原父字号
+            when (inlineVerticalAlign) {
+                CssVerticalAlign.CssVerticalAlignSuper -> -parentSize * 0.34f   // 上移（y 减小）
+                CssVerticalAlign.CssVerticalAlignSub   ->  parentSize * 0.20f   // 下移（y 增大）
+                else -> 0f
             }
-            textCssInfo.fontColor.toColor()?.let { color ->
-                res.drawingPaint.color = color
-            }
-        }
-
-        val effectiveFontWeight = when {
-            isBold -> CssFontWeight.FontWeightBold
-            textCssInfo != null -> textCssInfo.fontWeight
-            else -> CssFontWeight.FontWeightNormal
-        }
-        val effectiveFontStyle = textCssInfo?.fontStyle
-            ?: CssFontStyle.CssFontStyleNormal
-        res.drawingPaint.typeface =
-            ChapterProvider.getTypeface(effectiveFontWeight, effectiveFontStyle)
-
-        if (ch.charData.isNotEmpty() && !res.drawingPaint.hasGlyph(ch.charData)) {
-            res.drawingPaint.typeface = ChapterProvider.fallbackTypeface
-        }
-
-        if (isSmall) {
-            res.drawingPaint.textSize *= 0.8f
-        }
+        } else 0f
 
         if (ch.isImage) {
             drawImage(canvas, ch, textLine.lineTop, textLine.lineBottom)
         } else {
-            canvas.drawText(ch.charData, ch.start, textLine.lineBase, res.drawingPaint)
+            canvas.drawText(ch.charData, ch.start, textLine.lineBase + baselineOffset, res.drawingPaint)
         }
     }
 }

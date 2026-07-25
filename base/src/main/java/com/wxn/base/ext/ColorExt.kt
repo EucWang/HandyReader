@@ -4,17 +4,100 @@ import android.os.Build
 import androidx.compose.runtime.Stable
 import androidx.compose.ui.graphics.toArgb
 import androidx.core.graphics.toColorInt
+import com.wxn.base.util.Logger
 import android.graphics.Color as AndroidColor
 import androidx.compose.ui.graphics.Color as ComposeColor
 
 //在 Android 中，颜色值可以以多种格式表示，包括 rgb、argb、rrggbb、aarrggbb 等，Color.parseColor 支持这些格式
 fun String.toColor(): Int? {
-    if (this.isEmpty() || !this.startsWith("#")) return null
+    Logger.d("ColorExt::color=${this}")
+    if (this.isEmpty()) return null
     return try {
-        this.toColorInt()
+        val ret = parseCssColor() ?: this.toColorInt()
+        Logger.d("ColorExt::ret=${ret.toHexString(HexFormat.UpperCase)}")
+        ret
     } catch (ex: Exception) {
+        Logger.d("ColorExt::ex=$ex")
         null
     }
+}
+
+/**
+ * 解析 CSS 颜色字符串为 ARGB Int（0xAARRGGBB）。
+ *
+ * 纯 Kotlin 实现（不依赖 Android 类），覆盖 CSS 函数格式：
+ * - `rgb(r, g, b)` / `rgba(r, g, b, a)` —— a 为 0..1 浮点
+ * - `hsl(h, s%, l%)` / `hsla(h, s%, l%, a)` —— h 为 0..360 角度
+ *
+ * hex（#RGB / #ARGB / #RRGGBB / #AARRGGBB）与命名色（red/transparent/…）
+ * 留给 [androidx.core.graphics.toColorInt] 处理（见 [toColor]），
+ * 本函数遇到这两种格式返回 null，由调用方回退到 toColorInt。
+ *
+ * 返回 null 表示“本函数无法识别”，不代表颜色非法——调用方应继续尝试其他解析器。
+ */
+fun String.parseCssColor(): Int? {
+    val s = this.trim()
+    if (s.isEmpty()) return null
+
+    val lower = s.lowercase()
+    val open = lower.indexOf('(')
+    val close = lower.indexOf(')')
+    // 仅处理 func(...) 形式；hex / named 走 toColorInt
+    if (open <= 0 || close <= open) return null
+
+    val name = lower.substring(0, open).trim()
+    val args = s.substring(open + 1, close)
+        .split(',')
+        // 去空白 + 去掉百分号 + 容忍空段
+        .map { it.trim().removeSuffix("%").trim() }
+
+    return when (name) {
+        "rgb", "rgba" -> parseRgbArgs(args)
+        "hsl", "hsla" -> parseHslArgs(args)
+        else -> null
+    }
+}
+
+private fun parseRgbArgs(args: List<String>): Int? {
+    if (args.size !in 3..4) return null
+    val r = args[0].toFloatOrNull()?.toInt() ?: return null
+    val g = args[1].toFloatOrNull()?.toInt() ?: return null
+    val b = args[2].toFloatOrNull()?.toInt() ?: return null
+    val a = if (args.size == 4) args[3].toFloatOrNull() ?: return null else 1f
+    if (r !in 0..255 || g !in 0..255 || b !in 0..255) return null
+    val alpha = (a.coerceIn(0f, 1f) * 255 + 0.5f).toInt()
+    return (alpha shl 24) or (r shl 16) or (g shl 8) or b
+}
+
+private fun parseHslArgs(args: List<String>): Int? {
+    if (args.size !in 3..4) return null
+    val h = args[0].toFloatOrNull() ?: return null
+    val s = args[1].toFloatOrNull()?.div(100f) ?: return null
+    val l = args[2].toFloatOrNull()?.div(100f) ?: return null
+    val a = if (args.size == 4) args[3].toFloatOrNull() ?: return null else 1f
+    if (s !in 0f..1f || l !in 0f..1f) return null
+
+    val (r, g, b) = hslToRgb(h, s, l)
+    val alpha = (a.coerceIn(0f, 1f) * 255 + 0.5f).toInt()
+    return (alpha shl 24) or (r shl 16) or (g shl 8) or b
+}
+
+/** HSL → RGB，返回 0..255 三通道。h 任意值（自动 mod 360），s/l 已归一化到 0..1。 */
+private fun hslToRgb(h: Float, s: Float, l: Float): Triple<Int, Int, Int> {
+    val hh = ((h % 360f) + 360f) % 360f / 60f
+    val c = (1f - kotlin.math.abs(2f * l - 1f)) * s
+    val x = c * (1f - kotlin.math.abs(hh % 2f - 1f))
+    val m = l - c / 2f
+    val (r1, g1, b1) = when {
+        hh < 1f -> Triple(c, x, 0f)
+        hh < 2f -> Triple(x, c, 0f)
+        hh < 3f -> Triple(0f, c, x)
+        hh < 4f -> Triple(0f, x, c)
+        hh < 5f -> Triple(x, 0f, c)
+        else -> Triple(c, 0f, x)
+    }
+    fun to255(v: Float) = ((v + m) * 255f + 0.5f).toInt().coerceIn(0, 255)
+    return Triple(to255(r1), to255(g1), to255(b1))
 }
 
 /**
