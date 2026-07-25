@@ -180,6 +180,12 @@ object ChapterProvider {
     /** v5 S9：列角色枚举，替代脆弱的 startX == paddingHorizontal 数值推导。 */
     enum class ColumnRole { FULL, LEFT, RIGHT }
 
+    @Volatile
+    var isRtl = false
+
+    @Volatile
+    var bookLanguage: String? = null
+
     /**
      * 列边界上下文（v4 R9 + v5 S9）。子函数内部一律通过此对象读取「当前列」的水平几何信息，
      * 替代直接读取单例 [visibleWidth]/[paddingHorizontal]/[visibleRight]。

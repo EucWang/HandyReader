@@ -1288,7 +1288,9 @@ class PageViewController @OptIn(UnstableApi::class)
     }
 
     override fun showTextActionMenu() {
-        Logger.i("PageViewController::showTextActionMenu")
+        Logger.i("PageViewController::showTextActionMenu:onSelectedText:selectedStartX=$selectedStartX,selectedStartY =$selectedStartY, " +
+                "selectedEndX=$selectedEndX,selectedEndY=$selectedEndY," +
+                "selectedStartTop=$selectedStartTop")
 //        clickListener?.onSelectedText(
 //            selectedStartX,
 //            selectedStartTop,
@@ -1299,7 +1301,7 @@ class PageViewController @OptIn(UnstableApi::class)
             selectedStartX,
             selectedStartTop,
             selectedEndX,
-            selectedEndY
+            selectedEndY,
         )
     }
 

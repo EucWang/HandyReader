@@ -109,7 +109,7 @@ import com.wxn.reader.ui.theme.stringResource
 import com.wxn.reader.util.FileAccessValidator
 import com.wxn.reader.util.BatteryOptimizationHelper
 import com.wxn.reader.util.ImageUtils
-import com.wxn.reader.util.LanguageDetector
+import com.wxn.base.util.LanguageDetector
 import com.wxn.reader.util.LanguageInfo
 import com.wxn.reader.util.LanguageUtil
 import com.wxn.reader.util.DictionaryHelper
@@ -1192,23 +1192,50 @@ class MainReadViewModel @Inject constructor(
         }
 
         if (oldPref != newPref) {
-            // v5 S5：改为正向比较——仅当背景两个字段变更且无其他字段变更时才走 updateBg()。
-            // 原逻辑 `oldPref.copy(bg...) == newPref` 在「新增 dualColumn 字段后，仅 dualColumn 变化」时会误判为 true
-            // （copy 把 bg 对齐后，旧字段本就相等，dualColumn 差异被 == 吞掉），导致双列切换错误走 updateBg()
-            // （只清背景缓存，不重排）→ 显示旧单列 bitmap。正向判断 isOtherChange 明确检测「除背景外是否有其他字段变化」，
-            // dualColumn 变化必落入 isOtherChange=true → 走 updatePageViews()（含 upStyle + upBg → clearBitmapCache）。
-            val isBgOnlyChange =
-                oldPref.backgroundColor != newPref.backgroundColor ||
-                oldPref.backgroundImage != newPref.backgroundImage
-            val isOtherChange = oldPref.copy(
-                backgroundColor = newPref.backgroundColor,
-                backgroundImage = newPref.backgroundImage
-            ) != newPref
+            // v5 S5：正向比较。原 v5 用 isOtherChange（"除背景外是否有变化"）做兜底，会误把
+            // colorHistory/brightness/keepScreenOn 等非排版字段的变化也判定为"需要重排"，导致
+            // 添加高亮/下划线（写 colorHistory）等操作触发 updatePageViews 全量重排（见 fix-*）。
+            // 现改为三档正向判定：
+            //   - isLayoutChange：排版/绘制/翻页相关字段变化 → updatePageViews（含 upStyle + loadChapter + loadContent + upBg + upPageAnim + upPageControl）
+            //   - isBgOnlyChange：仅背景两字段变化 → updateBg（只清背景缓存，不重排）
+            //   - 其余（colorHistory/brightness/keepScreenOn/volumeKeyPageTurning/readerThemeId 等）→ 不触发任何 pageController 刷新
+            //
+            // isLayoutChange 字段清单依据 ChapterProvider.applyStyleInternal / setTypeText / upVisibleSize 实际读取，
+            // 以及 PageView.upPageAnim / upPageControl（scroll/animationSpeed/clickAreaMode/leftHandedMode）。
+            // 注：titleSize/publisherStyles/textNormalization/verticalText/readingProgression 当前为渲染层未接入的
+            // 预留字段（渲染层零读取），故不纳入 isLayoutChange；若将来接入渲染，需同步加入此处。
+            val isLayoutChange =
+                oldPref.fontSize != newPref.fontSize ||
+                oldPref.font != newPref.font ||
+                oldPref.fontVariant != newPref.fontVariant ||
+                oldPref.letterSpacing != newPref.letterSpacing ||
+                oldPref.lineHeight != newPref.lineHeight ||
+                oldPref.pageHorizontalMargins != newPref.pageHorizontalMargins ||
+                oldPref.pageVerticalMargins != newPref.pageVerticalMargins ||
+                oldPref.paragraphIndent != newPref.paragraphIndent ||
+                oldPref.paragraphSpacing != newPref.paragraphSpacing ||
+                oldPref.titleTopSpacing != newPref.titleTopSpacing ||
+                oldPref.titleBottomSpacing != newPref.titleBottomSpacing ||
+                oldPref.forceAlignOverride != newPref.forceAlignOverride ||
+                oldPref.userTextAlign != newPref.userTextAlign ||
+                oldPref.columns != newPref.columns ||
+                oldPref.textColor != newPref.textColor ||
+                oldPref.scroll != newPref.scroll ||
+                oldPref.animationSpeed != newPref.animationSpeed ||
+                oldPref.clickAreaMode != newPref.clickAreaMode ||
+                oldPref.leftHandedMode != newPref.leftHandedMode
 
-            if (isBgOnlyChange && !isOtherChange) {
-                pageController.updateBg()
-            } else {
-                pageController.updatePageViews(newPref)
+            val isBgOnlyChange =
+                (oldPref.backgroundColor != newPref.backgroundColor ||
+                oldPref.backgroundImage != newPref.backgroundImage) && !isLayoutChange
+
+            when {
+                isLayoutChange -> pageController.updatePageViews(newPref)
+                isBgOnlyChange -> pageController.updateBg()
+                // 非排版非背景字段（colorHistory/brightness/keepScreenOn/volumeKeyPageTurning/readerThemeId/
+                // readerThemeMode/titleSize/publisherStyles/textNormalization/verticalText/readingProgression/tapNavigation 等）
+                // 变化时不触发任何 pageController 刷新。
+                else -> Logger.d("applyReaderPreferences: non-layout/non-bg field changed, skip pageController refresh")
             }
         }
 
@@ -1983,7 +2010,7 @@ class MainReadViewModel @Inject constructor(
             selectedLocator = locator
             pendingSentenceText = extractSentenceText(locator)
         }
-        Logger.d("MainReadViewModel:onSelectedText:[$selectedLocator]")
+        Logger.d("MainReadViewModel:onSelectedText:[$selectedLocator],rect=$rect")
         if (selectedLocator != null) {
             showColorSelectionPanel(false)
             textToolbarOpen(true)

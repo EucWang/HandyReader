@@ -551,6 +551,7 @@ class PageView : FrameLayout, IDataSource, PageCallback {
      * 长按选择
      */
     private fun onLongPress() {
+        Logger.i("PageView::onLongPress:startX=$startX, startY=$startY")
         curPage.selectText(startX, startY) { relativePage, lineIndex, charIndex ->
             curPage.performHapticFeedback(HapticFeedbackConstants.LONG_PRESS)
             isTextSelected = true
