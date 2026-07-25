@@ -3,6 +3,9 @@ package com.wxn.reader.util.tts
 import android.content.Context
 import android.media.AudioManager
 import android.speech.tts.TextToSpeech
+import androidx.lifecycle.DefaultLifecycleObserver
+import androidx.lifecycle.LifecycleOwner
+import androidx.lifecycle.ProcessLifecycleOwner
 import com.wxn.base.bean.EngineModelConfig
 import com.wxn.base.bean.Locator
 import com.wxn.base.bean.SpeakSentence
@@ -42,7 +45,30 @@ import kotlin.coroutines.suspendCoroutine
 class TtsNavigator(
     val context: Context,
     val ttsPreferencesUtil: TtsPreferencesUtil
-) : ITtsNavigator {
+) : ITtsNavigator, DefaultLifecycleObserver {
+
+    private data class EngineConfig(
+        val engineType: Int,
+        val modelConfig: EngineModelConfig?,
+        val speed: Float,
+        val pitch: Float,
+        val language: Locale,
+        val speakerIndex: Int
+    )
+
+    private var lastEngineConfig: EngineConfig? = null
+    private var shutdownTimerJob: Job? = null
+    private val INACTIVITY_TIMEOUT_MS = 60_000L // 60s
+
+    // Tracks the in-flight async Speech.init(...) job so shutdown() can cancel it.
+    private var engineInitJob: Job? = null
+
+    // Set for good once shutdown() has been called on this instance. Read from both the
+    // main thread (shutdown/stop callers) and the IO dispatcher (engine-init callbacks),
+    // so it guards against Speech.init(...) completing right after teardown and leaving a
+    // live, never-to-be-released TextToSpeech engine bound to the system TTS service.
+    @Volatile
+    private var isShutdown = false
 
     companion object {
         const val TTS_MIN_SPEED = 0.25f
@@ -88,10 +114,120 @@ class TtsNavigator(
 
     private val mutex = Mutex()
 
+    // Serializes engine creation. Both ensureEngineInitialized() (called on demand by play /
+    // setSpeed / setPitch / setLanguage / setSpeakerIndex / getSupportedLanguage) and
+    // setEngineInfo() create the engine when `speech == null`. Without a lock two of them can
+    // pass the null-check concurrently, each open a TextToSpeech connection to the system engine,
+    // and `speech` keeps only the last one assigned - orphaning the other so shutdown() can never
+    // release it, leaving the engine process bound forever. Hold this across the check + creation.
+    private val engineInitMutex = Mutex()
 
     private val engineInitDeferredRef = AtomicReference(CompletableDeferred<Unit>())
 
     private var speech: Speech? = null
+
+    init {
+        scope.launch {
+            ProcessLifecycleOwner.get().lifecycle.addObserver(this@TtsNavigator)
+        }
+    }
+
+    private fun startShutdownTimer() {
+        shutdownTimerJob?.cancel()
+        shutdownTimerJob = scope.launchIO {
+            Logger.d("TtsNavigator: starting shutdown timer for ${INACTIVITY_TIMEOUT_MS / 1000}s")
+            delay(INACTIVITY_TIMEOUT_MS)
+            if (speech != null && !isPlaying()) {
+                Logger.i("TtsNavigator: inactivity timer expired, releasing engine")
+                releaseEngine()
+            }
+        }
+    }
+
+    private fun resetShutdownTimer() {
+        if (shutdownTimerJob != null) {
+            startShutdownTimer()
+        }
+    }
+
+    private fun cancelShutdownTimer() {
+        shutdownTimerJob?.cancel()
+        shutdownTimerJob = null
+    }
+
+    private fun releaseEngine() {
+        Logger.i("TtsNavigator: releasing engine")
+        speech?.shutdown(null)
+        speech = null
+        cancelShutdownTimer()
+    }
+
+    /**
+     * Must be called right after a Speech.init(...) completion callback fires. If shutdown()
+     * ran while that init was in flight, the engine it just created would otherwise be left
+     * live and bound with nothing left to ever release it - this closes that window.
+     */
+    private fun releaseEngineIfShutdownRequested() {
+        if (isShutdown && speech != null) {
+            Logger.w("TtsNavigator: engine finished initializing after shutdown, releasing it immediately")
+            speech?.shutdown(null)
+            speech = null
+        }
+    }
+
+    override fun onStop(owner: LifecycleOwner) {
+        super.onStop(owner)
+        Logger.i("TtsNavigator: App went to background, releasing engine if not playing")
+        if (!isPlaying()) {
+            releaseEngine()
+        }
+    }
+
+    private suspend fun ensureEngineInitialized(): Boolean {
+        if (speech != null) return true
+        if (isShutdown) return false
+
+        return engineInitMutex.withLock {
+            // Re-check under the lock: setEngineInfo() or another on-demand caller may have
+            // created the engine while we waited. Creating a second one here would leak a
+            // TextToSpeech connection (see engineInitMutex).
+            if (speech != null) return@withLock true
+            if (isShutdown) return@withLock false
+            val config = lastEngineConfig ?: return@withLock false
+
+            Logger.i("TtsNavigator: re-initializing engine on demand")
+            val deferred = CompletableDeferred<Unit>()
+            engineInitDeferredRef.set(deferred)
+
+            suspendCancellableCoroutine { continuation ->
+                val job = scope.launchIO {
+                    if (config.engineType == 1) {
+                        if (validTtsConfig(config.engineType, config.modelConfig)) {
+                            speech = Speech.init(context, config.engineType, config.modelConfig, config.speed, config.pitch, config.language, config.speakerIndex) { status ->
+                                handleInitResult(deferred, status, "SherpaOnnx")
+                                releaseEngineIfShutdownRequested()
+                                if (continuation.isActive) continuation.resume(status == TextToSpeech.SUCCESS && !isShutdown)
+                            }
+                        } else {
+                            handleInitResult(deferred, TextToSpeech.ERROR, "SherpaOnnx")
+                            if (continuation.isActive) continuation.resume(false)
+                        }
+                    } else {
+                        speech = Speech.init(context, config.speed, config.pitch, config.language) { status ->
+                            handleInitResult(deferred, status, "BaseTTS")
+                            releaseEngineIfShutdownRequested()
+                            if (continuation.isActive) continuation.resume(status == TextToSpeech.SUCCESS && !isShutdown)
+                        }
+                    }
+                }
+                engineInitJob = job
+                // Best-effort: if the job hasn't started the synchronous Speech.init(...) call yet,
+                // this prevents it from starting at all. If it already has, releaseEngineIfShutdownRequested()
+                // inside the onInit callback above is the guaranteed fallback.
+                continuation.invokeOnCancellation { job.cancel() }
+            }
+        }
+    }
 
     private suspend fun <T> withState(block: suspend () -> T): T = mutex.withLock { block() }
 
@@ -105,6 +241,7 @@ class TtsNavigator(
 
     override fun skipToPreviousUtterance(): Boolean {
         Logger.i("TtsNavigator:skipToPreviousUtterance")
+        resetShutdownTimer()
         if (true != speech?.isSpeaking) {
             Logger.i("TtsNavigator:skipToPreviousUtterance:isNotSpeaking, pass")
             return false
@@ -127,6 +264,7 @@ class TtsNavigator(
 
     override fun skipToNextUtterance(): Boolean {
         Logger.i("TtsNavigator:skipToNextUtterance")
+        resetShutdownTimer()
         if (true != speech?.isSpeaking) {
             Logger.d("TtsNavigator:skipToNextUtterance:is not speaking, pass")
             return false
@@ -148,6 +286,7 @@ class TtsNavigator(
 
     override fun setSpeakSentences(sentences: List<SpeakSentence>, startSentenceIndex: Int) {
         Logger.i("TtsNavigator::setSpeakSentences:sentences.size=${sentences.size},startSentenceIndex=$startSentenceIndex")
+        resetShutdownTimer()
         scope.launchIO {
             withState {
                 replaceSentences(sentences, startSentenceIndex)
@@ -162,10 +301,16 @@ class TtsNavigator(
 
     override fun play() {
         Logger.i("TtsNavigator:play")
+        cancelShutdownTimer()
         playJob?.cancel()
         Logger.i("TtsNavigator:play:cancel old playJob")
         playJob = scope.launchIO {
             Logger.i("TtsNavigator:play:into io coroutine and then wait for init")
+            if (!ensureEngineInitialized()) {
+                Logger.e("TtsNavigator:play: engine initialization failed")
+                callback?.onFinished(STATUS_ERROR)
+                return@launchIO
+            }
             waitForInit()
             Logger.i("TtsNavigator:play: engine init is success, then continue")
 
@@ -206,6 +351,7 @@ class TtsNavigator(
                 }
 
                 // 播放句子（挂起直到播放完成）
+                resetShutdownTimer()
                 val result = innerPlay(sentence)
 
                 Logger.d("TtsNavigator::play:play result=[$result],check agian:isActive=$isActive")
@@ -375,10 +521,12 @@ class TtsNavigator(
 
     override fun setSpeed(speed: Float) {
         Logger.i("TtsNavigator::setSpeed:speed=$speed, oldSpeed=${this.speed}")
+        resetShutdownTimer()
         val speechSpeed = speed.coerceIn(TTS_MIN_SPEED, TTS_MAX_SPEED)
         if (speechSpeed != this.speed) {
             scope.launchIO {
                 Logger.d("TtsNavigator::setSpeed: try to wait engine init")
+                if (!ensureEngineInitialized()) return@launchIO
                 waitForInit()
                 Logger.d("TtsNavigator::setSpeed: engine init done, continue")
                 if (speech?.setTextToSpeechRate(speechSpeed) == TextToSpeech.SUCCESS) {
@@ -427,11 +575,13 @@ class TtsNavigator(
 
     override fun setPitch(pitch: Float) {
         Logger.i("TtsNavigator:setPitch:pitch[$pitch],ttsPitch[${this.pitch}]]")
+        resetShutdownTimer()
 
         val speechPitch = pitch.coerceIn(TTS_MIN_PITCH, TTS_MAX_PITCH)
         if (speechPitch != this.pitch) {
             scope.launchIO {
                 Logger.d("TtsNavigator:setPitch: try to wait engine init")
+                if (!ensureEngineInitialized()) return@launchIO
                 waitForInit()
                 Logger.d("TtsNavigator:setPitch: engine init done, continue")
                 if (speech?.setTextToSpeechPitch(speechPitch) == TextToSpeech.SUCCESS) {
@@ -456,6 +606,10 @@ class TtsNavigator(
 
     override fun getSupportedLanguage(onDataCollect: (Set<Locale>) -> Unit) {
         scope.launchIO {
+            if (!ensureEngineInitialized()) {
+                onDataCollect.invoke(emptySet())
+                return@launchIO
+            }
             waitForInit()
             val locales = speech?.supportedTtsLanguages
             onDataCollect.invoke(locales ?: emptySet<Locale>())
@@ -464,8 +618,13 @@ class TtsNavigator(
 
     override fun setLanguage(newlocale: Locale, onLanguageChanged: (Boolean) -> Unit) {
         Logger.i("TtsNavigator:setLanguage:newLocale[${newlocale.language}],ttsLocale[${ttsLocale.language}]]")
+        resetShutdownTimer()
         scope.launchIO {
             Logger.i("TtsNavigator:setLanguage: try to wait engine init")
+            if (!ensureEngineInitialized()) {
+                onLanguageChanged.invoke(false)
+                return@launchIO
+            }
             waitForInit()
             Logger.i("TtsNavigator:setLanguage: engine init done, continue")
             if (newlocale != this@TtsNavigator.ttsLocale) {
@@ -504,8 +663,10 @@ class TtsNavigator(
 
     override fun setSpeakerIndex(index: Int) {
         Logger.i("TtsNavigator:setSpeakerIndex:index=$index")
+        resetShutdownTimer()
         scope.launchIO {
             Logger.i("TtsNavigator:setSpeakerIndex: try to wait engine init")
+            if (!ensureEngineInitialized()) return@launchIO
             waitForInit()
             Logger.i("TtsNavigator:setSpeakerIndex: engine init done, continue")
             speech?.setSpeakerIndex(index)
@@ -524,29 +685,42 @@ class TtsNavigator(
         onInit: (TtsEngineStatus) -> Unit) {
         Logger.i("TtsNavigator:setEngineInfo:engineType=$engineType,config=$modelConfig," +
                 "speed=$speed,pitch=$pitch,language=$language,speakerIndex=$speakerIndex")
+        lastEngineConfig = EngineConfig(engineType, modelConfig, speed, pitch, language, speakerIndex)
+        cancelShutdownTimer()
         scope.launchIO {  //切换到协程中执行
+            if (isShutdown) return@launchIO
             val oldEngineType = speech?.engineType ?: -1
             val oldModelConfig = speech?.config
             if (oldEngineType != engineType) {  //系统引擎 <-->  Sherpa引擎  两者之间切换
                 if (oldEngineType == -1 || speech == null) {  //还没有引擎 ,第一次初始化引擎
-                    val newDeferred = CompletableDeferred<Unit>()
-                    engineInitDeferredRef.set(newDeferred)
-
-                    if (engineType == 1) {
-                        if (validTtsConfig(engineType, modelConfig)) {
-                            speech = Speech.init(context, engineType, modelConfig, speed, pitch, language, speakerIndex) { status ->
-                                handleInitResult(newDeferred, status, "SherpaOnnx") //  通知等待者
-                                onInit( if (status == TextToSpeech.SUCCESS) TtsEngineStatus.READY else TtsEngineStatus.FAILED)
-                            }
+                    engineInitMutex.withLock {
+                        if (speech != null) {
+                            // A concurrent on-demand initializer created the engine while we waited
+                            // for the lock; reuse it instead of opening a second connection.
+                            onInit(if (isShutdown) TtsEngineStatus.FAILED else TtsEngineStatus.READY)
                         } else {
-                            onInit(TtsEngineStatus.NEED_MODEL)
-                            ToastUtil.showLong(stringResource(com.wxn.reader.R.string.err_no_valid_engine_model))
-                            handleInitResult(newDeferred, TextToSpeech.ERROR, "SherpaOnnx")
-                        }
-                    } else {
-                        speech = Speech.init(context, speed, pitch, language) { status ->
-                            handleInitResult(newDeferred, status, "BaseTTS")
-                            onInit( if (status == TextToSpeech.SUCCESS) TtsEngineStatus.READY else TtsEngineStatus.FAILED)
+                            val newDeferred = CompletableDeferred<Unit>()
+                            engineInitDeferredRef.set(newDeferred)
+
+                            if (engineType == 1) {
+                                if (validTtsConfig(engineType, modelConfig)) {
+                                    speech = Speech.init(context, engineType, modelConfig, speed, pitch, language, speakerIndex) { status ->
+                                        handleInitResult(newDeferred, status, "SherpaOnnx") //  通知等待者
+                                        releaseEngineIfShutdownRequested()
+                                        onInit(if (status == TextToSpeech.SUCCESS && !isShutdown) TtsEngineStatus.READY else TtsEngineStatus.FAILED)
+                                    }
+                                } else {
+                                    onInit(TtsEngineStatus.NEED_MODEL)
+                                    ToastUtil.showLong(stringResource(com.wxn.reader.R.string.err_no_valid_engine_model))
+                                    handleInitResult(newDeferred, TextToSpeech.ERROR, "SherpaOnnx")
+                                }
+                            } else {
+                                speech = Speech.init(context, speed, pitch, language) { status ->
+                                    handleInitResult(newDeferred, status, "BaseTTS")
+                                    releaseEngineIfShutdownRequested()
+                                    onInit(if (status == TextToSpeech.SUCCESS && !isShutdown) TtsEngineStatus.READY else TtsEngineStatus.FAILED)
+                                }
+                            }
                         }
                     }
                 } else {  //有其他引擎, 先关闭其他引擎
@@ -570,12 +744,14 @@ class TtsNavigator(
                         scope.launchIO {
                             delay(30)
                             Logger.i("TtsNavigator:setEngineInfo:wait shutdown last Engine then start new Engine.")
+                            if (isShutdown) return@launchIO
 
                             if (engineType == 1) {
                                 if (validTtsConfig(engineType, modelConfig)) {
                                     speech = Speech.init(context, engineType, modelConfig, speed, pitch, language, speakerIndex) { status ->
                                         handleInitResult(newDeferred, status, "SherpaOnnx") //  通知等待者
-                                        onInit( if (status == TextToSpeech.SUCCESS) TtsEngineStatus.READY else TtsEngineStatus.FAILED)
+                                        releaseEngineIfShutdownRequested()
+                                        onInit(if (status == TextToSpeech.SUCCESS && !isShutdown) TtsEngineStatus.READY else TtsEngineStatus.FAILED)
                                     }
                                 } else {
                                     onInit(TtsEngineStatus.NEED_MODEL)
@@ -585,7 +761,8 @@ class TtsNavigator(
                             } else {
                                 speech = Speech.init(context, speed, pitch, language) { status ->
                                     handleInitResult(newDeferred, status, "BaseTTS")
-                                    onInit( if (status == TextToSpeech.SUCCESS) TtsEngineStatus.READY else TtsEngineStatus.FAILED)
+                                    releaseEngineIfShutdownRequested()
+                                    onInit(if (status == TextToSpeech.SUCCESS && !isShutdown) TtsEngineStatus.READY else TtsEngineStatus.FAILED)
                                 }
                             }
                         }
@@ -618,11 +795,13 @@ class TtsNavigator(
                 oldSpeech?.shutdown {
                     scope.launchIO {
                         delay(30)
+                        if (isShutdown) return@launchIO
 
                         if (validTtsConfig(engineType, modelConfig)) {
                             speech = Speech.init(context, engineType, modelConfig, speed, pitch, language, speakerIndex) { status ->
                                 handleInitResult(newDeferred, status, "SherpaOnnx") //  通知等待者
-                                onInit( if (status == TextToSpeech.SUCCESS) TtsEngineStatus.READY else TtsEngineStatus.FAILED)
+                                releaseEngineIfShutdownRequested()
+                                onInit(if (status == TextToSpeech.SUCCESS && !isShutdown) TtsEngineStatus.READY else TtsEngineStatus.FAILED)
                             }
                         } else {
                             onInit(TtsEngineStatus.NEED_MODEL)
@@ -690,6 +869,7 @@ class TtsNavigator(
         playJob?.cancel()
         playJob = null
         speech?.stopTextToSpeech()
+        startShutdownTimer()
     }
 
     private suspend fun pauseAndWait() {
@@ -697,6 +877,7 @@ class TtsNavigator(
         playJob?.cancel()
         playJob = null
         speech?.stopAndWait()
+        startShutdownTimer()
     }
 
     override fun resume() {
@@ -714,6 +895,7 @@ class TtsNavigator(
         playJob?.cancel()
         playJob = null
         speech?.stopTextToSpeech()
+        startShutdownTimer()
 
         scope.launchIO {
             withState {
@@ -729,7 +911,10 @@ class TtsNavigator(
 
     override fun shutdown(listener: OnShutdownListener?) {
         Logger.i("TtsNavigator:shutdown")
+        isShutdown = true
         playJob?.cancel()
+        engineInitJob?.cancel()
+        cancelShutdownTimer()
 
         // 关闭 Channel
         try {
@@ -748,6 +933,9 @@ class TtsNavigator(
         }
         speech?.shutdown(listener)
         speech = null
+        scope.launch {
+            ProcessLifecycleOwner.get().lifecycle.removeObserver(this@TtsNavigator)
+        }
         Logger.i("TtsNavigator:shutdown completed")
     }
 

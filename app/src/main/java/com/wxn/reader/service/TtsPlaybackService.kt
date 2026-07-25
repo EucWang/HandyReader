@@ -480,6 +480,11 @@ class TtsPlaybackService : MediaSessionService() {
                 val speakSentences = ttsStateHolder.getSentences()
                 val startIndex = ttsStateHolder.getCurrentPosition().second
                 navigator.setSpeakSentences(speakSentences, startIndex)
+                // New chapter data (e.g. an auto-advance to the next chapter) has just updated
+                // bookTitle/chapterTitle in the state. Refresh the MediaSession metadata + the
+                // notification so external surfaces (lock screen, Bluetooth player) show the new
+                // chapter instead of the one that was playing when playback started.
+                updateState(ttsStateHolder.state.value)
             }
 
             ACTION_SET_SPEED -> {
@@ -550,19 +555,23 @@ class TtsPlaybackService : MediaSessionService() {
 
                         if (initStatus == TtsEngineStatus.READY) {
                             Logger.d("TtsPlaybackService::initStatus=$initStatus,then invoke play")
+                            if (config.engineType == 0) {
+                                // Query supported languages only AFTER the engine is READY.
+                                // Previously this ran concurrently with setEngineInfo(): both paths
+                                // called into engine init, each opened a TextToSpeech connection to
+                                // the system engine, and the orphaned one was never shut down -
+                                // keeping the engine process bound forever (the orea leak).
+                                navigator.getSupportedLanguage { languages ->
+                                    if (languages.isNotEmpty()) {
+                                        ttsStateHolder.updateLanguages(languages)
+                                    }
+                                }
+                            }
                             scope.launchMain {
                                 ttsStateHolder.startTimerSession()
                                 navigator.play()
                                 mediaSession?.player?.play()
                                 updateState(ttsStateHolder.state.value)
-                            }
-                        }
-                    }
-
-                    if (config.engineType == 0) {
-                        navigator.getSupportedLanguage { languages ->
-                            if (languages.isNotEmpty()) {
-                                ttsStateHolder.updateLanguages(languages)
                             }
                         }
                     }

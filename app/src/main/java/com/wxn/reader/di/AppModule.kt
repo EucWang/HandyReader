@@ -105,7 +105,6 @@ import com.wxn.reader.util.TtsServiceController
 import com.wxn.reader.util.download.OKHttpStringStreamer
 import kotlinx.serialization.json.Json
 import okhttp3.OkHttpClient
-import com.wxn.reader.util.tts.TtsNavigator
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -583,12 +582,6 @@ object AppModule {
     @Singleton
     fun providePermissionRepository(application: Application): PermissionRepository =
         PermissionRepositoryImpl(application)
-
-    @Provides
-    @Singleton
-    fun provideTtsNavigator(application: Application,
-                            ttsPreferencesUtil: TtsPreferencesUtil) : TtsNavigator =
-        TtsNavigator(application, ttsPreferencesUtil)
 
     @Provides
     @Singleton
