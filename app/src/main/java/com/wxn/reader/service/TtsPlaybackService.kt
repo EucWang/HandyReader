@@ -206,6 +206,11 @@ class TtsPlaybackService : MediaSessionService() {
     private var audioFocusRequest: AudioFocusRequest? = null
     private var audioFocusChangeListener: AudioManager.OnAudioFocusChangeListener? = null
 
+    // True when the current pause was triggered by a transient audio-focus loss
+    // (e.g. an incoming call). Lets us auto-resume on focus gain without resuming
+    // a pause the user requested manually.
+    private var pausedByFocusLoss = false
+
     private var lastCoverPath: String? = null
     private var lastArtworkData: ByteArray? = null
 
@@ -312,9 +317,11 @@ class TtsPlaybackService : MediaSessionService() {
                 val audioManager = getSystemService(Context.AUDIO_SERVICE) as AudioManager
                 if (state.isPlaying) {
                     audioManager.requestAudioFocus(request)
-                } else {
-                    audioManager.abandonAudioFocusRequest(request)
                 }
+                // Do NOT abandon focus while merely paused: a transient loss (e.g. an
+                // incoming call) requires us to keep the request so the framework
+                // delivers AUDIOFOCUS_GAIN when the call ends and we can auto-resume.
+                // Focus is released for good in stopTts()/releaseAudioFocus().
             }
         }
     }
@@ -331,24 +338,64 @@ class TtsPlaybackService : MediaSessionService() {
         return START_STICKY
     }
 
+    // Explicitly acquire audio focus when playback (re)starts. This must NOT rely on
+    // the TtsState.isPlaying snapshot: at the point playback is kicked off the status is
+    // still PENDING_PLAYING (PLAYING is only set later from sentence-progress callbacks),
+    // so requesting focus off isPlaying would silently never happen and we would never
+    // receive focus-loss callbacks for incoming calls.
+    private fun acquireAudioFocus() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            audioFocusRequest?.let { request ->
+                val audioManager = getSystemService(Context.AUDIO_SERVICE) as AudioManager
+                audioManager.requestAudioFocus(request)
+            }
+        }
+    }
+
     private fun initAudioFocus() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             val listener = AudioManager.OnAudioFocusChangeListener { focusChange ->
                 when (focusChange) {
-                    AudioManager.AUDIOFOCUS_LOSS -> pauseTts()
-                    AudioManager.AUDIOFOCUS_LOSS_TRANSIENT -> pauseTts()
-                    AudioManager.AUDIOFOCUS_GAIN -> resumeTts()
+                    // Permanent loss (another app took focus for good): pause and do
+                    // not arm auto-resume — no AUDIOFOCUS_GAIN will follow.
+                    AudioManager.AUDIOFOCUS_LOSS -> {
+                        pausedByFocusLoss = false
+                        pauseTts()
+                    }
+                    // Transient loss such as an incoming call. We also treat the
+                    // "can duck" case as a full pause: spoken content is useless at a
+                    // ducked volume, and setWillPauseWhenDucked(true) normally turns
+                    // ducking into a plain transient loss anyway. Only arm auto-resume
+                    // if we were actually playing, so a user pause is left untouched.
+                    AudioManager.AUDIOFOCUS_LOSS_TRANSIENT,
+                    AudioManager.AUDIOFOCUS_LOSS_TRANSIENT_CAN_DUCK -> {
+                        if (ttsStateHolder.state.value.isPlaying) {
+                            pausedByFocusLoss = true
+                            pauseTts()
+                        }
+                    }
+                    // Focus regained (e.g. the call ended): resume only if we are the
+                    // ones who paused because of the focus loss.
+                    AudioManager.AUDIOFOCUS_GAIN -> {
+                        if (pausedByFocusLoss) {
+                            pausedByFocusLoss = false
+                            resumeTts()
+                        }
+                    }
                 }
             }
             audioFocusChangeListener = listener
             audioFocusRequest =
-                AudioFocusRequest.Builder(AudioManager.AUDIOFOCUS_GAIN_TRANSIENT_MAY_DUCK)
+                AudioFocusRequest.Builder(AudioManager.AUDIOFOCUS_GAIN)
                     .setAudioAttributes(
                         android.media.AudioAttributes.Builder()
                             .setUsage(android.media.AudioAttributes.USAGE_MEDIA)
                             .setContentType(android.media.AudioAttributes.CONTENT_TYPE_SPEECH)
                             .build()
                     )
+                    // Speech must not be ducked to a low volume; ask the framework to
+                    // send us a transient loss (so we pause) instead of auto-ducking.
+                    .setWillPauseWhenDucked(true)
                     .setOnAudioFocusChangeListener(listener)
                     .build()
         }
@@ -382,6 +429,9 @@ class TtsPlaybackService : MediaSessionService() {
 
     fun resumeTts() {
         Logger.i("TtsPlaybackService: resumeTts")
+        // Once playback resumes there is no pending focus-loss pause to recover from.
+        pausedByFocusLoss = false
+        acquireAudioFocus()
         scope.launchMain {
             ttsStateHolder.startPlaying()
             ttsStateHolder.startTimerSession()
@@ -398,6 +448,7 @@ class TtsPlaybackService : MediaSessionService() {
      */
     fun stopTts() {
         Logger.i("TtsPlaybackService: stopTts")
+        pausedByFocusLoss = false
         ttsStateHolder.stopPlaying()
         ttsNavigator?.stop()
         mediaSession?.player?.stop()
@@ -569,6 +620,7 @@ class TtsPlaybackService : MediaSessionService() {
                             }
                             scope.launchMain {
                                 ttsStateHolder.startTimerSession()
+                                acquireAudioFocus()
                                 navigator.play()
                                 mediaSession?.player?.play()
                                 updateState(ttsStateHolder.state.value)
