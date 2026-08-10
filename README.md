@@ -200,3 +200,4 @@ HandyReader builds on the work of many open-source projects:
 - [jp2ForAndroid](https://github.com/EucWang/jp2ForAndroid) — JPEG2000 decoder
 - [libxml2](https://gitlab.gnome.org/GNOME/libxml2) — XML parser
 - [sherpa-onnx](https://github.com/k2-fsa/sherpa-onnx) — Offline neural TTS engine
+- [SheenBidi](https://github.com/Tehreer/SheenBidi) - implementation of the Unicode Bidirectional Algorithm (UBA).
