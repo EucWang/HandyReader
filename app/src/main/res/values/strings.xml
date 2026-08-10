@@ -992,4 +992,5 @@
     <string name="backup_tts_prefs">TTS preferences</string>
     <string name="global_label">Global</string>
     <string name="per_book_label">This book</string>
+    <string name="invert_page_turn">Reverse page turn direction</string>
 </resources>

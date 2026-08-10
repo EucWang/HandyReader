@@ -986,4 +986,5 @@
     <string name="saved_to_gallery_with_path">गैलरी में सहेजा गया · Pictures/HandyReader/</string>
     <string name="global_label">वैश्विक</string>
     <string name="per_book_label">यह पुस्तक</string>
+    <string name="invert_page_turn">पेज टर्निंग दिशा उल्टी करें</string>
 </resources>

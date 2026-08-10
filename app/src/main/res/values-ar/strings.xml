@@ -990,4 +990,5 @@
     <string name="saved_to_gallery_with_path">تم الحفظ في المعرض · Pictures/HandyReader/</string>
     <string name="global_label">عام</string>
     <string name="per_book_label">هذا الكتاب</string>
+    <string name="invert_page_turn">عكس اتجاه تقليب الصفحات</string>
 </resources>

@@ -1225,6 +1225,8 @@ class MainReadViewModel @Inject constructor(
                 oldPref.clickAreaMode != newPref.clickAreaMode ||
                 oldPref.leftHandedMode != newPref.leftHandedMode
 
+            val isInvertPageTurnChange = oldPref.invertPageTurn != newPref.invertPageTurn
+
             val isBgOnlyChange =
                 (oldPref.backgroundColor != newPref.backgroundColor ||
                 oldPref.backgroundImage != newPref.backgroundImage) && !isLayoutChange
@@ -1232,6 +1234,7 @@ class MainReadViewModel @Inject constructor(
             when {
                 isLayoutChange -> pageController.updatePageViews(newPref)
                 isBgOnlyChange -> pageController.updateBg()
+                isInvertPageTurnChange -> pageController.updatePageControl()
                 // 非排版非背景字段（colorHistory/brightness/keepScreenOn/volumeKeyPageTurning/readerThemeId/
                 // readerThemeMode/titleSize/publisherStyles/textNormalization/verticalText/readingProgression/tapNavigation 等）
                 // 变化时不触发任何 pageController 刷新。
@@ -2872,6 +2875,12 @@ class MainReadViewModel @Inject constructor(
     fun updateLeftHandMode(leftHandMode: Boolean) {
         viewModelScope.launch {
             readerPrefsUtil.updateLeftHandMode(leftHandMode)
+        }
+    }
+
+    fun updateInvertPageTurn(invertPageTurn: Boolean) {
+        viewModelScope.launch {
+            readerPrefsUtil.updateInvertPageTurn(invertPageTurn)
         }
     }
 

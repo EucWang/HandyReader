@@ -985,4 +985,5 @@
     <string name="backup_tts_prefs">TTS 设置</string>
     <string name="global_label">全局</string>
     <string name="per_book_label">本书</string>
+    <string name="invert_page_turn">反转翻页方向</string>
 </resources>

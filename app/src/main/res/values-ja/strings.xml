@@ -985,4 +985,5 @@
     <string name="saved_to_gallery_with_path">ギャラリーに保存しました · Pictures/HandyReader/</string>
     <string name="global_label">共通</string>
     <string name="per_book_label">この本</string>
+    <string name="invert_page_turn">ページめくり方向を反転</string>
 </resources>

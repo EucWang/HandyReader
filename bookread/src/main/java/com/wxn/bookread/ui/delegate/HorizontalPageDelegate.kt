@@ -157,7 +157,14 @@ abstract class HorizontalPageDelegate(pageView: PageView) : PageDelegate(pageVie
             val distance = sqrt(deltaX * deltaX + deltaY * deltaY)
             isMoved = distance >= pageView.slopSquare
             if (isMoved) {
-                if (sumX - startX > 0) {
+                val swipeRight = sumX - startX > 0
+                val effectiveSwipeRight = if (pageView.invertPageTurn) {
+                    !swipeRight
+                } else {
+                    swipeRight
+                }
+
+                if (effectiveSwipeRight) {
                     //如果上一页不存在
                     if (!hasPrev()) {
                         noNext = true
@@ -175,7 +182,12 @@ abstract class HorizontalPageDelegate(pageView: PageView) : PageDelegate(pageVie
             }
         }
         if (isMoved) {
-            isCancel = if (mDirection == Direction.NEXT) sumX > lastX else sumX < lastX
+            // invertPageTurn 下手势反向：完成与取消的判定互换
+            isCancel = if (pageView.invertPageTurn) {
+                if (mDirection == Direction.NEXT) sumX < lastX else sumX > lastX
+            } else {
+                if (mDirection == Direction.NEXT) sumX > lastX else sumX < lastX
+            }
             isRunning = true
             //设置触摸点
             pageView.setTouchPoint(sumX, sumY)
@@ -208,7 +220,12 @@ abstract class HorizontalPageDelegate(pageView: PageView) : PageDelegate(pageVie
         abortAnim()
         if (!hasNext()) return
         setDirection(Direction.NEXT)
-        pageView.setTouchPoint(viewWidth.toFloat(), viewHeight.toFloat()/2.0f, false)
+        val startX = if (pageView.invertPageTurn) {
+            0f
+        } else {
+            viewWidth.toFloat()
+        }
+        pageView.setTouchPoint(startX, viewHeight.toFloat()/ 2.0f, false)
         onAnimStart(animationSpeed)
     }
 
@@ -221,7 +238,13 @@ abstract class HorizontalPageDelegate(pageView: PageView) : PageDelegate(pageVie
         abortAnim()
         if (!hasPrev()) return
         setDirection(Direction.PREV)
-        pageView.setTouchPoint(0f, viewHeight.toFloat()/2.0f, false)
+        val startX = if (pageView.invertPageTurn) {
+            viewWidth.toFloat()
+        } else {
+            0f
+        }
+        pageView.setTouchPoint(startX, viewHeight.toFloat()/2.0f, false)
+
         onAnimStart(animationSpeed)
     }
 

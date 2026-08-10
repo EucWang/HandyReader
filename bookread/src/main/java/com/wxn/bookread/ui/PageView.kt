@@ -41,7 +41,6 @@ import kotlinx.coroutines.launch
 import java.io.File
 import kotlin.math.abs
 import kotlin.math.min
-import com.wxn.base.ext.DpExt
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 
@@ -203,7 +202,9 @@ class PageView : FrameLayout, IDataSource, PageCallback {
     // 数值 = handleLineHeight(24dp) - handleRadius(10dp) = 14dp
     // 需与 ContentTextView 中 drawHandle 的尺寸保持同步
     private var handleDragYOffset = 0f
-    private val handleYCompensationPx by lazy { DpExt.dp2px(context, 14f) }
+    private val handleYCompensationPx by lazy {
+        RenderResources.handleLineHeightPx - RenderResources.handleRadiusPx
+    }
 
     //是否按下文本选中
     private var pressOnTextSelected = false
@@ -228,6 +229,10 @@ class PageView : FrameLayout, IDataSource, PageCallback {
     private var clickAllNext: Boolean = false //从配置里得到的控制变量
     private var clickAreaMode: Int = 0 //0=中间区域模式, 1=顶部区域模式
     private var leftHandedMode: Boolean = false //左手操作模式
+
+
+    // 翻页方向反转（upPageControl 加载；delegate 与点击翻页读此字段）。
+    internal var invertPageTurn: Boolean = false
 
     init {
         Logger.d("PageView::init")
@@ -362,7 +367,14 @@ class PageView : FrameLayout, IDataSource, PageCallback {
                         if (startDistSq < slopSq || endDistSq < slopSq) {
                             handleDragMode = if (startDistSq < endDistSq) HandleDragMode.START else HandleDragMode.END
                             //根据是触发了开始滑块还是触发了结束滑块，得到一个和滑块的偏移量，以便用户拖动滑块时，跟随滑块的移动，修正文本的选中位置
-                            handleDragYOffset = if (handleDragMode == HandleDragMode.START) handleYCompensationPx else -handleYCompensationPx
+                            // ★ Unified-Bottom：start/end 手柄圆心统一在行底（lineBottom + h - r），
+                            //   手指 y 需减去补偿量归一到文本行，故 start/end 补偿符号统一为 -c。
+                            //   与 ContentTextView.drawSelectionHandles / getSelectionHandlePositions 同步。
+                            handleDragYOffset = when (handleDragMode) {
+                                HandleDragMode.START -> -handleYCompensationPx
+                                HandleDragMode.END -> -handleYCompensationPx
+                                HandleDragMode.NONE -> 0f
+                            }
                         }
                     }
 
@@ -681,21 +693,21 @@ class PageView : FrameLayout, IDataSource, PageCallback {
                 dataProvider?.clickCenter()
             }
         } else if (clickTurnPage) {
-            // 根据左右手模式决定翻页方向
-            if (leftHandedMode) {
-                // 左手模式：左侧下一页，右侧上一页
-                if (clickX > width / 2 || clickAllNext) {
-                    pageDelegate?.prevPageByAnim(animationSpeed)
-                } else {
-                    pageDelegate?.nextPageByAnim(animationSpeed)
-                }
+
+            val rawIsNext = if (leftHandedMode) {
+                !(clickX > width / 2 || clickAllNext)
             } else {
-                // 右手模式（默认）：左侧上一页，右侧下一页
-                if (clickX > width / 2 || clickAllNext) {
-                    pageDelegate?.nextPageByAnim(animationSpeed)
-                } else {
-                    pageDelegate?.prevPageByAnim(animationSpeed)
-                }
+                (clickX > width / 2 || clickAllNext)
+            }
+            val effectiveIsNext = if (invertPageTurn) {
+                !rawIsNext
+            } else {
+                rawIsNext
+            }
+            if (effectiveIsNext) {
+                pageDelegate?.nextPageByAnim(animationSpeed)
+            } else {
+                pageDelegate?.prevPageByAnim(animationSpeed)
             }
             dataProvider?.hideMenu()
         }
@@ -756,6 +768,7 @@ class PageView : FrameLayout, IDataSource, PageCallback {
             ChapterProvider.readerPreferencesUtil?.readerPrefsFlow?.firstOrNull()?.let { preference ->
                 clickAreaMode = preference.clickAreaMode
                 leftHandedMode = preference.leftHandedMode
+                invertPageTurn = preference.invertPageTurn
             }
         }
     }

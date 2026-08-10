@@ -72,6 +72,9 @@ class ReaderPreferencesUtil @Inject constructor(context: Context) {
         val VOLUME_KEY_PAGE_TURNING = booleanPreferencesKey("volume_key_page_turning")      //音量键翻页
         val CLICK_AREA_MODE = intPreferencesKey("click_area_mode")                           //点击区域模式
         val LEFT_HANDED_MODE = booleanPreferencesKey("left_handed_mode")                     //左手操作模式
+
+        val INVERT_PAGE_TURN = booleanPreferencesKey("invert_page_turn")
+
         val BRIGHTNESS = floatPreferencesKey("brightness")                                   //亮度值
         val BRIGHTNESS_SET = booleanPreferencesKey("brightness_set")                         //是否手动设置过亮度
         val COLUMNS = intPreferencesKey("columns")                               //双列显示开关, ==2 即开始
@@ -112,6 +115,7 @@ class ReaderPreferencesUtil @Inject constructor(context: Context) {
             volumeKeyPageTurning = false,
             clickAreaMode = 0,
             leftHandedMode = false,
+            invertPageTurn = false,
             brightness = 0.0f,
             brightnessSet = false,
             columns = 1)
@@ -151,6 +155,7 @@ class ReaderPreferencesUtil @Inject constructor(context: Context) {
                 pref[VOLUME_KEY_PAGE_TURNING] = defaultPreferences.volumeKeyPageTurning
                 pref[CLICK_AREA_MODE] = defaultPreferences.clickAreaMode
                 pref[LEFT_HANDED_MODE] = defaultPreferences.leftHandedMode
+                pref[INVERT_PAGE_TURN] = defaultPreferences.invertPageTurn
                 pref[BRIGHTNESS] = defaultPreferences.brightness
                 pref[BRIGHTNESS_SET] = defaultPreferences.brightnessSet
 
@@ -221,6 +226,7 @@ class ReaderPreferencesUtil @Inject constructor(context: Context) {
             volumeKeyPageTurning = preferences[VOLUME_KEY_PAGE_TURNING] ?: defaultPreferences.volumeKeyPageTurning,
             clickAreaMode = preferences[CLICK_AREA_MODE] ?: defaultPreferences.clickAreaMode,
             leftHandedMode = preferences[LEFT_HANDED_MODE] ?: defaultPreferences.leftHandedMode,
+            invertPageTurn = preferences[INVERT_PAGE_TURN] ?: defaultPreferences.invertPageTurn,
             brightness = preferences[BRIGHTNESS] ?: defaultPreferences.brightness,
             brightnessSet = preferences[BRIGHTNESS_SET] ?: defaultPreferences.brightnessSet,
 
@@ -327,6 +333,13 @@ class ReaderPreferencesUtil @Inject constructor(context: Context) {
         Logger.d("ReaderPreferencesUtil::updateLeftHandMode[$isLeftHandedMode]")
         dataStore.edit { prefs ->
             prefs[LEFT_HANDED_MODE] = isLeftHandedMode
+        }
+    }
+
+    suspend fun updateInvertPageTurn(invertPageTurn: Boolean) {
+        Logger.d("ReaderPreferencesUtil::updateInvertPageTurn[$invertPageTurn]")
+        dataStore.edit { prefs ->
+            prefs[INVERT_PAGE_TURN] = invertPageTurn
         }
     }
 
@@ -447,6 +460,7 @@ class ReaderPreferencesUtil @Inject constructor(context: Context) {
             preferences[VOLUME_KEY_PAGE_TURNING] = newPreferences.volumeKeyPageTurning
             preferences[CLICK_AREA_MODE] = newPreferences.clickAreaMode
             preferences[LEFT_HANDED_MODE] = newPreferences.leftHandedMode
+            preferences[INVERT_PAGE_TURN] = newPreferences.invertPageTurn
             preferences[BRIGHTNESS] = newPreferences.brightness
             preferences[BRIGHTNESS_SET] = newPreferences.brightnessSet
             preferences[COLUMNS] = newPreferences.columns
@@ -507,6 +521,7 @@ class ReaderPreferencesUtil @Inject constructor(context: Context) {
             preferences[VOLUME_KEY_PAGE_TURNING] = defaultPreferences.volumeKeyPageTurning
             preferences[CLICK_AREA_MODE] = defaultPreferences.clickAreaMode
             preferences[LEFT_HANDED_MODE] = defaultPreferences.leftHandedMode
+            preferences[INVERT_PAGE_TURN] =defaultPreferences.invertPageTurn
             preferences[BRIGHTNESS] = defaultPreferences.brightness
             preferences[BRIGHTNESS_SET] = defaultPreferences.brightnessSet
             // dualColumn 与 scroll 同属 reader 行为组（resetReadUiPreferences 不处理：双列是阅读行为，不是 UI 外观）

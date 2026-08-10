@@ -986,4 +986,5 @@
     <string name="saved_to_gallery_with_path">Enregistré dans la galerie · Pictures/HandyReader/</string>
     <string name="global_label">Global</string>
     <string name="per_book_label">Ce livre</string>
+    <string name="invert_page_turn">Inverser le sens de changement de page</string>
 </resources>

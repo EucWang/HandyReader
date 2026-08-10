@@ -987,4 +987,5 @@
     <string name="saved_to_gallery_with_path">In Galerie gespeichert · Pictures/HandyReader/</string>
     <string name="global_label">Global</string>
     <string name="per_book_label">Dieses Buch</string>
+    <string name="invert_page_turn">Seitenumblättern umkehren</string>
 </resources>

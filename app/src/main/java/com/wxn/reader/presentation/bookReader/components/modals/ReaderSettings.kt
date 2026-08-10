@@ -356,6 +356,16 @@ fun ReaderSettings(
                             viewModel.showClickAreaMode(clickAreadMode, isLeftHandedMode)
                         }
                     )
+
+                    Spacer(modifier = Modifier.height(12.dp))
+
+                    SettingsSwitch(
+                        title = stringResource(R.string.invert_page_turn),
+                        checked = readerPreferences.invertPageTurn,
+                        onCheckedChange = {
+                            viewModel.updateInvertPageTurn(it)
+                        }
+                    )
                 }
 
                 Spacer(modifier = Modifier.height(12.dp))

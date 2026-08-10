@@ -80,6 +80,7 @@ data class ReaderPreferences(
     val volumeKeyPageTurning: Boolean = false,       //音量键翻页，默认关闭
     val clickAreaMode: Int = 0,                     //点击区域模式: 0=中间区域(centerRectF), 1=顶部区域(topRectF)
     val leftHandedMode: Boolean = false,            //左手操作模式: true=左半部下一页,右半部上一页; false=左半部上一页,右半部下一页
+    val invertPageTurn: Boolean = false,            //翻页方向反转，影响水平方向的翻页动画
     val brightness: Float = 0.0f,                   //用户设置的亮度值 0.0~1.0
     val brightnessSet: Boolean = false,             //用户是否手动设置过亮度
     val columns: Int = 1,                //双列显示开关（全局阅读设置，与 scroll/leftHandedMode 同组，不进 per-book override）

@@ -157,18 +157,37 @@ class SimulationPageDelegate(pageView: PageView) : HorizontalPageDelegate(pageVi
 
     override fun setDirection(direction: Direction) {
         super.setDirection(direction)
+        val invert = pageView.invertPageTurn
+        val mirror = !invert
         when (direction) {
-            Direction.PREV ->
+            Direction.PREV -> {
                 //上一页滑动不出现对角
                 if (startX > viewWidth / 2) {
                     calcCornerXY(startX, viewHeight.toFloat())
                 } else {
                     calcCornerXY(viewWidth - startX, viewHeight.toFloat())
                 }
-            Direction.NEXT ->
+
+                //仿真反转，阴影镜像： invert 下corner翻转到左下角
+                if (invert) {
+                    mCornerX = viewWidth - mCornerX
+                    mIsRtOrLb = (mCornerX == 0 && mCornerY == viewHeight) ||
+                            (mCornerY == 0 && mCornerX == viewWidth)
+                }
+            }
+            Direction.NEXT -> {
                 if (viewWidth / 2 > startX) {
+                    //左半屏起手
+                    calcCornerXY(
+                        if (mirror)
+                        viewWidth - startX
+                        else  startX,
+                        startY)
+                } else if (invert) {
+                    //右半屏起手
                     calcCornerXY(viewWidth - startX, startY)
                 }
+            }
             else -> Unit
         }
     }
@@ -185,7 +204,12 @@ class SimulationPageDelegate(pageView: PageView) : HorizontalPageDelegate(pageVi
                 -touchX
             }
             if (mDirection != Direction.NEXT) {
-                dx = -(viewWidth + touchX)
+                //PREV cancel: corner 在右 -> 向左回弹； corner 在左（invert）-> 向右回弹（取反）
+                dx = if (mCornerX > 0) {
+                    -(viewWidth + touchX)
+                } else {
+                    (viewWidth + touchX)
+                }
             }
             dy = if (mCornerY > 0) {
                 (viewHeight - touchY)
@@ -195,7 +219,15 @@ class SimulationPageDelegate(pageView: PageView) : HorizontalPageDelegate(pageVi
         } else {
             dx = if (mCornerX > 0 && mDirection == Direction.NEXT) {
                 -(viewWidth + touchX)
+            } else if (mDirection != Direction.NEXT) {
+                // PREV complete：corner 在右 -> 向右滑出（2W-touchX）；corner 在左（invert）-> 向左滑出（取反）
+                if (mCornerX > 0) {
+                    viewWidth - touchX + viewWidth
+                } else {
+                    -(viewWidth - touchX + viewWidth)
+                }
             } else {
+                //NEXT 左侧corner（mCornerX == 0）: 原else 分支公式，保持不变
                 (viewWidth - touchX + viewWidth)
             }
             dy = if (mCornerY > 0) {

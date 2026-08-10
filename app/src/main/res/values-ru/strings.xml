@@ -987,4 +987,5 @@
     <string name="saved_to_gallery_with_path">Сохранено в галерею · Pictures/HandyReader/</string>
     <string name="global_label">Общие</string>
     <string name="per_book_label">Эта книга</string>
+    <string name="invert_page_turn">Инвертировать направление перелистывания</string>
 </resources>

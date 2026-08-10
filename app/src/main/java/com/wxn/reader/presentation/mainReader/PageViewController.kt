@@ -51,6 +51,7 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.isActive
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.util.concurrent.atomic.AtomicInteger
 import java.util.concurrent.atomic.AtomicLong
@@ -1651,5 +1652,9 @@ class PageViewController @OptIn(UnstableApi::class)
 
     fun updateBg() {
         callBack?.upBg()
+    }
+
+    fun updatePageControl() {
+        callBack?.upPageControl()
     }
 }

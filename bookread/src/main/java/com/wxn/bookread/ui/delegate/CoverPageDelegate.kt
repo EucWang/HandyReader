@@ -10,44 +10,73 @@ class CoverPageDelegate(pageView: PageView) : HorizontalPageDelegate(pageView) {
     private val bitmapMatrix = Matrix()
     private val shadowDrawableR: GradientDrawable
 
+    private val shadowDrawableL: GradientDrawable
+
     init {
         val shadowColors = intArrayOf(0x66111111, 0x00000000)
         shadowDrawableR = GradientDrawable(
             GradientDrawable.Orientation.LEFT_RIGHT, shadowColors
         )
         shadowDrawableR.gradientType = GradientDrawable.LINEAR_GRADIENT
+
+        shadowDrawableL = GradientDrawable(
+            GradientDrawable.Orientation.RIGHT_LEFT, shadowColors
+        )
+        shadowDrawableL.gradientType = GradientDrawable.LINEAR_GRADIENT
     }
 
     override fun onDraw(canvas: Canvas) {
         if (!isRunning) return
+        if (mDirection == Direction.NONE) return
         val offsetX = touchX - startX
 
-        if ((mDirection == Direction.NEXT && offsetX > 0)
-            || (mDirection == Direction.PREV && offsetX < 0)
-        ) {
+        // invertPageTurn 下 NEXT/PREV 的正向滑动方向互换，故判定条件也随之镜像
+        val invert = pageView.invertPageTurn
+        val effectiveNext = (mDirection == Direction.NEXT) xor invert
+        if ((effectiveNext && offsetX > 0) || (!effectiveNext && offsetX < 0)) {
             return
         }
 
         val distanceX = if (offsetX > 0) offsetX - viewWidth else offsetX + viewWidth
-        if (mDirection == Direction.PREV) {
-            bitmapMatrix.setTranslate(distanceX, 0.toFloat())
-            curBitmap?.let { if (!it.isRecycled) canvas.drawBitmap(it, 0f, 0f, null) }
-            prevBitmap?.let { if (!it.isRecycled) canvas.drawBitmap(it, bitmapMatrix, null) }
-            addShadow(distanceX.toInt(), canvas)
-        } else if (mDirection == Direction.NEXT) {
-            bitmapMatrix.setTranslate(distanceX - viewWidth, 0.toFloat())
-            nextBitmap?.let { if (!it.isRecycled) canvas.drawBitmap(it, 0f, 0f, null) }
-            curBitmap?.let { if (!it.isRecycled) canvas.drawBitmap(it, bitmapMatrix, null) }
-            addShadow(distanceX.toInt(), canvas)
+
+        // stationary(底层固定)： NEXT=nextBitmap, PREV=curBitmap
+        // sliding (滑动页)： NEXT=curBitmap, PREV=prevBitmap
+        val stationary = if (mDirection == Direction.NEXT) nextBitmap else curBitmap
+        val sliding = if (mDirection == Direction.NEXT) curBitmap else prevBitmap
+
+        stationary?.let {
+            if (!it.isRecycled) {
+                canvas.drawBitmap(it, 0f, 0f, null)
+            }
         }
+        val slidingOffset = if (mDirection == Direction.NEXT) {
+            distanceX + if (invert) viewWidth else -viewWidth
+        } else {
+            distanceX
+        }
+
+        bitmapMatrix.setTranslate(slidingOffset, 0.toFloat())
+        sliding?.let {
+            if (!it.isRecycled) {
+                canvas.drawBitmap(it,  bitmapMatrix, null)
+            }
+        }
+        addShadow(distanceX.toInt(), canvas, invert)
     }
 
-    private fun addShadow(left: Int, canvas: Canvas) {
-        if (left < 0) {
-            shadowDrawableR.setBounds(left + viewWidth, 0, left + viewWidth + 30, viewHeight)
-            shadowDrawableR.draw(canvas)
-        } else if (left > 0) {
-            shadowDrawableR.setBounds(left, 0, left + 30, viewHeight)
+    private fun addShadow(distanceX: Int, canvas: Canvas, invert: Boolean) {
+        if (distanceX == 0) return
+        val edge = if (distanceX < 0) {
+            distanceX + viewWidth
+        } else {
+            distanceX
+        }
+
+        if (invert) {
+            shadowDrawableL.setBounds(edge - 30, 0, edge, viewHeight)
+            shadowDrawableL.draw(canvas)
+        } else {
+            shadowDrawableR.setBounds(edge, 0, edge + 30, viewHeight)
             shadowDrawableR.draw(canvas)
         }
     }
@@ -62,23 +91,43 @@ class CoverPageDelegate(pageView: PageView) : HorizontalPageDelegate(pageView) {
     override fun onAnimStart(animationSpeed: Int) {
         Logger.d("${this.javaClass.name}::onAnimStart():then startScroll")
         val distanceX: Float
-        when (mDirection) {
-            Direction.NEXT -> distanceX =
-                if (isCancel) {
-                    var dis = viewWidth - startX + touchX
-                    if (dis > viewWidth) {
-                        dis = viewWidth.toFloat()
+
+        if (pageView.invertPageTurn) {
+            when (mDirection) {
+                Direction.NEXT -> {
+                    distanceX = if (isCancel) {
+                        -(touchX - startX)
+                    } else {
+                        viewWidth - (touchX - startX)
                     }
-                    viewWidth - dis
-                } else {
-                    -(touchX + (viewWidth - startX))
                 }
-            else -> distanceX =
-                if (isCancel) {
-                    -(touchX - startX)
-                } else {
-                    viewWidth - (touchX - startX)
+                else -> {
+                    distanceX = if (isCancel) {
+                        -(touchX - startX)
+                    } else {
+                        -(touchX + (viewWidth - startX))
+                    }
                 }
+            }
+        } else {
+            when (mDirection) {
+                Direction.NEXT -> distanceX =
+                    if (isCancel) {
+                        var dis = viewWidth - startX + touchX
+                        if (dis > viewWidth) {
+                            dis = viewWidth.toFloat()
+                        }
+                        viewWidth - dis
+                    } else {
+                        -(touchX + (viewWidth - startX))
+                    }
+                else -> distanceX =
+                    if (isCancel) {
+                        -(touchX - startX)
+                    } else {
+                        viewWidth - (touchX - startX)
+                    }
+            }
         }
         startScroll(touchX.toInt(), 0, distanceX.toInt(), 0, animationSpeed)
     }
