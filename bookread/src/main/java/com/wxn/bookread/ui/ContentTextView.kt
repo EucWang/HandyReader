@@ -1238,20 +1238,13 @@ class ContentTextView(context: Context, attrs: AttributeSet?) : View(context, at
         }
     }
 
-    private fun drawHandle(canvas: Canvas, x: Float, lineTop: Float, lineBottom: Float, isStart: Boolean) {
+    private fun drawHandle(canvas: Canvas, x: Float, lineBottom: Float) {
         val r = RenderResources.handleRadiusPx
         val h = RenderResources.handleLineHeightPx
-        if (isStart) {
-            val cy = lineTop - h + r
-            canvas.drawLine(x, lineTop, x, cy, RenderResources.handlePaint)
-            canvas.drawCircle(x, cy, r, RenderResources.handlePaint)
-            canvas.drawCircle(x, cy, r, RenderResources.handleStrokePaint)
-        } else {
-            val cy = lineBottom + h - r
-            canvas.drawLine(x, lineBottom, x, cy, RenderResources.handlePaint)
-            canvas.drawCircle(x, cy, r, RenderResources.handlePaint)
-            canvas.drawCircle(x, cy, r, RenderResources.handleStrokePaint)
-        }
+        val cy = lineBottom + h - r
+        canvas.drawLine(x, lineBottom, x, cy, RenderResources.handlePaint)
+        canvas.drawCircle(x, cy, r, RenderResources.handlePaint)
+        canvas.drawCircle(x, cy, r, RenderResources.handleStrokePaint)
     }
 
     private fun computeSelectionVisualRange(): SelectionVisualRange? {
@@ -1288,8 +1281,8 @@ class ContentTextView(context: Context, attrs: AttributeSet?) : View(context, at
         val sOff = relativeOffset(sP)
         val eOff = relativeOffset(eP)
 
-        drawHandle(canvas, sChar.start, startLine.lineTop + sOff, startLine.lineBottom + sOff, true)
-        drawHandle(canvas, eChar.end, endLine.lineTop + eOff, endLine.lineBottom + eOff, false)
+        drawHandle(canvas, sChar.start, startLine.lineBottom + sOff)
+        drawHandle(canvas, eChar.end, endLine.lineBottom + eOff)
     }
 
     /**
@@ -1314,10 +1307,12 @@ class ContentTextView(context: Context, attrs: AttributeSet?) : View(context, at
         val eLine = relativePage(eP)?.textLines?.getOrNull(eL) ?: return null
         val eChar = eLine.textChars.getOrNull(eC) ?: return null
 
+        val sY = sLine.lineBottom + relativeOffset(sP) + RenderResources.handleLineHeightPx - RenderResources.handleRadiusPx
+        val eY = eLine.lineBottom + relativeOffset(eP) + RenderResources.handleLineHeightPx - RenderResources.handleRadiusPx
         return Pair(
-            Pair(sChar.start, sLine.lineTop + relativeOffset(sP) - RenderResources.handleLineHeightPx + RenderResources.handleRadiusPx),
-            Pair(eChar.end, eLine.lineBottom + relativeOffset(eP) + RenderResources.handleLineHeightPx - RenderResources.handleRadiusPx)
-        )
+                Pair(sChar.start, sY),
+                Pair(eChar.end, eY)
+            )
     }
 
     data class CharInfo(val data: String, val lineIdx: Int, val charIdx: Int)

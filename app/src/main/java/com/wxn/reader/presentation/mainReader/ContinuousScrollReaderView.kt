@@ -4,7 +4,6 @@ import android.content.Context
 import android.graphics.Canvas
 import android.graphics.Color
 import android.graphics.Paint
-import android.graphics.Rect
 import android.graphics.RectF
 import android.text.TextPaint
 import android.util.DisplayMetrics
@@ -1612,15 +1611,11 @@ private fun getSelectionHandlePositions(
     val endOffset = lazyListState.layoutInfo.visibleItemsInfo
         .firstOrNull { it.index == cachedEnd.globalIndex }?.offset ?: return null
 
+    val sY = startOffset + startLine.lineBottom + handleLineHeightPx - handleRadiusPx
+    val eY = endOffset + endLine.lineBottom + handleLineHeightPx - handleRadiusPx
     return Pair(
-        Pair(
-            startChar.start,
-            startOffset + startLine.lineTop - handleLineHeightPx + handleRadiusPx
-        ),
-        Pair(
-            endChar.end,
-            endOffset + endLine.lineBottom + handleLineHeightPx - handleRadiusPx
-        )
+        Pair(startChar.start, sY),
+        Pair(endChar.end, eY)
     )
 }
 
@@ -1694,9 +1689,10 @@ private suspend fun AwaitPointerEventScope.handleDragLoop(
 
         when (initialMode) {
             HandleDragMode.START -> {
+                val compensatedY = pos.y - handleYCompensation
                 moveSelectionStart(
                     pos.x,
-                    pos.y + handleYCompensation,
+                    compensatedY,
                     viewModel,
                     pageProvider,
                     lazyListState,
@@ -1705,9 +1701,10 @@ private suspend fun AwaitPointerEventScope.handleDragLoop(
             }
 
             HandleDragMode.END -> {
+                val compensatedY = pos.y - handleYCompensation
                 moveSelectionEnd(
                     pos.x,
-                    pos.y - handleYCompensation,
+                    compensatedY,
                     viewModel,
                     pageProvider,
                     lazyListState,
@@ -1859,8 +1856,13 @@ private fun drawSelectionHandles(
         val startChar = startLine.textChars.getOrNull(startPos.charIndex)
         if (startChar != null) {
             drawHandle(
-                drawScope, startChar.start, startLine.lineTop, startLine.lineBottom,
-                isStart = true, handlePaint, handleStrokePaint, handleRadiusPx, handleLineHeightPx
+                drawScope,
+                startChar.start,
+                startLine.lineBottom,
+                handlePaint,
+                handleStrokePaint,
+                handleRadiusPx,
+                handleLineHeightPx
             )
         }
     }
@@ -1869,8 +1871,13 @@ private fun drawSelectionHandles(
         val endChar = endLine.textChars.getOrNull(endPos.charIndex)
         if (endChar != null) {
             drawHandle(
-                drawScope, endChar.end, endLine.lineTop, endLine.lineBottom,
-                isStart = false, handlePaint, handleStrokePaint, handleRadiusPx, handleLineHeightPx
+                drawScope,
+                endChar.end,
+                endLine.lineBottom,
+                handlePaint,
+                handleStrokePaint,
+                handleRadiusPx,
+                handleLineHeightPx
             )
         }
     }
@@ -1878,8 +1885,8 @@ private fun drawSelectionHandles(
 
 private fun drawHandle(
     drawScope: DrawScope,
-    x: Float, lineTop: Float, lineBottom: Float,
-    isStart: Boolean,
+    x: Float,
+    lineBottom: Float,
     handlePaint: android.graphics.Paint,
     handleStrokePaint: android.graphics.Paint,
     handleRadiusPx: Float,
@@ -1888,17 +1895,10 @@ private fun drawHandle(
     val canvas = drawScope.drawContext.canvas.nativeCanvas
     val r = handleRadiusPx
     val h = handleLineHeightPx
-    if (isStart) {
-        val cy = lineTop - h + r
-        canvas.drawLine(x, lineTop, x, cy, handlePaint)
-        canvas.drawCircle(x, cy, r, handlePaint)
-        canvas.drawCircle(x, cy, r, handleStrokePaint)
-    } else {
-        val cy = lineBottom + h - r
-        canvas.drawLine(x, lineBottom, x, cy, handlePaint)
-        canvas.drawCircle(x, cy, r, handlePaint)
-        canvas.drawCircle(x, cy, r, handleStrokePaint)
-    }
+    val cy = lineBottom + h - r
+    canvas.drawLine(x, lineBottom, x, cy, handlePaint)
+    canvas.drawCircle(x, cy, r, handlePaint)
+    canvas.drawCircle(x, cy, r, handleStrokePaint)
 }
 
 /**
