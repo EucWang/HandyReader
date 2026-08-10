@@ -898,6 +898,8 @@ kotlin.coroutines.Continuation suspend*(...);
 -keep class com.wxn.bookread.provider.ChapterProvider$* { *; }
 # ContentTextView / PageView：自定义阅读 View（反射实例化）
 -keep class com.wxn.bookread.ui.** { *; }
+# 保留 bookread 中的bean
+-keep class com.wxn.bookread.data.beans.** { *; }
 # TextParser 接口及其 suspend 实现（协程状态机内联导致正文数据不渲染）
 -keep class com.wxn.bookparser.TextParser { *; }
 -keep class com.wxn.bookparser.impl.** { *; }
