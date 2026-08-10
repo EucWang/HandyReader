@@ -959,6 +959,8 @@ fun ReaderView(
 
             ReaderGuideOverlay(
                 onDismiss = { viewModel.markReaderGuideShown() },
+                leftHandMode = leftHandMode,
+                invertPageTurn = readerPreferences.invertPageTurn,
                 isVScrollMode = readerPreferences.scroll == 6
             )
         }
@@ -966,12 +968,14 @@ fun ReaderView(
         when (showClickAreaReaderGuide) {
             0 -> ReaderGuideOverlay(
                 leftHandMode = leftHandMode,
+                invertPageTurn = readerPreferences.invertPageTurn,
                 isVScrollMode = readerPreferences.scroll == 6,
                 onDismiss = { viewModel.showClickAreaMode(-1, leftHandMode) }
             )
 
             1 -> ReaderGuideOverlay2(
                 leftHandMode = leftHandMode,
+                invertPageTurn = readerPreferences.invertPageTurn,
                 isVScrollMode = readerPreferences.scroll == 6,
                 onDismiss = {
                     viewModel.showClickAreaMode(-1, leftHandMode)
