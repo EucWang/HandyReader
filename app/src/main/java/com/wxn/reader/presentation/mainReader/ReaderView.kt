@@ -714,16 +714,19 @@ fun ReaderView(
                         }
                     }
             )
-            TranslatePanel(
-                viewModel = viewModel,
-                rect = textToolbarRect,
-                selectedText = translateSelectedText,
-                targetLang = translateTargetLang,
-                translatedText = translatedTextContent,
-                supportedLanguages = supportedLanguages,
-                onTargetLangChange = { viewModel.updateTargetLang(it) },
-                onTranslate = { viewModel.translate() }
-            )
+
+            Box(modifier = Modifier.fillMaxSize()) {
+                TranslatePanel(
+                    viewModel = viewModel,
+                    rect = textToolbarRect,
+                    selectedText = translateSelectedText,
+                    targetLang = translateTargetLang,
+                    translatedText = translatedTextContent,
+                    supportedLanguages = supportedLanguages,
+                    onTargetLangChange = { viewModel.updateTargetLang(it) },
+                    onTranslate = { viewModel.translate() }
+                )
+            }
         }
 
         if (showTranslatePicker) {
@@ -764,11 +767,13 @@ fun ReaderView(
                         }
                     }
             )
-            DictionaryPanel(
-                viewModel = viewModel,
-                rect = textToolbarRect,
-                onDismiss = { viewModel.hideDictionaryPanel() }
-            )
+            Box(modifier = Modifier.fillMaxSize()) {
+                DictionaryPanel(
+                    viewModel = viewModel,
+                    rect = textToolbarRect,
+                    onDismiss = { viewModel.hideDictionaryPanel() }
+                )
+            }
         }
 
         if (showDictionaryPicker) {
