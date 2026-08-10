@@ -42,7 +42,6 @@ import com.wxn.reader.R
 fun ReaderGuideOverlay2(
     onDismiss: () -> Unit,
     leftHandMode: Boolean = false,
-    invertPageTurn: Boolean = false,
     isVScrollMode: Boolean = false,
     modifier: Modifier = Modifier
 ) {
@@ -66,7 +65,6 @@ fun ReaderGuideOverlay2(
         // 绘制虚线框和说明文字
         GuideOverlayContent2(
             leftHandMode,
-            invertPageTurn,
             isVScrollMode,
             modifier = Modifier.fillMaxSize()
         )
@@ -95,13 +93,9 @@ fun ReaderGuideOverlay2(
 @Composable
 private fun GuideOverlayContent2(
     leftHandMode: Boolean,
-    invertPageTurn: Boolean,
     isVScrollMode: Boolean,
     modifier: Modifier = Modifier
 ) {
-    // 左侧 = 下一页 ⟺ leftHandMode XOR invertPageTurn
-    val leftIsNext = leftHandMode xor invertPageTurn
-
     Box(modifier = modifier) {
         val density = LocalDensity.current
 
@@ -207,7 +201,7 @@ private fun GuideOverlayContent2(
                             )
                             Text(
                                 text = stringResource(
-                                    if (leftIsNext) {
+                                    if (leftHandMode) {
                                         R.string.reader_guide_next_page
                                     } else {
                                         R.string.reader_guide_prev_page
@@ -241,7 +235,7 @@ private fun GuideOverlayContent2(
                             )
                             Text(
                                 text = stringResource(
-                                    if (leftIsNext) {
+                                    if (leftHandMode) {
                                         R.string.reader_guide_prev_page
                                     } else {
                                         R.string.reader_guide_next_page

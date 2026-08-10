@@ -364,9 +364,6 @@ fun ReaderSettings(
                         checked = readerPreferences.invertPageTurn,
                         onCheckedChange = {
                             viewModel.updateInvertPageTurn(it)
-
-                            val clickAreadMode = readerPreferences.clickAreaMode
-                            viewModel.showClickAreaMode(clickAreadMode, readerPreferences.leftHandedMode)
                         }
                     )
                 }

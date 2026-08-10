@@ -694,17 +694,12 @@ class PageView : FrameLayout, IDataSource, PageCallback {
             }
         } else if (clickTurnPage) {
 
-            val rawIsNext = if (leftHandedMode) {
+            val isNext = if (leftHandedMode) {
                 !(clickX > width / 2 || clickAllNext)
             } else {
                 (clickX > width / 2 || clickAllNext)
             }
-            val effectiveIsNext = if (invertPageTurn) {
-                !rawIsNext
-            } else {
-                rawIsNext
-            }
-            if (effectiveIsNext) {
+            if (isNext) {
                 pageDelegate?.nextPageByAnim(animationSpeed)
             } else {
                 pageDelegate?.prevPageByAnim(animationSpeed)
