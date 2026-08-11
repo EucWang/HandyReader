@@ -1,19 +1,16 @@
 package com.wxn.reader.domain.use_case.books
 
-import android.content.ContentResolver
 import android.content.Context
 import android.net.Uri
 import android.provider.DocumentsContract
-import android.webkit.MimeTypeMap
 import com.wxn.base.bean.Book
 import com.wxn.base.util.Logger
+import com.wxn.reader.data.dto.DeletedBookEntity
 import com.wxn.reader.data.source.local.DeviceLocalStore
 import com.wxn.reader.data.source.local.dao.AnnotationDao
 import com.wxn.reader.data.source.local.dao.BookmarkDao
-import com.wxn.reader.data.source.local.dao.ChapterDao
 import com.wxn.reader.data.source.local.dao.DeletedBookDao
 import com.wxn.reader.data.source.local.dao.NoteDao
-import com.wxn.reader.data.dto.DeletedBookEntity
 import com.wxn.reader.domain.repository.BooksRepository
 import com.wxn.reader.domain.repository.PermissionRepository
 import com.wxn.reader.util.sync.HybridLogicalClock
@@ -35,7 +32,6 @@ import javax.inject.Inject
  */
 class DeleteBookUseCase @Inject constructor(
     private val repository: BooksRepository,
-    private val chapterDao: ChapterDao,
     private val annotationDao: AnnotationDao,
     private val noteDao: NoteDao,
     private val bookmarkDao: BookmarkDao,
@@ -43,7 +39,7 @@ class DeleteBookUseCase @Inject constructor(
     private val deletedBookDao: DeletedBookDao,
     private val hlc: HybridLogicalClock,
     private val deviceLocalStore: DeviceLocalStore,
-    @param:ApplicationContext private val context: Context,
+    @param:ApplicationContext private val context: Context
 ) {
     /**
      * 软删除一本书:books.deleted=1 + 子表 deleted=1 + 推 deletedHlc(墓碑)。
@@ -95,17 +91,6 @@ class DeleteBookUseCase @Inject constructor(
         runCatching {
             // DeletedBookDao 按 documentId 管理;复活无需精确移除白名单(白名单仅在扫描时生效)
         }
-    }
-
-    /** 彻底删除(回收站"永久删除"):物理删除行 + 文件清理。 */
-    suspend fun purge(book: Book) {
-        val bookId = book.id
-        val chapterCacheDir = File(context.filesDir, "chapters/$bookId")
-        if (chapterCacheDir.exists()) chapterCacheDir.deleteRecursively()
-        // M9 修复:永久删除时一并清理封面图
-        deleteCoverFile(book.coverImage)
-        chapterDao.deleteChaptersByBookId(bookId)
-        repository.deleteBook(book) // 物理删除(CASCADE 子表)
     }
 
     /** M9:删除封面文件(若存在)。容忍失败(文件已被清理或路径无效)。 */

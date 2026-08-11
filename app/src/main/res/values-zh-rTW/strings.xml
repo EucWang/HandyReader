@@ -157,7 +157,6 @@
     <string name="confirm">確認</string>
     <string name="remove_books">移除書籍</string>
     <string name="are_you_sure_you_want_to_remove_the_selected_books">確定要移除選取的書籍嗎？</string>
-    <string name="remove_books_from_device">從裝置移除書籍</string>
     <string name="remove_shelf">移除書架 %1$s</string>
     <string name="refresh_library">重新整理書庫</string>
     <string name="search_books">搜尋書籍</string>

@@ -139,13 +139,10 @@ fun ShelfPickerDialog(
 
 @Composable
 fun DeleteConfirmDialog(
-    selectedBooks: List<Book>,
     onCancel: () -> Unit,
     onDismiss: () -> Unit,
-    onConfirm: (hardRemove: Boolean) -> Unit,
+    onConfirm: () -> Unit,
 ) {
-    var hardRemove by remember { mutableStateOf(false) }
-
     AlertDialog(
         onDismissRequest = onDismiss,
         title = { Text(stringResource(R.string.remove_books)) },
@@ -154,16 +151,6 @@ fun DeleteConfirmDialog(
                 Text(
                     text = stringResource(R.string.are_you_sure_you_want_to_remove_the_selected_books)
                 )
-                Row(
-                    modifier = Modifier.padding(vertical = 4.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Checkbox(
-                        checked = hardRemove,
-                        onCheckedChange = { hardRemove = it }
-                    )
-                    Text(stringResource(R.string.remove_books_from_device))
-                }
             }
         },
         confirmButton = {
@@ -172,7 +159,7 @@ fun DeleteConfirmDialog(
                     contentColor = MaterialTheme.colorScheme.error
                 ),
                 onClick = {
-                    onConfirm(hardRemove)
+                    onConfirm()
                 }
             ) {
                 Text(stringResource(R.string.confirm))

@@ -158,7 +158,6 @@
     <string name="confirm">Confirmer</string>
     <string name="remove_books">Supprimer des livres</string>
     <string name="are_you_sure_you_want_to_remove_the_selected_books">Êtes-vous sûr de vouloir supprimer les livres sélectionnés ?</string>
-    <string name="remove_books_from_device">Supprimer les livres de l\'appareil</string>
     <string name="remove_shelf">Supprimer l\'étagère %1$s</string>
     <string name="refresh_library">Actualiser la bibliothèque</string>
     <string name="search_books">Rechercher des livres</string>

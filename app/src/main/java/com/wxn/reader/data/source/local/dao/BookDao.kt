@@ -560,10 +560,46 @@ interface BookDao {
     @Query("UPDATE books SET txtCharset = :charset WHERE id = :bookId")
     suspend fun updateTxtCharset(bookId: Long, charset: String?)
 
+
     /**
-     * ★ v1.4 一般-F10:大备份(>999 个 hash)绑定分批,防 SQLite SQLITE_MAX_VARIABLE_NUMBER 崩。
-     * Room @Query 无法在接口层做分批;实现侧(Repository/Importer)chunked(500) 后调 [countByContentHashInRaw]。
+     * ★ 重导入复用软删行时刷新文件层字段（uri/documentId/cover 可能随重新选择文件而变）。
+     * 不触碰 contentHash / 进度字段 / HLC 字段（HLC 由 SyncableBooksRepository.insertBook
+     * 的 markDirtyAll 统一推进）。
      */
+    @Query("""
+        UPDATE books SET
+            uri = :uri,
+            documentId = :documentId,
+            coverPath = :coverPath
+        WHERE id = :bookId
+    """)
+    suspend fun refreshBookFileFields(bookId: Long, uri: String, documentId: String?, coverPath: String?)
+
+    /**
+     * ★ 重导入时重置阅读进度（全新导入语义）：进度/位置/状态/时间全部归零。
+     * 不触碰 contentHash / 文件字段 / HLC 字段。
+     * HLC 由外层 SyncableBooksRepository.insertBook 的 markDirtyAll(id) 覆盖推进。
+     */
+    @Query("""
+        UPDATE books SET
+            locator = '',
+            progression = 0,
+            scrollIndex = 0,
+            scrollOffset = 0,
+            lastOpened = NULL,
+            readingStatus = NULL,
+            startReadingDate = NULL,
+            endReadingDate = NULL
+        WHERE id = :bookId
+    """)
+    suspend fun resetReadingProgress(bookId: Long)
+
+    @Query("""
+        UPDATE books SET
+            readingTime = 0
+        WHERE id = :bookId
+    """)
+    suspend fun resetAudioPlaybackPosition(bookId: Long)
 }
 
 /** [BookDao.getContentHashAndFileType] 投影 POJO。 */

@@ -160,7 +160,6 @@
     <string name="confirm">Подтвердить</string>
     <string name="remove_books">Удалить книги</string>
     <string name="are_you_sure_you_want_to_remove_the_selected_books">Вы уверены, что хотите удалить выбранные книги?</string>
-    <string name="remove_books_from_device">Удалить книги с устройства</string>
     <string name="remove_shelf">Удалить полку %1$s</string>
     <string name="refresh_library">Обновить библиотеку</string>
     <string name="search_books">Поиск книг</string>

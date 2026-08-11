@@ -14,9 +14,7 @@ import com.wxn.reader.R
 import com.wxn.bookparser.domain.file.BookCacheManager
 import com.wxn.reader.data.model.AppPreferences
 import com.wxn.reader.data.dto.FileType
-import com.wxn.reader.data.dto.FileType.Companion.stringToFileType
 import com.wxn.reader.data.dto.ReadingStatus
-import com.wxn.reader.data.dto.ReadingStatus.Companion.intToReadStatus
 import com.wxn.reader.data.model.SortOption
 import com.wxn.reader.data.model.SortOrder
 import com.wxn.reader.data.source.local.AppPreferencesUtil
@@ -29,7 +27,6 @@ import com.wxn.reader.domain.use_case.books.GetBookByIdUseCase
 import com.wxn.reader.domain.use_case.books.GetBookUrisUseCase
 import com.wxn.reader.domain.use_case.books.GetBooksUseCase
 import com.wxn.reader.domain.use_case.books.InsertBookUseCase
-import com.wxn.reader.domain.use_case.books.UpdateDeletedFlagUseCase
 import com.wxn.reader.data.backup.ContentHashCalculator
 import com.wxn.reader.domain.use_case.shelves.AddBookToShelfUseCase
 import com.wxn.reader.domain.use_case.shelves.AddShelfUseCase
@@ -70,11 +67,9 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeoutOrNull
-import java.io.File
 import java.util.concurrent.atomic.AtomicInteger
 import javax.inject.Inject
 import androidx.core.net.toUri
-import com.wxn.reader.data.model.GuidePreferences
 import com.wxn.reader.data.model.ThemePreferences
 import com.wxn.reader.data.source.local.GuidePrefUtil
 import com.wxn.reader.data.source.local.ThemePreferencesUtil
@@ -104,7 +99,6 @@ class HomeViewModel
     private val guidePrefUtil: GuidePrefUtil,
     private val fileParser: FileParser,
     private val permissionRepository: PermissionRepository,
-    private val updateDeletedFlagUseCase: UpdateDeletedFlagUseCase,
     private val deletedBookDao: DeletedBookDao,
     private val externalIntentBridge: com.wxn.reader.data.source.local.ExternalIntentBridge,
     private val externalFileResolver: com.wxn.reader.util.ExternalFileResolver,
@@ -808,53 +802,15 @@ class HomeViewModel
         }
     }
 
-    fun removeBooks(books: List<Book>, hardRemove: Boolean) {
+    fun removeBooks(books: List<Book>) {
         viewModelScope.launch {
             if (_isImportingFile.value) {
                 showSnackbar(context.getString(R.string.please_wait_until_import_completes))
                 return@launch
             }
             try {
-                if (hardRemove) {
-                    books.forEach { book ->
-                        try {
-                            val effectiveSource = book.source.ifEmpty { "scan" }
-                            when (effectiveSource) {
-                                "scan" -> {
-                                    val uri = book.filePath.toUri()
-                                    if (uri.scheme == "content") {
-                                        try {
-                                            DocumentsContract.deleteDocument(context.contentResolver, uri)
-                                        } catch (e: Exception) {
-                                            Logger.e("HomeViewModel::SAF delete failed: ${e.message}")
-                                        }
-                                    } else {
-                                        uri.path?.let { java.io.File(it) }
-                                            ?.takeIf { it.exists() }?.delete()
-                                    }
-                                    deleteBookUseCase(book)
-                                }
-                                "opds" -> {
-                                    book.filePath.toUri().path?.let { java.io.File(it) }
-                                        ?.takeIf { it.exists() }?.delete()
-                                    deleteBookUseCase(book)
-                                }
-                                else -> {
-                                    deleteBookUseCase(book)
-                                }
-                            }
-                        } catch (e: Exception) {
-                            showSnackbar(
-                                stringResource(R.string.failed_delete_book_info, book.title, e.message.orEmpty())
-                            )
-                        }
-                    }
-                } else {
-                    books.map { book ->
-                        book.copy(deleted = true)
-                    }.forEach {
-                        updateDeletedFlagUseCase(it.id, true)
-                    }
+                books.forEach {
+                    deleteBookUseCase(it)
                 }
                 showSnackbar(stringResource(R.string.book_remove_success))
             } catch (e: Exception) {
@@ -958,7 +914,7 @@ class HomeViewModel
                 if (book != null) {
                     val existingUri = documentFile.uri.toString()
                     val existingBook = booksRepository.getBookByUri(existingUri)
-                    if (existingBook != null) {
+                    if (existingBook != null && !existingBook.deleted) {
                         ret = -2
                     } else if (!book.contentHash.isNullOrBlank() &&
                         booksRepository.hasActiveBookWithHash(book.contentHash!!)
@@ -1344,7 +1300,7 @@ class HomeViewModel
 
             if (resolution.permissionPersisted) {
                 val existingByUri = booksRepository.getBookByUri(resolution.uri)
-                if (existingByUri != null) {
+                if (existingByUri != null && !existingByUri.deleted) {
                     return@withContext ExternalFileResult.NavigateToReader(
                         bookId = existingByUri.id,
                         fileType = existingByUri.fileType,

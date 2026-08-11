@@ -158,7 +158,6 @@
     <string name="confirm">Confirm</string>
     <string name="remove_books">Remove Books</string>
     <string name="are_you_sure_you_want_to_remove_the_selected_books">Are you sure you want to remove the selected books?</string>
-    <string name="remove_books_from_device">Remove books from device</string>
     <string name="remove_shelf">Remove shelf %1$s</string>
     <string name="refresh_library">Refresh Library</string>
     <string name="search_books">Search books</string>

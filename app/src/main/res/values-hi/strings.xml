@@ -160,7 +160,6 @@
     <string name="confirm">पुष्टि करें</string>
     <string name="remove_books">पुस्तकें हटाएँ</string>
     <string name="are_you_sure_you_want_to_remove_the_selected_books">क्या आप चयनित पुस्तकों को हटाना चाहते हैं?</string>
-    <string name="remove_books_from_device">डिवाइस से पुस्तकें हटाएँ</string>
     <string name="remove_shelf">%1$s शेल्फ़ हटाएँ</string>
     <string name="refresh_library">पुस्तकालय रीफ्रेश करें</string>
     <string name="search_books">पुस्तकें खोजें</string>

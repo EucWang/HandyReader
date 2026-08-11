@@ -28,6 +28,8 @@ import com.wxn.reader.domain.model.BookAnnotation
 import com.wxn.base.bean.Bookmark
 import com.wxn.base.util.Logger
 import com.wxn.base.util.DateUtil
+import com.wxn.reader.data.dto.BookEntity
+import com.wxn.reader.data.source.local.dao.ChapterDao
 import com.wxn.reader.domain.model.Note
 import com.wxn.reader.domain.model.ReadingActive
 import com.wxn.reader.domain.repository.BooksRepository
@@ -55,6 +57,8 @@ class BooksRepositoryImpl @Inject constructor(
     private val bookmarkDao: BookmarkDao,
     private val readingActivityDao: ReadingActivityDao,
     private val bookReadingTimeDao: com.wxn.reader.data.source.local.dao.BookReadingTimeDao,
+    private val chapterDao: ChapterDao,
+
     private val deviceLocalStore: com.wxn.reader.data.source.local.DeviceLocalStore,
 
     private val bookMapper: BookMapper,
@@ -64,6 +68,7 @@ class BooksRepositoryImpl @Inject constructor(
     private val readingActiveMapper: ReadingActiveMapper,
     private val shelfMapper: ShelfMapper,
     private val bookShelfMapper: BookShelfMapper
+
 ) : BooksRepository {
 
     private val insertMutex = Mutex()
@@ -168,10 +173,19 @@ class BooksRepositoryImpl @Inject constructor(
 
             if (entity.documentId != null) {
                 val existingByDocId = bookDao.getBookByDocumentId(entity.documentId)
-                if (existingByDocId != null) return@withLock existingByDocId.id
+                if (existingByDocId != null) {
+                    if (existingByDocId.deleted) {
+                        return@withLock reuseSoftDeletedBook(existingByDocId.id, entity)
+                    }
+                    return@withLock existingByDocId.id
+                }
 
                 val matchedLegacy = matchLegacyBookByDocId(entity.documentId, bookDao)
                 if (matchedLegacy != null) {
+                    if (matchedLegacy.deleted) {
+                        // reuseSoftDeletedBook 内的 refreshBookFileFields 会设 documentId，无需先 updateDocumentId
+                        return@withLock reuseSoftDeletedBook(matchedLegacy.id, entity)
+                    }
                     bookDao.updateDocumentId(matchedLegacy.id, entity.documentId)
                     return@withLock matchedLegacy.id
                 }
@@ -212,6 +226,9 @@ class BooksRepositoryImpl @Inject constructor(
 
             val existing = bookDao.getBookByUri(entity.uri)
             if (existing != null) {
+                if (existing.deleted) {
+                    return@withLock reuseSoftDeletedBook(existing.id, entity)
+                }
                 existing.id
             } else {
                 bookDao.insertBook(entity)
@@ -570,5 +587,21 @@ class BooksRepositoryImpl @Inject constructor(
             documentId = entity.documentId,
             favoriteDate = entity.favoriteDate,
         )
+    }
+
+    private suspend fun reuseSoftDeletedBook(oldBookId: Long, newEntity: BookEntity) :Long {
+        appDb.withTransaction {
+            bookDao.updateDeletedFlag(oldBookId, false)
+            bookDao.refreshBookFileFields(oldBookId, newEntity.uri, newEntity.documentId, newEntity.coverPath)
+            bookDao.resetReadingProgress(oldBookId)
+            chapterDao.deleteChaptersByBookId(oldBookId)
+
+            // ⑤ 有声书额外重置播放位置（readingTime=0）。文本书保留 readingTime（累计阅读历史）。
+            //   判断条件与 incrementReadingTime 的 audio 分支一致（BooksRepositoryImpl.kt:290）。
+            if (newEntity.fileType.lowercase() in AppDatabase.AUDIO_FILE_TYPES) {
+                bookDao.resetAudioPlaybackPosition(oldBookId)
+            }
+        }
+        return oldBookId
     }
 }

@@ -157,7 +157,6 @@
     <string name="confirm">確認</string>
     <string name="remove_books">本を削除</string>
     <string name="are_you_sure_you_want_to_remove_the_selected_books">選択した本を削除してもよろしいですか?</string>
-    <string name="remove_books_from_device">デバイスから本を削除</string>
     <string name="remove_shelf">本棚 %1$s を削除</string>
     <string name="refresh_library">ライブラリを更新</string>
     <string name="search_books">本を検索</string>

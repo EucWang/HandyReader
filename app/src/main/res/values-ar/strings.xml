@@ -164,7 +164,6 @@
     <string name="confirm">تأكيد</string>
     <string name="remove_books">إزالة الكتب</string>
     <string name="are_you_sure_you_want_to_remove_the_selected_books">هل أنت متأكد من أنك تريد إزالة الكتب المحددة؟</string>
-    <string name="remove_books_from_device">إزالة الكتب من الجهاز</string>
     <string name="remove_shelf">إزالة الرف %1$s</string>
     <string name="refresh_library">تحديث المكتبة</string>
     <string name="search_books">البحث عن كتب</string>

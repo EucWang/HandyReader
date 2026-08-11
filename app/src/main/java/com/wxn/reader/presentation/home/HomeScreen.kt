@@ -789,7 +789,6 @@ fun HomeScreen(
 
             if (showDeleteConfirmDialog) {
                 DeleteConfirmDialog(
-                    selectedBooks = selectedBooks,
                     onCancel = {
                         showDeleteConfirmDialog = false
                     },
@@ -797,8 +796,8 @@ fun HomeScreen(
                         showDeleteConfirmDialog = false
                         viewModel.clearBookSelection()
                     },
-                    onConfirm = { hardRemove ->
-                        viewModel.removeBooks(selectedBooks, hardRemove)
+                    onConfirm = {
+                        viewModel.removeBooks(selectedBooks)
                         showDeleteConfirmDialog = false
                         viewModel.clearBookSelection()
                     },
