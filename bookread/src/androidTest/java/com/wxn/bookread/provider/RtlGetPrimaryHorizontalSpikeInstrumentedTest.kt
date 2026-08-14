@@ -5,6 +5,7 @@ import android.text.Layout
 import android.text.StaticLayout
 import android.text.TextPaint
 import androidx.test.ext.junit.runners.AndroidJUnit4
+import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
@@ -465,6 +466,425 @@ class RtlGetPrimaryHorizontalSpikeInstrumentedTest {
             println("T8 ★★ 结论:getPrimaryHorizontal 未含居中偏移 → 方案 §2b alignShift 公式正确")
             println("T8 ★★ → Center 时 alignShift = (bounds.width - desiredWidth)/2 保持不变")
         }
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // T9: setIndents 对 RTL getPrimaryHorizontal 的影响（gph 级验证，纠正 T7 的指标错误）
+    //
+    // 背景：T7 测量了 getLineLeft/getLineRight（基于 getLineMax，不含 Builder indents），
+    //       得出「left/right 参数在 RTL 下无差异」的结论。
+    //       但 AOSP 源码显示 getPrimaryHorizontal 走 getLineStartPos 路径：
+    //         ALIGN_NORMAL + RTL → x = mWidth + (-rightIndents[line])
+    //       即 rightIndents 在 RTL 下直接偏移字符定位，leftIndents 不参与。
+    //
+    // 本测试验证 getPrimaryHorizontal 层面（而非 getLineLeft）的行为：
+    //   - rightIndents=[indent,0] → line 0 首字 gph 左移 indent（右侧留白）
+    //   - leftIndents=[indent,0]  → line 0 首字 gph 不偏移（仅缩减换行宽度）
+    //   - 两者在 gph 层面应有差异（推翻 T7 基于 getLineLeft 的结论）
+    //   - line 1+ 恢复全宽（rightIndents[1]=0，gph 不偏移）
+    //
+    // 决策意义：若 T9 通过 → setIndents 可用于 layoutMixedRun 替代 narrowed-width + Plan H
+    // ─────────────────────────────────────────────────────────────────────────
+    @Test
+    fun T9_setIndents_rtl_gphLevelVerification() {
+        val indent = 150  // px
+        val longText = "مرحبا بالعالم هذا اختبار طويل للتأكد من وجود عدة أسطر في الفقرة"
+
+        // 三个 layout：基线、rightIndents、leftIndents
+        val layoutBase = buildRtlLayoutWithIndents(longText, 0, 0, 0, 0)
+        val layoutRight = buildRtlLayoutWithIndents(longText, 0, indent, 0, 0)  // rightIndents=[indent,0]
+        val layoutLeft = buildRtlLayoutWithIndents(longText, indent, 0, 0, 0)   // leftIndents=[indent,0]
+
+        println("T9: indent=$indent, text length=${longText.length}")
+        println("T9: lineCount base=${layoutBase.lineCount} right=${layoutRight.lineCount} left=${layoutLeft.lineCount}")
+
+        // ── 1. line 0 首字 gph 对比（offset=0，所有 layout 一致）──
+        val baseGph0 = layoutBase.getPrimaryHorizontal(0)
+        val rightGph0 = layoutRight.getPrimaryHorizontal(0)
+        val leftGph0 = layoutLeft.getPrimaryHorizontal(0)
+        val rightShift = baseGph0 - rightGph0   // 正值 = 左移
+        val leftShift = baseGph0 - leftGph0
+
+        println("T9: ── line 0 首字(offset=0) gph ──")
+        println("T9:   base=$baseGph0  rightIndent=$rightGph0  leftIndent=$leftGph0")
+        println("T9:   rightShift(基线-right)=$rightShift  (源码预测 ≈ $indent)")
+        println("T9:   leftShift(基线-left)=$leftShift   (源码预测 ≈ 0)")
+
+        // ── 2. line 0 逐字 gph（诊断，验证整行偏移一致）──
+        val baseL0End = layoutBase.getLineEnd(0)
+        val rightL0End = layoutRight.getLineEnd(0)
+        println("T9: ── line 0 逐字 gph（base vs rightIndent，前 8 字）──")
+        println("T9:   base line0 [0..$baseL0End]  right line0 [0..$rightL0End]")
+        val printCount = minOf(baseL0End, rightL0End, 8)
+        for (off in 0 until printCount) {
+            val bg = layoutBase.getPrimaryHorizontal(off)
+            val rg = layoutRight.getPrimaryHorizontal(off)
+            println("T9:   off=$off char='${longText.substring(off, off + 1)}'  base=$bg  right=$rg  diff=${bg - rg}")
+        }
+
+        // ── 3. line 1+ 首字 gph 对比（验证全宽恢复）──
+        println("T9: ── line 1 首字 gph（rightIndents[1]=0 → 不应偏移）──")
+        if (layoutBase.lineCount > 1 && layoutRight.lineCount > 1) {
+            val baseL1Start = layoutBase.getLineStart(1)
+            val rightL1Start = layoutRight.getLineStart(1)
+            val baseGph1 = layoutBase.getPrimaryHorizontal(baseL1Start)
+            val rightGph1 = layoutRight.getPrimaryHorizontal(rightL1Start)
+            println("T9:   base line1[$baseL1Start] gph=$baseGph1  right line1[$rightL1Start] gph=$rightGph1  shift=${baseGph1 - rightGph1}")
+            assertTrue(
+                "T9 失败: rightIndents 下 line 1 首字 gph 应不偏移（恢复全宽）。" +
+                    "base=$baseGph1 right=$rightGph1 shift=${baseGph1 - rightGph1}",
+                abs(baseGph1 - rightGph1) < 10f
+            )
+        } else {
+            println("T9:   (行数不足 2 行，跳过 line 1 断言)")
+        }
+
+        // ── 4. rightIndents vs leftIndents 在 gph 层面的差异（核心断言）──
+        val gphDiff = abs(rightGph0 - leftGph0)
+        println("T9: ── rightIndents vs leftIndents（line 0 首字 gph 差=$gphDiff）──")
+        println("T9:   T7(getLineLeft) 结论「无差异」; gph 层面 ${if (gphDiff > 10f) "有差异 ★★" else "仍无差异"}")
+
+        // ── 断言 ──
+        assertTrue(
+            "T9 失败[1]: rightIndents 未让 line 0 gph 左移 indent。" +
+                "rightShift=$rightShift, 预期 ≈ $indent(±10)",
+            abs(rightShift - indent.toFloat()) < 10f
+        )
+        assertTrue(
+            "T9 失败[2]: leftIndents 不应偏移 line 0 gph。" +
+                "leftShift=$leftShift, 预期 ≈ 0(±10)",
+            abs(leftShift) < 10f
+        )
+        assertTrue(
+            "T9 失败[3]: rightIndents 与 leftIndents 在 gph 层面无差异。" +
+                "rightGph0=$rightGph0 leftGph0=$leftGph0 diff=$gphDiff。" +
+                "若差 < 10 说明 gph 也不区分 left/right，setIndents 方案不可行。",
+            gphDiff > 10f
+        )
+        println("T9 ★★ 通过: rightIndents 在 RTL gph 层面生效——line 0 左移 $indent, leftIndents 不偏移, 两者有差异")
+        println("T9 ★★ → setIndents(null, [indent, 0]) 可用于 RTL run 的首行缩窄（替代 narrowed-width + Plan H）")
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // T10: setIndents 对 LTR getPrimaryHorizontal 的影响
+    //
+    // layoutMixedRun 中 LTR run（英文段）也需要首行缩窄（共享前一 run 末行空间）。
+    // 源码预测：ALIGN_NORMAL + LTR 下 rightIndents 仅缩减换行宽度，不偏移 gph：
+    //   getLineStartPos = left + getIndentAdjust(line, ALIGN_LEFT) = 0 + leftIndents[line]
+    //   leftIndents=null → getLineStartPos=0（不偏移）
+    //
+    // 即 LTR run 用 rightIndents=[indent,0] → 首字仍在 x=0，但换行更早（宽度缩窄）。
+    // ─────────────────────────────────────────────────────────────────────────
+    @Test
+    fun T10_setIndents_ltr_gphLevelVerification() {
+        val indent = 150
+        val longText = "The quick brown fox jumps over the lazy dog and keeps running for many words to fill"
+
+        fun buildLtr(firstRight: Int): StaticLayout {
+            val builder = StaticLayout.Builder.obtain(longText, 0, longText.length, paint, layoutWidth)
+                .setAlignment(Layout.Alignment.ALIGN_NORMAL)
+                .setTextDirection(android.text.TextDirectionHeuristics.LTR)
+                .setIncludePad(true)
+            if (firstRight > 0) {
+                builder.setIndents(intArrayOf(0, 0), intArrayOf(firstRight, 0))
+            }
+            return builder.build()
+        }
+
+        val layoutBase = buildLtr(0)
+        val layoutRight = buildLtr(indent)
+
+        println("T10: indent=$indent, text length=${longText.length}")
+        println("T10: lineCount base=${layoutBase.lineCount} right=${layoutRight.lineCount}")
+
+        // ── 1. line 0 首字 gph（LTR 首字应在 x≈0，rightIndents 不偏移）──
+        val baseGph0 = layoutBase.getPrimaryHorizontal(0)
+        val rightGph0 = layoutRight.getPrimaryHorizontal(0)
+        println("T10: line 0 首字 gph: base=$baseGph0  rightIndent=$rightGph0  shift=${baseGph0 - rightGph0}")
+        assertTrue(
+            "T10 失败: LTR rightIndents 不应偏移首字 gph。base=$baseGph0 right=$rightGph0",
+            abs(baseGph0 - rightGph0) < 5f
+        )
+
+        // ── 2. 换行宽度缩减验证（line 0 更短 = 更早换行）──
+        val baseL0Width = layoutBase.getLineWidth(0)
+        val rightL0Width = layoutRight.getLineWidth(0)
+        val baseL0End = layoutBase.getLineEnd(0)
+        val rightL0End = layoutRight.getLineEnd(0)
+        println("T10: line 0: base width=$baseL0Width chars=$baseL0End  right width=$rightL0Width chars=$rightL0End")
+        assertTrue(
+            "T10 失败: rightIndents 应让 line 0 更早换行（width 或 chars 更小）。" +
+                "base width=$baseL0Width right width=$rightL0Width",
+            rightL0Width <= baseL0Width + 1f
+        )
+
+        // ── 3. line 1+ 恢复全宽（rightIndents[1]=0）──
+        if (layoutBase.lineCount > 1 && layoutRight.lineCount > 1) {
+            val baseL1Width = layoutBase.getLineWidth(1)
+            val rightL1Width = layoutRight.getLineWidth(1)
+            println("T10: line 1: base width=$baseL1Width  right width=$rightL1Width (应接近，均全宽)")
+            // line 1 均为全宽排布（可能因文本不同略有差异，但都应接近 layoutWidth）
+            assertTrue(
+                "T10 失败: line 1 应恢复全宽。base=$baseL1Width right=$rightL1Width layoutWidth=$layoutWidth",
+                rightL1Width > layoutWidth - indent.toFloat()  // 远大于缩窄宽度，说明恢复了全宽
+            )
+        }
+
+        println("T10 ★★ 通过: LTR rightIndents 不偏移 gph(首字≈0), 仅缩减换行宽度, line 1+ 恢复全宽")
+        println("T10 ★★ → LTR run 同样可用 setIndents(null, [indent, 0]) 做首行缩窄")
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // T11: setIndents 模拟 layoutMixedRun shared-line 场景（端到端验证）
+    //
+    // 模拟：baseRtl 段落，Run 0 末行占满后 cursor 在某处，Run 1 首行要共享剩余空间。
+    // Run 1 用 fullWidth + setIndents(null, [indent, 0]) 测量：
+    //   - line 0 应在 [0, fullWidth - indent] 范围内（缩窄到 firstLineWidth = fullWidth - indent）
+    //   - line 1+ 应在 [0, fullWidth] 范围内（恢复全宽）
+    //   - 所有 gph 值 ∈ [0, fullWidth]
+    //
+    // 同时验证 RTL 版本：rightIndents 下 line 0 右边界 = fullWidth - indent（右侧留白）
+    // ─────────────────────────────────────────────────────────────────────────
+    @Test
+    fun T11_setIndents_sharedLineSimulation() {
+        val fullWidth = layoutWidth  // 600
+        val firstLineWidth = 380     // 模拟 cursor - startX = 剩余宽度
+        val indent = fullWidth - firstLineWidth  // 220
+
+        val rtlText = "مرحبا بالعالم هذا اختبار طويل للتأكد من وجود عدة أسطر في الفقرة الكاملة"
+
+        // RTL run shared-line 模拟
+        val layout = buildRtlLayoutWithIndents(rtlText, 0, indent, 0, 0)
+
+        println("T11: fullWidth=$fullWidth firstLineWidth=$firstLineWidth indent=$indent")
+        println("T11: RTL layout ${layout.lineCount} 行")
+
+        // ── 1. line 0 右边界应 ≈ firstLineWidth（= fullWidth - indent，右侧留白 indent）──
+        val l0FirstGph = layout.getPrimaryHorizontal(layout.getLineStart(0))
+        val l0LastGph = layout.getPrimaryHorizontal(layout.getLineEnd(0) - 1)
+        val l0RightEdge = maxOf(l0FirstGph, l0LastGph)
+        println("T11: line 0: firstGph=$l0FirstGph lastGph=$l0LastGph rightEdge=$l0RightEdge (应 ≈ $firstLineWidth)")
+        assertTrue(
+            "T11 失败: line 0 右边界 $l0RightEdge 应 ≈ firstLineWidth=$firstLineWidth (右侧留 indent=$indent)",
+            abs(l0RightEdge - firstLineWidth.toFloat()) < 15f
+        )
+
+        // ── 2. line 1+ 右边界应 ≈ fullWidth（恢复全宽，无留白）──
+        if (layout.lineCount > 1) {
+            val l1FirstGph = layout.getPrimaryHorizontal(layout.getLineStart(1))
+            val l1LastGph = layout.getPrimaryHorizontal(layout.getLineEnd(1) - 1)
+            val l1RightEdge = maxOf(l1FirstGph, l1LastGph)
+            println("T11: line 1: firstGph=$l1FirstGph lastGph=$l1LastGph rightEdge=$l1RightEdge (应 ≈ $fullWidth)")
+            assertTrue(
+                "T11 失败: line 1 右边界 $l1RightEdge 应 ≈ fullWidth=$fullWidth (恢复全宽)",
+                abs(l1RightEdge - fullWidth.toFloat()) < 15f
+            )
+        }
+
+        // ── 3. 所有 gph 值 ∈ [0, fullWidth]（无钳制、无越界）──
+        var allInBounds = true
+        for (line in 0 until layout.lineCount) {
+            val start = layout.getLineStart(line)
+            val end = layout.getLineEnd(line)
+            for (off in start until end) {
+                val gph = layout.getPrimaryHorizontal(off)
+                if (gph < -1f || gph > fullWidth + 1f) {
+                    println("T11: ⚠ line=$line off=$off gph=$gph 越界 [0, $fullWidth]")
+                    allInBounds = false
+                }
+            }
+        }
+        assertTrue("T11 失败: 部分 gph 值越界 [0, $fullWidth]", allInBounds)
+
+        println("T11 ★★ 通过: setIndents 模拟 shared-line 场景——line 0 缩窄到 $firstLineWidth, line 1+ 恢复 $fullWidth, gph 全部在界内")
+        println("T11 ★★ → 单次 setIndents 测量等价于 narrowed-width + Plan H 两步，且无 gph 钳制风险")
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // T12: setIndents 对 LTR getPrimaryHorizontal 的影响 —— leftIndents（方向对称验证）
+    //
+    // T9 证明了 RTL + rightIndents 让 gph 左移 indent（定位偏移生效）。
+    // T10 证明了 LTR + rightIndents 不偏移 gph（仅缩减换行宽度）。
+    // 本测试验证 LTR + leftIndents：AOSP 源码预测 gph 右移 indent（方向对称于 T9）。
+    //
+    // 源码预测：ALIGN_NORMAL + LTR → getLineStartPos = 0 + leftIndents[line]
+    //   → leftIndents=[indent,0] 时 line 0 起始 x = indent → gph 整体右移 indent
+    //   → line 1+ leftIndents[1]=0 → 起始 x = 0 → gph 不偏移
+    //
+    // 这是「方向对称 indent」方案的基石：baseLtr 用 leftIndents → gph 自动偏移 →
+    // 定位公式可简化为 absX = startX + gph（无 anchor / indentCorrection / layoutLeft）。
+    //
+    // 同时验证 RTL + leftIndents（leftIndents 不应偏移 RTL gph，对称于 T10）。
+    // ─────────────────────────────────────────────────────────────────────────
+    @Test
+    fun T12_setIndents_ltr_leftIndents_gphShift() {
+        val indent = 150
+        val ltrText = "The quick brown fox jumps over the lazy dog and keeps running for many words to fill"
+
+        fun buildLtrWithLeftIndent(firstLeft: Int): StaticLayout {
+            val builder = StaticLayout.Builder.obtain(ltrText, 0, ltrText.length, paint, layoutWidth)
+                .setAlignment(Layout.Alignment.ALIGN_NORMAL)
+                .setTextDirection(android.text.TextDirectionHeuristics.LTR)
+                .setIncludePad(true)
+            if (firstLeft > 0) {
+                builder.setIndents(intArrayOf(firstLeft, 0), intArrayOf(0, 0))  // ★ leftIndents
+            }
+            return builder.build()
+        }
+
+        val layoutBase = buildLtrWithLeftIndent(0)
+        val layoutLeft = buildLtrWithLeftIndent(indent)
+
+        println("T12: indent=$indent, text length=${ltrText.length}")
+        println("T12: lineCount base=${layoutBase.lineCount} leftIndent=${layoutLeft.lineCount}")
+
+        // ── 1. line 0 首字 gph：leftIndents 应让 LTR 首字右移 indent ──
+        val baseGph0 = layoutBase.getPrimaryHorizontal(0)
+        val leftGph0 = layoutLeft.getPrimaryHorizontal(0)
+        val shift = leftGph0 - baseGph0   // 正值 = 右移
+        println("T12: line 0 首字 gph: base=$baseGph0  leftIndent=$leftGph0  shift=$shift (预期 ≈ +$indent)")
+        assertTrue(
+            "T12 失败[1]: LTR leftIndents 应让 line 0 首字 gph 右移 indent。" +
+                "shift=$shift, 预期 ≈ $indent(±10)",
+            abs(shift - indent.toFloat()) < 10f
+        )
+
+        // ── 2. line 0 换行宽度缩减（leftIndents 也缩减换行，与 rightIndents 一致）──
+        val baseL0Width = layoutBase.getLineWidth(0)
+        val leftL0Width = layoutLeft.getLineWidth(0)
+        println("T12: line 0 width: base=$baseL0Width  leftIndent=$leftL0Width (后者应更小)")
+        assertTrue(
+            "T12 失败[2]: leftIndents 应缩减 line 0 换行宽度。base=$baseL0Width left=$leftL0Width",
+            leftL0Width <= baseL0Width + 1f
+        )
+
+        // ── 3. line 1+ 恢复全宽 + gph 不偏移（leftIndents[1]=0）──
+        if (layoutBase.lineCount > 1 && layoutLeft.lineCount > 1) {
+            val baseL1Start = layoutBase.getLineStart(1)
+            val leftL1Start = layoutLeft.getLineStart(1)
+            val baseGph1 = layoutBase.getPrimaryHorizontal(baseL1Start)
+            val leftGph1 = layoutLeft.getPrimaryHorizontal(leftL1Start)
+            val shift1 = leftGph1 - baseGph1
+            println("T12: line 1 首字 gph: base=$baseGph1  leftIndent=$leftGph1  shift=$shift1 (预期 ≈ 0)")
+            assertTrue(
+                "T12 失败[3]: leftIndents[1]=0 时 line 1 gph 不应偏移。shift=$shift1",
+                abs(shift1) < 10f
+            )
+        }
+
+        // ── 4. RTL + leftIndents：leftIndents 不应偏移 RTL gph（对称于 T10）──
+        val rtlText = "مرحبا بالعالم هذا اختبار طويل للتأكد من وجود عدة أسطر في الفقرة"
+        val rtlBase = buildRtlLayoutWithIndents(rtlText, 0, 0, 0, 0)
+        val rtlLeftIndent = buildRtlLayoutWithIndents(rtlText, indent, 0, 0, 0)  // leftIndents=[indent,0]
+        val rtlBaseGph0 = rtlBase.getPrimaryHorizontal(0)
+        val rtlLeftGph0 = rtlLeftIndent.getPrimaryHorizontal(0)
+        val rtlShift = rtlLeftGph0 - rtlBaseGph0
+        println("T12: RTL + leftIndents: base=$rtlBaseGph0  leftIndent=$rtlLeftGph0  shift=$rtlShift (预期 ≈ 0)")
+        assertTrue(
+            "T12 失败[4]: leftIndents 不应偏移 RTL gph。shift=$rtlShift, 预期 ≈ 0(±10)",
+            abs(rtlShift) < 10f
+        )
+
+        println("T12 ★★ 通过: LTR + leftIndents → gph 右移 indent + 换行缩窄 + line1 不偏移; RTL + leftIndents → gph 不偏移")
+        println("T12 ★★ → 方向对称 indent（baseLtr=leftIndents, baseRtl=rightIndents）成立")
+        println("T12 ★★ → 定位公式可简化为 absX = startX + gph（无需 anchor/indentCorrection/layoutLeft）")
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // T13: off-diagonal indent 的换行收窄验证（填补 T12[4] 的缺口）
+    //
+    // 方向对称 indent 方案中，indent 类型按段落方向选择（baseRtl→rightIndents, baseLtr→leftIndents），
+    // 但段落内可能包含反向 run：
+    //   - baseRtl 段落的 LTR run → 用 rightIndents（off-diagonal）
+    //   - baseLtr 段落的 RTL run → 用 leftIndents（off-diagonal）
+    //
+    // T10 已验证 LTR+rightIndents：gph 不偏移 + 换行收窄。
+    // T12[4] 仅验证 RTL+leftIndents 的 gph 不偏移，未验证换行收窄。
+    //
+    // 本测试补全 RTL+leftIndents 的换行收窄验证，确认 off-diagonal indent 同时满足：
+    //   ① 换行宽度收窄（line 0 字符更少 / 总行数更多）—— indent 对换行有效
+    //   ② gph 不偏移（位置不受 indent 影响）—— 反向 run 自然对齐到远端边缘
+    //   ③ 续行恢复全宽（indent[1]=0）—— 仅首行缩窄
+    //
+    // 关键：setIndents 的两个效果是独立的——
+    //   换行收窄走 LineBreaker 路径（leftIndents+rightIndents 求和，方向无关）；
+    //   gph 偏移走 getLineStartPos 路径（只有匹配方向的 indent 生效）。
+    //   → off-diagonal indent「收窄换行但不偏移 gph」是两个独立机制的必然结果。
+    // ─────────────────────────────────────────────────────────────────────────
+    @Test
+    fun T13_setIndents_offDiagonal_wrappingNarrowing() {
+        val indent = 150
+
+        // ══ Case 1: LTR run + rightIndents（复验 T10，确保对比基准一致）══
+        val ltrText = "The quick brown fox jumps over the lazy dog and keeps running for many words to fill"
+        val ltrBase = StaticLayout.Builder.obtain(ltrText, 0, ltrText.length, paint, layoutWidth)
+            .setAlignment(Layout.Alignment.ALIGN_NORMAL)
+            .setTextDirection(android.text.TextDirectionHeuristics.LTR)
+            .setIncludePad(true).build()
+        val ltrRight = StaticLayout.Builder.obtain(ltrText, 0, ltrText.length, paint, layoutWidth)
+            .setAlignment(Layout.Alignment.ALIGN_NORMAL)
+            .setTextDirection(android.text.TextDirectionHeuristics.LTR)
+            .setIncludePad(true)
+            .setIndents(intArrayOf(0, 0), intArrayOf(indent, 0)).build()
+
+        println("T13[1]: LTR+rightIndents — lineCount base=${ltrBase.lineCount} right=${ltrRight.lineCount}")
+        println("T13[1]:   line0 end  base=${ltrBase.getLineEnd(0)}  right=${ltrRight.getLineEnd(0)}")
+        println("T13[1]:   gph(0)     base=${ltrBase.getPrimaryHorizontal(0)}  right=${ltrRight.getPrimaryHorizontal(0)}")
+
+        assertTrue(
+            "T13[1a]: LTR+rightIndents 应收窄换行（line0 字符更少或行数更多）。" +
+                "base end=${ltrBase.getLineEnd(0)} right end=${ltrRight.getLineEnd(0)}",
+            ltrRight.getLineEnd(0) < ltrBase.getLineEnd(0) || ltrRight.lineCount > ltrBase.lineCount
+        )
+        assertTrue(
+            "T13[1b]: LTR+rightIndents gph 不应偏移。" +
+                "base=${ltrBase.getPrimaryHorizontal(0)} right=${ltrRight.getPrimaryHorizontal(0)}",
+            abs(ltrRight.getPrimaryHorizontal(0) - ltrBase.getPrimaryHorizontal(0)) < 5f
+        )
+
+        // ══ Case 2: RTL run + leftIndents（★ 填补 T12[4] 缺口）══
+        val rtlText = "مرحبا بالعالم هذا اختبار طويل للتأكد من وجود عدة أسطر في الفقرة"
+        val rtlBase = buildRtlLayoutWithIndents(rtlText, 0, 0, 0, 0)
+        val rtlLeft = buildRtlLayoutWithIndents(rtlText, indent, 0, 0, 0)  // leftIndents=[indent,0]
+
+        val rtlBaseL0End = rtlBase.getLineEnd(0)
+        val rtlLeftL0End = rtlLeft.getLineEnd(0)
+        println("T13[2]: RTL+leftIndents — lineCount base=${rtlBase.lineCount} left=${rtlLeft.lineCount}")
+        println("T13[2]:   line0 end   base=$rtlBaseL0End  left=$rtlLeftL0End")
+        println("T13[2]:   line0 width base=${rtlBase.getLineWidth(0)}  left=${rtlLeft.getLineWidth(0)}")
+        println("T13[2]:   gph(0)      base=${rtlBase.getPrimaryHorizontal(0)}  left=${rtlLeft.getPrimaryHorizontal(0)}")
+
+        // 2a. ★ 核心断言：leftIndents 应让 RTL 文本 line 0 更早换行（字符更少）或产生更多行
+        assertTrue(
+            "T13[2a] 失败: RTL+leftIndents 应收窄换行（line0 字符更少或行数更多）。" +
+                "base end=$rtlBaseL0End left end=$rtlLeftL0End " +
+                "base lines=${rtlBase.lineCount} left lines=${rtlLeft.lineCount}",
+            rtlLeftL0End < rtlBaseL0End || rtlLeft.lineCount > rtlBase.lineCount
+        )
+
+        // 2b. gph 不偏移（复验 T12[4]）
+        assertTrue(
+            "T13[2b] 失败: RTL+leftIndents gph 不应偏移。" +
+                "base=${rtlBase.getPrimaryHorizontal(0)} left=${rtlLeft.getPrimaryHorizontal(0)}",
+            abs(rtlLeft.getPrimaryHorizontal(0) - rtlBase.getPrimaryHorizontal(0)) < 10f
+        )
+
+        // 2c. 续行恢复全宽（leftIndents[1]=0）—— line 1 字符数应接近基线
+        if (rtlBase.lineCount > 1 && rtlLeft.lineCount > 1) {
+            val baseL1End = rtlBase.getLineEnd(1)
+            val leftL1End = rtlLeft.getLineEnd(1)
+            val baseL1Chars = baseL1End - rtlBase.getLineStart(1)
+            val leftL1Chars = leftL1End - rtlLeft.getLineStart(1)
+            println("T13[2c]: line1 chars base=$baseL1Chars left=$leftL1Chars (续行均全宽，应接近)")
+            assertTrue(
+                "T13[2c] 失败: 续行应恢复全宽（字符数不应大幅少于基线）。base=$baseL1Chars left=$leftL1Chars",
+                leftL1Chars >= baseL1Chars - 2   // 允许 word-break 级别差异
+            )
+        }
+
+        println("T13 ★★ 通过: off-diagonal indent 两种组合均「换行收窄 + gph 不偏移 + 续行全宽」")
+        println("T13 ★★ → 反向 run 的 indent 有效：收窄换行让文本在剩余空间内断行，gph 不偏移让文本自然对齐到远端边缘")
+        println("T13 ★★ → 方向对称 indent 在全部 4 种组合（同向×2 + 反向×2）下行为一致且正确")
     }
 
     // ─────────────────────────────────────────────────────────────────────────

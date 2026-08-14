@@ -63,7 +63,15 @@ data class TextLine(
     var colIndex: Int = 0,  //单元格列索引
     var rowLineOffset : Int = 0,   //单元格所在的行文字在一个tr行中的偏移量
 
-    var withLineDot: Int = 0    //行是否前面显示列表符号， 圆点/方块/空心圆.. 大于0即有符号，1 标识1级列表； 2表现2级列表...
+    var withLineDot: Int = 0,    //行是否前面显示列表符号， 圆点/方块/空心圆.. 大于0即有符号，1 标识1级列表； 2表现2级列表...
+
+    /**
+     * 行方向：true=RTL，false=LTR。
+     * = 创建该行的 run 的 isRtl（TextLayoutProvider 在 !lineShared 新建行时赋值）。
+     * 驱动 cursor 起点/推进、相邻摆放、对齐（anchorLine/justify/indent）。
+     * 默认 false（setNormalText 纯 LTR 路径不赋值，保持 LTR 语义）。
+     */
+    var isRtl: Boolean = false
 ) {
 
     fun upTopBottom(durY: Float, textPaint: TextPaint) {
@@ -86,8 +94,8 @@ data class TextLine(
         lineBase = lineBottom - descent
     }
 
-    fun addTextChar(charData: String, start: Float, end: Float) {
-        textChars.add(TextChar(charData, start = start, end = end))
+    fun addTextChar(charData: String, start: Float, end: Float, renderGroup: Int = 0) {
+        textChars.add(TextChar(charData, start = start, end = end, renderGroup = renderGroup))
     }
 
     fun getTextCharAt(index: Int): TextChar {

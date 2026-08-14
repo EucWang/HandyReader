@@ -4,9 +4,6 @@
  * 接收 Java String（UTF-16，零拷贝传 SBCodepointSequence），返回视觉 run 列表：
  *  IntArray([run0_offset, run0_length, run0_level,
  *            run1_offset, run1_length, run1_level, ...])
- *
- * run.level 奇数 = RTL，偶数 = LTR。run 按 SBLineGetRunsPtr 的视觉顺序返回
- * （RTL 段落视觉首 run = 最右）。
  */
 #include <jni.h>
 #include <SheenBidi/SheenBidi.h>

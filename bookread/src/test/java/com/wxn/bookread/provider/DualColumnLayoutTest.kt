@@ -46,11 +46,11 @@ class DualColumnLayoutTest {
 
     @Test
     fun `page bounds uses full visible geometry with FULL role`() {
-        val page = ChapterProvider.LayoutBounds.page()
+        val page = layoutBoundsPage()
         assertEquals(920, page.width)
         assertEquals(80, page.startX)
         assertEquals(1000, page.endX)
-        assertEquals(ChapterProvider.ColumnRole.FULL, page.role)
+        assertEquals(ColumnRole.FULL, page.role)
         assertFalse(page.isColumn)
         assertFalse(page.isLeftColumn)
         assertFalse(page.isRightColumn)
@@ -60,11 +60,11 @@ class DualColumnLayoutTest {
 
     @Test
     fun `leftColumn starts at paddingHorizontal and has LEFT role`() {
-        val left = ChapterProvider.LayoutBounds.leftColumn()
+        val left = layoutBoundsLeftColumn()
         assertEquals(432, left.width)                       // columnWidth
         assertEquals(80, left.startX)                       // = paddingHorizontal
         assertEquals(80 + 432, left.endX)                   // = 512
-        assertEquals(ChapterProvider.ColumnRole.LEFT, left.role)
+        assertEquals(ColumnRole.LEFT, left.role)
         assertTrue(left.isColumn)
         assertTrue(left.isLeftColumn)
         assertFalse(left.isRightColumn)
@@ -74,13 +74,13 @@ class DualColumnLayoutTest {
 
     @Test
     fun `rightColumn starts after left column plus gap and has RIGHT role`() {
-        val right = ChapterProvider.LayoutBounds.rightColumn()
+        val right = layoutBoundsRightColumn()
         assertEquals(432, right.width)                      // columnWidth（与左列一致）
         // startX = paddingHorizontal + columnWidth + columnGapActual = 80 + 432 + 55 = 567
         assertEquals(567, right.startX)
         // endX = paddingHorizontal + 2*columnWidth + columnGapActual = 80 + 864 + 55 = 999
         assertEquals(999, right.endX)
-        assertEquals(ChapterProvider.ColumnRole.RIGHT, right.role)
+        assertEquals(ColumnRole.RIGHT, right.role)
         assertTrue(right.isColumn)
         assertFalse(right.isLeftColumn)
         assertTrue(right.isRightColumn)
@@ -90,8 +90,8 @@ class DualColumnLayoutTest {
 
     @Test
     fun `left plus gap plus right fits within visible width`() {
-        val left = ChapterProvider.LayoutBounds.leftColumn()
-        val right = ChapterProvider.LayoutBounds.rightColumn()
+        val left = layoutBoundsLeftColumn()
+        val right = layoutBoundsRightColumn()
         // 左列宽 + 间隔 + 右列宽 应 ≤ visibleWidth
         val gap = right.startX - left.endX
         val totalSpan = left.width + gap + right.width
@@ -109,8 +109,8 @@ class DualColumnLayoutTest {
 
     @Test
     fun `right column starts after left column ends`() {
-        val left = ChapterProvider.LayoutBounds.leftColumn()
-        val right = ChapterProvider.LayoutBounds.rightColumn()
+        val left = layoutBoundsLeftColumn()
+        val right = layoutBoundsRightColumn()
         assertTrue(
             "右列 startX ${right.startX} 应 ≥ 左列 endX ${left.endX}（间隔 ≥ 0）",
             right.startX >= left.endX
@@ -127,19 +127,19 @@ class DualColumnLayoutTest {
 
     @Test
     fun `cursor carries offsetY and bounds as opaque pair`() {
-        val bounds = ChapterProvider.LayoutBounds.rightColumn()
-        val cursor = ChapterProvider.LayoutCursor(offsetY = 123.45f, bounds = bounds)
+        val bounds = layoutBoundsRightColumn()
+        val cursor = LayoutCursor(offsetY = 123.45f, bounds = bounds)
         assertEquals(123.45f, cursor.offsetY)
         assertTrue(cursor.bounds === bounds)   // 同一引用（data class 值相等 + 引用一致）
-        assertEquals(ChapterProvider.ColumnRole.RIGHT, cursor.bounds.role)
+        assertEquals(ColumnRole.RIGHT, cursor.bounds.role)
     }
 
     // ---- 7. LayoutCursor data class equals（游标比较，主循环依赖） ----
 
     @Test
     fun `cursors with same offsetY and bounds are equal`() {
-        val a = ChapterProvider.LayoutCursor(10f, ChapterProvider.LayoutBounds.leftColumn())
-        val b = ChapterProvider.LayoutCursor(10f, ChapterProvider.LayoutBounds.leftColumn())
+        val a = LayoutCursor(10f, layoutBoundsLeftColumn())
+        val b = LayoutCursor(10f, layoutBoundsLeftColumn())
         assertEquals("相同 offsetY + 相同 bounds 值的 cursor 应相等", a, b)
         assertEquals(a.hashCode(), b.hashCode())
     }
@@ -148,7 +148,7 @@ class DualColumnLayoutTest {
 
     @Test
     fun `ColumnRole has exactly FULL LEFT RIGHT entries`() {
-        val roles = ChapterProvider.ColumnRole.entries.map { it.name }.toSet()
+        val roles = ColumnRole.entries.map { it.name }.toSet()
         assertEquals(setOf("FULL", "LEFT", "RIGHT"), roles)
     }
 
@@ -156,8 +156,8 @@ class DualColumnLayoutTest {
     // 通过几何反推：gap = right.startX - left.endX，ratio = gap / visibleWidth
     @Test
     fun `column gap ratio approximates 0_06 constant`() {
-        val left = ChapterProvider.LayoutBounds.leftColumn()
-        val right = ChapterProvider.LayoutBounds.rightColumn()
+        val left = layoutBoundsLeftColumn()
+        val right = layoutBoundsRightColumn()
         val gap = (right.startX - left.endX).toFloat()
         val ratio = gap / ChapterProvider.visibleWidth
         // 允许 Int 取整误差：0.06 * 920 = 55.2 → 55，55/920 ≈ 0.0598
@@ -168,8 +168,8 @@ class DualColumnLayoutTest {
     // 验证左列与右列的 startX 不同——这是「切列后字符 X 落到新列起点」正确性的前提
     @Test
     fun `left and right columns have distinct startX`() {
-        val left = ChapterProvider.LayoutBounds.leftColumn()
-        val right = ChapterProvider.LayoutBounds.rightColumn()
+        val left = layoutBoundsLeftColumn()
+        val right = layoutBoundsRightColumn()
         assertTrue(
             "左列 startX ${left.startX} 与右列 startX ${right.startX} 应不同（否则切列后 X 坐标无变化）",
             left.startX != right.startX

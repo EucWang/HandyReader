@@ -347,4 +347,20 @@ object LanguageDetector {
 
     fun isRtl(language: String?): Boolean =
         !language.isNullOrBlank() && language.split("-").first().lowercase() in RTL_CODES
+
+    /***
+     * 检测一个字符的方向，
+     */
+    fun isRtlChar(code: Int): Boolean =
+        code in 0x0590..0x05FF ||   // Hebrew
+                code in 0x0600..0x06FF ||   // Arabic
+                code in 0x0700..0x074F ||   // Syriac
+                code in 0x0750..0x077F ||   // Arabic Extended
+                code in 0x08A0..0x08FF ||   // Arabic Extended-A
+                code in 0x0780..0x07BF ||   // Thaana
+                code in 0x07C0..0x07FF ||   // N'Ko
+                code in 0xFB50..0xFDFF ||   // Arabic Presentation Forms-A
+                code in 0xFE70..0xFEFF ||   // Arabic Presentation Forms-B
+                code in 0x1E900..0x1E95F    // Adlam
+
 }

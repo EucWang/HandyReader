@@ -227,10 +227,17 @@ class ContentTextView(context: Context, attrs: AttributeSet?) : View(context, at
 
         tryDrawBookmark(canvas)
 
+        var lastParagraphIndex = -1
+
         textPage.textLines.forEachIndexed { index, textLine ->
             val (marginTop, marginBottom) = getLineMargin(index, textLine, textPage)
 
             val paragraphIndex = textLine.paragraphIndex    //段落索引
+            if (lastParagraphIndex != paragraphIndex) {
+                lastParagraphIndex = paragraphIndex
+                RenderResources.shapedRunBuffer.clear()
+            }
+
             val startOffset =
                 textLine.charStartOffset + if (textLine.isTableCell) textLine.rowLineOffset else 0   //当前行所在段落起始索引
             val endOffset =
@@ -271,6 +278,10 @@ class ContentTextView(context: Context, attrs: AttributeSet?) : View(context, at
                 val (marginTop, marginBottom) = getLineMargin(index, textLine, nextPage)
 
                 val paragraphIndex = textLine.paragraphIndex    //段落索引
+                if (lastParagraphIndex != paragraphIndex) {
+                    lastParagraphIndex = paragraphIndex
+                    RenderResources.shapedRunBuffer.clear()
+                }
                 val startOffset =
                     textLine.charStartOffset + if (textLine.isTableCell) textLine.rowLineOffset else 0      //当前行所在段落起始索引
                 val endOffset =
@@ -316,6 +327,10 @@ class ContentTextView(context: Context, attrs: AttributeSet?) : View(context, at
                     val (marginTop, marginBottom) = getLineMargin(index, textLine, nextNextPage)
 
                     val paragraphIndex = textLine.paragraphIndex    //段落索引
+                    if (lastParagraphIndex != paragraphIndex) {
+                        lastParagraphIndex = paragraphIndex
+                        RenderResources.shapedRunBuffer.clear()
+                    }
                     val startOffset =
                         textLine.charStartOffset + if (textLine.isTableCell) textLine.rowLineOffset else 0      //当前行所在段落起始索引
                     val endOffset =
@@ -796,7 +811,11 @@ class ContentTextView(context: Context, attrs: AttributeSet?) : View(context, at
                 Logger.d("ContentTextView::drawLine:drawInnerImage:lineTop=${lTop}, lineBottom=${lBottom}")
                 drawImage(canvas, ch, lTop, lBottom)
             } else {
-                canvas.drawText(ch.charData, ch.start, lineBase + baselineOffset, RenderResources.drawingPaint) //绘制每一个字
+                RenderResources.shapedRunBuffer.draw(canvas,
+                    ch,
+                    lineBase + baselineOffset,
+                    RenderResources.drawingPaint ,
+                    textLine.textChars.getOrNull(index + 1))
             }
         }
     }

@@ -18,6 +18,7 @@ import com.wxn.bookread.R
 import com.wxn.bookread.data.model.TextChar
 import com.wxn.bookread.ext.BitmapExt
 import com.wxn.bookread.provider.ChapterProvider
+import com.wxn.bookread.provider.ShapedRunBuffer
 
 /**
  * 阅读器渲染资源单例。
@@ -115,6 +116,9 @@ object RenderResources {
     val noteIconRect = RectF()
     val noteBgRect = RectF()
     val readAloudBgRect = RectF()
+
+    // ==================== 初始化 ====================
+    val shapedRunBuffer = ShapedRunBuffer()
 
     // ==================== 初始化 ====================
 

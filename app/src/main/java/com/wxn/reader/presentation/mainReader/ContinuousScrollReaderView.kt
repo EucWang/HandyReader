@@ -959,7 +959,6 @@ fun TextPageCanvas(
     val pageHeight = remember(textPage.height) {
         with(density) { maxOf(textPage.height, 1f).toDp() }
     }
-    val resources = RenderResources
 
     Box(
         modifier = Modifier
@@ -977,7 +976,7 @@ fun TextPageCanvas(
                         this.drawContext.canvas.nativeCanvas,
                         textPage,
                         pageProvider,
-                        resources.selectedPaint
+                        RenderResources.selectedPaint
                     )
                 })
 
@@ -991,21 +990,18 @@ fun TextPageCanvas(
                     this.drawContext.canvas.nativeCanvas,
                     textPage,
                     pageProvider,
-                    resources
                 )
                 //绘制高亮/下划线/笔记的高亮
                 drawAnnotationBackgrounds(
                     this.drawContext.canvas.nativeCanvas,
                     textPage,
-                    pageProvider,
-                    resources
+                    pageProvider
                 )
                 //绘制TTS的高亮
                 drawTtsReadAloudBg(
                     this.drawContext.canvas.nativeCanvas,
                     textPage,
-                    pageProvider,
-                    resources
+                    pageProvider
                 )
             })
 
@@ -1016,7 +1012,7 @@ fun TextPageCanvas(
                 .fillMaxSize()
                 .drawBehind {
                     pageProvider.contentRenderRevision
-                    drawPageContent(this, context, book, textPage, pageProvider, resources)
+                    drawPageContent(this, context, book, textPage, pageProvider)
                 })
 
         // Layer 3: 选区手柄（顶层，文字之上）
@@ -1029,10 +1025,10 @@ fun TextPageCanvas(
                     drawSelectionHandles(
                         this, textPage, globalPageIndex,
                         pageProvider,
-                        resources.handlePaint,
-                        resources.handleStrokePaint,
-                        resources.handleRadiusPx,
-                        resources.handleLineHeightPx
+                        RenderResources.handlePaint,
+                        RenderResources.handleStrokePaint,
+                        RenderResources.handleRadiusPx,
+                        RenderResources.handleLineHeightPx
                     )
                 })
     }
@@ -1086,7 +1082,6 @@ private fun drawPageContent(
     book: Book?,
     textPage: TextPage,
     pageProvider: ContinuousPageProvider,
-    res: RenderResources,
 ) {
     val canvas = drawScope.drawContext.canvas.nativeCanvas
     val chapterIndex = textPage.chapterIndex
@@ -1096,10 +1091,16 @@ private fun drawPageContent(
     val clipRight = ChapterProvider.visibleRight.toFloat()
     val clipBottom = (ChapterProvider.paddingVertical + ChapterProvider.visibleHeight).toFloat()
 
+    var lastParagraphIndex = -1
+
     canvas.withClip(clipLeft, clipTop, clipRight, clipBottom) {
         textPage.textLines.forEachIndexed { index, textLine ->
             val (marginTop, marginBottom) = getLineMargin(index, textLine, textPage)
             val paragraphIndex = textLine.paragraphIndex
+            if (lastParagraphIndex != paragraphIndex) {
+                lastParagraphIndex = paragraphIndex
+                RenderResources.shapedRunBuffer.clear()
+            }
             val offset = if (textLine.isTableCell) textLine.rowLineOffset else 0
 
             val (tags, cssInfo) = pageProvider.pageController.pageFactory?.getPagesAnnotation(
@@ -1121,7 +1122,7 @@ private fun drawPageContent(
                         textLine.lineTop,
                         ch.end,
                         textLine.lineBottom,
-                        res.imagePlaceholderPaint
+                        RenderResources.imagePlaceholderPaint
                     )
                     val rectF = RectF(ch.start, textLine.lineTop, ch.end, textLine.lineBottom)
                     val bmp = ImageProvider.getImage(
@@ -1141,12 +1142,12 @@ private fun drawPageContent(
                     }
                 }
             } else if (textLine.isLine) {
-                res.linePaint.color = textLine.lineColor?.toColorInt() ?: 0xFF333333.toInt()
-                res.linePaint.strokeWidth = if (textLine.lineBorder > 0) textLine.lineBorder else 1f
+                RenderResources.linePaint.color = textLine.lineColor?.toColorInt() ?: 0xFF333333.toInt()
+                RenderResources.linePaint.strokeWidth = if (textLine.lineBorder > 0) textLine.lineBorder else 1f
                 canvas.drawLine(
                     textLine.lineStart.first, textLine.lineStart.second,
                     textLine.lineEnd.first, textLine.lineEnd.second,
-                    res.linePaint
+                    RenderResources.linePaint
                 )
             } else {
                 drawTextChars(
@@ -1156,7 +1157,6 @@ private fun drawPageContent(
                     textLine,
                     tags,
                     cssInfo,
-                    res,
                     isTitle = textLine.isTitle,
                     inlineStyles
                 )
@@ -1165,15 +1165,15 @@ private fun drawPageContent(
     }
 
     if (textPage.bookmarkId >= 0) {
-        val left = ChapterProvider.viewWidth - res.dp21
-        res.bookmarkPath.reset()
-        res.bookmarkPath.moveTo(left, 0f)
-        res.bookmarkPath.lineTo(left + res.dp21, 0f)
-        res.bookmarkPath.lineTo(left + res.dp21, res.dp21 * 2f)
-        res.bookmarkPath.lineTo(left + res.dp21 * 0.5f, res.dp21 * 1.5f)
-        res.bookmarkPath.lineTo(left, res.dp21 * 2f)
-        res.bookmarkPath.close()
-        canvas.drawPath(res.bookmarkPath, res.bookmarkPaint)
+        val left = ChapterProvider.viewWidth - RenderResources.dp21
+        RenderResources.bookmarkPath.reset()
+        RenderResources.bookmarkPath.moveTo(left, 0f)
+        RenderResources.bookmarkPath.lineTo(left + RenderResources.dp21, 0f)
+        RenderResources.bookmarkPath.lineTo(left + RenderResources.dp21, RenderResources.dp21 * 2f)
+        RenderResources.bookmarkPath.lineTo(left + RenderResources.dp21 * 0.5f, RenderResources.dp21 * 1.5f)
+        RenderResources.bookmarkPath.lineTo(left, RenderResources.dp21 * 2f)
+        RenderResources.bookmarkPath.close()
+        canvas.drawPath(RenderResources.bookmarkPath, RenderResources.bookmarkPaint)
     }
 }
 
@@ -1184,7 +1184,6 @@ private fun drawTextChars(
     textLine: TextLine,
     textTags: List<TextTag>,
     textCssInfo: TextCssInfo?,
-    res: RenderResources,
     isTitle: Boolean,
     inlineStyles: List<InlineStyle>? = null
 ) {
@@ -1220,11 +1219,11 @@ private fun drawTextChars(
         val centerX = (start + end) / 2
         val centerY = (textLine.lineBottom + textLine.lineTop) / 2
         if (textLine.withLineDot % 2 == 1) {
-            canvas.drawCircle(centerX, centerY, 8.0f, res.listDotPaint)
+            canvas.drawCircle(centerX, centerY, 8.0f, RenderResources.listDotPaint)
         } else {
             canvas.drawRect(
                 centerX - 10f, centerY - 10f, centerX + 10f, centerY + 10f,
-                res.listDotPaint
+                RenderResources.listDotPaint
             )
         }
     }
@@ -1280,7 +1279,7 @@ private fun drawTextChars(
             }
         }
 
-        res.drawingPaint.set(parentPaint)
+        RenderResources.drawingPaint.set(parentPaint)
         val resolved = if (!isTitle && !ch.isImage && !textLine.isTableCell) {
             val charOffsetInParagraph = textLine.charStartOffset + index
             InlineStyle.resolve(inlineStyles, charOffsetInParagraph)
@@ -1290,12 +1289,12 @@ private fun drawTextChars(
         val inlineScale = resolved.fontScale ?: 1.0f
         val inlineColor = resolved.color
         val inlineVerticalAlign = resolved.verticalAlign
-        res.applyCharPaint(ch, isTitle, isBold, isSmall, textCssInfo, inlineScale, inlineColor)
+        RenderResources.applyCharPaint(ch, isTitle, isBold, isSmall, textCssInfo, inlineScale, inlineColor)
 
         // 计算 sup/sub 垂直偏移（在 applyCharPaint 之后，textSize 已是最终值）
         val baselineOffset = if (!ch.isImage && inlineVerticalAlign != null
             && inlineVerticalAlign != CssVerticalAlign.CssVerticalAlignBaseLine) {
-            val parentSize = res.drawingPaint.textSize / inlineScale.coerceAtLeast(0.01f)  // 还原父字号
+            val parentSize = RenderResources.drawingPaint.textSize / inlineScale.coerceAtLeast(0.01f)  // 还原父字号
             when (inlineVerticalAlign) {
                 CssVerticalAlign.CssVerticalAlignSuper -> -parentSize * 0.34f   // 上移（y 减小）
                 CssVerticalAlign.CssVerticalAlignSub   ->  parentSize * 0.20f   // 下移（y 增大）
@@ -1306,7 +1305,13 @@ private fun drawTextChars(
         if (ch.isImage) {
             drawImage(canvas, ch, textLine.lineTop, textLine.lineBottom)
         } else {
-            canvas.drawText(ch.charData, ch.start, textLine.lineBase + baselineOffset, res.drawingPaint)
+            RenderResources.shapedRunBuffer.draw(
+                canvas,
+                ch,
+                textLine.lineBase + baselineOffset,
+                RenderResources.drawingPaint,
+                textLine.textChars.getOrNull(index + 1)
+            )
         }
     }
 }
@@ -1913,7 +1918,6 @@ private fun drawTtsReadAloudBg(
     canvas: Canvas,
     textPage: TextPage,
     pageProvider: ContinuousPageProvider,
-    res: RenderResources
 ) {
     val speakBookStatus = pageProvider.pageController.getSpeakBookStatus()
     if (speakBookStatus.speakingStatus != TtsPlaybackStatus.PLAYING) return
@@ -1946,13 +1950,13 @@ private fun drawTtsReadAloudBg(
 
         val left = textLine.textChars[startCharIdx].start
         val right = textLine.textChars[endCharIdx].end
-        val top = textLine.lineTop - res.dp4
-        val bottom = textLine.lineBottom + res.dp4
+        val top = textLine.lineTop - RenderResources.dp4
+        val bottom = textLine.lineBottom + RenderResources.dp4
 
-        res.readAloudBgPaint.color = Color.YELLOW
-        res.readAloudBgPaint.alpha = (0.4f * 255).toInt()
-        res.readAloudBgRect.set(left, top, right, bottom)
-        canvas.drawRect(res.readAloudBgRect, res.readAloudBgPaint)
+        RenderResources.readAloudBgPaint.color = Color.YELLOW
+        RenderResources.readAloudBgPaint.alpha = (0.4f * 255).toInt()
+        RenderResources.readAloudBgRect.set(left, top, right, bottom)
+        canvas.drawRect(RenderResources.readAloudBgRect, RenderResources.readAloudBgPaint)
     }
 }
 
@@ -1970,7 +1974,6 @@ private fun drawSearchResultsBg(
     canvas: Canvas,
     textPage: TextPage,
     pageProvider: ContinuousPageProvider,
-    res: RenderResources
 ) {
     val highlights = pageProvider.pageController.getSearchHighlights()
     if (highlights.isEmpty()) return
@@ -2005,12 +2008,12 @@ private fun drawSearchResultsBg(
 
             val left = textLine.textChars[startCharIdx].start
             val right = textLine.textChars[endCharIdx].end
-            val top = textLine.lineTop - res.dp4
-            val bottom = textLine.lineBottom + res.dp4
+            val top = textLine.lineTop - RenderResources.dp4
+            val bottom = textLine.lineBottom + RenderResources.dp4
 
             canvas.drawRoundRect(
                 RectF(left, top, right, bottom), 4f, 4f,
-                res.searchHighlightPaint
+                RenderResources.searchHighlightPaint
             )
         }
     }
@@ -2029,7 +2032,6 @@ private fun drawAnnotationBackgrounds(
     canvas: Canvas,
     textPage: TextPage,
     pageProvider: ContinuousPageProvider,
-    res: RenderResources
 ) {
     val chapterIndex = textPage.chapterIndex
     val noteIds = mutableSetOf<String>()
@@ -2053,32 +2055,32 @@ private fun drawAnnotationBackgrounds(
         tags.firstOrNull { it.name == "note" }?.let { noteTag ->
             val colorStr = noteTag.paramsPairs().firstOrNull { it.first == "color" }
                 ?.second ?: RenderResources.NOTE_DEFAULT_COLOR_HEX
-            res.noteBgPaint.color = colorStr.toColor() ?: Color.YELLOW
-            res.noteBgPaint.alpha = RenderResources.NOTE_BG_ALPHA
+            RenderResources.noteBgPaint.color = colorStr.toColor() ?: Color.YELLOW
+            RenderResources.noteBgPaint.alpha = RenderResources.NOTE_BG_ALPHA
             canvas.drawRect(
                 0f, textLine.lineTop - marginTop / 2f,
                 ChapterProvider.viewWidth.toFloat(),
                 textLine.lineBottom + marginBottom / 2f,
-                res.noteBgPaint
+                RenderResources.noteBgPaint
             )
 
             // 笔记图标——参照 ContentTextView.tryDrawNote()
             if (!noteIds.contains(noteTag.uuid)) {
-                res.noteIconBmp?.let { noteIcon ->
+                RenderResources.noteIconBmp?.let { noteIcon ->
                     val iconLeft = 0f
-                    val iconTop = textLine.lineTop - res.dp12
-                    res.noteCirclePaint.color = colorStr.toColor() ?: Color.YELLOW
+                    val iconTop = textLine.lineTop - RenderResources.dp12
+                    RenderResources.noteCirclePaint.color = colorStr.toColor() ?: Color.YELLOW
                     canvas.drawCircle(
-                        iconLeft + res.dp12,
-                        iconTop + res.dp12,
-                        res.dp12,
-                        res.noteCirclePaint
+                        iconLeft + RenderResources.dp12,
+                        iconTop + RenderResources.dp12,
+                        RenderResources.dp12,
+                        RenderResources.noteCirclePaint
                     )
-                    res.noteIconRect.set(
-                        iconLeft + res.dp6, iconTop + res.dp6,
-                        iconLeft + 3 * res.dp6, iconTop + 3 * res.dp6
+                    RenderResources.noteIconRect.set(
+                        iconLeft + RenderResources.dp6, iconTop + RenderResources.dp6,
+                        iconLeft + 3 * RenderResources.dp6, iconTop + 3 * RenderResources.dp6
                     )
-                    canvas.drawBitmap(noteIcon, null, res.noteIconRect, null)
+                    canvas.drawBitmap(noteIcon, null, RenderResources.noteIconRect, null)
                     noteIds.add(noteTag.uuid)
                 }
             }
@@ -2094,7 +2096,7 @@ private fun drawAnnotationBackgrounds(
                             val colorStr = tag.paramsPairs()
                                 .firstOrNull { it.first == "color" }?.second
                                 ?: "#FFFFFF00"
-                            res.highlightPaint.color =
+                            RenderResources.highlightPaint.color =
                                 colorStr.toColor() ?: Color.YELLOW
                             canvas.drawRoundRect(
                                 RectF(
@@ -2103,7 +2105,7 @@ private fun drawAnnotationBackgrounds(
                                     ch.end + 1f,
                                     textLine.lineBottom + 10f
                                 ),
-                                1f, 1f, res.highlightPaint
+                                1f, 1f, RenderResources.highlightPaint
                             )
                         }
                         "underline" -> {
@@ -2111,13 +2113,13 @@ private fun drawAnnotationBackgrounds(
                                 .firstOrNull { it.first == "color" }?.second
                                 ?: "#FF575757"
                             colorStr.toColor()?.let { color ->
-                                res.underlinePaint.color = color
+                                RenderResources.underlinePaint.color = color
                             }
-                            res.underlinePaint.strokeWidth = 3f
+                            RenderResources.underlinePaint.strokeWidth = 3f
                             canvas.drawLine(
                                 ch.start, textLine.lineBottom,
                                 ch.end, textLine.lineBottom,
-                                res.underlinePaint
+                                RenderResources.underlinePaint
                             )
                         }
                     }

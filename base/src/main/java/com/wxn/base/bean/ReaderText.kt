@@ -507,6 +507,8 @@ sealed class ReaderText {
 
     var textCssInfo = TextCssInfo()
 
+    var segDirect: SegmentResult? = null
+
     /****
      * 分隔符
      */

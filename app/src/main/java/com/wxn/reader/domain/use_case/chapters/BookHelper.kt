@@ -9,6 +9,7 @@ import com.wxn.base.bean.ReaderText
 import com.wxn.base.util.Logger
 import com.wxn.bookparser.TextParser
 import com.wxn.bookparser.domain.file.CachedFileCompat
+import com.wxn.bookread.provider.RTLSegmenter
 import com.wxn.reader.data.source.local.AppPreferencesUtil
 
 object BookHelper {
@@ -96,6 +97,9 @@ object BookHelper {
         content1.forEach { content ->
             if (content is ReaderText.Text) {
                 content.parseTextCss()
+                content.segDirect = RTLSegmenter.segment(content.line)
+            } else if (content is ReaderText.Chapter) {
+                content.segDirect = RTLSegmenter.segment(content.title)
             }
         }
         return content1

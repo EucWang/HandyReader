@@ -18,6 +18,7 @@ import com.wxn.base.bean.CssFontWeight
 import com.wxn.base.bean.CssTextAlign
 import com.wxn.base.bean.InlineStyle
 import com.wxn.base.bean.ReaderText
+import com.wxn.base.bean.TextDirection
 import com.wxn.base.bean.TextTag
 import com.wxn.base.ext.isContentPath
 import com.wxn.base.ext.statusBarHeight
@@ -146,12 +147,12 @@ object ChapterProvider {
     /***
      * 标题顶部间距
      */
-    private var titleTopSpacing = 0
+    internal var titleTopSpacing = 0
 
     /***
      * 标题底部间距
      */
-    private var titleBottomSpacing = 0
+    internal var titleBottomSpacing = 0
 
     @Volatile
     private var isVScrollMode = false
@@ -177,76 +178,6 @@ object ChapterProvider {
      */
     private const val DUAL_COLUMN_GAP_RATIO = 0.06
 
-    /** v5 S9：列角色枚举，替代脆弱的 startX == paddingHorizontal 数值推导。 */
-    enum class ColumnRole { FULL, LEFT, RIGHT }
-
-    @Volatile
-    var isRtl = false
-
-    @Volatile
-    var bookLanguage: String? = null
-
-    /**
-     * 列边界上下文（v4 R9 + v5 S9）。子函数内部一律通过此对象读取「当前列」的水平几何信息，
-     * 替代直接读取单例 [visibleWidth]/[paddingHorizontal]/[visibleRight]。
-     *
-     * - 单列：全页几何 [page]
-     * - 双列：列级几何 [leftColumn] / [rightColumn]
-     *
-     * 关键约束：LayoutBounds 一旦构造即不可变（data class + val），并发场景下不会出现
-     * save/restore 被其他线程中途篡改（第三轮 P3 关注点）。[visibleHeight]/[visibleBottom]
-     * 两列共享（垂直空间一致），不纳入本对象，子函数继续读单例。
-     */
-    data class LayoutBounds(
-        val width: Int,          // 当前列宽（替代 visibleWidth）
-        val startX: Int,         // 当前列左边界（替代 paddingHorizontal）
-        val endX: Int,           // 当前列右边界（替代 visibleRight）
-        val role: ColumnRole     // v5 S9：列角色（FULL/LEFT/RIGHT）
-    ) {
-        val isColumn: Boolean get() = role != ColumnRole.FULL
-        val isLeftColumn: Boolean get() = role == ColumnRole.LEFT
-        val isRightColumn: Boolean get() = role == ColumnRole.RIGHT
-
-        companion object {
-            /** 全页几何（单列模式）。 */
-            fun page(): LayoutBounds = LayoutBounds(
-                width = visibleWidth,
-                startX = paddingHorizontal,
-                endX = visibleRight,
-                role = ColumnRole.FULL
-            )
-
-            /** 双列左列几何。 */
-            fun leftColumn(): LayoutBounds = LayoutBounds(
-                width = columnWidth,
-                startX = paddingHorizontal,
-                endX = paddingHorizontal + columnWidth,
-                role = ColumnRole.LEFT
-            )
-
-            /** 双列右列几何。 */
-            fun rightColumn(): LayoutBounds = LayoutBounds(
-                width = columnWidth,
-                startX = paddingHorizontal + columnWidth + columnGapActual,
-                endX = paddingHorizontal + 2 * columnWidth + columnGapActual,
-                role = ColumnRole.RIGHT
-            )
-        }
-    }
-
-    /**
-     * 排版游标（v4 核心，方案 B）。子函数返回此对象，主循环和段落间传递。
-     *
-     * 与 v3 的 LayoutResult 不同，LayoutCursor 不携带「溢出行数」——因为方案 B 的子函数
-     * 内部已经处理完列切换，返回时整段已排完，游标只是告诉调用方「下一段应从哪个 Y、哪一列继续」。
-     *
-     * @param offsetY 排版后的 Y 偏移
-     * @param bounds 当前所在的列几何（单列时为 page，双列时为 leftColumn/rightColumn）
-     */
-    data class LayoutCursor(
-        val offsetY: Float,
-        val bounds: LayoutBounds
-    )
     //endregion
 
     /***
@@ -302,13 +233,7 @@ object ChapterProvider {
      */
     private val workPaint = TextPaint()
 
-//    private var oneWordWidth = 0f
-
     private val typerfaceMap = mutableMapOf<String, Typeface>()
-
-//    fun getTypeface(fontWeight: CssFontWeight) : Typeface? {
-//        return getTypeface(fontWeight, CssFontStyle.CssFontStyleNormal)
-//    }
 
     fun getTypeface(fontWeight: CssFontWeight, cssFontStyle: CssFontStyle) =
         when (fontWeight) {
@@ -391,7 +316,6 @@ object ChapterProvider {
                 }
             }
         }
-
 
     /****
      * 根据TextTag的name属性，得到对应的TextPaint
@@ -520,7 +444,6 @@ object ChapterProvider {
     }
     //endregion
 
-    var imgScale = 1.0f
 
     /**
      * 更新样式
@@ -533,7 +456,7 @@ object ChapterProvider {
      * while dragging the font-size slider on a device slower than an emulator).
      */
     suspend fun upStyle(context: Context, readerPreferences: ReaderPreferences? = null) {
-        imgScale = context.resources.displayMetrics.density
+        ImageLayoutProvider.imgScale = context.resources.displayMetrics.density
         Logger.i("ChapterProvider::upStyle")
 
         val prefs = readerPreferences ?: readerPreferencesUtil?.readerPrefsFlow?.firstOrNull()
@@ -769,13 +692,29 @@ object ChapterProvider {
             }
         }
 
+        // ★ 章节方向 = 段落 segDirect 聚合（RTL 段占比 > 0.33 即判 RTL）
+        //   - 数据源：disposeContent(:957) 已为每个 ReaderText.Text/.Chapter 写入 segDirect
+        //   - 时序：disposeContent → getTextChapter 同协程顺序调用，同对象实例，segDirect 必已就绪
+        //   - 阈值 0.33：对 RTL 敏感（1/3 阿语段即判 RTL 章节），因章节方向仅影响双列起始列，判错无排版后果
+        //   - 纯图片章/无 segDirect 段的章节 → 默认 LTR（图片无方向，可接受）
+        val chapterIsRtl: Boolean = run {
+            val segParagraphs = contents.filterIsInstance<ReaderText>()
+                .mapNotNull { it.segDirect }
+            if (segParagraphs.isEmpty()) false
+            else segParagraphs.count { it.baseRtl }.toFloat() / segParagraphs.size > 0.33f
+        }
+
         textPages.add(TextPage())   //增加一空白页，然后给这个页面增加显示内容
         offsetY += paddingVertical
         // v4：用 LayoutCursor 游标对象在段落间传递「当前 Y 偏移 + 当前列几何」。
         // 主循环极度简化——顺序遍历段落，传递游标，无 retry/while/零进展熔断/列状态变量。
         var cursor = LayoutCursor(
             offsetY = offsetY,
-            bounds = if (dualColumnEnabled) LayoutBounds.leftColumn() else LayoutBounds.page()
+            bounds = when {
+                dualColumnEnabled && chapterIsRtl -> layoutBoundsRightColumn()
+                dualColumnEnabled -> layoutBoundsLeftColumn()
+                else -> layoutBoundsPage()
+            }
         )
         contents.forEachIndexed { index, paragraph -> //遍历需要显示的内容的每一个自然段， 一个段落一个段落（图片）的遍历
             when (paragraph) {
@@ -818,7 +757,8 @@ object ChapterProvider {
                                 pageLines,
                                 pageLengths,
                                 stringBuilder,
-                                true
+                                true,
+                                chapterIsRtl
                             )
                         } else {
                             setTypeText(
@@ -829,7 +769,8 @@ object ChapterProvider {
                                 pageLines,
                                 pageLengths,
                                 stringBuilder,
-                                false
+                                false,
+                                chapterIsRtl
                             )
                         }
                     }
@@ -844,7 +785,8 @@ object ChapterProvider {
                         pageLines,
                         pageLengths,
                         stringBuilder,
-                        true
+                        true,
+                        chapterIsRtl
                     )
                 }
 
@@ -892,7 +834,7 @@ object ChapterProvider {
         stringBuilder: StringBuilder,
         pageLines: ArrayList<Int>,
         pageLengths: ArrayList<Int>,
-        bounds: LayoutBounds = LayoutBounds.page()   // v4 新增：列边界（透传给 setTypeImage）
+        bounds: LayoutBounds = layoutBoundsPage()   // v4 新增：列边界（透传给 setTypeImage）
     ): LayoutCursor {
         val imgStyle =
             if ((isOneElePage || image.textCssInfo.textAlign == CssTextAlign.CssTextAlignJustify) && image.height >= fullImageMinHeight) {
@@ -933,7 +875,7 @@ object ChapterProvider {
         stringBuilder: StringBuilder,
         pageLines: ArrayList<Int>,
         pageLengths: ArrayList<Int>,
-        bounds: LayoutBounds = LayoutBounds.page()   // v4 新增
+        bounds: LayoutBounds = layoutBoundsPage()   // v4 新增
     ): LayoutCursor {
         var durY: Float = offsetY
         var currentBounds = bounds   // v4：局部变量，随列切换更新
@@ -949,7 +891,7 @@ object ChapterProvider {
         var usableHeight = (viewHeight - durY - paddingVertical).toInt()
 
         //图片约束之后的宽高（v4：currentBounds.width 替代 visibleWidth）
-        val (originWidth, originHeight) = constraintImageSize(
+        val (originWidth, originHeight) = ImageLayoutProvider.constraintImageSize(
             imgWidth,
             imgHeight,
             imgSrc,
@@ -978,7 +920,7 @@ object ChapterProvider {
                 // v4 方案 B：图片原子切列（FULL 类型例外，强制独占整页）
                 if (dualColumnEnabled && currentBounds.isLeftColumn && imageStyles != "FULL") {
                     // 左列放不下 → 切右列（同页），不建新页
-                    currentBounds = LayoutBounds.rightColumn()
+                    currentBounds = layoutBoundsRightColumn()
                     durY = paddingVertical.toFloat()
                     usableHeight = (viewHeight - durY - paddingVertical).toInt()
                     false
@@ -995,11 +937,11 @@ object ChapterProvider {
                     usableHeight = (viewHeight - durY - paddingVertical).toInt()
                     // FULL 类型新页用全页几何；否则用左列/单列
                     currentBounds = if (imageStyles == "FULL") {
-                        LayoutBounds.page()
+                        layoutBoundsPage()
                     } else if (dualColumnEnabled) {
-                        LayoutBounds.leftColumn()
+                        layoutBoundsLeftColumn()
                     } else {
-                        LayoutBounds.page()
+                        layoutBoundsPage()
                     }
                     true
                 }
@@ -1012,7 +954,7 @@ object ChapterProvider {
             //需要重新计算,防止超过了图片可用高度
             if (width + imgVerticalMargin > usableHeight) { //图片高度 + 图片的上边距 > 图片可显示高度
                 //对图片再次缩放
-                val (widthInPage, heightInPage) = constraintImageSize(
+                val (widthInPage, heightInPage) = ImageLayoutProvider.constraintImageSize(
                     imgWidth,
                     imgHeight,
                     imgSrc,
@@ -1025,7 +967,7 @@ object ChapterProvider {
             durY += imgVerticalMargin  //先加上图片的上边距
         } else {
             if (imageStyles == "FULL") { //全屏展示时, 居中显示（FULL 用全页几何）
-                val (widthInPage, heightInPage) = fillImageSize(
+                val (widthInPage, heightInPage) = ImageLayoutProvider.fillImageSize(
                     imgWidth,
                     imgHeight,
                     imgSrc,
@@ -1077,103 +1019,12 @@ object ChapterProvider {
         return LayoutCursor(durY + imgVerticalMargin, currentBounds)  //加上图片的下边距
     }
 
-    /****
-     * 将图片的宽高缩放到最大宽高匹配的大小,让其填满宽度或者填满高度
-     */
-    private fun fillImageSize(
-        imgWidth: Int,
-        imgHeight: Int,
-        imgSrc: String,
-        maxWidth: Int,
-        maxHeight: Int,
-    ): Pair<Int, Int> {
-        var originWidth = imgWidth
-        var originHeight = imgHeight
-        if (originWidth <= 0 || originHeight <= 0) {
-            val options: BitmapFactory.Options = BitmapFactory.Options()
-            options.inJustDecodeBounds = true // 不加载图片像素，只获取宽高
-            options.inSampleSize = 2
-            BitmapFactory.decodeFile(imgSrc, options)
-            originWidth = options.outWidth
-            originHeight = options.outHeight
-            if (originWidth <= 0 || originHeight <= 0) {
-                Logger.e("ChapterProvider::constraintImageSize::decode image[$imgSrc][$imgWidth,$imgHeight] size failed")
-                return Pair(0, 0)
-            }
-        }
-        val radio: Float = (originWidth.toFloat() / originHeight)  //宽高比
-
-        var targetWidth = maxWidth
-        var targetHeight = (targetWidth / radio).toInt()
-        if (targetHeight > maxHeight) {
-            targetHeight = maxHeight
-            targetWidth = (targetHeight * radio).toInt()
-        }
-        return Pair(targetWidth, targetHeight)
-    }
-
-    /****
-     * 约束图片的宽高,
-     * 和系统的displayMetrics.density 系数得到一个合适的缩放大小.
-     * 然后约束到最大宽高范围之内, 即界面可视宽高之内,
-     * 如果不超过,则显示默认宽高,
-     * @param imgWidth : 图片的宽度
-     * @param imgHeight : 图片的高度
-     * @param imgSrc : 图片的路径
-     * @param maxWidth: 最大图片的宽度
-     * @param maxHeight : 最大图片的高度
-     * @param useScale : 是否应用系统的density系数, 如果传入的是图片原始的宽高,则需要; 如果传入的是重新计算过的宽高,则不需要
-     * @return 约束在最大宽高之内, 重新计算之后的图片的宽高
-     */
-    private fun constraintImageSize(
-        imgWidth: Int,
-        imgHeight: Int,
-        imgSrc: String,
-        maxWidth: Int,
-        maxHeight: Int,
-        useScale: Boolean = true
-    ): Pair<Int, Int> {
-        var originWidth = imgWidth
-        var originHeight = imgHeight
-        if (originWidth <= 0 || originHeight <= 0) {
-            val options: BitmapFactory.Options = BitmapFactory.Options()
-            options.inJustDecodeBounds = true // 不加载图片像素，只获取宽高
-            options.inSampleSize = 2
-            BitmapFactory.decodeFile(imgSrc, options)
-            originWidth = options.outWidth
-            originHeight = options.outHeight
-            if (originWidth <= 0 || originHeight <= 0) {
-                Logger.e("ChapterProvider::constraintImageSize::decode image[$imgSrc][$imgWidth,$imgHeight] size failed")
-                return Pair(0, 0)
-            }
-        }
-        val scale = if (useScale) imgScale else 1.0f
-        originWidth = (imgWidth * scale).toInt()  //图片的实际宽高
-        originHeight = (imgHeight * scale).toInt()
-        if (originWidth <= 0 || originHeight <= 0) {
-            return Pair(0, 0)
-        }
-        val radio: Float = (originWidth.toFloat() / originHeight)  //宽高比
-
-        //约束到最大范围之内的宽高,不要超过一个屏幕
-        if (originWidth > maxWidth) {
-            originWidth = maxWidth
-            originHeight = (originWidth / radio).toInt()
-        }
-        if (originHeight > maxHeight) {
-            originHeight = maxHeight
-            originWidth = (originHeight * radio).toInt()
-        }
-
-        return Pair(originWidth, originHeight)
-    }
-
     /**
      * F2 新增:把纯文本 + inline 字号区间转成 SpannableStringBuilder,
      * 挂 RelativeSizeSpan 让 StaticLayout 自动 per-char 度量。
      * - inlineStyles null/empty → 直接返回原 String 引用(零开销,90%+ 段落)
      */
-    private fun buildSpannedText(
+    internal fun buildSpannedText(
         text: String,
         inlineStyles: List<InlineStyle>?
     ): CharSequence {
@@ -1210,7 +1061,8 @@ object ChapterProvider {
         pageLines: ArrayList<Int>,
         pageLengths: ArrayList<Int>,
         stringBuilder: StringBuilder,
-        isTitle: Boolean
+        isTitle: Boolean,
+        chapterIsRtl: Boolean
     ): LayoutCursor {
 //        Logger.d("ChapterProvider::setTypeText::paragraph=${paragraph}")
         val offsetY = cursor.offsetY
@@ -1239,7 +1091,7 @@ object ChapterProvider {
             if (durY + lineHeight > visibleBottom) {
                 if (curBounds.isLeftColumn) {
                     // 左列满 → 切右列（同页），不建新页
-                    curBounds = LayoutBounds.rightColumn()
+                    curBounds = layoutBoundsRightColumn()
                     durY = paddingVertical.toFloat()
                 } else {
                     // 右列满 / 单列装不下 → 建新页，回左列（或单列 page）
@@ -1252,7 +1104,7 @@ object ChapterProvider {
                     textPages.add(TextPage())
                     stringBuilder.clear()
                     durY = paddingVertical.toFloat()
-                    curBounds = if (dualColumnEnabled) LayoutBounds.leftColumn() else LayoutBounds.page()
+                    curBounds = if (dualColumnEnabled) layoutBoundsLeftColumn() else layoutBoundsPage()
                 }
             } else {
                 durY += lineHeight
@@ -1485,27 +1337,58 @@ object ChapterProvider {
                 null  // 标题(ReaderText.Chapter)/图片走旧路径
             }
             val charSequence: CharSequence = buildSpannedText(text, paragraphInlineFontSizes)
+
+            val seg = paragraph.segDirect
+            val isPureLtr = seg == null ||
+                    (seg.direction == TextDirection.LTR && seg.runs.isEmpty())
+
             // buildSpannedText 内部判断 null/empty → 直接返回原 String 引用(零开销)
-            setNormalText(
-                charSequence,            // ← F3 CharSequence 替代 String
-                paragraphInlineFontSizes,   // ← F4 几何轨用
-                textPaint,
-                marginLeft,
-                marginRight,
-                firstLineIndent,
-                isTitle,
-                isListRow,
-                listLevel,
-                paragraphIndex,
-                textAlign,
-                lineHeightParam,
-                textPages,
-                pageLines,
-                pageLengths,
-                stringBuilder,
-                durY,
-                bounds   // v4：透传
-            )
+            if (isPureLtr) {
+                setNormalText(
+                    charSequence,            // ← F3 CharSequence 替代 String
+                    paragraphInlineFontSizes,   // ← F4 几何轨用
+                    textPaint,
+                    marginLeft,
+                    marginRight,
+                    firstLineIndent,
+                    isTitle,
+                    isListRow,
+                    listLevel,
+                    paragraphIndex,
+                    textAlign,
+                    lineHeightParam,
+                    textPages,
+                    pageLines,
+                    pageLengths,
+                    stringBuilder,
+                    durY,
+                    bounds   // v4：透传
+                )
+            } else {
+                TextLayoutProvider.layoutNormalTextRtl(
+                    charSequence,
+                    paragraphInlineFontSizes,
+                    seg,
+                    textPaint,
+                    marginLeft,
+                    marginRight,
+                    firstLineIndent,
+                    isTitle,
+                    isListRow,
+                    listLevel,
+                    paragraphIndex,
+                    textAlign,
+                    lineHeightParam,
+                    paragraph,
+                    textPages,
+                    pageLines,
+                    pageLengths,
+                    stringBuilder,
+                    durY,
+                    bounds,
+                    chapterIsRtl
+                )
+            }
         }
 
         // v4：底部间距在整段排完后追加（result.offsetY 已是整段排完的 Y）
@@ -1544,7 +1427,7 @@ object ChapterProvider {
         pageLengths: ArrayList<Int>,
         stringBuilder: StringBuilder,
         offsetY: Float,
-        bounds: LayoutBounds = LayoutBounds.page()   // v4 新增
+        bounds: LayoutBounds = layoutBoundsPage()   // v4 新增
     ): LayoutCursor {
         var durY = offsetY
         var currentBounds = bounds   // v4：局部变量，随列切换更新
@@ -1595,7 +1478,7 @@ object ChapterProvider {
                     val singleLineHeight = textPaint.textHeight * lineSpacingExtra * lineHeightParam
                     if (durY + singleLineHeight > visibleBottom) {
                         if (currentBounds.isLeftColumn) {
-                            currentBounds = LayoutBounds.rightColumn()
+                            currentBounds = layoutBoundsRightColumn()
                             durY = paddingVertical.toFloat()
                         } else {
                             val lastPage = textPages.last()
@@ -1607,7 +1490,7 @@ object ChapterProvider {
                             textPages.add(TextPage())
                             stringBuilder.clear()
                             durY = paddingVertical.toFloat()
-                            currentBounds = if (dualColumnEnabled) LayoutBounds.leftColumn() else LayoutBounds.page()
+                            currentBounds = if (dualColumnEnabled) layoutBoundsLeftColumn() else layoutBoundsPage()
                         }
                     }
                     val layoutBounds = currentBounds   // 固定快照，单元格坐标 + 边框线均基于此
@@ -1721,7 +1604,7 @@ object ChapterProvider {
                             stringBuilder.clear()
                             durY = paddingVertical.toFloat()
                             // 新页从左列开始（表格跨页时整段重排到左列/单列）
-                            currentBounds = if (dualColumnEnabled) LayoutBounds.leftColumn() else LayoutBounds.page()
+                            currentBounds = if (dualColumnEnabled) layoutBoundsLeftColumn() else layoutBoundsPage()
                         }
 
                         var words = StringBuilder()
@@ -1845,7 +1728,7 @@ object ChapterProvider {
         pageLengths: ArrayList<Int>,
         stringBuilder: StringBuilder,
         offsetY: Float,
-        bounds: LayoutBounds = LayoutBounds.page()   // v4 新增
+        bounds: LayoutBounds = layoutBoundsPage()   // v4 新增
     ): LayoutCursor {
         var durY = offsetY
         var currentBounds = bounds   // v4：局部变量，随列切换更新
@@ -1968,7 +1851,7 @@ object ChapterProvider {
                         if (imgSrc.isNotEmpty() && width > 0 && height > 0) {
                             //根据行高度, 缩放图片的宽度
                             val targetImgHeight = (textPaint.textHeight * lineSpacingExtra).toInt()
-                            val (imgW, imgH) = fillImageSize(
+                            val (imgW, imgH) = ImageLayoutProvider.fillImageSize(
                                 width,
                                 height,
                                 imgSrc,
@@ -1996,7 +1879,7 @@ object ChapterProvider {
                     // ★ 必须在 addCharsToLineXxx 之前判断——否则切列后 textLine 的 X 坐标仍用旧列的 currentBounds 计算。
                     if (durY + textPaint.textHeight * lineSpacingExtra * lineHeightParam > visibleBottom) {
                         if (currentBounds.isLeftColumn) {
-                            currentBounds = LayoutBounds.rightColumn()
+                            currentBounds = layoutBoundsRightColumn()
                             durY = paddingVertical.toFloat()
                         } else {
                             val lastPage = textPages.last()
@@ -2008,7 +1891,7 @@ object ChapterProvider {
                             textPages.add(TextPage())
                             stringBuilder.clear()
                             durY = paddingVertical.toFloat()
-                            currentBounds = if (dualColumnEnabled) LayoutBounds.leftColumn() else LayoutBounds.page()
+                            currentBounds = if (dualColumnEnabled) layoutBoundsLeftColumn() else layoutBoundsPage()
                         }
                     }
 
@@ -2080,7 +1963,7 @@ object ChapterProvider {
                                     val targetImgHeight =
                                         (textPaint.textHeight * lineSpacingExtra).toInt()
                                     //根据行高度, 缩放图片的宽度
-                                    val (imgW, imgH) = fillImageSize(
+                                    val (imgW, imgH) = ImageLayoutProvider.fillImageSize(
                                         imgWidth,
                                         imgHeight,
                                         imgSrc,
@@ -2187,7 +2070,7 @@ object ChapterProvider {
         pageLengths: ArrayList<Int>,
         stringBuilder: StringBuilder,
         offsetY: Float,
-        bounds: LayoutBounds = LayoutBounds.page()   // v4 新增：列边界（入口列）
+        bounds: LayoutBounds = layoutBoundsPage()   // v4 新增：列边界（入口列）
     ): LayoutCursor {
         var durY = offsetY
         var currentBounds = bounds   // v4：局部变量，随列切换更新
@@ -2252,7 +2135,7 @@ object ChapterProvider {
             if (durY + actualLineHeight > visibleBottom) {
                 if (currentBounds.isLeftColumn) {
                     // 左列满 → 切右列（同页），不建新页
-                    currentBounds = LayoutBounds.rightColumn()
+                    currentBounds = layoutBoundsRightColumn()
                     durY = paddingVertical.toFloat()
                 } else {
                     // 右列满 / 单列装不下 → 建新页，回左列（或单列 page）
@@ -2265,7 +2148,7 @@ object ChapterProvider {
                     textPages.add(TextPage())
                     stringBuilder.clear()
                     durY = paddingVertical.toFloat()
-                    currentBounds = if (dualColumnEnabled) LayoutBounds.leftColumn() else LayoutBounds.page()
+                    currentBounds = if (dualColumnEnabled) layoutBoundsLeftColumn() else layoutBoundsPage()
                 }
             }
 
@@ -2366,7 +2249,7 @@ object ChapterProvider {
         textPaint: TextPaint,
         desiredWidth: Float,
         offsetX: Float,
-        bounds: LayoutBounds = LayoutBounds.page(),
+        bounds: LayoutBounds = layoutBoundsPage(),
         charScaleLookup: (Int) -> Float = { 1f },   // F4 新增(默认向后兼容)
         paragraphOffset: Int = 0                     // F4 新增:words[0] 在段落中的全局 offset
     ) {
@@ -2414,7 +2297,7 @@ object ChapterProvider {
         words: Array<String>,
         textPaint: TextPaint,
         offsetX: Float,
-        bounds: LayoutBounds = LayoutBounds.page(),
+        bounds: LayoutBounds = layoutBoundsPage(),
         charScaleLookup: (Int) -> Float = { 1f },   // F4 新增(默认向后兼容)
         paragraphOffset: Int = 0                     // F4 新增:words[0] 在段落中的全局 offset
     ) {
@@ -2448,7 +2331,7 @@ object ChapterProvider {
         words: Array<String>,
         textPaint: TextPaint,
         desiredWidth: Float,
-        bounds: LayoutBounds = LayoutBounds.page(),
+        bounds: LayoutBounds = layoutBoundsPage(),
         charScaleLookup: (Int) -> Float = { 1f },   // F4 新增(默认向后兼容)
         paragraphOffset: Int = 0                     // F4 新增
     ) {
@@ -2470,7 +2353,7 @@ object ChapterProvider {
         textPaint: TextPaint,
         desiredWidth: Float,
         marginRight: Float,
-        bounds: LayoutBounds = LayoutBounds.page(),
+        bounds: LayoutBounds = layoutBoundsPage(),
         charScaleLookup: (Int) -> Float = { 1f },   // F4 新增(默认向后兼容)
         paragraphOffset: Int = 0                     // F4 新增
     ) {
@@ -2485,7 +2368,7 @@ object ChapterProvider {
      * v4（P4 修复）：新增 [bounds] 参数，用 bounds.endX 替代单例 visibleRight 做越界检测。
      * 切列后传 rightColumn()，越界检测以右列右边界为准。
      */
-    private fun exceed(textLine: TextLine, words: Array<String>, bounds: LayoutBounds = LayoutBounds.page()) {
+    private fun exceed(textLine: TextLine, words: Array<String>, bounds: LayoutBounds = layoutBoundsPage()) {
         val endX = textLine.textChars.lastOrNull()?.end ?: 0f    //一行的最后一个字符显示的左边位置
         if (endX > bounds.endX.toFloat()) {    //超过了可视区域的右侧（v4：bounds.endX）
             val diff = (endX - bounds.endX) / words.size    //将超过的偏移量分配到每个字符上，然后对显示的一行每个字符位置进行修正
@@ -2544,7 +2427,7 @@ object ChapterProvider {
         }
     }
 
-    private fun userTextAlignToCss(userTextAlign: Int): CssTextAlign {
+    internal fun userTextAlignToCss(userTextAlign: Int): CssTextAlign {
         return when (userTextAlign) {
             1 -> CssTextAlign.CssTextAlignLeft
             2 -> CssTextAlign.CssTextAlignRight
