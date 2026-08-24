@@ -1294,6 +1294,10 @@ object ChapterProvider {
             durY += if (userSetParagraphSpacing > 0) (userSetParagraphSpacing * textPaint.textHeight) else marginTop
         }
 
+
+        val seg = paragraph.segDirect
+        val isPureLtr = seg == null || (seg.direction == TextDirection.LTR && seg.runs.isEmpty())
+
         // v4：子函数返回 LayoutCursor，透传 bounds
         val result = if (isTableRow) {               //是表格行
             setTextTable(
@@ -1312,22 +1316,58 @@ object ChapterProvider {
                 bounds   // v4：透传
             )
         } else if (hasInlineImg) {     //有段落内的图片
-            setTextWithInnerImg(
-                paragraph,
-                textPaint,
-                marginLeft,
-                marginRight,
-                firstLineIndent,
-                paragraphIndex,
-                textAlign,
-                lineHeightParam,
-                textPages,
-                pageLines,
-                pageLengths,
-                stringBuilder,
-                durY,
-                bounds   // v4：透传
-            )
+            if (isPureLtr) {
+                setTextWithInnerImg(
+                    paragraph,
+                    textPaint,
+                    marginLeft,
+                    marginRight,
+                    firstLineIndent,
+                    paragraphIndex,
+                    textAlign,
+                    lineHeightParam,
+                    textPages,
+                    pageLines,
+                    pageLengths,
+                    stringBuilder,
+                    durY,
+                    bounds   // v4：透传
+                )
+            } else {
+                // F2: 构造含 Span 的 CharSequence(仅当段落有 inline 字号时)
+                // ★ 命名注意:局部变量用 paragraphInlineFontSizes(避免与 setNormalText 参数 inlineFontSizes 同名遮蔽)
+                val paragraphInlineFontSizes: List<InlineStyle>? = if (paragraph is ReaderText.Text) {
+                    paragraph.inlineStyles
+                } else {
+                    null  // 标题(ReaderText.Chapter)/图片走旧路径
+                }
+                val charSequence: CharSequence = buildSpannedText(text, paragraphInlineFontSizes)
+
+                TextLayoutProvider.layoutNormalTextRtl(
+                    charSequence,
+                    paragraphInlineFontSizes,
+                    seg,
+                    textPaint,
+                    marginLeft,
+                    marginRight,
+                    firstLineIndent,
+                    isTitle,
+                    isListRow,
+                    listLevel,
+                    paragraphIndex,
+                    textAlign,
+                    lineHeightParam,
+                    paragraph,
+                    textPages,
+                    pageLines,
+                    pageLengths,
+                    stringBuilder,
+                    durY,
+                    bounds,
+                    chapterIsRtl,
+                    hasInlineImg
+                )
+            }
         } else {                    //没有段落内的图片
             // F2: 构造含 Span 的 CharSequence(仅当段落有 inline 字号时)
             // ★ 命名注意:局部变量用 paragraphInlineFontSizes(避免与 setNormalText 参数 inlineFontSizes 同名遮蔽)
@@ -1337,10 +1377,6 @@ object ChapterProvider {
                 null  // 标题(ReaderText.Chapter)/图片走旧路径
             }
             val charSequence: CharSequence = buildSpannedText(text, paragraphInlineFontSizes)
-
-            val seg = paragraph.segDirect
-            val isPureLtr = seg == null ||
-                    (seg.direction == TextDirection.LTR && seg.runs.isEmpty())
 
             // buildSpannedText 内部判断 null/empty → 直接返回原 String 引用(零开销)
             if (isPureLtr) {

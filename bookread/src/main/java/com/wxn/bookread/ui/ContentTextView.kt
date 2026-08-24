@@ -24,6 +24,7 @@ import com.wxn.base.util.Logger
 import com.wxn.bookread.data.model.TextChar
 import com.wxn.bookread.data.model.TextLine
 import com.wxn.bookread.data.model.TextPage
+import com.wxn.bookread.data.model.visualSpan
 import com.wxn.bookread.provider.ChapterProvider
 import com.wxn.bookread.provider.ImageProvider
 import kotlin.math.min
@@ -419,42 +420,14 @@ class ContentTextView(context: Context, attrs: AttributeSet?) : View(context, at
             return
         }
 
-        var startCharOffset = Int.MAX_VALUE
-        var endCharOffset = Int.MIN_VALUE
-
-        for (i in 0 until textLine.textChars.size) {
-            val offset = i + lineStartOffset
-            if (offset in start..<end) {
-                if (startCharOffset > offset) {
-                    startCharOffset = offset
-                }
-                if (endCharOffset < offset) {
-                    endCharOffset = offset
-                }
-            }
-        }
-//        Logger.d("ContentTextView:tryDrawReadAloudBg3:startCharOffset=$startCharOffset,endCharOffset=$endCharOffset, textChars.size=${textLine.textChars.size}, lineStartOffset=$lineStartOffset")
-        if (startCharOffset == Int.MAX_VALUE || endCharOffset == Int.MIN_VALUE) {
-            return
-        }
-        val startCharIndex = startCharOffset - lineStartOffset
-        val endCharIndex = endCharOffset - lineStartOffset
-        if (startCharIndex < 0 || startCharIndex >= textLine.textChars.size ||
-            endCharIndex < 0 || endCharIndex >= textLine.textChars.size
-        ) {
-            return
-        }
-//        Logger.d("ContentTextView::tryDrawReadAloudBg6::speakBookStatus=${speakBookStatus}," +
-//                " startCharIndex=$startCharIndex, endCharIndex=$endCharIndex")
-
         val lineTop = textLine.lineTop + relativeOffset
         val lineBottom = textLine.lineBottom + relativeOffset
 
         var noteColor = "#FFFF00"
-        val left = textLine.textChars[startCharIndex].start
+        val (left, right) = textLine.textChars.visualSpan { i -> (i + lineStartOffset) in start..<end } ?: return
         val top = lineTop - (marginTop / 2)
-        val right = textLine.textChars[endCharIndex].end
         val bottom = lineBottom + (marginBottom / 2)
+
         RenderResources.readAloudBgPaint.color = noteColor.toColor() ?: Color.YELLOW
         RenderResources.readAloudBgPaint.alpha = (0.4f * 255).toInt()
         RenderResources.readAloudBgRect.set(left, top, right, bottom)
@@ -484,21 +457,13 @@ class ContentTextView(context: Context, attrs: AttributeSet?) : View(context, at
 
             if (lineStartOffset >= matchEnd || lineEndOffset <= matchStart) continue
 
-            var startCharIdx = Int.MAX_VALUE
-            var endCharIdx = Int.MIN_VALUE
-            for (i in textLine.textChars.indices) {
-                val offset = i + lineStartOffset
-                if (offset in matchStart until matchEnd) {
-                    if (startCharIdx > i) startCharIdx = i
-                    if (endCharIdx < i) endCharIdx = i
-                }
-            }
-            if (startCharIdx == Int.MAX_VALUE || endCharIdx == Int.MIN_VALUE) continue
-
             val lineTop = textLine.lineTop + relativeOffset
             val lineBottom = textLine.lineBottom + relativeOffset
-            val left = textLine.textChars[startCharIdx].start
-            val right = textLine.textChars[endCharIdx].end
+
+            val (left, right) = textLine.textChars.visualSpan { index ->
+                (index + lineStartOffset) in matchStart until matchEnd
+            } ?: continue
+
             val top = lineTop - RenderResources.dp4
             val bottom = lineBottom + RenderResources.dp4
 
@@ -529,17 +494,7 @@ class ContentTextView(context: Context, attrs: AttributeSet?) : View(context, at
                 noteColor = RenderResources.NOTE_DEFAULT_COLOR_HEX
             }
 
-            // v5 S4：笔记背景按 textChars 首尾坐标绘制，替代原全页宽（left=0, right=viewWidth）。
-            // 原写法在双列下会遮挡另一列文字（背景矩形横跨整页宽度，覆盖左/右列内容）。
-            // 参照 tryDrawReadAloudBg / tryDrawSearchResultsBg 已有写法（用 textChars 坐标）。
-            // 空行（textChars 为空）回退到原全页宽，保持旧行为。
-            val (left, right) = if (textLine.textChars.isNotEmpty()) {
-                val firstStart = textLine.textChars.first().start
-                val lastEnd = textLine.textChars.last().end
-                Pair(firstStart, lastEnd)
-            } else {
-                Pair(0f, ChapterProvider.viewWidth.toFloat())
-            }
+            val (left, right) = textLine.textChars.visualSpan() ?: Pair(0f, ChapterProvider.viewWidth.toFloat())
             val top = lineTop - (marginTop / 2)
             val bottom = lineBottom + (marginBottom / 2)
             RenderResources.noteBgPaint.color = noteColor.toColor() ?: Color.YELLOW
@@ -549,12 +504,11 @@ class ContentTextView(context: Context, attrs: AttributeSet?) : View(context, at
 
             if (!noteIds.contains(noteAtLine.uuid)) {
                 RenderResources.noteIconBmp?.let { noteIcon ->
-                    // v5 S4：图标也按 textChars 首字符起点定位（原固定 0f 在双列下会落到左列起点）
-                    val iconLeft = if (textLine.textChars.isNotEmpty()) {
-                        textLine.textChars.first().start
-                    } else {
-                        0f
-                    }
+                    // R1 N1-a：图标锚定阅读方向起点——RTL 贴右缘、LTR 贴左缘，均向行内伸展（镜像对称，不越行宽）。
+                    // 空行兜底：left=0/right=viewWidth → LTR 得 0f（同旧行为）、RTL 得右缘。
+                    val lineRtl = textLine.isRtl || textLine.textChars.any { it.renderGroup > 0 }
+                    val iconDiameter = 2 * RenderResources.dp12
+                    val iconLeft = if (lineRtl) right - iconDiameter else left
                     val iconTop = lineTop - RenderResources.dp12
                     RenderResources.noteCirclePaint.color = noteColor.toColor() ?: Color.YELLOW
                     canvas.drawCircle(iconLeft + RenderResources.dp12, iconTop + RenderResources.dp12, RenderResources.dp12, RenderResources.noteCirclePaint)

@@ -6,9 +6,11 @@ import android.text.TextDirectionHeuristics
 import android.text.TextPaint
 import com.wxn.base.bean.CssTextAlign
 import com.wxn.base.bean.InlineStyle
+import com.wxn.base.bean.LayoutItem
 import com.wxn.base.bean.ReaderText
 import com.wxn.base.bean.RunLayout
 import com.wxn.base.bean.SegmentResult
+import com.wxn.base.bean.TextTag
 import com.wxn.bookread.data.model.TextChar
 import com.wxn.bookread.data.model.TextLine
 import com.wxn.bookread.data.model.TextPage
@@ -16,6 +18,7 @@ import com.wxn.bookread.provider.ChapterProvider.dualColumnEnabled
 import com.wxn.bookread.provider.ChapterProvider.lineSpacingExtra
 import com.wxn.bookread.provider.ChapterProvider.paddingVertical
 import com.wxn.bookread.provider.ChapterProvider.visibleBottom
+import com.wxn.bookread.textHeight
 import kotlin.math.roundToInt
 
 object TextLayoutProvider {
@@ -23,7 +26,8 @@ object TextLayoutProvider {
     /** 墨迹安全内边距系数：advance 外墨迹溢出（阿拉伯连写/斜体）占字号比例，可调 */
     const val INK_PAD_RATIO = 0.05f
 
-    inline fun inkPad(textSize: Float) = maxOf(2f, textSize * INK_PAD_RATIO)   // INK_PAD_RATIO = 0.05f（顶层 const，可调）
+    inline fun inkPad(textSize: Float) =
+        maxOf(2f, textSize * INK_PAD_RATIO)   // INK_PAD_RATIO = 0.05f（顶层 const，可调）
 
     internal fun layoutNormalTextRtl(
         text: CharSequence,                    // buildSpannedText 产物（含 RelativeSizeSpan）
@@ -32,7 +36,7 @@ object TextLayoutProvider {
         textPaint: TextPaint,                 // setTypeText 已构建（含 typeface/italic/textSize）
         marginLeft: Float, marginRight: Float,
         firstLineIndent: Float,
-        isTitle: Boolean,  isListRow: Boolean,  listLevel: Int,
+        isTitle: Boolean, isListRow: Boolean, listLevel: Int,
         paragraphIndex: Int,
         textAlign: CssTextAlign,
         lineHeightParam: Float,
@@ -43,8 +47,9 @@ object TextLayoutProvider {
         stringBuilder: StringBuilder,
         offsetY: Float,
         bounds: LayoutBounds = layoutBoundsPage(),
-        chapterIsRtl : Boolean                 // 双列切列方向
-    ) : LayoutCursor {
+        chapterIsRtl: Boolean,                 // 双列切列方向
+        hasInlineImage: Boolean = false
+    ): LayoutCursor {
 
         var durY = offsetY  //行绘制位置
         var currentBounds = bounds
@@ -52,7 +57,6 @@ object TextLayoutProvider {
         //   baseRtl → 初始在右界(bounds.endX)，每放一个 run 向左推进；
         //   baseLtr → 初始在左界(bounds.startX)，每放一个 run 向右推进。
         //   游标 ≠ 列边缘 → 当前行有剩余宽度，下一个 run 的首行可共享此行。
-
         var isFirstLineOfParagraph = true
         val paint = textPaint
 
@@ -61,17 +65,28 @@ object TextLayoutProvider {
         } else {
             segDirect.runs
         }
-        var lineIsRtl = runs.first().isRtl
-        var cursor = if (lineIsRtl) {
-            currentBounds.endX.toFloat()
-        } else {
-            currentBounds.startX.toFloat()
-        }
         // ★ SheenBidi 覆盖守卫（仅混合段需要——纯方向已合成全覆盖 run）：
         //   B 类字符（\n \r \u2028 \u2029）截断 paraLen < text.length 时，runs 不覆盖全段。
         //   buildSpannedText 理论不产 B 类字符；防御性日志 + 截断处理（只排覆盖部分），不崩。
         if (runs.first().offset != 0 || runs.last().offset + runs.last().length < text.length) {
             android.util.Log.w("layoutMixedRun", "SheenBidi 覆盖不全，截断处理")
+        }
+        val imgTags = if (hasInlineImage && paragraph is ReaderText.Text) {
+            paragraph.annotations.filter { it.name == "img" || it.name == "image" }
+                .sortedBy { it.start }
+        } else emptyList()
+        //得到被bidi算法，和 行内图片 切分得到的分段集合
+        val layoutItems = buildLayoutItems(runs, imgTags)
+
+        // 首个 Run 定方向
+        var lineIsRtl =
+            (layoutItems.firstOrNull { it is LayoutItem.Run } as? LayoutItem.Run)?.run?.isRtl
+                ?: chapterIsRtl
+
+        var cursor = if (lineIsRtl) {
+            currentBounds.endX.toFloat()
+        } else {
+            currentBounds.startX.toFloat()
         }
 
         //有效的对齐方式
@@ -79,116 +94,156 @@ object TextLayoutProvider {
             segDirect.baseRtl && textAlign == CssTextAlign.CssTextAlignLeft -> CssTextAlign.CssTextAlignRight
             textAlign == CssTextAlign.CssTextAlignUndefined ->
                 if (segDirect.baseRtl) CssTextAlign.CssTextAlignRight else CssTextAlign.CssTextAlignLeft
+
             else -> textAlign
         }
         //段落的行缓存
         val paragraphLines = arrayListOf<LineRecord>()
 
         val fullWidth = currentBounds.width - marginLeft.roundToInt() - marginRight.roundToInt()
-        for((runIndex, run) in runs.withIndex()) {
-            val runText = text.substring(run.offset, run.offset + run.length)
-            if (runText.isBlank()) continue
+        for (layoutItem in layoutItems) {
+            when (layoutItem) {
+                is LayoutItem.Image -> {
+                    val layoutResult = layoutInnerImage(
+                        layoutItem.tag,
+                        lineIsRtl,
+                        cursor,
+                        currentBounds,
+                        durY,
+                        isFirstLineOfParagraph,
 
-            val atEdge = if (lineIsRtl) {
-                cursor >= currentBounds.endX - 0.5f
-            } else {
-                cursor <= currentBounds.startX + 0.5f
-            }
+                        textPages,
+                        pageLines,
+                        pageLengths,
+                        stringBuilder,
 
-            val firstLineWidth =
-                if (atEdge) fullWidth
-                else {
-                    (   if (lineIsRtl)
-                            cursor - currentBounds.startX
-                        else currentBounds.endX - cursor
-                    ).roundToInt().coerceAtLeast(1)
+                        paragraphLines,
+                        paragraphIndex,
+
+                        isTitle,
+                        paint,
+                        lineHeightParam,
+                        chapterIsRtl
+                    )
+                    cursor = layoutResult.cursor
+                    currentBounds = layoutResult.bounds      // 可能因分栏/分页而变
+                    durY = layoutResult.durY
+                    isFirstLineOfParagraph = false
                 }
-            val sharedLine = !atEdge
-            val sharedLineIndent = fullWidth - firstLineWidth
 
-            val leftIndentArr = if (lineIsRtl) {
-                intArrayOf(0, 0)
-            } else {
-                intArrayOf(sharedLineIndent, 0)
-            }
-            val rightIndentArr = if (lineIsRtl) {
-                intArrayOf(sharedLineIndent, 0)
-            } else {
-                intArrayOf(0, 0)
-            }
-            val layout = StaticLayout.Builder.obtain(runText,
-                0, runText.length, paint, fullWidth)
-                .setAlignment(Layout.Alignment.ALIGN_NORMAL)
-                .setTextDirection(
-                    if (run.isRtl) {
-                        TextDirectionHeuristics.RTL
+                is LayoutItem.Run -> {
+                    val run = layoutItem.run
+                    val runText = text.subSequence(run.offset, run.offset + run.length)
+                    if (runText.isBlank()) continue
+
+                    val atEdge = if (lineIsRtl) {
+                        cursor >= currentBounds.endX - 0.5f
                     } else {
-                        TextDirectionHeuristics.LTR
+                        cursor <= currentBounds.startX + 0.5f
                     }
-                ).setIncludePad(false)
-                .setIndents(leftIndentArr, rightIndentArr)
-                .build()
 
-            for(lineIndex in 0 until layout.lineCount) {
-                val lineShared = sharedLine && lineIndex == 0 //行首可共享前一run末行
-                if (!lineShared) {
-                    // 新建行：方向由「本 run」决定（续行 / 首行非共享都走这里）
-                    lineIsRtl = run.isRtl
-                    cursor = if (lineIsRtl) currentBounds.endX.toFloat() else currentBounds.startX.toFloat()
+                    val firstLineWidth =
+                        if (atEdge) fullWidth
+                        else {
+                            (if (lineIsRtl)
+                                cursor - currentBounds.startX
+                            else currentBounds.endX - cursor
+                                    ).roundToInt().coerceAtLeast(1)
+                        }
+                    val sharedLine = !atEdge
+                    val sharedLineIndent = fullWidth - firstLineWidth
+
+                    val leftIndentArr = if (lineIsRtl) {
+                        intArrayOf(0, 0)
+                    } else {
+                        intArrayOf(sharedLineIndent, 0)
+                    }
+                    val rightIndentArr = if (lineIsRtl) {
+                        intArrayOf(sharedLineIndent, 0)
+                    } else {
+                        intArrayOf(0, 0)
+                    }
+                    val layout = StaticLayout.Builder.obtain(
+                        runText,
+                        0, runText.length, paint, fullWidth
+                    )
+                        .setAlignment(Layout.Alignment.ALIGN_NORMAL)
+                        .setTextDirection(
+                            if (run.isRtl) {
+                                TextDirectionHeuristics.RTL
+                            } else {
+                                TextDirectionHeuristics.LTR
+                            }
+                        ).setIncludePad(false)
+                        .setIndents(leftIndentArr, rightIndentArr)
+                        .build()
+
+                    for (lineIndex in 0 until layout.lineCount) {
+                        val lineShared = sharedLine && lineIndex == 0 //行首可共享前一run末行
+                        if (!lineShared) {
+                            // 新建行：方向由「本 run」决定（续行 / 首行非共享都走这里）
+                            lineIsRtl = run.isRtl
+                            cursor =
+                                if (lineIsRtl) currentBounds.endX.toFloat() else currentBounds.startX.toFloat()
+                        }
+
+                        val lineStart = layout.getLineStart(lineIndex)
+                        val lineEnd = layout.getLineEnd(lineIndex)
+                        val paragraphCharStartOffset = run.offset + lineStart
+                        val paragraphCharEndOffset = run.offset + lineEnd
+                        val boundaries = computePaintBoundaryOffsets(
+                            paragraphCharStartOffset,
+                            paragraphCharEndOffset,
+                            inlineFontSizes,
+                            paragraph,
+                            isTitle
+                        )
+
+                        val (targetBounds, targetY, targetCursor) = processMixedLine(
+                            layout, lineIndex, run,
+                            lineShared,
+                            lineIsRtl,
+                            isFirstLine = (lineIndex == 0 && isFirstLineOfParagraph),
+                            firstLineIndent,
+                            boundaries,
+
+                            text,
+                            paragraphIndex,
+                            isTitle,
+                            isListRow,
+
+                            textAlign,
+                            lineHeightParam,
+                            textPages,
+                            pageLines,
+                            pageLengths,
+                            stringBuilder,
+                            durY,
+                            currentBounds,
+                            chapterIsRtl,
+                            cursor,
+                            paragraphLines
+                        )
+                        currentBounds = targetBounds
+                        durY = targetY
+                        cursor = targetCursor
+                    }
+                    isFirstLineOfParagraph = false
                 }
-
-                val lineStart = layout.getLineStart(lineIndex)
-                val lineEnd = layout.getLineEnd(lineIndex)
-                val paragraphCharStartOffset = run.offset + lineStart
-                val paragraphCharEndOffset = run.offset + lineEnd
-                val boundaries = computePaintBoundaryOffsets(paragraphCharStartOffset,
-                    paragraphCharEndOffset,
-                    inlineFontSizes,
-                    paragraph,
-                    isTitle)
-
-                val (targetBounds, targetY, targetCursor) = processMixedLine(layout, lineIndex, run,
-                    lineShared,
-                    lineIsRtl,
-                    isFirstLine = (lineIndex == 0 && isFirstLineOfParagraph),
-                    firstLineIndent,
-                    boundaries,
-
-                    text,
-                    paragraphIndex,
-                    isTitle,
-                    isListRow,
-
-                    textAlign,
-                    lineHeightParam,
-                    textPages,
-                    pageLines,
-                    pageLengths,
-                    stringBuilder,
-                    durY,
-                    currentBounds,
-                    chapterIsRtl,
-                    cursor,
-                    paragraphLines
-                )
-                currentBounds = targetBounds
-                durY = targetY
-                cursor = targetCursor
             }
-            isFirstLineOfParagraph = false
         }
 
         for ((i, rec) in paragraphLines.withIndex()) {
             postProcessRtlLine(
-                textLine    = rec.line,
-                bounds      = rec.bounds,
-                textAlign   = effAlign,
-                paragraphIsRtl     = segDirect.baseRtl,
-                lineIsRtl     =  rec.line.isRtl,
+                textLine = rec.line,
+                bounds = rec.bounds,
+                textAlign = effAlign,
+                paragraphIsRtl = segDirect.baseRtl,
+                lineIsRtl = rec.line.isRtl,
                 firstLineIndent = firstLineIndent,
                 isFirstLine = rec.isFirstLine,
-                isLastLine  = (i == paragraphLines.lastIndex),
-                textSize    = textPaint.textSize
+                isLastLine = (i == paragraphLines.lastIndex),
+                textSize = textPaint.textSize
             )
         }
 
@@ -209,7 +264,7 @@ object TextLayoutProvider {
         text: CharSequence,
         paragraphIndex: Int,
         isTitle: Boolean,
-        isListRow : Boolean,
+        isListRow: Boolean,
         textAlign: CssTextAlign,
         lineHeightParam: Float,
         textPages: ArrayList<TextPage>,
@@ -218,10 +273,10 @@ object TextLayoutProvider {
         stringBuilder: StringBuilder,
         durY: Float,
         currentBounds: LayoutBounds = layoutBoundsPage(),
-        chapterIsRtl : Boolean,                 // 双列切列方向
+        chapterIsRtl: Boolean,                 // 双列切列方向
         cursor: Float,
         paragraphLines: ArrayList<LineRecord>
-    ) : Triple<LayoutBounds, Float, Float> {
+    ): Triple<LayoutBounds, Float, Float> {
         val lineStart = layout.getLineStart(lineIndex)
         val lineEnd = layout.getLineEnd(lineIndex)
         val lineAscent = layout.getLineAscent(lineIndex).toFloat()
@@ -233,7 +288,7 @@ object TextLayoutProvider {
         val paragraphCharEndOffset = run.offset + lineEnd
 
         //需要输出的数据
-        var targetBounds : LayoutBounds = currentBounds
+        var targetBounds: LayoutBounds = currentBounds
         var targetY = durY
         var targetCursor = cursor
 
@@ -249,7 +304,8 @@ object TextLayoutProvider {
 
             //双列模式且还有下列的情况下， 下一列是左列还是右列
             if (isStartColumn && dualColumnEnabled) {
-                targetBounds = if (chapterIsRtl) layoutBoundsLeftColumn() else layoutBoundsRightColumn()
+                targetBounds =
+                    if (chapterIsRtl) layoutBoundsLeftColumn() else layoutBoundsRightColumn()
                 targetY = paddingVertical.toFloat()
             } else { // 需要创建新页的情况下
                 val lastPage = textPages.last()
@@ -260,7 +316,7 @@ object TextLayoutProvider {
                 textPages.add(TextPage())
                 stringBuilder.clear()
                 targetBounds =
-                    if(!dualColumnEnabled) layoutBoundsPage()
+                    if (!dualColumnEnabled) layoutBoundsPage()
                     else {
                         if (chapterIsRtl) layoutBoundsRightColumn()
                         else layoutBoundsLeftColumn()
@@ -276,31 +332,50 @@ object TextLayoutProvider {
 
         // ── 获取/创建 TextLine ──
         val textLine = if (sharedLine) {
-            textPages.last().textLines.last()  // append 到共享行
+            val lastLine = textPages.last().textLines.last()  // append 到共享行
+            // ★ 图片创建的共享行修正 charStartOffset：
+            //   消费端 offset = rawIndex + charStartOffset（forEachIndexed 的 index 含图片下标位、
+            //   isImage 在循环体内跳过渲染但不重新编号）。图片占 textChars[0..n-1] 下标位，
+            //   把后续文本顶偏 n 位，故 charStartOffset 须扣 n（= 此时 textChars 里的图片数）。
+            //   条件用 all { it.isImage }：覆盖单图/多图；Run→Run 共享行（existing 含文本）不触发。
+            if (lastLine.textChars.isNotEmpty() && lastLine.textChars.all { it.isImage }) {
+                lastLine.charStartOffset = paragraphCharStartOffset - lastLine.textChars.size
+            }
+            lastLine
         } else {
             TextLine(
                 isTitle = isTitle,
                 paragraphIndex = paragraphIndex,
                 charStartOffset = paragraphCharStartOffset,
                 charEndOffset = paragraphCharEndOffset,
-                isRtl = lineIsRtl)
+                isRtl = lineIsRtl
+            )
         }
         textLine.charEndOffset = paragraphCharEndOffset
+
+
         val charsBaseStart = textLine.textChars.size
 
         // ── 逐字定位（Step 5 详述）──
         // ★ 定位公式 = startX +  gph。
         //   同向 run / 续行：startX + gph（indent 已将 gph 偏移到 packing 位置）。
         //   反向 run 共享行：将远端边缘的文本推回 packing 位置。
-        placeCharsFromLayout(layout,
+        placeCharsFromLayout(
+            layout,
             lineIndex,
             run,
             targetBounds.startX.toFloat(),
             text,
             boundaries,
-            textLine)
+            textLine
+        )
 
-        val (blockMin, blockMax) = shiftRunLineToCursor(textLine, charsBaseStart, lineIsRtl, targetCursor)
+        val (blockMin, blockMax) = shiftRunLineToCursor(
+            textLine,
+            charsBaseStart,
+            lineIsRtl,
+            targetCursor
+        )
 
         targetCursor = if (lineIsRtl) blockMin else blockMax
 
@@ -394,7 +469,7 @@ object TextLayoutProvider {
         }
 
         var offset = lineStart
-        while(offset < lineEnd) {
+        while (offset < lineEnd) {
             // 获取当前字符的 Unicode 码点
             val codePoint = Character.codePointAt(text, run.offset + offset)
             //计算其对应的 char 数量
@@ -430,7 +505,7 @@ object TextLayoutProvider {
 
             //计算字符在屏幕上的绝对左边界和右边界
             // （取 localStart 和 localEnd 的最小/最大值，确保左小右大）。
-            val absLeft = startX +  minOf(localStart, localEnd)
+            val absLeft = startX + minOf(localStart, localEnd)
             val absRight = startX + maxOf(localStart, localEnd)
 
             textLine.addTextChar(ch, absLeft, absRight, renderGroup)
@@ -450,12 +525,12 @@ object TextLayoutProvider {
      * 切分 renderGroup，保证同 group 内字符同 paint 渲染。
      */
     private fun computePaintBoundaryOffsets(
-        offsetStart:Int,
+        offsetStart: Int,
         offsetEnd: Int,
         inlineFontSizes: List<InlineStyle>?,
         paragraph: ReaderText?,
         isTitle: Boolean
-    ) : Set<Int> {
+    ): Set<Int> {
         if (isTitle) {
             return emptySet()
         }
@@ -465,7 +540,7 @@ object TextLayoutProvider {
         val range = offsetStart until offsetEnd
 
         if (!inlineFontSizes.isNullOrEmpty()) {
-            for(style in inlineFontSizes) {
+            for (style in inlineFontSizes) {
                 if (style.start in range) {
                     boundaries.add(style.start)
                 }
@@ -504,7 +579,7 @@ object TextLayoutProvider {
         textSize: Float            // ① maxGapWidth 上限 = textSize*0.5（防短行被极端拉伸）
     ) {
         val chars = textLine.textChars
-        if(chars.isEmpty()) {
+        if (chars.isEmpty()) {
             return
         }
 
@@ -512,17 +587,18 @@ object TextLayoutProvider {
         val lineEffAlign = when {
             textAlign == CssTextAlign.CssTextAlignJustify && (isFirstLine || isLastLine) ->
                 if (paragraphIsRtl) CssTextAlign.CssTextAlignRight else CssTextAlign.CssTextAlignLeft
+
             else -> textAlign
         }
 
         val inkSize = inkPad(textSize)
         val rawStart = bounds.startX.toFloat()
-        val rawEnd   = bounds.endX.toFloat()
+        val rawEnd = bounds.endX.toFloat()
         val rawWidth = (bounds.endX - bounds.startX).toFloat()
 
-        val effStart  = rawStart + inkSize
-        val effEnd   = rawEnd - inkSize
-        val effWidth  = rawWidth - 2 * inkSize
+        val effStart = rawStart + inkSize
+        val effEnd = rawEnd - inkSize
+        val effWidth = rawWidth - 2 * inkSize
 
         // ── Job 1: justify ──
         if (lineEffAlign == CssTextAlign.CssTextAlignJustify) {
@@ -545,7 +621,14 @@ object TextLayoutProvider {
                 CssTextAlign.CssTextAlignUndefined -> false
             }
             if (indentApplies) {
-                applyFirstLineIndent(chars, firstLineIndent, paragraphIsRtl, effStart, effEnd, effWidth)
+                applyFirstLineIndent(
+                    chars,
+                    firstLineIndent,
+                    paragraphIsRtl,
+                    effStart,
+                    effEnd,
+                    effWidth
+                )
             }
         }
     }
@@ -634,14 +717,14 @@ object TextLayoutProvider {
         var cursor = if (lineIsRtl) boundsEndX else boundsStartX
         words.forEach { word ->
             val origWordStart = word.minOf { it.start }
-            val origWordEnd   = word.maxOf { it.end }
+            val origWordEnd = word.maxOf { it.end }
             val wordWidth = origWordEnd - origWordStart
 
             // 整词平移：把词的"近端"对齐到 cursor
             //   baseRtl 近端 = 视觉右端（origWordEnd）；baseLtr 近端 = 视觉左端（origWordStart）
             val shift = if (lineIsRtl) {
                 cursor - origWordEnd
-            }else {
+            } else {
                 cursor - origWordStart
             }
 
@@ -682,7 +765,8 @@ object TextLayoutProvider {
         val words = chars.groupBy { it.renderGroup }.values.toList()
         if (words.size <= 1) return   // 单词无法压缩，交 anchorLine 兜底
 
-        val contentWidth = words.sumOf { w -> (w.maxOf { it.end } - w.minOf { it.start }).toDouble() }.toFloat()
+        val contentWidth =
+            words.sumOf { w -> (w.maxOf { it.end } - w.minOf { it.start }).toDouble() }.toFloat()
         val gapCount = words.size - 1
         val gapWidth = (boundsWidth - contentWidth) / gapCount
         if (gapWidth >= 0f) return    // 未超宽，跳过
@@ -712,7 +796,7 @@ object TextLayoutProvider {
         val effEnd = rawEnd - inkSize
         val effWidth = rawWidth - 2f * inkSize
 
-        val contentLeft  = textChars.minOf { it.start }
+        val contentLeft = textChars.minOf { it.start }
         val contentRight = textChars.maxOf { it.end }
         val contentWidth = contentRight - contentLeft
 
@@ -720,17 +804,21 @@ object TextLayoutProvider {
             contentWidth >= rawWidth -> {
                 if (lineIsRtl) effEnd - contentRight else effStart - contentLeft
             }
+
             else -> {
                 val targetLeft = when (lineEffAlign) {
-                    CssTextAlign.CssTextAlignRight  -> {
+                    CssTextAlign.CssTextAlignRight -> {
                         effEnd - contentWidth
                     }
+
                     CssTextAlign.CssTextAlignLeft -> {
                         effStart
                     }
+
                     CssTextAlign.CssTextAlignCenter -> {
                         effStart + (effWidth - contentWidth) / 2f
                     }
+
                     else -> {  // Justify 兜底
                         if (lineIsRtl) effEnd - contentWidth else effStart
                     }
@@ -764,7 +852,7 @@ object TextLayoutProvider {
     ) {
         if (textChars.isEmpty()) return
 
-        val contentLeft  = textChars.minOf { it.start }
+        val contentLeft = textChars.minOf { it.start }
         val contentRight = textChars.maxOf { it.end }
         val contentWidth = contentRight - contentLeft
 
@@ -801,4 +889,176 @@ object TextLayoutProvider {
         }
     }
 
+    /****
+     * 组合runs 和 行内图片，得到新的 List<LayoutItem> 集合
+     */
+    private fun buildLayoutItems(runs: List<RunLayout>, imgTags: List<TextTag>): List<LayoutItem> {
+        if (imgTags.isEmpty()) {
+            return runs.map {
+                LayoutItem.Run(it)
+            }
+        }
+
+        val items = mutableListOf<LayoutItem>()
+
+        var imgIndex = 0
+
+        for (run in runs) {
+            var segStart = run.offset
+            val segEnd = run.offset + run.length
+
+            while (imgIndex < imgTags.size && imgTags[imgIndex].start < segEnd) {
+                val imgTag = imgTags[imgIndex]
+                if (imgTag.start > segStart) {
+                    items.add(
+                        LayoutItem.Run(
+                            RunLayout(
+                                run.isRtl,
+                                segStart,
+                                imgTag.start - segStart
+                            )
+                        )
+                    )
+                }
+                items.add(LayoutItem.Image(imgTag))
+                segStart = imgTag.start
+                imgIndex++
+            }
+            if (segStart < segEnd) {
+                items.add(
+                    LayoutItem.Run(
+                        RunLayout(
+                            run.isRtl,
+                            segStart,
+                            segEnd - segStart
+                        )
+                    )
+                )
+            }
+        }
+        while (imgIndex < imgTags.size) {
+            items.add(LayoutItem.Image(imgTags[imgIndex]))
+            imgIndex++
+        }
+        return items
+    }
+
+    /****
+     * 放置Line Inner Image
+     */
+    private fun layoutInnerImage(
+        imgTag: TextTag,
+        lineIsRtl: Boolean,              // ★ 唯一方向源
+        cursor: Float,                   // ★ 唯一位置源（行中=文本边缘 / 新行=行缘）
+
+        currentBounds: LayoutBounds,
+        durY: Float,
+        isFirstLineOfParagraph: Boolean,
+
+        textPages: ArrayList<TextPage>,
+        pageLines: ArrayList<Int>,
+
+        pageLengths: ArrayList<Int>,
+        stringBuilder: StringBuilder,
+        paragraphLines: ArrayList<LineRecord>,
+        paragraphIndex: Int,
+
+        isTitle: Boolean,
+        paint: TextPaint,
+        lineHeightParam: Float,
+        chapterIsRtl: Boolean
+    ): ImageLayoutResult {
+
+        val pairs = imgTag.paramsPairs()
+        val imgSrc = pairs.firstOrNull { it.first == "src" }?.second.orEmpty()
+        val imgWidth = pairs.firstOrNull { it.first == "width" }?.second?.toIntOrNull() ?: 0
+        val imgHeight = pairs.firstOrNull { it.first == "height" }?.second?.toIntOrNull() ?: 0
+
+        if (imgSrc.isEmpty() || imgWidth <= 0 || imgHeight <= 0) {
+            return ImageLayoutResult(currentBounds, durY, cursor)   // 无效图：不处理
+        }
+
+        val targetImgHeight = (paint.textHeight * lineSpacingExtra).toInt()
+        val (imgW, _) = ImageLayoutProvider.fillImageSize(
+            imgWidth, imgHeight, imgSrc, 2 * targetImgHeight, targetImgHeight
+        )
+
+        val (imgRight, imgLeft) = if (lineIsRtl) {
+            Pair(cursor, cursor - imgW)
+        } else {
+            Pair(cursor + imgW, cursor)
+        }
+
+        //是否在行剩余空间的范围内
+        val fits = if (lineIsRtl) {
+            imgLeft >= currentBounds.startX
+        } else {
+            imgRight <= currentBounds.endX
+        }
+        //当前图片所在行
+        val lastLine = paragraphLines.lastOrNull()?.line
+        if (fits && lastLine != null) {
+            lastLine.textChars.add(
+                TextChar(imgSrc, imgLeft, imgRight, isImage = true)
+            )
+            return ImageLayoutResult(currentBounds, durY, cursor = if (lineIsRtl) imgLeft else imgRight)
+        }
+
+        // 用 paint 指标算行高/descent（对齐 processMixedLine:303-304）
+        val actualLineHeight = paint.textHeight * lineSpacingExtra * lineHeightParam
+        val actualDescent = paint.descent() * lineSpacingExtra * lineHeightParam
+        var targetBounds = currentBounds
+        var targetY = durY
+
+        //一行塞不下，创建新行
+        if (targetY + actualLineHeight > visibleBottom) {
+            val isStartColumn = when {
+                !dualColumnEnabled -> targetBounds.role == ColumnRole.FULL
+                chapterIsRtl -> targetBounds.isRightColumn
+                else -> targetBounds.isLeftColumn
+            }
+            if (isStartColumn && dualColumnEnabled) { //双列模式下，并且当前位于开始列，则进入第二列中
+                targetBounds = if (chapterIsRtl) layoutBoundsLeftColumn() else layoutBoundsRightColumn()
+                targetY = paddingVertical.toFloat()
+            } else { //否则，创建新页
+                val lastPage = textPages.last()
+                lastPage.text = stringBuilder.toString()
+                pageLines.add(lastPage.textLines.size)
+                pageLengths.add(lastPage.text.length)
+                lastPage.height = targetY
+
+                textPages.add(TextPage()) // new page
+                stringBuilder.clear()
+                targetBounds = if (!dualColumnEnabled) layoutBoundsPage()
+                else {
+                    if (chapterIsRtl) layoutBoundsRightColumn()
+                    else layoutBoundsLeftColumn()
+                }
+                targetY = paddingVertical.toFloat()
+            }
+        }
+
+        //先计算图片横向位置， 在新行中贴在行边缘
+        val edgeCursor = if(lineIsRtl) targetBounds.endX.toFloat()
+                        else targetBounds.startX.toFloat()
+        val (newImgLeft, newImgRight) = if (lineIsRtl) {
+            Pair(edgeCursor - imgW, edgeCursor)
+        } else {
+            Pair(edgeCursor, edgeCursor + imgW)
+        }
+
+        //创建TextLine
+        val newLine = TextLine(isTitle = isTitle,
+            paragraphIndex = paragraphIndex,
+            charStartOffset = imgTag.start,
+            charEndOffset = imgTag.start,
+            isRtl = lineIsRtl)
+
+        newLine.textChars.add(TextChar(imgSrc, newImgLeft, newImgRight, isImage = true))
+        textPages.last().textLines.add(newLine)
+        newLine.upTopBottom(targetY, actualLineHeight, actualDescent)
+        paragraphLines.add(LineRecord(newLine, targetBounds, isFirstLineOfParagraph))
+        return ImageLayoutResult(targetBounds, targetY + actualLineHeight,
+            if (lineIsRtl) newImgLeft else newImgRight)
+    }
 }

@@ -27,6 +27,7 @@ import com.wxn.base.util.Coroutines
 import com.wxn.base.util.Logger
 import com.wxn.base.util.PathUtil
 import com.wxn.bookread.data.model.TextLine
+import com.wxn.bookread.data.model.visualSpan
 import com.wxn.bookread.provider.ChapterProvider
 import com.wxn.bookread.ui.delegate.CoverPageDelegate
 import com.wxn.bookread.ui.delegate.CoverVerticalPageDelegate
@@ -588,9 +589,11 @@ class PageView : FrameLayout, IDataSource, PageCallback {
         val clickY = startY - context.statusBarHeight
         val clickX = startX
         for (line in textLines) {
-            val lineStartX = line.textChars.getOrNull(0)?.start ?: -1f
-            val lineEndX = line.textChars.lastOrNull()?.end ?: -1f
-            val lineRect = RectF(lineStartX - padding, line.lineTop - padding, lineEndX + padding, line.lineBottom + padding)
+            val (lineStartX, lineEndX) = line.textChars.visualSpan() ?: continue
+            val lineRect = RectF(lineStartX - padding,
+                line.lineTop - padding,
+                lineEndX + padding,
+                line.lineBottom + padding)
             if (lineRect.contains(clickX, clickY)) {
                 clickLine = line
                 break
@@ -637,36 +640,31 @@ class PageView : FrameLayout, IDataSource, PageCallback {
                             endTagCharInLineIndex = clickLine.textChars.size - 1
                         }
 
-                        //itemTag在这一行的可点击区域
-                        val tagInLineRect : RectF? =
-                        if (startTagCharInLineIndex in 0 until clickLine.textChars.size && endTagCharInLineIndex in 0 .. clickLine.textChars.size) {
-                            val startChar = clickLine.textChars.getOrNull(startTagCharInLineIndex)
-                            val endChar = if (endTagCharInLineIndex < clickLine.textChars.size) {
-                                clickLine.textChars[endTagCharInLineIndex]
-                            } else {
-                                clickLine.textChars.lastOrNull()
-                            }
-                            if (endChar == null || startChar == null) {
-                                null
-                            } else {
-                                RectF(
-                                    startChar.start - padding,
-                                    clickLine.lineTop - padding,
-                                    endChar.end + padding,
-                                    clickLine.lineBottom + padding
-                                )
-                            }
+                        val tagSpan = if (startTagCharInLineIndex in 0 until clickLine.textChars.size &&
+                            endTagCharInLineIndex in 0..clickLine.textChars.size
+                        ) {
+                            val from = startTagCharInLineIndex
+                            val to = minOf(endTagCharInLineIndex, clickLine.textChars.size - 1)   // 对应原 endChar = lastOrNull() 分支
+                            clickLine.textChars.visualSpan { it in from..to }
                         } else {
                             null
                         }
 
-                        if(tagInLineRect?.contains(clickX, clickY) == true) {
-                            Logger.d("PageView::onSingleTapUp::clickRect=${tagInLineRect},event=(${clickX}, ${clickY})")
-                            if (itemTag.name == "a") {
-                                dataProvider?.clickLink(itemTag, clickX, clickY)
-                                return true
-                            } else if (itemTag.name == "underline" || itemTag.name == "highlight") {
-                                annoIds.add(itemTag.uuid)
+                        //itemTag在这一行的可点击区域
+                        if(tagSpan != null) {
+                            val tagInLineRect = RectF(
+                                tagSpan.first - padding, clickLine.lineTop - padding,
+                                tagSpan.second + padding, clickLine.lineBottom + padding
+                            )
+
+                            if(tagInLineRect.contains(clickX, clickY)) {
+                                Logger.d("PageView::onSingleTapUp::clickRect=${tagInLineRect},event=(${clickX}, ${clickY})")
+                                if (itemTag.name == "a") {
+                                    dataProvider?.clickLink(itemTag, clickX, clickY)
+                                    return true
+                                } else if (itemTag.name == "underline" || itemTag.name == "highlight") {
+                                    annoIds.add(itemTag.uuid)
+                                }
                             }
                         }
                     }

@@ -85,6 +85,7 @@ import com.wxn.bookread.data.model.TextChar
 import com.wxn.bookread.data.model.TextLine
 import com.wxn.bookread.data.model.TextPage
 import com.wxn.bookread.data.model.preference.ReaderPreferences
+import com.wxn.bookread.data.model.visualSpan
 import com.wxn.bookread.provider.ChapterProvider
 import com.wxn.bookread.provider.ImageProvider
 import com.wxn.bookread.ui.RenderResources
@@ -1055,20 +1056,12 @@ private fun drawSelectionBackgrounds(
             if (line.paragraphIndex < locator.startParagraphIndex ||
                 line.paragraphIndex > locator.endParagraphIndex) continue
 
-            var start = -1f
-            var end = -1f
-            for (i in line.textChars.indices) {
-                val offset = i + line.charStartOffset
-                if (ContinuousPageProvider.isOffsetInTextSelection(
-                        locator, line.paragraphIndex, offset
-                    )) {
-                    if (start < 0f) start = line.textChars[i].start
-                    end = line.textChars[i].end
-                }
-            }
-            if (start >= 0f) {
-                canvas.drawRect(start, line.lineTop, end, line.lineBottom, selectedPaint)
-            }
+            val (start, end) = line.textChars.visualSpan { i ->
+                ContinuousPageProvider.isOffsetInTextSelection(
+                    locator, line.paragraphIndex, i + line.charStartOffset
+                )
+            } ?: continue
+            canvas.drawRect(start, line.lineTop, end, line.lineBottom, selectedPaint)
         }
     }
 }
@@ -1937,19 +1930,9 @@ private fun drawTtsReadAloudBg(
 
         if (lineStartOffset > end || lineEndOffset < start) continue
 
-        var startCharIdx = Int.MAX_VALUE
-        var endCharIdx = Int.MIN_VALUE
-        for (i in textLine.textChars.indices) {
-            val offset = i + lineStartOffset
-            if (offset in start..<end) {
-                if (startCharIdx > i) startCharIdx = i
-                if (endCharIdx < i) endCharIdx = i
-            }
-        }
-        if (startCharIdx == Int.MAX_VALUE || endCharIdx == Int.MIN_VALUE) continue
-
-        val left = textLine.textChars[startCharIdx].start
-        val right = textLine.textChars[endCharIdx].end
+        val (left, right) = textLine.textChars.visualSpan { index ->
+            (index + lineStartOffset) in start until end
+        } ?: continue
         val top = textLine.lineTop - RenderResources.dp4
         val bottom = textLine.lineBottom + RenderResources.dp4
 
@@ -1995,19 +1978,9 @@ private fun drawSearchResultsBg(
 
             if (lineStartOffset >= matchEnd || lineEndOffset <= matchStart) continue
 
-            var startCharIdx = Int.MAX_VALUE
-            var endCharIdx = Int.MIN_VALUE
-            for (i in textLine.textChars.indices) {
-                val offset = i + lineStartOffset
-                if (offset in matchStart until matchEnd) {
-                    if (startCharIdx > i) startCharIdx = i
-                    if (endCharIdx < i) endCharIdx = i
-                }
-            }
-            if (startCharIdx == Int.MAX_VALUE || endCharIdx == Int.MIN_VALUE) continue
-
-            val left = textLine.textChars[startCharIdx].start
-            val right = textLine.textChars[endCharIdx].end
+            val (left, right) = textLine.textChars.visualSpan { index ->
+                (index + lineStartOffset) in matchStart until matchEnd
+            } ?: continue
             val top = textLine.lineTop - RenderResources.dp4
             val bottom = textLine.lineBottom + RenderResources.dp4
 
@@ -2051,23 +2024,31 @@ private fun drawAnnotationBackgrounds(
             textLine.charEndOffset + offset
         ) ?: (emptyList<TextTag>() to null)
 
-        // 1. 笔记背景 + 图标（无裁剪，全宽 0..viewWidth）
+        // 1. 笔记背景 + 图标（行跨度，空行回退全页宽——对齐 ContentTextView.tryDrawNote）
         tags.firstOrNull { it.name == "note" }?.let { noteTag ->
             val colorStr = noteTag.paramsPairs().firstOrNull { it.first == "color" }
                 ?.second ?: RenderResources.NOTE_DEFAULT_COLOR_HEX
             RenderResources.noteBgPaint.color = colorStr.toColor() ?: Color.YELLOW
             RenderResources.noteBgPaint.alpha = RenderResources.NOTE_BG_ALPHA
+
+            val span = textLine.textChars.visualSpan()
             canvas.drawRect(
-                0f, textLine.lineTop - marginTop / 2f,
-                ChapterProvider.viewWidth.toFloat(),
+                span?.first ?: 0f, textLine.lineTop - marginTop / 2f,
+                span?.second ?: ChapterProvider.viewWidth.toFloat(),
                 textLine.lineBottom + marginBottom / 2f,
                 RenderResources.noteBgPaint
             )
 
-            // 笔记图标——参照 ContentTextView.tryDrawNote()
+            // 笔记图标——锚定阅读方向起点（同 ContentTextView.tryDrawNote / R1 N1-a）
             if (!noteIds.contains(noteTag.uuid)) {
                 RenderResources.noteIconBmp?.let { noteIcon ->
-                    val iconLeft = 0f
+                    val lineRtl = textLine.isRtl || textLine.textChars.any { it.renderGroup > 0 }
+                    val iconDiameter = 2 * RenderResources.dp12
+                    val iconLeft = when {
+                        span == null -> 0f                        // 空行兜底，维持旧行为
+                        lineRtl -> span.second - iconDiameter     // RTL：贴右缘
+                        else -> span.first                        // LTR：贴左缘
+                    }
                     val iconTop = textLine.lineTop - RenderResources.dp12
                     RenderResources.noteCirclePaint.color = colorStr.toColor() ?: Color.YELLOW
                     canvas.drawCircle(

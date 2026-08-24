@@ -1460,50 +1460,40 @@ class PageViewController @OptIn(UnstableApi::class)
         curPage: TextPage,
         onFinished: (RectF) -> Unit
     ) {
-        if (pendingRange.isNotEmpty()) {
-            //遍历得到tag对应的选中文本的开始字符屏幕位置和结束位置屏幕位置
-            var startX = -1f
-            var startY = -1f
-            var endX = -1f
-            var endY = -1f
-            var lastCh: TextChar? = null
-            var lastLine: TextLine? = null
-            //遍历当前页中的每一行，找到对应标注的开始字符和结束字符
-            curPage.textLines.forEach { line ->
-                //当前行包含在给定的标注范围内
-                val range = pendingRange.firstOrNull {
-                    line.paragraphIndex == it.first
-                }
-                if (range != null) {
-                    val startOffset = range.second
-                    val endOffset = range.third
+        if (pendingRange.isEmpty()) return
 
-                    for ((index, ch) in line.textChars.withIndex()) {
-                        if (!ch.isImage && ch.charData.isNotEmpty() && ch.charData.length == 1) {
-                            val charIndexInParagraph = line.charStartOffset + index
-                            if (charIndexInParagraph >= startOffset && charIndexInParagraph <= endOffset) {
-                                if (startX < 0f && startY < 0f) {
-                                    startX = ch.start
-                                    startY = line.lineTop
-                                }
-                                lastCh = ch
-                                lastLine = line
-                            }
-                        }
+        // R1 站点9：x 取全部命中字符的 min/max（方向无关 bbox）；y 取首命中行 top / 末命中行 bottom。
+        // RTL 行 textChars 按逻辑序（视觉右→左）追加，首命中字的 start 在视觉右侧，不能直接作矩形左边。
+        var left = Float.MAX_VALUE
+        var right = -Float.MAX_VALUE
+        var topY = 0f
+        var bottomY = 0f
+        var found = false
+
+        curPage.textLines.forEach { line ->
+            val range = pendingRange.firstOrNull { line.paragraphIndex == it.first }
+                ?: return@forEach
+            val startOffset = range.second
+            val endOffset = range.third
+
+            for ((index, ch) in line.textChars.withIndex()) {
+                if (!ch.isImage && ch.charData.isNotEmpty() && ch.charData.length == 1) {
+                    val charIndexInParagraph = line.charStartOffset + index
+                    if (charIndexInParagraph >= startOffset && charIndexInParagraph <= endOffset) {
+                        if (!found) topY = line.lineTop
+                        found = true
+                        bottomY = line.lineBottom
+                        if (ch.start < left) left = ch.start
+                        if (ch.end > right) right = ch.end
                     }
                 }
             }
-            if (lastCh != null && lastLine != null) {
-                endX = lastCh.end
-                endY = lastLine.lineBottom
-            }
-            if (startX > 0f && startY > 0f && endX > 0f && endY > 0f) {
-                Logger.d("PageViewController::clickedAnnotation::startX=$startX,startY=$startY,endX=$endX,endY=$endY")
-//                callBack?.upSelectedRange(startX, startY, endX, endY)
-                callBack?.upContent(resetPageOffset = false)
-//                clickListener?.onCheckedAnnotation(annotationIds, startX, startY, endX, endY)
-                onFinished(RectF(startX, startY, endX, endY))
-            }
+        }
+
+        if (found) {
+            Logger.d("PageViewController::clickedAnnotation::left=$left,topY=$topY,right=$right,bottomY=$bottomY")
+            callBack?.upContent(resetPageOffset = false)
+            onFinished(RectF(left, topY, right, bottomY))
         }
     }
 
