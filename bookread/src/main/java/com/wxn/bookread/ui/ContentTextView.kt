@@ -610,10 +610,16 @@ class ContentTextView(context: Context, attrs: AttributeSet?) : View(context, at
         if (textLine.withLineDot > 0) { //绘制html列表前面的 圆点/方块
             val lTop = textLine.lineTop
             val lBottom = textLine.lineBottom
-            val start = textLine.textChars.firstOrNull()?.start ?: 0f
-            val end = start - 60
-            val centerX = (start + end) / 2;
+            val lineRtl = textLine.isRtl
+
+            val anchorX = if (lineRtl) {
+                textLine.textChars.maxOfOrNull { it.end } ?: 0f
+            } else {
+                textLine.textChars.firstOrNull()?.start ?: 0f
+            }
+            val centerX = if (lineRtl) anchorX + 30f else anchorX - 30f
             val centerY = (lBottom + lTop) / 2;
+
             if (textLine.withLineDot % 2 == 1) {
                 canvas.drawCircle(centerX, centerY, 8.0f, RenderResources.listDotPaint)
             } else {
@@ -1106,13 +1112,13 @@ class ContentTextView(context: Context, attrs: AttributeSet?) : View(context, at
                             if (lineIndex == sL && lineIndex == eL) {
                                 stringBuilder.append(
                                     lineText.substring(
-                                        sC,
-                                        (eC + 1).coerceAtMost(lineText.length)
+                                        sC.coerceIn(0, lineText.length),
+                                        (eC + 1).coerceIn(sC.coerceIn(0, lineText.length), lineText.length)
                                     )
                                 )
                             } else if (lineIndex == sL) {
                                 stringBuilder.append(
-                                    lineText.substring(sC)
+                                    lineText.substring(sC.coerceAtMost(lineText.length))
                                 )
                             } else if (lineIndex == eL) {
                                 stringBuilder.append(
@@ -1130,7 +1136,7 @@ class ContentTextView(context: Context, attrs: AttributeSet?) : View(context, at
                             if (lineIndex == sL) {
                                 stringBuilder.append(
                                     textPage.textLines[lineIndex].text.substring(
-                                        sC
+                                        sC.coerceAtMost(textPage.textLines[lineIndex].text.length)
                                     )
                                 )
                             } else {

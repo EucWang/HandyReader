@@ -7,8 +7,6 @@ import com.wxn.bookread.jni.SheenBidiNative
 
 object RTLSegmenter {
 
-    private val WHITESPACE_REGEX = Regex("\\s+")
-
     fun segment(text: String) : SegmentResult {
         if (text.isBlank()) {
             return SegmentResult(TextDirection.LTR,
@@ -16,27 +14,9 @@ object RTLSegmenter {
                 emptyList())
         }
 
-        val runs = SheenBidiNative.bidiRuns(text, baseRtl = false)
+        val bidiParagraph = SheenBidiNative.bidiRuns(text, baseRtl = false)
+        val runs = bidiParagraph.runs
         if (runs.isEmpty()) {
-            val dir = TextDirection.LTR
-            return SegmentResult(
-                dir,
-                false,
-                emptyList()
-            )
-        }
-
-        val hasRtlRun = runs.any { it.isRtl }
-        val hasLtrRun = runs.any { it.isLtr }
-        // 纯方向 fast path
-        if (!hasLtrRun) {
-            return SegmentResult(
-                TextDirection.RTL,
-                true,
-                emptyList()
-            )
-        }
-        if (!hasRtlRun) {
             return SegmentResult(
                 TextDirection.LTR,
                 false,
@@ -44,15 +24,36 @@ object RTLSegmenter {
             )
         }
 
-        val baseRtl = runs[0].isRtl
-        // 混合段：direction=基调（首词），runs=视觉序
-        val runLayouts = runs.map {
-            RunLayout(it.isRtl, it.offset, it.length)
+        // ★ 基调 = native P2-P3 解析的段落基级（first-strong，无强字符兜底 LTR）。
+        //   禁止用 runs[0].isRtl 反推：数字/URL 开头的 RTL 段，首 run 是 EN 的 level 2
+        //   偶数级（视觉 LTR）run，反推会把 RTL 段误判为 LTR 基调（effAlign/行方向/章节聚合全错）。
+        val baseRtl = (bidiParagraph.baseLevel and 1) == 1
+
+        val hasRtlRun = runs.any { it.isRtl }
+        val hasLtrRun = runs.any { it.isLtr }
+        // 纯方向 fast path
+        if (!hasLtrRun) {
+            return SegmentResult(
+                TextDirection.RTL,
+                baseRtl,
+                emptyList()
+            )
         }
+        if (!hasRtlRun) {
+            return SegmentResult(
+                TextDirection.LTR,
+                baseRtl,
+                emptyList()
+            )
+        }
+
         return SegmentResult(
             direction = if (baseRtl) TextDirection.RTL else TextDirection.LTR,  // ★ 不用 MIXED
             baseRtl = baseRtl,
-            runs = runLayouts
+            // 混合段：direction=基调，runs=视觉序
+            runs = runs.map {
+                RunLayout(it.isRtl, it.offset, it.length)
+            }
         )
     }
 }

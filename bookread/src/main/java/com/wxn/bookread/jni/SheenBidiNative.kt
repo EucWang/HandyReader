@@ -1,6 +1,7 @@
 package com.wxn.bookread.jni
 
 import com.wxn.base.util.Logger
+import com.wxn.bookread.data.beans.BidiParagraph
 import com.wxn.bookread.data.beans.BidiRun
 
 object SheenBidiNative {
@@ -10,7 +11,7 @@ object SheenBidiNative {
             System.loadLibrary("sheenbidi_jni")
             true
         } catch (e: UnsatisfiedLinkError) {
-            Logger.e("SheenBidi .so load failed, MIXED fallback to handleRtlLine:$e")
+            Logger.e("SheenBidi .so load failed, RTL degrades to LTR legacy paths:$e")
             false
         }
     }
@@ -20,12 +21,16 @@ object SheenBidiNative {
     private external fun bidiRunsNative(text: String, baseRtl: Boolean): IntArray
     private external fun nativeVersion(): String
 
-    fun bidiRuns(text: String, baseRtl: Boolean): List<BidiRun> {
-        if (!available || text.isEmpty()) return emptyList()
+    fun bidiRuns(text: String, baseRtl: Boolean): BidiParagraph {
+        if (!available || text.isEmpty()) return BidiParagraph(0, emptyList())
         val flat = bidiRunsNative(text, baseRtl)
-        if (flat.isEmpty()) return emptyList()
-        val runs = ArrayList<BidiRun>(flat.size / 3)
-        var i = 0
+        if (flat.size < 1 || (flat.size - 1) % 3 != 0 || flat[0] !in 0..1) {
+            Logger.e("SheenBidiNative: malformed bidi result size=${flat.size} base=${flat.getOrNull(0)}")
+            return BidiParagraph(0, emptyList())
+        }
+        val baseLevel = flat[0]
+        val runs = ArrayList<BidiRun>((flat.size - 1) / 3)
+        var i = 1
         while (i + 2 < flat.size) {
             val offset = flat[i]
             val length = flat[i + 1]
@@ -37,6 +42,6 @@ object SheenBidiNative {
             runs.add(BidiRun(offset, length, level))
             i += 3
         }
-        return runs
+        return BidiParagraph(baseLevel, runs)
     }
 }

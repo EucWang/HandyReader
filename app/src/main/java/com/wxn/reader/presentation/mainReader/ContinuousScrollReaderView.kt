@@ -1207,10 +1207,18 @@ private fun drawTextChars(
     }
 
     if (textLine.withLineDot > 0) {
-        val start = textLine.textChars.firstOrNull()?.start ?: 0f
-        val end = start - 60
-        val centerX = (start + end) / 2
-        val centerY = (textLine.lineBottom + textLine.lineTop) / 2
+        val lTop = textLine.lineTop
+        val lBottom = textLine.lineBottom
+        val lineRtl = textLine.isRtl
+
+        val anchorX = if (lineRtl) {
+            textLine.textChars.maxOfOrNull { it.end } ?: 0f
+        } else {
+            textLine.textChars.firstOrNull()?.start ?: 0f
+        }
+
+        val centerX = if (lineRtl) anchorX + 30f else anchorX - 30f
+        val centerY = (lTop + lBottom) / 2
         if (textLine.withLineDot % 2 == 1) {
             canvas.drawCircle(centerX, centerY, 8.0f, RenderResources.listDotPaint)
         } else {

@@ -1,9 +1,11 @@
 /*
  * JNI bridge between Kotlin and SheenBidi (Unicode Bidirectional Algorithm).
  *
- * 接收 Java String（UTF-16，零拷贝传 SBCodepointSequence），返回视觉 run 列表：
- *  IntArray([run0_offset, run0_length, run0_level,
+ * 接收 Java String（UTF-16，零拷贝传 SBCodepointSequence），返回 [基级, run 列表]：
+ *  IntArray([baseLevel,
+ *            run0_offset, run0_length, run0_level,
  *            run1_offset, run1_length, run1_level, ...])
+ * [0] = 段落基级（SBParagraphGetBaseLevel，P2-P3 解析结果，0=LTR / 1=RTL），run0 起始于下标 1。
  */
 #include <jni.h>
 #include <SheenBidi/SheenBidi.h>
@@ -24,7 +26,7 @@ extern "C" {
  * @param text      段落文本（UTF-16）
  * @param baseRtl   true = 段落基方向 RTL (SBLevelDefaultRTL)
  *                  false = 段落基方向 LTR (SBLevelDefaultLTR)
- * @return IntArray，每 3 个元素一个 run（offset, length, level），视觉顺序。
+ * @return IntArray：[0]=段落基级（P2-P3），[1..] 每 3 个元素一个 run（offset, length, level），视觉顺序。
  *         失败返回 length=0 的空数组。
  */
 JNIEXPORT jintArray JNICALL
@@ -70,16 +72,17 @@ Java_com_wxn_bookread_jni_SheenBidiNative_bidiRunsNative(
                 SBUInteger runCount = SBLineGetRunCount(line);
                 const SBRun *runs = SBLineGetRunsPtr(line);
 
-                // 输出 IntArray：每 run 3 个 int
-                SBUInteger outLen = runCount * 3;
+                // 输出 IntArray：[0]=基级，[1..] 每 run 3 个 int
+                SBUInteger outLen = runCount * 3 + 1;
                 result = env->NewIntArray((jsize)outLen);
                 if (result != nullptr && runs != nullptr &&  outLen <= 65535) {
                     jint *buf = (jint *)malloc(outLen * sizeof(jint));
                     if (buf != nullptr) {
+                        buf[0] = (jint)SBParagraphGetBaseLevel(paragraph);
                         for (SBUInteger i = 0; i < runCount; i++) {
-                            buf[i * 3]     = (jint)runs[i].offset;
-                            buf[i * 3 + 1] = (jint)runs[i].length;
-                            buf[i * 3 + 2] = (jint)runs[i].level;
+                            buf[i * 3 + 1]     = (jint)runs[i].offset;
+                            buf[i * 3 + 2] = (jint)runs[i].length;
+                            buf[i * 3 + 3] = (jint)runs[i].level;
                         }
                         env->SetIntArrayRegion(result, 0, (jsize)outLen, buf);
                         free(buf);

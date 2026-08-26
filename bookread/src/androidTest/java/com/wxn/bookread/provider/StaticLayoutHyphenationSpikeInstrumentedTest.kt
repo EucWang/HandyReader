@@ -97,8 +97,13 @@ class StaticLayoutHyphenationSpikeInstrumentedTest {
         val softHyphenRows = rows.filter { it.hasSoftHyphen }
         println(">>> Case2a 结论: 行末可见连字符 '-' 的行数 = ${hardHyphenRows.size}")
         println(">>> Case2b 结论: 行内残留 \\u00AD 的行数 = ${softHyphenRows.size}")
-        // 关键断言：NORMAL 频率下，断词点应有可见连字符出现（证明会污染 substring）
-        assertTrue("NORMAL 频率应在断词处产生可见连字符", hardHyphenRows.isNotEmpty())
+        // 关键断言（平台实测事实，方案 §4.3-14，Mi 10 / Android 13）：
+        //   连字符 '-' 是绘制层装饰，substring 永不插入；
+        //   断词点的 U+00AD 保留在 substring 行尾（trailing=U+ad）→ 会流入
+        //   TextChar/选词/TTS（污染源证据，另立任务处理）。
+        val softTotal = rows.sumOf { it.line.count { c -> c == '\u00AD' } }
+        assertTrue("NORMAL 不应向 substring 插入可见连字符 '-'（连字符是绘制装饰）", hardHyphenRows.isEmpty())
+        assertTrue("U+00AD 应全部残留（断词点保留 + 行内保留）", softTotal == text.count { it == '\u00AD' })
         assertTrue("布局必须多行换行", layout.lineCount > 1)
     }
 
@@ -112,9 +117,10 @@ class StaticLayoutHyphenationSpikeInstrumentedTest {
         val hardHyphenRows = rows.filter { it.hasHardHyphen }
         val softHyphenRows = rows.filter { it.hasSoftHyphen }
         println(">>> Case3 结论: NONE 频率下可见连字符行数 = ${hardHyphenRows.size}，软连字符残留行数 = ${softHyphenRows.size}")
-        // 断言：NONE 频率下不应出现可见连字符，软连字符也不应残留
+        // 断言（平台实测事实）：NONE 不显示连字符、也不剥离 U+00AD（原样残留行内）
         assertTrue("NONE 频率不应有可见连字符", hardHyphenRows.isEmpty())
-        assertTrue("NONE 频率不应残留软连字符", softHyphenRows.isEmpty())
+        val softTotal = rows.sumOf { it.line.count { c -> c == '\u00AD' } }
+        assertTrue("NONE 频率下 U+00AD 应全部残留（平台不剥离）", softTotal == text.count { it == '\u00AD' })
     }
 
     // ───────── 问题 4：CJK 文本在 NORMAL 下是否异常 ─────────

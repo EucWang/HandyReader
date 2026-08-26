@@ -1245,7 +1245,11 @@ object ChapterProvider {
             } != null
         } else false
 
+        val seg = paragraph.segDirect
+        val isPureLtr = seg == null || (seg.direction == TextDirection.LTR && seg.runs.isEmpty())
+
         //是否是列表，嵌套列表
+
         var isListRow: Boolean = false
         var listLevel: Int = 0
         isListRow = if (paragraph is ReaderText.Text) {
@@ -1260,7 +1264,13 @@ object ChapterProvider {
                 }.size
                 if (listLevel > 0) {
                     val lineHeight = textPaint.textHeight * lineSpacingExtra
-                    marginLeft += listLevel * lineHeight
+                    // 列表缩进作用于阅读起始侧：RTL 段（走 RTL 引擎）加在右侧（为圆点预留空间），
+                    // 其余（纯 LTR legacy / 混合 LTR 基调）维持左侧现状
+                    if (!isPureLtr && seg?.baseRtl == true) {
+                        marginRight += listLevel * lineHeight
+                    } else {
+                        marginLeft += listLevel * lineHeight
+                    }
                     Logger.d("ChapterProvider::list::level=$listLevel")
                 }
             }
@@ -1293,10 +1303,6 @@ object ChapterProvider {
 //            Logger.d("ChapterProvider::userSetParagraphSpacing=$userSetParagraphSpacing")
             durY += if (userSetParagraphSpacing > 0) (userSetParagraphSpacing * textPaint.textHeight) else marginTop
         }
-
-
-        val seg = paragraph.segDirect
-        val isPureLtr = seg == null || (seg.direction == TextDirection.LTR && seg.runs.isEmpty())
 
         // v4：子函数返回 LayoutCursor，透传 bounds
         val result = if (isTableRow) {               //是表格行

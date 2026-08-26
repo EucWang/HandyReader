@@ -19,6 +19,7 @@ import com.wxn.bookread.provider.ChapterProvider.lineSpacingExtra
 import com.wxn.bookread.provider.ChapterProvider.paddingVertical
 import com.wxn.bookread.provider.ChapterProvider.visibleBottom
 import com.wxn.bookread.textHeight
+import java.util.Arrays
 import kotlin.math.roundToInt
 
 object TextLayoutProvider {
@@ -76,17 +77,24 @@ object TextLayoutProvider {
                 .sortedBy { it.start }
         } else emptyList()
         //得到被bidi算法，和 行内图片 切分得到的分段集合
-        val layoutItems = buildLayoutItems(runs, imgTags)
+        // ★ SheenBidi runs 是视觉序（左→右；B1/B2 仪器测试实测：'نص 123' 的 runs[0] 是数字 run）。
+        //   堆叠按「阅读序」从起始边推进：RTL 基调 = 逻辑序 = 视觉序的【run 级逆序】——逆序后首
+        //   run 恰为逻辑首 run，从右缘起排，后续 run 依次向左 → 视觉位置与 Calibre/标准 bidi 一致；
+        //   LTR 基调视觉序即逻辑序，保持原序。
+        //   （修复前：RTL 基调按视觉序从右缘消费 → 整行块顺序镜像，LD-B 混排 li 与 Calibre 对照可复现）
+        val layoutItems = buildLayoutItems(runs, imgTags, segDirect.baseRtl)
 
         // 首个 Run 定方向
-        var lineIsRtl =
-            (layoutItems.firstOrNull { it is LayoutItem.Run } as? LayoutItem.Run)?.run?.isRtl
-                ?: chapterIsRtl
+        var lineIsRtl = if (layoutItems.any { it is LayoutItem.Run }) {
+            segDirect.baseRtl
+        } else {
+            chapterIsRtl
+        }
 
         var cursor = if (lineIsRtl) {
-            currentBounds.endX.toFloat()
+            currentBounds.endX.toFloat() - marginRight
         } else {
-            currentBounds.startX.toFloat()
+            currentBounds.startX.toFloat() + marginLeft
         }
 
         //有效的对齐方式
@@ -109,6 +117,8 @@ object TextLayoutProvider {
                         lineIsRtl,
                         cursor,
                         currentBounds,
+                        marginLeft,
+                        marginRight,
                         durY,
                         isFirstLineOfParagraph,
 
@@ -137,20 +147,21 @@ object TextLayoutProvider {
                     if (runText.isBlank()) continue
 
                     val atEdge = if (lineIsRtl) {
-                        cursor >= currentBounds.endX - 0.5f
+                        cursor >= currentBounds.endX - marginRight - 0.5f
                     } else {
-                        cursor <= currentBounds.startX + 0.5f
+                        cursor <= currentBounds.startX  + marginLeft + 0.5f
                     }
 
                     val firstLineWidth =
                         if (atEdge) fullWidth
                         else {
                             (if (lineIsRtl)
-                                cursor - currentBounds.startX
-                            else currentBounds.endX - cursor
+                                cursor - (currentBounds.startX + marginLeft)
+                            else (currentBounds.endX - marginRight) - cursor
                                     ).roundToInt().coerceAtLeast(1)
                         }
-                    val sharedLine = !atEdge
+                    // 防御：段落首行永不与前一段落共享（正常路径由 atEdge 不变量保证，恒惰性）
+                    var sharedLine = !atEdge && paragraphLines.isNotEmpty()
                     val sharedLineIndent = fullWidth - firstLineWidth
 
                     val leftIndentArr = if (lineIsRtl) {
@@ -163,7 +174,7 @@ object TextLayoutProvider {
                     } else {
                         intArrayOf(0, 0)
                     }
-                    val layout = StaticLayout.Builder.obtain(
+                    var layout = StaticLayout.Builder.obtain(
                         runText,
                         0, runText.length, paint, fullWidth
                     )
@@ -178,13 +189,45 @@ object TextLayoutProvider {
                         .setIndents(leftIndentArr, rightIndentArr)
                         .build()
 
+                    //增加处理，当共享行剩余宽度容纳不下一个完整单词或者一个完整阿拉伯语连词时，
+                    //会发生强制将词分开显示的情况
+                    //   缩进技巧把 line0 压进「剩余宽度」后有两种病理（实测）：
+                    //   a) 簇级碎片超宽：词被按簇拆开塞 box，碎片仍可超 box 数 px（P1 +4 / P2 +10），
+                    //      1px box 级联时整个字素（30~60px）钉在已越界的 cursor 上（dump 行尾 'E'/'UR'）；
+                    //   b) 词内截断【不伴随超宽】（P3：碎片 65 ≤ box 92）——阿拉伯连写被拆断跨行，
+                    //      即使不溢出也是排版缺陷。
+                    //   标准行为（Calibre/浏览器）：放不下就整块换行、永不词内截断。故触发条件取两者之或：
+                    //   line0 实宽超剩余宽度，或 line0 在词内截断（两侧均为非 CJK 字母）。
+                    //   回退 = 取消共享缩进重建 layout，line0 以整行宽重排（lineShared=false 走新行流程）；
+                    //   同时化解「剩余宽度为负 → box 被 coerce 成 1px」的级联。
+                    //   CJK 例外：CJK 字符间是合法断点，不视为词内截断（LD-C 中性+中文场景）。
+                    //   词宽于整列（AR-I 超长 URL）时重建后仍会在整行宽下按既有策略处理，无循环。
+                    val line0End = layout.getLineEnd(0)
+                    val line0MidWord = line0End < runText.length &&
+                            isWordChar(runText[line0End - 1]) &&
+                            isWordChar(runText[line0End])
+                    if (sharedLine && layout.lineCount > 0 &&
+                        (layout.getLineWidth(0) > firstLineWidth + 1f ||
+                                line0MidWord)) {
+                        sharedLine = false //不共享行了，重新排版，重启一行
+                        layout = StaticLayout.Builder.obtain(runText, 0,
+                            runText.length, paint, fullWidth)
+                            .setAlignment(Layout.Alignment.ALIGN_NORMAL)
+                            .setTextDirection( if (run.isRtl) TextDirectionHeuristics.RTL
+                                else TextDirectionHeuristics.LTR)
+                            .setIncludePad(false)
+                            .setIndents(intArrayOf(0, 0), intArrayOf(0, 0))
+                            .build()
+                    }
+
                     for (lineIndex in 0 until layout.lineCount) {
                         val lineShared = sharedLine && lineIndex == 0 //行首可共享前一run末行
                         if (!lineShared) {
-                            // 新建行：方向由「本 run」决定（续行 / 首行非共享都走这里）
-                            lineIsRtl = run.isRtl
+                            // ★ 新建行方向 = 段落基调（UAX#9：行的基方向恒为段落嵌入方向）。
+                            lineIsRtl = segDirect.baseRtl
                             cursor =
-                                if (lineIsRtl) currentBounds.endX.toFloat() else currentBounds.startX.toFloat()
+                                if (lineIsRtl) currentBounds.endX.toFloat() - marginRight
+                                else currentBounds.startX.toFloat() + marginLeft
                         }
 
                         val lineStart = layout.getLineStart(lineIndex)
@@ -211,6 +254,7 @@ object TextLayoutProvider {
                             paragraphIndex,
                             isTitle,
                             isListRow,
+                            listLevel,
 
                             textAlign,
                             lineHeightParam,
@@ -220,6 +264,9 @@ object TextLayoutProvider {
                             stringBuilder,
                             durY,
                             currentBounds,
+                            marginLeft,
+                            marginRight,
+
                             chapterIsRtl,
                             cursor,
                             paragraphLines
@@ -243,7 +290,9 @@ object TextLayoutProvider {
                 firstLineIndent = firstLineIndent,
                 isFirstLine = rec.isFirstLine,
                 isLastLine = (i == paragraphLines.lastIndex),
-                textSize = textPaint.textSize
+                textSize = textPaint.textSize,
+                marginLeft,
+                marginRight
             )
         }
 
@@ -265,6 +314,7 @@ object TextLayoutProvider {
         paragraphIndex: Int,
         isTitle: Boolean,
         isListRow: Boolean,
+        listLevel: Int,
         textAlign: CssTextAlign,
         lineHeightParam: Float,
         textPages: ArrayList<TextPage>,
@@ -273,10 +323,14 @@ object TextLayoutProvider {
         stringBuilder: StringBuilder,
         durY: Float,
         currentBounds: LayoutBounds = layoutBoundsPage(),
+        marginLeft: Float,
+        marginRight: Float,
+
         chapterIsRtl: Boolean,                 // 双列切列方向
         cursor: Float,
-        paragraphLines: ArrayList<LineRecord>
+        paragraphLines: ArrayList<LineRecord>,
     ): Triple<LayoutBounds, Float, Float> {
+
         val lineStart = layout.getLineStart(lineIndex)
         val lineEnd = layout.getLineEnd(lineIndex)
         val lineAscent = layout.getLineAscent(lineIndex).toFloat()
@@ -324,9 +378,9 @@ object TextLayoutProvider {
                 targetY = paddingVertical.toFloat()
             }
             targetCursor = if (lineIsRtl) {
-                targetBounds.endX.toFloat()
+                targetBounds.endX.toFloat() - marginRight
             } else {
-                targetBounds.startX.toFloat()
+                targetBounds.startX.toFloat() + marginLeft
             }
         }
 
@@ -352,6 +406,11 @@ object TextLayoutProvider {
             )
         }
         textLine.charEndOffset = paragraphCharEndOffset
+
+        // 列表符号：段落首行且为列表行
+        if (isFirstLine && isListRow && listLevel > 0) {
+            textLine.withLineDot = listLevel
+        }
 
 
         val charsBaseStart = textLine.textChars.size
@@ -380,6 +439,10 @@ object TextLayoutProvider {
         targetCursor = if (lineIsRtl) blockMin else blockMax
 
         stringBuilder.append(text.substring(paragraphCharStartOffset, paragraphCharEndOffset))
+        // ★ RTL 引擎此前从未给 TextLine.text 赋值（恒 ""）——选区 getSelectText 按
+        //   textChars 下标 substring(line.text) 直接越界崩溃（AR-A/LD-B 实机复现）。
+        //   累积顺序与 textChars/stringBuilder 一致（run 处理序），sC/eC 下标空间对齐。
+        textLine.text += text.substring(paragraphCharStartOffset, paragraphCharEndOffset)
 
         if (!sharedLine) {
             textPages.last().textLines.add(textLine)
@@ -576,7 +639,9 @@ object TextLayoutProvider {
         firstLineIndent: Float,    // ④ 首行缩进
         isFirstLine: Boolean,      // ①②④ 判定（processMixedLine 已有 :146 传入的 isFirstLine 形参）
         isLastLine: Boolean,       // ① justify 末行不齐（当前 processMixedLine 还没算 isLastLine，需补）
-        textSize: Float            // ① maxGapWidth 上限 = textSize*0.5（防短行被极端拉伸）
+        textSize: Float,            // ① maxGapWidth 上限 = textSize*0.5（防短行被极端拉伸）
+        marginLeft: Float,
+        marginRight: Float,
     ) {
         val chars = textLine.textChars
         if (chars.isEmpty()) {
@@ -592,9 +657,9 @@ object TextLayoutProvider {
         }
 
         val inkSize = inkPad(textSize)
-        val rawStart = bounds.startX.toFloat()
-        val rawEnd = bounds.endX.toFloat()
-        val rawWidth = (bounds.endX - bounds.startX).toFloat()
+        val rawStart = bounds.startX.toFloat() + marginLeft
+        val rawEnd = bounds.endX.toFloat() - marginRight
+        val rawWidth = rawEnd - rawStart
 
         val effStart = rawStart + inkSize
         val effEnd = rawEnd - inkSize
@@ -892,9 +957,19 @@ object TextLayoutProvider {
     /****
      * 组合runs 和 行内图片，得到新的 List<LayoutItem> 集合
      */
-    private fun buildLayoutItems(runs: List<RunLayout>, imgTags: List<TextTag>): List<LayoutItem> {
+    private fun buildLayoutItems(
+        runs: List<RunLayout>,
+        imgTags: List<TextTag>,
+        baseRtl: Boolean
+    ): List<LayoutItem> {
+        // ★ runs 是视觉序（L→R）；堆叠消费需要逻辑序。RTL 基调下 run 级整体逆序 = 逻辑序
+        //   （L2 重排在两极层级下 = 整段反转，B1/B2 实测验证）。注意只能 run 级逆序：
+        //   run 内部「图前文本/图/图后文本」子项本就按 offset 升序（逻辑序）生成，若对整个
+        //   items 平铺反转会把 run 内部顺序也镜像 → RTL 段内嵌图片时图片两侧文本互换。
+        //   imgTags 按 start 升序单调消费，run 逆序后 offset 仍单调递增，归并语义不变。
+        val orderedRuns = if (baseRtl) runs.asReversed() else runs
         if (imgTags.isEmpty()) {
-            return runs.map {
+            return orderedRuns.map {
                 LayoutItem.Run(it)
             }
         }
@@ -903,7 +978,7 @@ object TextLayoutProvider {
 
         var imgIndex = 0
 
-        for (run in runs) {
+        for (run in orderedRuns) {
             var segStart = run.offset
             val segEnd = run.offset + run.length
 
@@ -952,6 +1027,8 @@ object TextLayoutProvider {
         cursor: Float,                   // ★ 唯一位置源（行中=文本边缘 / 新行=行缘）
 
         currentBounds: LayoutBounds,
+        marginLeft: Float,
+        marginRight: Float,
         durY: Float,
         isFirstLineOfParagraph: Boolean,
 
@@ -991,9 +1068,9 @@ object TextLayoutProvider {
 
         //是否在行剩余空间的范围内
         val fits = if (lineIsRtl) {
-            imgLeft >= currentBounds.startX
+            imgLeft >= currentBounds.startX + marginLeft
         } else {
-            imgRight <= currentBounds.endX
+            imgRight <= currentBounds.endX  - marginRight
         }
         //当前图片所在行
         val lastLine = paragraphLines.lastOrNull()?.line
@@ -1039,8 +1116,8 @@ object TextLayoutProvider {
         }
 
         //先计算图片横向位置， 在新行中贴在行边缘
-        val edgeCursor = if(lineIsRtl) targetBounds.endX.toFloat()
-                        else targetBounds.startX.toFloat()
+        val edgeCursor = if(lineIsRtl) targetBounds.endX.toFloat() - marginRight
+                        else targetBounds.startX.toFloat() + marginLeft
         val (newImgLeft, newImgRight) = if (lineIsRtl) {
             Pair(edgeCursor - imgW, edgeCursor)
         } else {
@@ -1061,4 +1138,19 @@ object TextLayoutProvider {
         return ImageLayoutResult(targetBounds, targetY + actualLineHeight,
             if (lineIsRtl) newImgLeft else newImgRight)
     }
+
+    /** 词内字符判定：字母且非 CJK（CJK 字符间是合法断点，不算词内截断）。
+     *  不能用 Character.UnicodeScript——整个类 API 24 才有（lint 数据库 since=24），
+     *  minSdk 23 真机会 NoClassDefFoundError，故用码点区间判定。 */
+    private fun isWordChar(ch: Char) : Boolean {
+        if (!ch.isLetter()) return false
+        val code = ch.code
+        return !(code in 0x2E80..0x9FFF ||    // CJK 部首/符号/注音/假名/汉字（含 Ext A）
+                code in 0xAC00..0xD7FF ||     // 谚文音节 + 谚文扩展
+                code in 0x1100..0x11FF ||     // 谚文字母 Jamo
+                code in 0xA960..0xA97F ||     // 谚文扩展 A
+                code in 0xF900..0xFAFF ||     // CJK 兼容表意文字
+                code in 0xFF66..0xFF9D)       // 半角片假名
+    }
+
 }

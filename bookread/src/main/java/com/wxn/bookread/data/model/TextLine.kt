@@ -67,8 +67,9 @@ data class TextLine(
 
     /**
      * 行方向：true=RTL，false=LTR。
-     * = 创建该行的 run 的 isRtl（TextLayoutProvider 在 !lineShared 新建行时赋值）。
-     * 驱动 cursor 起点/推进、相邻摆放、对齐（anchorLine/justify/indent）。
+     * 段落首行 = 段落基调（segDirect.baseRtl，TextLayoutProvider 初始化），
+     * 其余新建行 = 创建该行的 run 的 isRtl（!lineShared 新建行时赋值）。
+     * 驱动 cursor 起点/推进、相邻摆放、对齐（anchorLine/justify/indent）、列表圆点锚定侧。
      * 默认 false（setNormalText 纯 LTR 路径不赋值，保持 LTR 语义）。
      */
     var isRtl: Boolean = false
