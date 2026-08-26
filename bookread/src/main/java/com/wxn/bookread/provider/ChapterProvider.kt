@@ -1,6 +1,7 @@
 package com.wxn.bookread.provider
 
 import android.content.Context
+import android.content.res.loader.ResourcesProvider
 import android.graphics.BitmapFactory
 import android.graphics.Color
 import android.graphics.Typeface
@@ -27,6 +28,7 @@ import com.wxn.base.util.Coroutines
 import com.wxn.base.util.Logger
 import com.wxn.base.util.PathUtil
 import com.wxn.base.util.launchIO
+import com.wxn.bookread.data.model.LineDot
 import com.wxn.bookread.data.model.TextChapter
 import com.wxn.bookread.data.model.TextChar
 import com.wxn.bookread.data.model.TextLine
@@ -37,6 +39,7 @@ import com.wxn.bookread.data.source.local.ReadTipPreferencesUtil
 import com.wxn.bookread.data.source.local.ReaderPreferencesUtil
 import com.wxn.bookread.ext.dp
 import com.wxn.bookread.textHeight
+import com.wxn.bookread.ui.RenderResources
 import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
@@ -634,6 +637,8 @@ object ChapterProvider {
         paragraphSpacing = prefs.paragraphSpacing.toInt() ?: 0
         titleTopSpacing = prefs.titleTopSpacing.dp.toInt() ?: 0
         titleBottomSpacing = prefs.titleBottomSpacing.dp.toInt() ?: 0
+
+        RenderResources.listDotPaint.color = prefs.textColor ?: Color.BLACK
 
         //更新屏幕参数
         upVisibleSize(context, prefs)
@@ -1262,6 +1267,7 @@ object ChapterProvider {
                 listLevel = paragraph.annotations.filter { tag ->
                     tag.name == "ul" || tag.name == "ol"
                 }.size
+
                 if (listLevel > 0) {
                     val lineHeight = textPaint.textHeight * lineSpacingExtra
                     // 列表缩进作用于阅读起始侧：RTL 段（走 RTL 引擎）加在右侧（为圆点预留空间），
@@ -1294,7 +1300,12 @@ object ChapterProvider {
         } else if (textAlign == CssTextAlign.CssTextAlignUndefined) {
             textAlign = userTextAlignToCss(readerPrefs?.userTextAlign ?: 4)
         }
+
         // Center/Right alignment → suppress firstLineIndent (paragraph indent breaks centered/right text)
+        if (!isTableRow && !isPureLtr && seg?.baseRtl == true &&
+            textAlign == CssTextAlign.CssTextAlignLeft) {
+            textAlign = CssTextAlign.CssTextAlignRight
+        }
         if (textAlign == CssTextAlign.CssTextAlignCenter || textAlign == CssTextAlign.CssTextAlignRight) {
             firstLineIndent = 0f
         }
@@ -2259,7 +2270,7 @@ object ChapterProvider {
             }
 
             if (lineIndex == 0 && isListRow && listLevel > 0) { //第一行，并且是列表
-                textLine.withLineDot = listLevel
+                textLine.lineDot = LineDot(true, listLevel)
             }
 
             stringBuilder.append(words)

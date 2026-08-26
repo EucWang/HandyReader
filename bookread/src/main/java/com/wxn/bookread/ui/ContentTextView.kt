@@ -607,12 +607,16 @@ class ContentTextView(context: Context, attrs: AttributeSet?) : View(context, at
             }
         }
 
-        if (textLine.withLineDot > 0) { //绘制html列表前面的 圆点/方块
+        // //绘制html列表前面的 圆点/方块
+        if (textLine.lineDot?.enable == true && (textLine.lineDot?.level?:0) > 0) {
             val lTop = textLine.lineTop
             val lBottom = textLine.lineBottom
             val lineRtl = textLine.isRtl
 
-            val anchorX = if (lineRtl) {
+            val rawAnchorX = textLine.lineDot?.anchorX ?: Float.NaN
+            val anchorX = if (!rawAnchorX.isNaN()) {
+                rawAnchorX
+            } else if (lineRtl) {
                 textLine.textChars.maxOfOrNull { it.end } ?: 0f
             } else {
                 textLine.textChars.firstOrNull()?.start ?: 0f
@@ -620,7 +624,7 @@ class ContentTextView(context: Context, attrs: AttributeSet?) : View(context, at
             val centerX = if (lineRtl) anchorX + 30f else anchorX - 30f
             val centerY = (lBottom + lTop) / 2;
 
-            if (textLine.withLineDot % 2 == 1) {
+            if ((textLine.lineDot?.level?:0) % 2 == 1) {
                 canvas.drawCircle(centerX, centerY, 8.0f, RenderResources.listDotPaint)
             } else {
                 canvas.drawRect(

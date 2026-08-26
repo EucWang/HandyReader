@@ -63,7 +63,7 @@ data class TextLine(
     var colIndex: Int = 0,  //单元格列索引
     var rowLineOffset : Int = 0,   //单元格所在的行文字在一个tr行中的偏移量
 
-    var withLineDot: Int = 0,    //行是否前面显示列表符号， 圆点/方块/空心圆.. 大于0即有符号，1 标识1级列表； 2表现2级列表...
+    var lineDot: LineDot? = null,
 
     /**
      * 行方向：true=RTL，false=LTR。
@@ -112,3 +112,13 @@ data class TextLine(
     }
 
 }
+
+/***
+ * 序列行的 锚点标记
+ */
+data class LineDot(
+    var enable: Boolean = false,
+    var level: Int = 0,    //行是否前面显示列表符号， 圆点/方块/空心圆.. 大于0即有符号，1 标识1级列表； 2表现2级列表...
+    var anchorX: Float = Float.NaN,
+    var order:Int = 0,
+)

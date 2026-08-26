@@ -769,7 +769,7 @@ std::string xml_ext::parse_paragraph(const tinyxml2::XMLElement *pElem,
  * @return
  */
 bool xml_ext::is_paragraph_tag(const std::string &name) {
-    if (name == "p" || name == "div" || name == "ol" || name == "li" ||
+    if (name == "p" || name == "div" || name == "ol" || name == "ul" || name == "li" ||
         name == "blockquote" || name == "h1" || name == "h2" || name == "h3" ||
         name == "h4" || name == "h5" || name == "h6" || name == "h7" ||
         //                           name == "img" || name == "image" ||

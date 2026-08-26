@@ -11,6 +11,7 @@ import com.wxn.base.bean.ReaderText
 import com.wxn.base.bean.RunLayout
 import com.wxn.base.bean.SegmentResult
 import com.wxn.base.bean.TextTag
+import com.wxn.bookread.data.model.LineDot
 import com.wxn.bookread.data.model.TextChar
 import com.wxn.bookread.data.model.TextLine
 import com.wxn.bookread.data.model.TextPage
@@ -164,13 +165,18 @@ object TextLayoutProvider {
                     var sharedLine = !atEdge && paragraphLines.isNotEmpty()
                     val sharedLineIndent = fullWidth - firstLineWidth
 
+                    val paraFirstIndent = if (isFirstLineOfParagraph  && firstLineIndent > 0f) {
+                        firstLineIndent.toInt()
+                    } else {
+                        0
+                    }
                     val leftIndentArr = if (lineIsRtl) {
                         intArrayOf(0, 0)
                     } else {
-                        intArrayOf(sharedLineIndent, 0)
+                        intArrayOf(sharedLineIndent  + paraFirstIndent, 0)
                     }
                     val rightIndentArr = if (lineIsRtl) {
-                        intArrayOf(sharedLineIndent, 0)
+                        intArrayOf(sharedLineIndent + paraFirstIndent, 0)
                     } else {
                         intArrayOf(0, 0)
                     }
@@ -344,7 +350,11 @@ object TextLayoutProvider {
         //需要输出的数据
         var targetBounds: LayoutBounds = currentBounds
         var targetY = durY
-        var targetCursor = cursor
+        var targetCursor = if (isFirstLine && firstLineIndent > 0f) {
+            if (lineIsRtl) cursor - firstLineIndent else cursor + firstLineIndent
+        } else {
+            cursor
+        }
 
         //换行->  新行 -> 新列/新页
         if (!sharedLine && durY + actualLineHeight > visibleBottom) {
@@ -377,10 +387,13 @@ object TextLayoutProvider {
                     }
                 targetY = paddingVertical.toFloat()
             }
+
+            // ★ 段落首行换页/换列（B3）：重置游标同样内缩首行缩进（AC6）
+            val firstIndentOnReset = if (isFirstLine) firstLineIndent else 0f
             targetCursor = if (lineIsRtl) {
-                targetBounds.endX.toFloat() - marginRight
+                targetBounds.endX.toFloat() - marginRight - firstIndentOnReset
             } else {
-                targetBounds.startX.toFloat() + marginLeft
+                targetBounds.startX.toFloat() + marginLeft  + firstIndentOnReset
             }
         }
 
@@ -409,9 +422,8 @@ object TextLayoutProvider {
 
         // 列表符号：段落首行且为列表行
         if (isFirstLine && isListRow && listLevel > 0) {
-            textLine.withLineDot = listLevel
+            textLine.lineDot = LineDot(true, listLevel)
         }
-
 
         val charsBaseStart = textLine.textChars.size
 
@@ -657,8 +669,31 @@ object TextLayoutProvider {
         }
 
         val inkSize = inkPad(textSize)
-        val rawStart = bounds.startX.toFloat() + marginLeft
-        val rawEnd = bounds.endX.toFloat() - marginRight
+        var rawStart = bounds.startX.toFloat() + marginLeft
+        var rawEnd = bounds.endX.toFloat() - marginRight
+
+        // 列表圆点锚点：钉在内容盒阅读起始侧（层级槽位），不随 text-align/text-indent 漂移（浏览器 outside marker 语义）
+        if (textLine.lineDot?.enable == true && (textLine.lineDot?.level?:0) > 0) {
+            textLine.lineDot?.anchorX =
+                if (paragraphIsRtl) rawEnd - inkSize else rawStart + inkSize
+        }
+
+        //首行，有缩进时， 重新校对 开始/结束位置
+        if (isFirstLine && firstLineIndent > 0f) {
+            val indentApplies =  when (lineEffAlign) {
+                CssTextAlign.CssTextAlignRight -> paragraphIsRtl
+                CssTextAlign.CssTextAlignLeft -> !paragraphIsRtl
+                else -> false
+            }
+            if (indentApplies) {
+                if (paragraphIsRtl) {
+                    rawEnd -= firstLineIndent
+                } else {
+                    rawStart += firstLineIndent
+                }
+            }
+        }
+
         val rawWidth = rawEnd - rawStart
 
         val effStart = rawStart + inkSize
@@ -675,27 +710,6 @@ object TextLayoutProvider {
 
         // ── Job 3: 锚点定位 + 溢出钳制 ， 左/右/居中共用 ──
         anchorLine(chars, lineEffAlign, lineIsRtl, rawStart, rawEnd, rawWidth, inkSize)
-
-        // ── Job 4: 首行缩进 ──
-        if (isFirstLine && firstLineIndent > 0f) {
-            val indentApplies = when (lineEffAlign) {
-                CssTextAlign.CssTextAlignCenter -> false
-                CssTextAlign.CssTextAlignRight -> paragraphIsRtl
-                CssTextAlign.CssTextAlignJustify -> true
-                CssTextAlign.CssTextAlignLeft -> !paragraphIsRtl
-                CssTextAlign.CssTextAlignUndefined -> false
-            }
-            if (indentApplies) {
-                applyFirstLineIndent(
-                    chars,
-                    firstLineIndent,
-                    paragraphIsRtl,
-                    effStart,
-                    effEnd,
-                    effWidth
-                )
-            }
-        }
     }
 
 
@@ -894,63 +908,6 @@ object TextLayoutProvider {
 
         if (shift != 0f) {
             textChars.forEach { it.start += shift; it.end += shift }
-        }
-    }
-
-    /**
-     * 首行缩进：从阅读起始边推入 effectiveIndent。
-     *  - baseRtl：整行左移（start/end -=），从 endX 缩进
-     *  - baseLtr：整行右移（start/end +=），从 startX 缩进
-     *
-     * 上限：effectiveIndent = minOf(firstLineIndent, boundsWidth - contentWidth)，满宽行得 0。
-     * 缩进后补一次起始边钳制（防 naturalMinStart 已近边界时左/右移越界，与历史 L3478-3484 一致）。
-     *
-     * ★ 必须在 anchorLine 之后执行（BUG-1）：否则长首行缩进后被 anchorLine 的越界钳制抵消。
-     */
-    private fun applyFirstLineIndent(
-        textChars: ArrayList<TextChar>,
-        firstLineIndent: Float,
-        paragraphIsRtl: Boolean,
-        boundsStartX: Float,
-        boundsEndX: Float,
-        boundsWidth: Float
-    ) {
-        if (textChars.isEmpty()) return
-
-        val contentLeft = textChars.minOf { it.start }
-        val contentRight = textChars.maxOf { it.end }
-        val contentWidth = contentRight - contentLeft
-
-        val effectiveIndent = minOf(firstLineIndent, (boundsWidth - contentWidth).coerceAtLeast(0f))
-        if (effectiveIndent <= 0f) return
-
-        if (paragraphIsRtl) {
-            // 整行左移（从右边缘缩进）
-            textChars.forEach {
-                it.start -= effectiveIndent
-                it.end -= effectiveIndent
-            }
-            // 左边界钳制
-            val afterMin = textChars.minOf { it.start }
-            if (afterMin < boundsStartX) {
-                val correction = boundsStartX - afterMin
-                textChars.forEach {
-                    it.start += correction
-                    it.end += correction
-                }
-            }
-        } else {
-            // 整行右移（从左边缘缩进）
-            textChars.forEach {
-                it.start += effectiveIndent
-                it.end += effectiveIndent
-            }
-            // 右边界钳制
-            val afterMax = textChars.maxOf { it.end }
-            if (afterMax > boundsEndX) {
-                val correction = afterMax - boundsEndX
-                textChars.forEach { it.start -= correction; it.end -= correction }
-            }
         }
     }
 
