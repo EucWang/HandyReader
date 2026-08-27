@@ -67,8 +67,9 @@ data class TextLine(
 
     /**
      * 行方向：true=RTL，false=LTR。
-     * 段落首行 = 段落基调（segDirect.baseRtl，TextLayoutProvider 初始化），
-     * 其余新建行 = 创建该行的 run 的 isRtl（!lineShared 新建行时赋值）。
+     * 新建行（!lineShared）恒 = 段落基调 segDirect.baseRtl（UAX#9：行的基方向恒为段落嵌入
+     * 方向；段落首行永不与前一段落共享 → 首行必为新建行）。run.isRtl 只决定 run 自身
+     * StaticLayout 的文本方向，不决定行方向。
      * 驱动 cursor 起点/推进、相邻摆放、对齐（anchorLine/justify/indent）、列表圆点锚定侧。
      * 默认 false（setNormalText 纯 LTR 路径不赋值，保持 LTR 语义）。
      */
@@ -112,13 +113,3 @@ data class TextLine(
     }
 
 }
-
-/***
- * 序列行的 锚点标记
- */
-data class LineDot(
-    var enable: Boolean = false,
-    var level: Int = 0,    //行是否前面显示列表符号， 圆点/方块/空心圆.. 大于0即有符号，1 标识1级列表； 2表现2级列表...
-    var anchorX: Float = Float.NaN,
-    var order:Int = 0,
-)

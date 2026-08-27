@@ -88,6 +88,7 @@ import com.wxn.bookread.data.model.preference.ReaderPreferences
 import com.wxn.bookread.data.model.visualSpan
 import com.wxn.bookread.provider.ChapterProvider
 import com.wxn.bookread.provider.ImageProvider
+import com.wxn.bookread.ui.ListDotRenderer
 import com.wxn.bookread.ui.RenderResources
 import com.wxn.bookread.ui.TextPageFactory
 import com.wxn.reader.presentation.mainReader.models.ScrollSnapshot
@@ -1206,32 +1207,7 @@ private fun drawTextChars(
         }
     }
 
-    if (textLine.lineDot?.enable == true && (textLine.lineDot?.level?:0) > 0) {
-        val lTop = textLine.lineTop
-        val lBottom = textLine.lineBottom
-        val lineRtl = textLine.isRtl
-
-        val rawAnchorX = textLine.lineDot?.anchorX ?: Float.NaN
-
-        val anchorX = if (!rawAnchorX.isNaN()) {
-            rawAnchorX
-        } else if (lineRtl) {
-            textLine.textChars.maxOfOrNull { it.end } ?: 0f
-        } else {
-            textLine.textChars.firstOrNull()?.start ?: 0f
-        }
-
-        val centerX = if (lineRtl) anchorX + 30f else anchorX - 30f
-        val centerY = (lTop + lBottom) / 2
-        if ((textLine.lineDot?.level?:0) % 2 == 1) {
-            canvas.drawCircle(centerX, centerY, 8.0f, RenderResources.listDotPaint)
-        } else {
-            canvas.drawRect(
-                centerX - 10f, centerY - 10f, centerX + 10f, centerY + 10f,
-                RenderResources.listDotPaint
-            )
-        }
-    }
+    ListDotRenderer.draw(canvas, textLine)
 
     textLine.textChars.forEachIndexed { index, ch ->
         var isHighlight = false

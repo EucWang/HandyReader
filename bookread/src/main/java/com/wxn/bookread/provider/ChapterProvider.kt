@@ -39,6 +39,7 @@ import com.wxn.bookread.data.source.local.ReadTipPreferencesUtil
 import com.wxn.bookread.data.source.local.ReaderPreferencesUtil
 import com.wxn.bookread.ext.dp
 import com.wxn.bookread.textHeight
+import com.wxn.bookread.ui.ListDotRenderer
 import com.wxn.bookread.ui.RenderResources
 import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.launch
@@ -639,6 +640,11 @@ object ChapterProvider {
         titleBottomSpacing = prefs.titleBottomSpacing.dp.toInt() ?: 0
 
         RenderResources.listDotPaint.color = prefs.textColor ?: Color.BLACK
+        RenderResources.listDotStrokePaint.color = prefs.textColor ?: Color.BLACK
+
+        RenderResources.listMarkerPaint.color = prefs.textColor ?: Color.BLACK
+        RenderResources.listMarkerPaint.textSize = contentPaint.textSize   // D-2 决策：1.0×（::marker 继承正文字号）
+        RenderResources.listMarkerPaint.typeface = contentPaint.typeface
 
         //更新屏幕参数
         upVisibleSize(context, prefs)
@@ -653,6 +659,10 @@ object ChapterProvider {
         imageStyles: String = "",
         chapterSize: Int,
     ): TextChapter? {
+
+        ListOrderCalculator.clear()
+        ListOrderCalculator.prescan(contents)
+
 //        Logger.d("ChapterProvider::getTextChapter::chapterIndex=[${chapter.chapterIndex}]," +
 //                "paddingHorizontal=$paddingHorizontal,paddingVertical=$paddingVertical," +
 //                "visibleWidth=$visibleWidth,visibleHeight=$visibleHeight," +
@@ -1257,11 +1267,16 @@ object ChapterProvider {
 
         var isListRow: Boolean = false
         var listLevel: Int = 0
+        var listOrder: Int = 0
+        var liTag : TextTag? = null
         isListRow = if (paragraph is ReaderText.Text) {
-            paragraph.annotations.firstOrNull { tag ->
+            liTag = paragraph.annotations.firstOrNull { tag ->
                 tag.name == "li"
-            } != null
+            }
+            listOrder = ListOrderCalculator.getLiOrder(liTag, paragraph.annotations)
+            liTag != null
         } else false
+
         if (isListRow) {
             if (paragraph is ReaderText.Text) {
                 listLevel = paragraph.annotations.filter { tag ->
@@ -1269,13 +1284,23 @@ object ChapterProvider {
                 }.size
 
                 if (listLevel > 0) {
-                    val lineHeight = textPaint.textHeight * lineSpacingExtra
+                    val containerWidth = if (dualColumnEnabled && columnWidth > 0) columnWidth else visibleWidth
+
+                    val orderLabelWidth = if (listOrder > 0) {
+                        val maxOrder = ListOrderCalculator.maxOrderOf(liTag, paragraph.annotations)
+                        RenderResources.listMarkerPaint.measureText(
+                            ListDotRenderer.orderedLabel(maxOrder, seg?.baseRtl == true))
+                    } else 0f
+
+                    val listIndent = ListDotRenderer.calcListIndent(listLevel, textPaint.textSize,
+                        containerWidth.toFloat(), orderLabelWidth)
+
                     // 列表缩进作用于阅读起始侧：RTL 段（走 RTL 引擎）加在右侧（为圆点预留空间），
                     // 其余（纯 LTR legacy / 混合 LTR 基调）维持左侧现状
                     if (!isPureLtr && seg?.baseRtl == true) {
-                        marginRight += listLevel * lineHeight
+                        marginRight += listIndent
                     } else {
-                        marginLeft += listLevel * lineHeight
+                        marginLeft += listIndent
                     }
                     Logger.d("ChapterProvider::list::level=$listLevel")
                 }
@@ -1371,6 +1396,7 @@ object ChapterProvider {
                     isTitle,
                     isListRow,
                     listLevel,
+                    listOrder,
                     paragraphIndex,
                     textAlign,
                     lineHeightParam,
@@ -1407,6 +1433,7 @@ object ChapterProvider {
                     isTitle,
                     isListRow,
                     listLevel,
+                    listOrder,
                     paragraphIndex,
                     textAlign,
                     lineHeightParam,
@@ -1429,6 +1456,7 @@ object ChapterProvider {
                     isTitle,
                     isListRow,
                     listLevel,
+                    listOrder,
                     paragraphIndex,
                     textAlign,
                     lineHeightParam,
@@ -2115,6 +2143,7 @@ object ChapterProvider {
         isTitle: Boolean,
         isListRow: Boolean,
         listLevel: Int,
+        listOrder: Int,
         paragraphIndex: Int,
         textAlign: CssTextAlign,
         lineHeightParam: Float,
@@ -2270,7 +2299,7 @@ object ChapterProvider {
             }
 
             if (lineIndex == 0 && isListRow && listLevel > 0) { //第一行，并且是列表
-                textLine.lineDot = LineDot(true, listLevel)
+                textLine.lineDot = LineDot(true, listLevel, order = listOrder)
             }
 
             stringBuilder.append(words)

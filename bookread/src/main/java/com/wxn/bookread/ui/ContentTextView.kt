@@ -607,35 +607,8 @@ class ContentTextView(context: Context, attrs: AttributeSet?) : View(context, at
             }
         }
 
-        // //绘制html列表前面的 圆点/方块
-        if (textLine.lineDot?.enable == true && (textLine.lineDot?.level?:0) > 0) {
-            val lTop = textLine.lineTop
-            val lBottom = textLine.lineBottom
-            val lineRtl = textLine.isRtl
-
-            val rawAnchorX = textLine.lineDot?.anchorX ?: Float.NaN
-            val anchorX = if (!rawAnchorX.isNaN()) {
-                rawAnchorX
-            } else if (lineRtl) {
-                textLine.textChars.maxOfOrNull { it.end } ?: 0f
-            } else {
-                textLine.textChars.firstOrNull()?.start ?: 0f
-            }
-            val centerX = if (lineRtl) anchorX + 30f else anchorX - 30f
-            val centerY = (lBottom + lTop) / 2;
-
-            if ((textLine.lineDot?.level?:0) % 2 == 1) {
-                canvas.drawCircle(centerX, centerY, 8.0f, RenderResources.listDotPaint)
-            } else {
-                canvas.drawRect(
-                    centerX - 10f,
-                    centerY - 10f,
-                    centerX + 10f,
-                    centerY + 10f,
-                    RenderResources.listDotPaint
-                )
-            }
-        }
+        //绘制html列表前面的 圆点/方块（垂直=字符带中心随基线，水平=层级槽位锚点；见 ListDotRenderer）
+        ListDotRenderer.draw(canvas, textLine, lineBase)
 
         var hightlightColor: String = "#FFFFFF00"
         var underlineColor: String = "#FF575757"

@@ -38,7 +38,7 @@ object TextLayoutProvider {
         textPaint: TextPaint,                 // setTypeText 已构建（含 typeface/italic/textSize）
         marginLeft: Float, marginRight: Float,
         firstLineIndent: Float,
-        isTitle: Boolean, isListRow: Boolean, listLevel: Int,
+        isTitle: Boolean, isListRow: Boolean, listLevel: Int, listOrder: Int = 0,
         paragraphIndex: Int,
         textAlign: CssTextAlign,
         lineHeightParam: Float,
@@ -261,6 +261,7 @@ object TextLayoutProvider {
                             isTitle,
                             isListRow,
                             listLevel,
+                            listOrder,
 
                             textAlign,
                             lineHeightParam,
@@ -321,6 +322,7 @@ object TextLayoutProvider {
         isTitle: Boolean,
         isListRow: Boolean,
         listLevel: Int,
+        listOrder: Int,
         textAlign: CssTextAlign,
         lineHeightParam: Float,
         textPages: ArrayList<TextPage>,
@@ -422,7 +424,7 @@ object TextLayoutProvider {
 
         // 列表符号：段落首行且为列表行
         if (isFirstLine && isListRow && listLevel > 0) {
-            textLine.lineDot = LineDot(true, listLevel)
+            textLine.lineDot = LineDot(true, listLevel, order = listOrder)
         }
 
         val charsBaseStart = textLine.textChars.size
@@ -674,6 +676,7 @@ object TextLayoutProvider {
 
         // 列表圆点锚点：钉在内容盒阅读起始侧（层级槽位），不随 text-align/text-indent 漂移（浏览器 outside marker 语义）
         if (textLine.lineDot?.enable == true && (textLine.lineDot?.level?:0) > 0) {
+            textLine.lineDot?.markerRtl = paragraphIsRtl
             textLine.lineDot?.anchorX =
                 if (paragraphIsRtl) rawEnd - inkSize else rawStart + inkSize
         }

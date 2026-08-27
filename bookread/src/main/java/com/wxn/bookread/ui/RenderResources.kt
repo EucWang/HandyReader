@@ -87,7 +87,17 @@ object RenderResources {
 
     val listDotPaint = Paint().apply {
         color = "#FF333333".toColorInt()
-        strokeWidth = 15f
+        isAntiAlias = true
+    }
+
+    val listDotStrokePaint = Paint().apply {
+        style = Paint.Style.STROKE
+        isAntiAlias = true
+    }
+
+    val listMarkerPaint = TextPaint().apply {
+        isAntiAlias = true
+        textAlign = Paint.Align.LEFT   // drawX 由渲染器自算，固定 LEFT 防外部污染
     }
 
     val underlinePaint = Paint().apply {
