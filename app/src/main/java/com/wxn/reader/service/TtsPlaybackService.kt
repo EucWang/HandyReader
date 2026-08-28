@@ -401,18 +401,31 @@ class TtsPlaybackService : MediaSessionService() {
         }
     }
 
+    private var isForegroundStarted = false
     private fun ensureForeground() {
+        if (isForegroundStarted) return
+
         val notif = buildNotification()
         notification = notif
 
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-            startForeground(
-                NOTIFICATION_ID,
-                notif,
-                ServiceInfo.FOREGROUND_SERVICE_TYPE_MEDIA_PLAYBACK
-            )
-        } else {
-            startForeground(NOTIFICATION_ID, notif)
+        try {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                startForeground(
+                    NOTIFICATION_ID,
+                    notif,
+                    ServiceInfo.FOREGROUND_SERVICE_TYPE_MEDIA_PLAYBACK
+                )
+            } else {
+                startForeground(NOTIFICATION_ID, notif)
+            }
+            isForegroundStarted = true
+        } catch( ex : Exception) {
+            // Android 12+：后台状态下 startForeground 会抛 ForegroundServiceStartNotAllowedException
+            // （进程被回收后经 START_STICKY 重启 / 应用已死时点击媒体通知拉起）。
+            // 此时无法作为前台服务运行，必须优雅停止，否则崩溃。
+            Logger.w("TtsPlaybackService: 后台无法启动前台服务，停止服务: ${ex.message}")
+            stopSelf()
+            isForegroundStarted = false
         }
     }
 

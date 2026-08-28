@@ -56,43 +56,57 @@ public class BaseTextToSpeechEngine implements TextToSpeechEngine {
             Logger.INSTANCE.d("BaseTextToSpeechEngine:mTextToSpeech is not null");
             return;
         }
-        mTextToSpeech = new TextToSpeech(context.getApplicationContext(), new TextToSpeech.OnInitListener() {
-            @Override
-            public void onInit(int status) {
-                Logger.INSTANCE.d("BaseTextToSpeechEngine:initTextToSpeech:onInit:status=" + status);
-                
-                if (status == TextToSpeech.SUCCESS) {
-                    // 检查请求的语言是否支持
-                    int languageAvailable = mTextToSpeech.setLanguage(mLocale);
-                    if (languageAvailable == TextToSpeech.LANG_MISSING_DATA || 
-                        languageAvailable == TextToSpeech.LANG_NOT_SUPPORTED) {
-                        Logger.INSTANCE.w("BaseTextToSpeechEngine: Language " + mLocale + " not available, falling back to default");
-                        // 尝试使用默认语言
-                        Locale defaultLocale = mTextToSpeech.getDefaultLanguage();
-                        if (defaultLocale != null) {
-                            mLocale = defaultLocale;
-                            mTextToSpeech.setLanguage(defaultLocale);
-                        }
-                    }
-                    
-                    mTtsProgressListener = new TtsProgressListener(context, mTtsCallbacks);
-                    mTextToSpeech.setOnUtteranceProgressListener(mTtsProgressListener);
-                    mTextToSpeech.setPitch(mTtsPitch);
-                    mTextToSpeech.setSpeechRate(mTtsRate);
+        mTextToSpeech = new TextToSpeech(context.getApplicationContext(), status -> onTtsInit(status, context));
+    }
 
-                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
-                        if (voice == null) {
-                            voice = mTextToSpeech.getDefaultVoice();
-                        }
+    void onTtsInit(int status, Context context) {
+        int finalStatus = status;
+        if (status == TextToSpeech.SUCCESS) {
+            // 检查请求的语言是否支持
+            int languageAvailable = mTextToSpeech.setLanguage(mLocale);
+            if (!isLanguageAvailable(languageAvailable)) {
+                Logger.INSTANCE.w("BaseTextToSpeechEngine: Language " + mLocale + " not available, falling back to default");
+                // 尝试使用默认语言
+                Locale defaultLocale = mTextToSpeech.getDefaultLanguage();
+                if (defaultLocale != null) {
+                    mLocale = defaultLocale;
+                    languageAvailable = mTextToSpeech.setLanguage(defaultLocale);
+                }
+            }
+
+            // 语言仍不可用 → 上报初始化失败，避免静默无声音
+            if (!isLanguageAvailable(languageAvailable)) {
+                Logger.INSTANCE.e("BaseTextToSpeechEngine: no available TTS language for " + mLocale);
+                finalStatus = TextToSpeech.ERROR;
+            } else {
+                mTtsProgressListener = new TtsProgressListener(context, mTtsCallbacks);
+                mTextToSpeech.setOnUtteranceProgressListener(mTtsProgressListener);
+                mTextToSpeech.setPitch(mTtsPitch);
+                mTextToSpeech.setSpeechRate(mTtsRate);
+
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+                    voice = resolveVoiceToApply(voice, mTextToSpeech.getDefaultVoice());
+                    if (voice != null) {
                         mTextToSpeech.setVoice(voice);
+                    } else {
+                        Logger.INSTANCE.w("BaseTextToSpeechEngine: default voice is null, skip setVoice; using engine default");
                     }
                 }
-                
-                mTttsInitListener.onInit(status);
             }
-        });
+        }
 
+        if (mTttsInitListener != null) {
+            mTttsInitListener.onInit(finalStatus);
+        }
+    }
 
+    static boolean isLanguageAvailable(int languageAvailable) {
+        return languageAvailable != TextToSpeech.LANG_MISSING_DATA
+                && languageAvailable != TextToSpeech.LANG_NOT_SUPPORTED;
+    }
+
+    static Voice resolveVoiceToApply(Voice currentVoice, Voice defaultVoice) {
+        return currentVoice != null ? currentVoice : defaultVoice;
     }
 
     @Override
@@ -226,9 +240,11 @@ public class BaseTextToSpeechEngine implements TextToSpeechEngine {
 
     @Override
     public int setVoice(Voice voice) {
-        this.voice = voice;
-        if (mTextToSpeech != null && Build.VERSION.SDK_INT >= 21) {
-            return mTextToSpeech.setVoice(voice);
+        if (voice != null) {
+            this.voice = voice;
+        }
+        if (mTextToSpeech != null && Build.VERSION.SDK_INT >= 21 && this.voice != null) {
+            return mTextToSpeech.setVoice(this.voice);
         } else {
             return TextToSpeech.ERROR;
         }
