@@ -48,7 +48,19 @@ public:
     static const std::string &MediaTypeNcx;       //ncx
     static const std::string &MediaTypeDat;            //data
 
-
+    /***
+     * 把根元素（html）与 body 的 dir 属性作为虚拟祖先标签注入每个 DocText.tagInfos 头部。
+     * html/body 自身不产生 TagInfo， 其 dir 声明会丢失（EPUB3 推荐在 html 元素声明整书基调）。
+     * 虚拟标签：name="__root__"（刻意不与任何真实标签同名——handle_tags 的 CSS 匹配
+     * 支持按 tag 名匹配元素选择器（epub_util.cpp:1416），若命名为 "body" 会使存量书中
+     * 本不生效的 body{margin/font-size/text-align…} 规则突然全书应用，属不可控回归；
+     * "__root__" 不可能命中任何 CSS 选择器）、startPos=endPos=0、parent_uuid=""、
+     * 取值：body 有 dir 用 body 的（近者），否则用 html 的；都无则直接返回。
+     * @param docTexts
+     * @param rootEle
+     */
+    static void inject_root_dir_tag(std::vector<DocText> &docTexts,
+                                    tinyxml2::XMLElement *rootEle);
 
     static std::string getEleText(const tinyxml2::XMLElement *elem);
 

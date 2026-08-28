@@ -181,5 +181,13 @@ public:
                                            const std::string &needle,
                                            size_t startPos,
                                            size_t endPos = std::string::npos);
+
+    /***
+     * 剥离最外层 XML CDATA 包裹标记 <![CDATA[ ... ]]>（大小写不敏感，成对才剥，只剥一层）。
+     * tidy 的 XML 输出(TidyXmlOut=yes)会给 <style> 内容加 CDATA 包裹，
+     * 源 XHTML 也可能自带；CSS 词法器遇 '<' 即终止，残留标记会导致整段规则静默丢失。
+     * @param text
+     */
+    static void removeCDataWrap(std::string &text);
 };
 #endif //SIMPLEREADER2_STRING_EXT_H

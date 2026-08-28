@@ -7,19 +7,27 @@ import com.wxn.bookread.jni.SheenBidiNative
 
 object RTLSegmenter {
 
-    fun segment(text: String) : SegmentResult {
+    fun segment(text: String, declaredRtl: Boolean? = null) : SegmentResult {
         if (text.isBlank()) {
-            return SegmentResult(TextDirection.LTR,
-                false,
+            return SegmentResult(
+                if (declaredRtl == true) TextDirection.RTL else TextDirection.LTR,
+                declaredRtl == true,
                 emptyList())
         }
 
-        val bidiParagraph = SheenBidiNative.bidiRuns(text, baseRtl = false)
+        val bidiParagraph =
+            if (declaredRtl != null) {
+                //强制基级方向
+                SheenBidiNative.bidiRunsExplicit(text, declaredRtl)
+            } else {
+                SheenBidiNative.bidiRuns(text, baseRtl = false)
+            }
+
         val runs = bidiParagraph.runs
         if (runs.isEmpty()) {
             return SegmentResult(
-                TextDirection.LTR,
-                false,
+                if (declaredRtl == true) TextDirection.RTL else TextDirection.LTR,
+                declaredRtl == true,
                 emptyList()
             )
         }

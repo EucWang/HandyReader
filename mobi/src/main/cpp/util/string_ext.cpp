@@ -953,3 +953,23 @@ size_t string_ext::findCaseInsensitive(const std::string &haystack,
     }
     return std::string::npos;
 }
+
+void string_ext::removeCDataWrap(std::string &text) {
+    static const std::string head = "<![CDATA[";
+    static const std::string tail = "]]>";
+
+    trim(text);
+    if (text.size() < head.size() + tail.size()) {
+        return;
+    }
+    size_t headPos = ci_find(text, head, 0);
+    size_t tailPos = ci_rfind(text, tail);
+    if (headPos != 0 || tailPos == std::string::npos ||
+        tailPos + tail.size() != text.size()) {
+        return;   // 非成对包裹形态：零操作（含“有头无尾”畸形——N5）
+    }
+
+    text.erase(tailPos);
+    text.erase(0, head.size());
+    trim(text);
+}

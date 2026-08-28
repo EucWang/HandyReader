@@ -97,7 +97,7 @@ object BookHelper {
         content1.forEach { content ->
             if (content is ReaderText.Text) {
                 content.parseTextCss()
-                content.segDirect = RTLSegmenter.segment(content.line)
+                content.segDirect = RTLSegmenter.segment(content.line, content.declaredBaseRtl)
             } else if (content is ReaderText.Chapter) {
                 content.segDirect = RTLSegmenter.segment(content.title)
             }

@@ -163,4 +163,79 @@ class RTLSegmenterInstrumentedTest {
         assertEquals("B5 失败: 混合段 runs 应保留", 2, seg.runs.size)
         println("B5 ★ 通过: LTR 基调混合段契约正确（列表圆点左侧场景的地基）")
     }
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // B6-B8: dir 声明继承（MIX-1 修复，docs/plans/2026-08-27-plan-rtl-dir-inheritance.md §6 V2）。
+    //   declaredRtl 参数 → SheenBidiNative.bidiRunsExplicit → JNI 以具体基级（0/1）创建段落，
+    //   SheenBidi 官方语义（SBAlgorithm.h:93-95）：baseLevel 为具体级别时 P2-P3 首强嗅探被忽略。
+    // ─────────────────────────────────────────────────────────────────────────
+
+    /**
+     * B6: segment("Hello world", declaredRtl = true) → baseRtl == true。
+     *     嗅探路径下此文本为 LTR（B4/B5 族）——显式声明覆盖的正面证明。
+     *     输出形态 = fast path 产物（direction==LTR && runs.isEmpty() && baseRtl==true），
+     *     这正是 C-K4（ChapterProvider isPureLtr 加 !seg.baseRtl 守卫）所堵漏洞的输入形态。
+     */
+    @Test
+    fun B6_explicitRtl_forcesLatinBase() {
+        val text = "Hello world"
+
+        val bidi = SheenBidiNative.bidiRunsExplicit(text, baseRtl = true)
+        println("B6: bidi = $bidi")
+        assertEquals("B6 失败: 显式 RTL 基级应原样取回，baseLevel=${bidi.baseLevel} 应为 1",
+            1, bidi.baseLevel)
+
+        val seg = RTLSegmenter.segment(text, declaredRtl = true)
+        println("B6: segment → direction=${seg.direction} baseRtl=${seg.baseRtl} runs=${seg.runs.size}")
+        assertTrue("B6 失败: declaredRtl=true 应强制 baseRtl（嗅探路径此文本为 LTR）",
+            seg.baseRtl)
+        assertEquals("B6 失败: 纯拉丁 run 均为视觉 LTR → fast path direction=LTR",
+            TextDirection.LTR, seg.direction)
+        assertTrue("B6 失败: 无 RTL run 应走 fast path（runs 清空），实际 ${seg.runs.size}",
+            seg.runs.isEmpty())
+        println("B6 ★ 通过: 显式 RTL 强制纯拉丁段基调（MIX-1 的 Hello/Chapter 1 列表项形态）")
+    }
+
+    /**
+     * B7: segment("مرحبا", declaredRtl = false) → baseRtl == false。
+     *     强制 LTR 纯阿语段（嗅探路径为 RTL 的反向证明）；
+     *     输出形态 direction==RTL && runs.isEmpty() && baseRtl==false（进 RTL 引擎合成）。
+     */
+    @Test
+    fun B7_explicitLtr_forcesArabicBase() {
+        val text = "مرحبا"
+
+        val bidi = SheenBidiNative.bidiRunsExplicit(text, baseRtl = false)
+        println("B7: bidi = $bidi")
+        assertEquals("B7 失败: 显式 LTR 基级应原样取回，baseLevel=${bidi.baseLevel} 应为 0",
+            0, bidi.baseLevel)
+
+        val seg = RTLSegmenter.segment(text, declaredRtl = false)
+        println("B7: segment → direction=${seg.direction} baseRtl=${seg.baseRtl} runs=${seg.runs.size}")
+        assertTrue("B7 失败: declaredRtl=false 应强制 baseRtl=false（嗅探路径此文本为 RTL）",
+            !seg.baseRtl)
+        assertEquals("B7 失败: 纯阿语 run 均为 RTL → fast path direction=RTL",
+            TextDirection.RTL, seg.direction)
+        assertTrue("B7 失败: 无 LTR run 应走 fast path（runs 清空），实际 ${seg.runs.size}",
+            seg.runs.isEmpty())
+        println("B7 ★ 通过: 显式 LTR 强制纯阿语段基调（A5 场景3 的地基）")
+    }
+
+    /**
+     * B8: segment("   ", declaredRtl = true) → direction==RTL && baseRtl==true。
+     *     空白段让位（C-K2c）：空白文本无强字符，嗅探恒 LTR；显式声明时按声明。
+     */
+    @Test
+    fun B8_blankText_explicitRtl() {
+        val seg = RTLSegmenter.segment("   ", declaredRtl = true)
+        println("B8: segment → direction=${seg.direction} baseRtl=${seg.baseRtl}")
+        assertEquals("B8 失败: 空白段 + 显式 RTL 应 direction=RTL", TextDirection.RTL, seg.direction)
+        assertTrue("B8 失败: 空白段 + 显式 RTL 应 baseRtl=true", seg.baseRtl)
+
+        // 对照：无声明时空白段维持旧契约（LTR 兜底）
+        val segLegacy = RTLSegmenter.segment("   ")
+        assertEquals("B8 失败: 空白段无声明应维持 LTR 兜底（零回归）", TextDirection.LTR, segLegacy.direction)
+        assertTrue("B8 失败: 空白段无声明应 baseRtl=false（零回归）", !segLegacy.baseRtl)
+        println("B8 ★ 通过: 空白段让位契约正确（显式声明生效 + 无声明零回归）")
+    }
 }

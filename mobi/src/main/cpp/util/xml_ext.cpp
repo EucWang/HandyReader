@@ -2028,3 +2028,30 @@ tinyxml2::XMLElement *xml_ext::firstChildEleWithTwoName(tinyxml2::XMLElement *el
     }
     return ele;
 }
+
+void xml_ext::inject_root_dir_tag(std::vector<DocText> &docTexts,
+                                  tinyxml2::XMLElement *rootEle) {
+    if (docTexts.empty() || rootEle == nullptr) {
+        return;
+    }
+    auto bodyEle = rootEle->FirstChildElement("body");
+    std::string dirVal = (bodyEle != nullptr) ? xml_ext::getEleAttr(bodyEle, "dir") : "";
+    if (dirVal.empty()) {
+        dirVal = xml_ext::getEleAttr(rootEle, "dir");   // body 无声明时回退 html 的
+    }
+    if (dirVal.empty()) {
+        return;                                         // 根级无声明，无需注入
+    }
+    TagInfo rootTag{string_ext::generate_uuid(),
+                    "",
+                    "__root__",
+                    0,
+                    0,
+                    "",
+                    "dir=" + dirVal};
+    for (auto &docText: docTexts) {
+        docText.tagInfos.insert(docText.tagInfos.begin(), rootTag);   // 头部 = 最浅祖先
+    }
+    LOGD("%s: injected __root__ dir=%s into %zu docTexts",
+         __func__, dirVal.c_str(), docTexts.size());
+}

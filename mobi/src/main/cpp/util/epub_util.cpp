@@ -210,6 +210,7 @@ int epub_util::renderSplitSegment(JNIEnv *env,
         std::string emptyAnchor, emptyEnd;
         std::string spineSrcCopy = spineSrc; // parse 要求非 const 引用
         xml_ext::parse(childEle, docTexts, emptyAnchor, emptyEnd, &flagAdd, spineSrcCopy);
+        xml_ext::inject_root_dir_tag(docTexts, localDoc.RootElement());
         if (!docTexts.empty()) {
             handle_tags(env, docTexts, cssInfos);
         }
@@ -1293,6 +1294,7 @@ int epub_util::getChapter(JNIEnv *env, long book_id,
         std::vector<TagInfo> tags;
         xml_ext::parse(childEle, docTexts, anchorId, endAnchorId, &flagAdd, spineSrc);
         LOGD("%s::parse done, docTexts.size = %zu", __func__, docTexts.size());
+        xml_ext::inject_root_dir_tag(docTexts, doc.RootElement());
 
         if (docTexts.empty() && anchorId.empty()) { //防止页面为空页面的补救措施
             auto eleRoot = doc.RootElement();

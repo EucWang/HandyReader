@@ -339,6 +339,7 @@ int html_util::getChapter(JNIEnv *env, long book_id, const char *path, NavPoint 
     std::string endAnchorId;
     xml_ext::parse(mainEle, docTexts, anchorId, endAnchorId, &flagAdd, spineSrc);
     LOGD("%s::parse done, docTexts.size = %zu", __func__, docTexts.size());
+    xml_ext::inject_root_dir_tag(docTexts, chapterDoc.RootElement());
     if (docTexts.empty() && anchorId.empty()) {
         auto eleRoot = chapterDoc.RootElement();
         if (eleRoot) {

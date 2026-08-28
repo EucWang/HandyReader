@@ -10,6 +10,11 @@
 #include <string>
 #include "css_info.h"
 #include <vector>
+#include <stack>
+#include <algorithm>
+#include <map>
+#include <set>
+#include <utility>
 
 class css_ext {
 public:

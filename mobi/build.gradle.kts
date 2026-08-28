@@ -71,4 +71,7 @@ dependencies {
     implementation(libs.material)
     implementation(project(":base"))
     implementation(libs.kotlinx.serialization.json)
+
+    androidTestImplementation(libs.androidx.junit)
+    androidTestImplementation("androidx.test:runner:1.6.2")
 }

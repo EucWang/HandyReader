@@ -1261,7 +1261,10 @@ object ChapterProvider {
         } else false
 
         val seg = paragraph.segDirect
-        val isPureLtr = seg == null || (seg.direction == TextDirection.LTR && seg.runs.isEmpty())
+        val isPureLtr = seg == null ||
+                (seg.direction == TextDirection.LTR &&
+                        seg.runs.isEmpty() &&
+                        !seg.baseRtl)
 
         //是否是列表，嵌套列表
 

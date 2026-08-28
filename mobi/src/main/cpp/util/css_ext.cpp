@@ -3,11 +3,6 @@
 //
 
 #include "css_ext.h"
-#include <stack>
-#include <algorithm>
-#include <map>
-#include <set>
-#include <utility>
 
 // v4.0: 不递归展开 selector 树,改用显式栈实现循环(避免栈溢出风险)
 // v4.0: 递归深度防御性上限(CSS 规范 selector 嵌套 ≤ 9 层,这里留足余量)
@@ -172,23 +167,33 @@ void css_ext::parse_css(std::string &css_data,
     if (css_data.empty()) {
         return;
     }
+    string_ext::removeCDataWrap(css_data);
+    if (css_data.empty()) {
+        return;
+    }
+
     future::CSSParser cssParser;
     bool ret = cssParser.parseByString(css_data);
-    if (ret) {
-        // v4.0.1: getSelectors 现返回 vector<(CSS 源码顺序),不再按指针地址排序
-        const std::vector<future::Selector *> &selectors = cssParser.getSelectors();
-        // v4.0:预留空间,避免多次 emplace_back 触发多次 reallocate
-        cssInfos.reserve(cssInfos.size() + selectors.size() * 2);
-        for (auto it = selectors.begin(); it != selectors.end(); it++) {
-            // 顶层 selector 的 ruleData 已被 CSSParser.cpp:170/178 set 过,
-            // 传空串作为初始 parentRuleData,emit_css_infos_iterative 内部会用 selector 自身的 ruleData
-            emit_css_infos_iterative(*it, std::string(), cssInfos);
-        }
+    const std::vector<future::Selector *> &selectors = cssParser.getSelectors();
+    if (!ret || selectors.empty()) {
+        // 非空输入产出零选择器＝整段规则被丢弃（词法错误/残留标记），必须留痕：
+        LOGW("parse_css: dropped all rules (ret=%d, css_size=%zu, head=[%.60s])",
+             ret ? 1 : 0, css_data.size(), css_data.c_str());
+        return;
+    }
+    // getSelectors 现返回 vector<(CSS 源码顺序),不再按指针地址排序
+    // 预留空间,避免多次 emplace_back 触发多次 reallocate
+    cssInfos.reserve(cssInfos.size() + selectors.size() * 2);
+    for (auto it = selectors.begin(); it != selectors.end(); it++) {
+        // 顶层 selector 的 ruleData 已被 CSSParser.cpp set 过,
+        // 传空串作为初始 parentRuleData,emit_css_infos_iterative 内部会用 selector 自身的 ruleData
+        emit_css_infos_iterative(*it, std::string(), cssInfos);
     }
     // v4.0:不在 parse_css 内部做 deduplicate
     // 原因:parse_css 单次 invoke() 会被多次累积调用(内联 <style> + 外链 <link> CSS),
     // 跨调用的 deduplicate 必须在 handle_tags 入口做(对累积后的完整 cssInfos 一次性去重)
-    // 同时移除原 LOGE("parse_css: ret=%d, ...") 调试日志
+    // (v4.0 曾同时移除 LOGE 调试日志;2026-08-28 CDATA-1 起 LOGW 以"仅零选择器失败告警"
+    //  形态回归,与被移除的"每次成功也打印"调试日志不同)
 }
 
 /****

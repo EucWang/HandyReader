@@ -127,6 +127,23 @@ data class TextCssInfo(
 @Immutable
 sealed class ReaderText {
 
+    companion object {
+        /** 块级容器白名单：基调声明的有效设置点。
+         *  内联标签（span/em/a/…）上的 dir 是 isolate 语义（影响片段内部顺序），
+         *  不升格为段落基调——按 HTML 规范只认块级祖先与段落自身标签。
+         *  "__root__" 为解析层注入的虚拟根标签（html/body 级声明的载体）。
+         **/
+        private val BLOCK_CONTEXT_TAGS = setOf(
+            "__root__",
+            "html", "body", "div", "p", "h1", "h2", "h3", "h4", "h5", "h6",
+            "ul", "ol", "li", "dl", "dt", "dd",
+            "table", "thead", "tbody", "tfoot", "tr", "td", "th", "caption",
+            "blockquote", "pre", "section", "main", "article", "aside", "nav",
+            "header", "footer", "figure", "figcaption", "address",
+            "details", "summary", "fieldset", "form", "center"
+        )
+    }
+
     /****
      * 章节
      */
@@ -497,6 +514,45 @@ sealed class ReaderText {
             this.textCssInfo = parsedCss
             this.inlineStyles = innerStyleList
         }
+
+        /** 块级祖先链（含自身标签）上最近一次显式方向声明（W3C：声明 > 嗅探）。
+         *  三态：true=显式 RTL；false=显式 LTR；null=无声明（首强嗅探）。
+         *  规则：annotations 按文档序（浅→深，C++ tags 先序 push + get_fathers_tags 保序输出
+         *        + JNI 透传保序，三级保证），倒序遍历即最近声明优先；
+         *        同一标签内 内联 style 的 direction > CSS 规则 direction > HTML dir
+         *        （CSS 级联：inline > 作者规则 > presentation hint）；
+         *        dir="auto" 显式选择嗅探并阻断继续向外层找；未知值（如 HTML4 废弃的 lro/rlo）
+         *        视同该标签无声明，继续向外层找。
+         *  计算属性（无缓存）：段落级有效方向由 segDirect.baseRtl 承载（disposeContent 融合后），
+         *  本属性仅在方向判定入口消费一次，避免双真相源。
+         **/
+        val declaredBaseRtl: Boolean?
+            get() {
+                for (tag in annotations.asReversed()) {
+                    if (tag.name.lowercase() !in BLOCK_CONTEXT_TAGS) continue
+                    val kv = tag.paramsPairs().toMap()
+                    // 内联 style（ele_params 原样拼整串 "style=direction:rtl;color:…"，此处解析
+                    for (decl in kv["style"].orEmpty().split(";")) {
+                        val prop = decl.trim().lowercase()
+                        when {
+                            prop.startsWith("direction:rtl") -> return true
+                            prop.startsWith("direction:ltr") -> return false
+                        }
+                    }
+                    // CSS 规则（apply_css_to_params 以属性名 direction= 合并进 params）
+                    when (kv["direction"]?.trim()?.lowercase()) {
+                        "rtl" -> return true
+                        "ltr" -> return false
+                    }
+                    // HTML dir 属性
+                    when (kv["dir"]?.trim()?.lowercase()) {
+                        "rtl" -> return true
+                        "ltr" -> return false
+                        "auto" -> return null                // 阻断：显式 auto 不再继承外层
+                    }
+                }
+                return null
+            }
 
         companion object {
             /** F1:子区间字号倍数 clamp 范围,防御损坏 EPUB(0.5em ~ 5.0em) */
