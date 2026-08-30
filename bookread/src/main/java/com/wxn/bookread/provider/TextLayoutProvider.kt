@@ -15,6 +15,10 @@ import com.wxn.bookread.data.model.LineDot
 import com.wxn.bookread.data.model.TextChar
 import com.wxn.bookread.data.model.TextLine
 import com.wxn.bookread.data.model.TextPage
+import com.wxn.bookread.data.model.isTrimableWs
+import com.wxn.bookread.ext.isCjkCode
+import com.wxn.bookread.ext.isConnectedScriptCode
+import com.wxn.bookread.ext.isWordChar
 import com.wxn.bookread.provider.ChapterProvider.dualColumnEnabled
 import com.wxn.bookread.provider.ChapterProvider.lineSpacingExtra
 import com.wxn.bookread.provider.ChapterProvider.paddingVertical
@@ -210,8 +214,8 @@ object TextLayoutProvider {
                     //   词宽于整列（AR-I 超长 URL）时重建后仍会在整行宽下按既有策略处理，无循环。
                     val line0End = layout.getLineEnd(0)
                     val line0MidWord = line0End < runText.length &&
-                            isWordChar(runText[line0End - 1]) &&
-                            isWordChar(runText[line0End])
+                            runText[line0End - 1].isWordChar() &&
+                            runText[line0End].isWordChar()
                     if (sharedLine && layout.lineCount > 0 &&
                         (layout.getLineWidth(0) > firstLineWidth + 1f ||
                                 line0MidWord)) {
@@ -287,12 +291,17 @@ object TextLayoutProvider {
             }
         }
 
+        // N2: 段落收尾补 "\n"——与旧引擎 page.text 语义对齐：段界可读（TalkBack 不连读）、
+        // pageLengths 基数一致。空段在上游 setTypeText:1095 早退、不进本函数，不会重复补。
+        stringBuilder.append("\n")
+
         for ((i, rec) in paragraphLines.withIndex()) {
             postProcessRtlLine(
                 textLine = rec.line,
                 bounds = rec.bounds,
                 textAlign = effAlign,
                 paragraphIsRtl = segDirect.baseRtl,
+                anchorIsRtl = segDirect.anchorBaseRtl,
                 lineIsRtl = rec.line.isRtl,
                 firstLineIndent = firstLineIndent,
                 isFirstLine = rec.isFirstLine,
@@ -402,14 +411,8 @@ object TextLayoutProvider {
         // ── 获取/创建 TextLine ──
         val textLine = if (sharedLine) {
             val lastLine = textPages.last().textLines.last()  // append 到共享行
-            // ★ 图片创建的共享行修正 charStartOffset：
-            //   消费端 offset = rawIndex + charStartOffset（forEachIndexed 的 index 含图片下标位、
-            //   isImage 在循环体内跳过渲染但不重新编号）。图片占 textChars[0..n-1] 下标位，
-            //   把后续文本顶偏 n 位，故 charStartOffset 须扣 n（= 此时 textChars 里的图片数）。
-            //   条件用 all { it.isImage }：覆盖单图/多图；Run→Run 共享行（existing 含文本）不触发。
-            if (lastLine.textChars.isNotEmpty() && lastLine.textChars.all { it.isImage }) {
-                lastLine.charStartOffset = paragraphCharStartOffset - lastLine.textChars.size
-            }
+            // 图片 TextChar 只占数组位、不占文本位（消费端以 textIndexAt 口径换算），
+            // charStartOffset 恒为原始段内文本偏移，不做图片数修正（方案 M2-③ 统一坐标约定）。
             lastLine
         } else {
             TextLine(
@@ -649,6 +652,7 @@ object TextLayoutProvider {
         bounds: LayoutBounds,
         textAlign: CssTextAlign,
         paragraphIsRtl: Boolean,
+        anchorIsRtl: Boolean,
         lineIsRtl: Boolean,
         firstLineIndent: Float,    // ④ 首行缩进
         isFirstLine: Boolean,      // ①②④ 判定（processMixedLine 已有 :146 传入的 isFirstLine 形参）
@@ -662,7 +666,7 @@ object TextLayoutProvider {
             return
         }
 
-        // Justify 首/末行退化为起始边对齐（与 LTR setNormalText:2184-2217 一致：justify 边缘行走 Left）
+        // Justify 首/末行退化为起始边对齐
         val lineEffAlign = when {
             textAlign == CssTextAlign.CssTextAlignJustify && (isFirstLine || isLastLine) ->
                 if (paragraphIsRtl) CssTextAlign.CssTextAlignRight else CssTextAlign.CssTextAlignLeft
@@ -676,9 +680,9 @@ object TextLayoutProvider {
 
         // 列表圆点锚点：钉在内容盒阅读起始侧（层级槽位），不随 text-align/text-indent 漂移（浏览器 outside marker 语义）
         if (textLine.lineDot?.enable == true && (textLine.lineDot?.level?:0) > 0) {
-            textLine.lineDot?.markerRtl = paragraphIsRtl
+            textLine.lineDot?.markerRtl = anchorIsRtl
             textLine.lineDot?.anchorX =
-                if (paragraphIsRtl) rawEnd - inkSize else rawStart + inkSize
+                if (anchorIsRtl) rawEnd - inkSize else rawStart + inkSize
         }
 
         //首行，有缩进时， 重新校对 开始/结束位置
@@ -717,14 +721,11 @@ object TextLayoutProvider {
 
 
     /***
-     * 两端对齐， 拉开词间距
-     *  * 两端对齐：contentWidth < boundsWidth 时，把 (boundsWidth - contentWidth) 均摊到词间 gap。
-     *  * 按 renderGroup 分词；词内字符只平移不改宽度（保 HarfBuzz 连写形态）。
-     *  * 方向感知（D4）：baseRtl 从 endX 向左分配；baseLtr 从 startX 向右分配。
-     *  * 守卫：
-     *  *  - gapCount > 0（单词行不 justify，防除零）
-     *  *  - gapWidth > 0（contentWidth >= boundsWidth 时 gapWidth <= 0，跳过——不压缩，那是 exceedRtl 的活）
-     *  *  - gapWidth <= maxGapWidth（= 0.5 字号；防止短行极端拉伸，阿拉伯文常见词间距约 1/4 字号）
+     * 两端对齐：按 [JustifyChecker] 的决策分发执行。
+     *  - SKIP：不处理（anchorLine Justify 兜底 = 起始边对齐）
+     *  - WORD_DISTRIBUTE：现状按词（renderGroup）整组平移，几何与历史位图级一致
+     *  - CHAR_DISTRIBUTE：CJK 逐字拉开（现状语义，预算剔除首尾空白）
+     *  - HYBRID：词距封顶 0.5em + 组内字距摊入（长词提前断行的满行）
      */
     private fun justifyLine(
         chars: ArrayList<TextChar>,
@@ -734,42 +735,184 @@ object TextLayoutProvider {
         textSize: Float,
         lineIsRtl: Boolean
     ) {
-        //按照renderGroup分组，得到多少个词，CJK每个字就是一个词
-        val words = chars.groupBy { it.renderGroup }.values.toList()
+//        //按照renderGroup分组，得到多少个词，CJK每个字就是一个词
+//        val words = chars.groupBy { it.renderGroup }.values.toList()
+//
+//        if (words.size > 1) {
+//            //有多少个间隔
+//            val gapCount = words.size - 1
+//
+//            if (gapCount <= 0) return   // 单词行不 justify
+//
+//            val contentWidth = words.sumOf { w ->
+//                (w.maxOf { it.end } - w.minOf { it.start }).toDouble()
+//            }.toFloat()
+//            val gapWidth = (boundsWidth - contentWidth) / gapCount
+//            val maxGapWidth = textSize * 0.5f
+//
+//            if (gapWidth <= 0f || gapWidth > maxGapWidth) return   // 超宽/极端拉伸 → 跳过
+//
+//            distributeWords(words, boundsStartX, boundsEndX, gapWidth, lineIsRtl)
+//        } else {
+//            // CJK（整行 1 个 renderGroup，无空格）→ 逐字拉开
+//            val charWords = chars.map { listOf(it) }   // 每个 char 独立成"词"，复用 distributeWords
+//
+//            //有多少个间隔
+//            val gapCount = charWords.size - 1
+//
+//            if (gapCount <= 0) return   // 单词行不 justify
+//
+//            val contentWidth = charWords.sumOf { w ->
+//                (w.maxOf { it.end } - w.minOf { it.start }).toDouble()
+//            }.toFloat()
+//            val gapWidth = (boundsWidth - contentWidth) / gapCount
+//            val maxGapWidth = textSize * 0.25f
+//
+//            if (gapWidth <= 0f || gapWidth > maxGapWidth) return   // 超宽/极端拉伸 → 跳过
+//
+//            distributeWords(charWords, boundsStartX, boundsEndX, gapWidth, lineIsRtl)
+//        }
+        val plan = JustifyChecker.resolveJustifyPlan(chars, boundsWidth, textSize)
+        when (plan.mode) {
+            JustifyPlan.Mode.SKIP -> return
 
-        if (words.size > 1) {
-            //有多少个间隔
-            val gapCount = words.size - 1
+            JustifyPlan.Mode.WORD_DISTRIBUTE -> distributeWords(
+                chars.groupBy { it.renderGroup }.values.toList(),
+                boundsStartX,
+                boundsEndX,
+                plan.wordGap,
+                lineIsRtl
+            )
 
-            if (gapCount <= 0) return   // 单词行不 justify
+            JustifyPlan.Mode.CHAR_DISTRIBUTE -> distributeJustifyChars(
+                chars,
+                plan.wordGap,
+                0f,
+                boundsStartX,
+                boundsEndX,
+                lineIsRtl,
+                hybridGroups = false
+            )
 
-            val contentWidth = words.sumOf { w ->
-                (w.maxOf { it.end } - w.minOf { it.start }).toDouble()
-            }.toFloat()
-            val gapWidth = (boundsWidth - contentWidth) / gapCount
-            val maxGapWidth = textSize * 0.5f
+            JustifyPlan.Mode.HYBRID -> distributeJustifyChars(
+                chars,
+                plan.wordGap,
+                plan.perChar,
+                boundsStartX,
+                boundsEndX,
+                lineIsRtl,
+                hybridGroups = true
+            )
+        }
+    }
 
-            if (gapWidth <= 0f || gapWidth > maxGapWidth) return   // 超宽/极端拉伸 → 跳过
+    /**
+     * 线性重排执行器（CHAR_DISTRIBUTE / HYBRID 共用）：按阅读序逐字定位。
+     *  - 相邻对间距：同组 → perChar（HYBRID）；跨组（或 hybridGroups=false 全部对）→ wordGap；
+     *  - 首尾空白不参与间距预算：在盒内端部分配等宽「贴附带」占位
+     *    （行首空白带 [startX, startX+headWs]、行尾空白带 [endX-tailWs, endX]，RTL 镜像），
+     *    与 WORD 路径「行尾空格在盒内」惯例一致，全部坐标不出 [startX, endX]；
+     *  - 不变量 C1：先存 origWidth，平移 end 再回推 start，字符宽度严格不变；
+     *  - 前置：chars 不含图片字符（resolveJustifyPlan 已把图片行走现状守卫）。
+     * 恒等式：headWs + Σ(合格字符宽) + within×perChar + across×wordGap + tailWs = boundsEndX − boundsStartX
+     * internal：纯 Kotlin 几何（无 Android API），bookread/src/test JVM 直测坐标。
+     */
+    internal fun distributeJustifyChars(
+        chars: List<TextChar>,
+        wordGap: Float,
+        perChar: Float,
+        boundsStartX: Float,
+        boundsEndX: Float,
+        lineIsRtl: Boolean,
+        hybridGroups: Boolean
+    ) {
+        val n = chars.size
+        if (n == 0) return
 
-            distributeWords(words, boundsStartX, boundsEndX, gapWidth, lineIsRtl)
+        // 行首/行尾空白 run（剔除口径）
+        var firstEligible = 0
+        while (firstEligible < n && chars[firstEligible].isTrimableWs()) {
+            firstEligible++
+        }
+        var lastEligible = n - 1
+        while (lastEligible >= firstEligible && chars[lastEligible].isTrimableWs()) {
+            lastEligible--
+        }
+        if (firstEligible > lastEligible) {
+            return //空白行，跳过
+        }
+        var headWs = 0f
+        var tailWs = 0f
+        for (i in 0 until firstEligible) {
+            headWs += chars[i].end - chars[i].start
+        }
+        for (i in lastEligible + 1 until n) {
+            tailWs += chars[i].end - chars[i].start
+        }
+
+        //根据方向，逐字符/逐个单词的移动位置
+        val dir = if (lineIsRtl) -1f else 1f
+        var cursor = if (lineIsRtl) {
+            boundsEndX - headWs
         } else {
-            // CJK（整行 1 个 renderGroup，无空格）→ 逐字拉开
-            val charWords = chars.map { listOf(it) }   // 每个 char 独立成"词"，复用 distributeWords
+            boundsStartX + headWs
+        }
+        for (i in firstEligible..lastEligible) {
+            val ch = chars[i]
+            if (i > firstEligible) {
+                val spacing = if (hybridGroups && chars[i - 1].renderGroup == ch.renderGroup) {
+                    perChar
+                } else {
+                    wordGap
+                }
+                cursor += dir * spacing
+            }
+            val origWidth = ch.end - ch.start
+            if (lineIsRtl) {
+                ch.end = cursor
+                ch.start = ch.end - origWidth
+            } else {
+                ch.start = cursor
+                ch.end = ch.start + origWidth
+            }
+            cursor += dir * origWidth
+        }
 
-            //有多少个间隔
-            val gapCount = charWords.size - 1
-
-            if (gapCount <= 0) return   // 单词行不 justify
-
-            val contentWidth = charWords.sumOf { w ->
-                (w.maxOf { it.end } - w.minOf { it.start }).toDouble()
-            }.toFloat()
-            val gapWidth = (boundsWidth - contentWidth) / gapCount
-            val maxGapWidth = textSize * 0.25f
-
-            if (gapWidth <= 0f || gapWidth > maxGapWidth) return   // 超宽/极端拉伸 → 跳过
-
-            distributeWords(charWords, boundsStartX, boundsEndX, gapWidth, lineIsRtl)
+        //首空白贴附带：从内缘向外
+        var edge = if (lineIsRtl) {
+            boundsEndX - headWs
+        } else {
+            boundsStartX + headWs
+        }
+        for (i in firstEligible - 1 downTo 0) {
+            val w = chars[i].end - chars[i].start
+            if (lineIsRtl) {
+                chars[i].start = edge
+                chars[i].end = edge + w
+                edge += w
+            } else {
+                chars[i].end = edge
+                chars[i].start = edge - w
+                edge -= w
+            }
+        }
+        // 尾空白贴附带：从内缘向外
+        edge = if (lineIsRtl) {
+            boundsStartX + tailWs
+        } else {
+            boundsEndX - tailWs
+        }
+        for (i in lastEligible + 1 until n) {
+            val w = chars[i].end - chars[i].start
+            if (lineIsRtl) {
+                chars[i].end = edge
+                chars[i].start = edge - w
+                edge -= w
+            } else {
+                chars[i].start = edge
+                chars[i].end = edge + w
+                edge += w
+            }
         }
     }
 
@@ -1098,19 +1241,4 @@ object TextLayoutProvider {
         return ImageLayoutResult(targetBounds, targetY + actualLineHeight,
             if (lineIsRtl) newImgLeft else newImgRight)
     }
-
-    /** 词内字符判定：字母且非 CJK（CJK 字符间是合法断点，不算词内截断）。
-     *  不能用 Character.UnicodeScript——整个类 API 24 才有（lint 数据库 since=24），
-     *  minSdk 23 真机会 NoClassDefFoundError，故用码点区间判定。 */
-    private fun isWordChar(ch: Char) : Boolean {
-        if (!ch.isLetter()) return false
-        val code = ch.code
-        return !(code in 0x2E80..0x9FFF ||    // CJK 部首/符号/注音/假名/汉字（含 Ext A）
-                code in 0xAC00..0xD7FF ||     // 谚文音节 + 谚文扩展
-                code in 0x1100..0x11FF ||     // 谚文字母 Jamo
-                code in 0xA960..0xA97F ||     // 谚文扩展 A
-                code in 0xF900..0xFAFF ||     // CJK 兼容表意文字
-                code in 0xFF66..0xFF9D)       // 半角片假名
-    }
-
 }

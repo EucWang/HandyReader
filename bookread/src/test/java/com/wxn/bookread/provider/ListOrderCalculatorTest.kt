@@ -137,4 +137,100 @@ class ListOrderCalculatorTest {
             ListDotRenderer.calcListIndent(2, 48f, 1000f, 0f), 0.001f
         )
     }
+
+    // ------------------------------------------------------------
+    // T1~T4：findOwnLi 选取规则（plan §5.1，嵌套 ol 序号扁平化修复回归，
+    // docs/plans/2026-08-30-plan-nested-ordered-list-own-li-selection-fix.md）
+    // fixture 链形状与诊断测试 NestedListChainDiagInstrumentedTest 真机输出同构：
+    // 注解链 = [祖先链…, 自身 li]（DFS 先序，祖先 li 在前、自身 li 在链尾）
+    // ------------------------------------------------------------
+
+    @Test
+    fun t1_findOwnLi_chainShapeMatrix() {
+        val body = tag("bd", "body")
+        val o1 = tag("o1", "ol")
+        val l1 = liOf("l1", o1)
+        val o2 = tag("o2", "ol", parent = l1.uuid)
+        val l2 = liOf("l2", o2)
+
+        // 嵌套子项链：祖先 li 在前、自身 li 在链尾 → 取链尾（修复前 firstOrNull 命中祖先 li）
+        assertEquals(l2, ListOrderCalculator.findOwnLi(listOf(body, o1, l1, o2, l2)))
+        // 单层列表：唯一 li 即自身
+        assertEquals(l1, ListOrderCalculator.findOwnLi(listOf(body, o1, l1)))
+        // li 内块级子元素段落（<li><p>…）：链尾 li = 包裹 li，序号归包裹 li
+        val pTag = tag("p1", "p", parent = l1.uuid)
+        assertEquals(l1, ListOrderCalculator.findOwnLi(listOf(o1, l1, pTag)))
+        // 无 li / 空链 → null
+        assertEquals(null, ListOrderCalculator.findOwnLi(listOf(body, o1)))
+        assertEquals(null, ListOrderCalculator.findOwnLi(emptyList()))
+    }
+
+    @Test
+    fun t2_nestedOl_realChain_orderSequence_andMaxes() {
+        val body = tag("bd", "body")
+        val o1 = tag("o1", "ol")
+        val l1 = liOf("l1", o1)                       // 外层第 1 项
+        val o2 = tag("o2", "ol", parent = l1.uuid)    // 内层 ol（嵌在 l1 内）
+        val s1 = liOf("s1", o2)                       // 子项 1
+        val s2 = liOf("s2", o2)                       // 子项 2
+        val l2 = liOf("l2", o1)                       // 外层第 2 项
+
+        // 段落注解链（同真实解析输出：同一祖先 li 实例复用于子项链）
+        val main1 = textPara(body, o1, l1)
+        val sub1 = textPara(body, o1, l1, o2, s1)
+        val sub2 = textPara(body, o1, l1, o2, s2)
+        val main2 = textPara(body, o1, l2)
+        val contents = listOf(main1, sub1, sub2, main2)
+
+        // prescan 与排版期同走 findOwnLi（OL-U4 同源性质）
+        ListOrderCalculator.prescan(contents)
+        val orders = contents.map { p ->
+            ListOrderCalculator.getLiOrder(ListOrderCalculator.findOwnLi(p.annotations), p.annotations)
+        }
+        // 修复前（firstOrNull 命中祖先 li → 计数挂外层 ol）：1,2,3,4 扁平
+        assertEquals("嵌套 ol 应按列表独立计数 1,(1,2),2", listOf(1, 1, 2, 2), orders)
+
+        // maxOrder 按所属列表取值：外层 ol=2、内层 ol=2（修复前外层被推高到 4）
+        assertEquals(2, ListOrderCalculator.maxOrderOf(l1, listOf(body, o1, l1)))
+        assertEquals(2, ListOrderCalculator.maxOrderOf(s1, sub1.annotations))
+    }
+
+    @Test
+    fun t3_valueAttribute_attributionToOwnLi() {
+        val o1 = tag("o1", "ol")
+        val l1 = liOf("l1", o1, params = "value=10")   // 外层项带 value=10
+        val o2 = tag("o2", "ol", parent = l1.uuid)
+        val s1 = liOf("s1", o2)                        // 子项自身无 value
+
+        // 子项不得继承祖先 li 的 value：内层独立从 1 起计数
+        // （修复前 firstOrNull 命中祖先 l1 → 误读其 value=10）
+        val subChain = listOf(o1, l1, o2, s1)
+        assertEquals("祖先 li 的 value 不得影响子项",
+            1, ListOrderCalculator.getLiOrder(ListOrderCalculator.findOwnLi(subChain), subChain))
+
+        // 自身 li 的 value 正常生效并延续（语义与 OL-U3 一致，经 findOwnLi 选取）
+        val l2 = liOf("l2", o1)
+        val l3 = liOf("l3", o1)
+        val m1 = listOf(o1, l1)
+        val m2 = listOf(o1, l2)
+        val m3 = listOf(o1, l3)
+        assertEquals(10, ListOrderCalculator.getLiOrder(ListOrderCalculator.findOwnLi(m1), m1))
+        assertEquals(11, ListOrderCalculator.getLiOrder(ListOrderCalculator.findOwnLi(m2), m2))
+        assertEquals(12, ListOrderCalculator.getLiOrder(ListOrderCalculator.findOwnLi(m3), m3))
+    }
+
+    @Test
+    fun t4_ulParent_andOrphanLi_stayZero() {
+        // ul 父级：非有序列表，恒 0（走形状符号）
+        val u1 = tag("u1", "ul")
+        val lu = liOf("lu", u1)
+        val uChain = listOf(u1, lu)
+        assertEquals(0, ListOrderCalculator.getLiOrder(ListOrderCalculator.findOwnLi(uChain), uChain))
+
+        // 孤儿 li（parentUuid 空）：findOwnLi 仍选中，getLiOrder 兜底 0
+        val orphan = tag("lo", "li")
+        val oChain = listOf(orphan)
+        assertEquals(orphan, ListOrderCalculator.findOwnLi(oChain))
+        assertEquals(0, ListOrderCalculator.getLiOrder(ListOrderCalculator.findOwnLi(oChain), oChain))
+    }
 }

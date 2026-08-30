@@ -652,14 +652,15 @@ private fun checkTagInLineRect(
     var endIdx = -1
 
     if (tag.start >= line.charStartOffset && tag.start <= line.charEndOffset) {
-        startIdx = tag.start - line.charStartOffset
+        // 文本口径 → 数组口径（图片占数组位不占文本位，M2-③）
+        startIdx = line.arrayIndexAt(tag.start - line.charStartOffset)
     } else if (tag.start < line.charStartOffset) {
         startIdx = 0
     }
     Logger.d("ContinuousScrollReaderView::checkTagInLineRect:startIdx=$startIdx")
 
     if (tag.end >= line.charStartOffset && tag.end <= line.charEndOffset) {
-        endIdx = tag.end - line.charStartOffset
+        endIdx = line.arrayIndexAt(tag.end - line.charStartOffset)
     } else if (tag.end > line.charEndOffset) {
         endIdx = line.textChars.size - 1
     }
@@ -733,7 +734,7 @@ private fun highlightAnnotationAndGetRect(
         if (matchingTags.isEmpty()) continue
 
         for ((idx, ch) in line.textChars.withIndex()) {
-            val charOffset = line.charStartOffset + idx
+            val charOffset = line.charStartOffset + line.textIndexAt(idx)
             val inRange = matchingTags.any { tag ->
                 charOffset >= tag.start && charOffset < tag.end
             }
@@ -1059,7 +1060,7 @@ private fun drawSelectionBackgrounds(
 
             val (start, end) = line.textChars.visualSpan { i ->
                 ContinuousPageProvider.isOffsetInTextSelection(
-                    locator, line.paragraphIndex, i + line.charStartOffset
+                    locator, line.paragraphIndex, line.textIndexAt(i) + line.charStartOffset
                 )
             } ?: continue
             canvas.drawRect(start, line.lineTop, end, line.lineBottom, selectedPaint)
@@ -1209,11 +1210,16 @@ private fun drawTextChars(
 
     ListDotRenderer.draw(canvas, textLine)
 
+    var textOnlyIdx = 0
     textLine.textChars.forEachIndexed { index, ch ->
         var isHighlight = false
         var isBold = false
         var isSmall = false
-        val charIndex = textLine.charStartOffset + index
+        // 文本口径下标（图片占数组位、不占文本位，M2-③）：标签/inlineStyle 匹配专用；
+        // ShapedRunBuffer 相邻探测（index+1）仍用数组口径 index。
+        val textIdx = textOnlyIdx
+        if (!ch.isImage) textOnlyIdx++
+        val charIndex = textLine.charStartOffset + textIdx
 
         val parentPaint = if (defaultTextPaint != null) defaultTextPaint else {
             val texttag = if (textTags.size == 1) {
@@ -1262,7 +1268,7 @@ private fun drawTextChars(
 
         RenderResources.drawingPaint.set(parentPaint)
         val resolved = if (!isTitle && !ch.isImage && !textLine.isTableCell) {
-            val charOffsetInParagraph = textLine.charStartOffset + index
+            val charOffsetInParagraph = textLine.charStartOffset + textIdx
             InlineStyle.resolve(inlineStyles, charOffsetInParagraph)
         } else {
             InlineCssProps()
@@ -1461,10 +1467,11 @@ private fun selectWordAtChar(hitResult: HitResult): SelectionResult? {
         screenEndX = endChar.end,
         screenEndY = itemOffset + endLine.lineBottom,
         paragraphIndex = targetParagraphIndex,
-        startInnerTextOffset = startLine.charStartOffset + startInfo.charIdx,
-        endInnerTextOffset = endLine.charStartOffset + endInfo.charIdx,
+        // 文本口径（图片占数组位不占文本位，M2-③）：写入 Locator 的段内文本偏移
+        startInnerTextOffset = startLine.charStartOffset + startLine.textIndexAt(startInfo.charIdx),
+        endInnerTextOffset = endLine.charStartOffset + endLine.textIndexAt(endInfo.charIdx),
         startLineIndex = startInfo.lineIdx,
-        startCharIndex = startInfo.charIdx,
+        startCharIndex = startInfo.charIdx,     // 视觉手柄锚点，保持数组口径
         endLineIndex = endInfo.lineIdx,
         endCharIndex = endInfo.charIdx
     )
@@ -2030,7 +2037,9 @@ private fun drawAnnotationBackgrounds(
             // 笔记图标——锚定阅读方向起点（同 ContentTextView.tryDrawNote / R1 N1-a）
             if (!noteIds.contains(noteTag.uuid)) {
                 RenderResources.noteIconBmp?.let { noteIcon ->
-                    val lineRtl = textLine.isRtl || textLine.textChars.any { it.renderGroup > 0 }
+                    // M6：方向判定收敛为 isRtl（统一引擎下文本字符 renderGroup 恒 ≥1，
+                    // 不能再用 renderGroup>0 推断方向，否则 LTR 行图标误贴右缘）
+                    val lineRtl = textLine.isRtl
                     val iconDiameter = 2 * RenderResources.dp12
                     val iconLeft = when {
                         span == null -> 0f                        // 空行兜底，维持旧行为
@@ -2056,8 +2065,12 @@ private fun drawAnnotationBackgrounds(
         }
 
         // 2. 逐字符绘制高亮背景和下划线
+        var textOnlyIdx = 0
         textLine.textChars.forEachIndexed { charIdx, ch ->
-            val charIndex = textLine.charStartOffset + charIdx
+            // 文本口径（图片占数组位不占文本位，M2-③）：标签区间匹配专用
+            val textIdx = textOnlyIdx
+            if (!ch.isImage) textOnlyIdx++
+            val charIndex = textLine.charStartOffset + textIdx
             for (tag in tags) {
                 if (tag.start <= charIndex && charIndex < tag.end) {
                     when (tag.name) {

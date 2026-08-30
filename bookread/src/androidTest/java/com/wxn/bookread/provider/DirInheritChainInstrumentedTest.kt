@@ -2,7 +2,6 @@ package com.wxn.bookread.provider
 
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.wxn.base.bean.ReaderText
-import com.wxn.base.bean.TextDirection
 import com.wxn.base.bean.TextTag
 import com.wxn.bookread.jni.SheenBidiNative
 import org.junit.Assert.assertEquals
@@ -18,8 +17,11 @@ import org.junit.runner.RunWith
  * 方案: docs/plans/2026-08-27-plan-rtl-dir-inheritance.md §6 V2
  *
  * 链路: ReaderText.Text(annotations) → declaredBaseRtl（Kotlin 解析）
- *       → RTLSegmenter.segment(line, declaredBaseRtl)（JNI SheenBidi 具体基级）
- *       → SegmentResult.baseRtl（下游 ChapterProvider/TextLayoutProvider 的方向真相源）。
+ *       → RTLSegmenter.segment(line, declaredBaseRtl)
+ *         （D 方向解耦，docs/plans/2026-08-29-plan-u5-mixed-base-ltr-line-order-fix.md §4.2：
+ *          排版基调 baseRtl 恒 = SheenBidi 首强，declaredRtl 不再强制基级；
+ *          declaredRtl 唯一消费 = 锚点方向 anchorBaseRtl = declaredRtl ?: baseRtl）
+ *       → SegmentResult.baseRtl（排版链路真相源）/ anchorBaseRtl（列表锚点方向）。
  *
  * 与 RTLSegmenterInstrumentedTest 的分工：B6-B8 测 segment 的 declaredRtl 参数契约，
  * 本测试测「annotations 解析 → segment 融合」的完整链（BookHelper.disposeContent 的同构形态）。
@@ -49,9 +51,9 @@ class DirInheritChainInstrumentedTest {
         name = name, start = start, end = end, params = params
     )
 
-    /** C1:div[dir=rtl] 声明链 → 拉丁文本强制 RTL（MIX-1 的 Hello 列表项完整链路形态） */
+    /** C1:div[dir=rtl] 声明链 → 拉丁文本排版基调仍首强 LTR，声明只达列表锚点（D 方向解耦） */
     @Test
-    fun C1_divRtlChain_latinTextForcedRtl() {
+    fun C1_divRtlChain_declaredReachesAnchorOnly() {
         val text = ReaderText.Text(
             line = "Hello world",
             annotations = listOf(
@@ -64,11 +66,11 @@ class DirInheritChainInstrumentedTest {
         assertEquals("C1 失败: div[dir=rtl] 祖先链应解析出显式 RTL", true, text.declaredBaseRtl)
 
         val seg = RTLSegmenter.segment(text.line, text.declaredBaseRtl)
-        assertTrue("C1 失败: 融合后 baseRtl 应为 true（嗅探路径此文本为 LTR——声明覆盖的证明）",
-            seg.baseRtl)
-        assertTrue("C1 失败: isPureLtr 路由守卫 —— direction==LTR && runs 空 && baseRtl==true 形态下不应再判纯 LTR",
-            !(seg.direction == TextDirection.LTR && seg.runs.isEmpty() && !seg.baseRtl))
-        println("C1 ★ 通过: div[dir=rtl] → declaredBaseRtl=true → segment 强制 RTL（MIX-1 修复链路）")
+        assertTrue("C1 失败: 嗅探路径此文本为 LTR，D 下声明不再强制基级 → baseRtl 应为 false",
+            !seg.baseRtl)
+        assertTrue("C1 失败: 显式声明应传导到锚点方向 anchorBaseRtl（列表圆点右侧）",
+            seg.anchorBaseRtl)
+        println("C1 ★ 通过: div[dir=rtl] → declaredBaseRtl=true → 锚点 RTL；排版基调恒首强（D 方向解耦链路）")
     }
 
     /** C2:dir=auto 阻断继承 → 回落嗅探（拉丁首强 → LTR） */
@@ -86,6 +88,8 @@ class DirInheritChainInstrumentedTest {
 
         val seg = RTLSegmenter.segment(text.line, text.declaredBaseRtl)
         assertTrue("C2 失败: 无声明回落首强嗅探，拉丁首强应 baseRtl=false", !seg.baseRtl)
+        assertEquals("C2 失败: 无声明时 anchorBaseRtl 应恒等于 baseRtl",
+            seg.baseRtl, seg.anchorBaseRtl)
         println("C2 ★ 通过: dir=auto 阻断继承，回落嗅探（A5 场景2 的行为地基）")
     }
 
@@ -106,10 +110,11 @@ class DirInheritChainInstrumentedTest {
         )
         assertEquals("C3b 失败: CSS 规则应胜 HTML dir", true, b.declaredBaseRtl)
 
-        // c) 融合到 segment：b 的声明链强制 RTL 基调
+        // c) 融合到 segment：b 的声明链（true）传导到锚点方向；排版基调仍首强（"Hello" → false）
         val seg = RTLSegmenter.segment(b.line, b.declaredBaseRtl)
-        assertTrue("C3c 失败: CSS 规则声明的 RTL 应传导到 segment.baseRtl", seg.baseRtl)
-        println("C3 ★ 通过: style > CSS 规则 > HTML dir 三级级联契约正确")
+        assertTrue("C3c 失败: CSS 规则声明的 RTL 应传导到锚点方向 anchorBaseRtl", seg.anchorBaseRtl)
+        assertTrue("C3c 失败: 排版基调恒首强（D）→ baseRtl 应为 false", !seg.baseRtl)
+        println("C3 ★ 通过: style > CSS 规则 > HTML dir 三级级联契约正确（声明达锚点，基调恒首强）")
     }
 
     /** C4:虚拟 __root__ 标签（C-C1 注入载体，start=end=0）→ html/body 级声明可达段落 */
@@ -127,9 +132,11 @@ class DirInheritChainInstrumentedTest {
         assertEquals("C4 失败: __root__ 虚拟标签应作为最浅祖先参与声明解析", true, text.declaredBaseRtl)
 
         val seg = RTLSegmenter.segment(text.line, text.declaredBaseRtl)
-        assertTrue("C4 失败: html 级声明应传导为强制 RTL 基调（EPUB-B 整书 RTL 场景）",
-            seg.baseRtl)
-        println("C4 ★ 通过: __root__ 注入载体 → 段落强制 RTL（A4 的行为地基）")
+        assertTrue("C4 失败: html 级声明应传导到锚点方向 anchorBaseRtl",
+            seg.anchorBaseRtl)
+        assertTrue("C4 失败: 排版基调恒首强（拉丁文本 → LTR，纯阿语书首强=声明不受影响）",
+            !seg.baseRtl)
+        println("C4 ★ 通过: __root__ 注入载体 → 声明达锚点；排版基调恒首强（D 方向解耦）")
     }
 
     /** C5:含 __root__ 标签的段落 parseTextCss() 产出与不含时一致（C-C1 无干扰证明） */

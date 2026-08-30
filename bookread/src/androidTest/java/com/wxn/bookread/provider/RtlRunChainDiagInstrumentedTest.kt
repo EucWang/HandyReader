@@ -8,6 +8,7 @@ import android.text.TextPaint
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.wxn.base.bean.RunLayout
 import com.wxn.bookread.data.model.TextPage
+import com.wxn.bookread.ext.isWordChar
 import org.junit.Test
 import org.junit.runner.RunWith
 import kotlin.math.roundToInt
@@ -164,7 +165,7 @@ class RtlRunChainDiagInstrumentedTest {
 
             val line0End = layout.getLineEnd(0)
             val midWord = line0End < runText.length &&
-                    isWordChar(runText[line0End - 1]) && isWordChar(runText[line0End])
+                    runText[line0End - 1].isWordChar() && runText[line0End].isWordChar()
             val lw0 = layout.getLineWidth(0)
             val wrapBack = sharedLine && layout.lineCount > 0 && (lw0 > firstLineWidth + 1f || midWord)
             if (wrapBack) {

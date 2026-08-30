@@ -122,27 +122,6 @@ Java_com_wxn_bookread_jni_SheenBidiNative_bidiRunsNative(
                         baseRtl ? SBLevelDefaultRTL : SBLevelDefaultLTR);
 }
 
-
-/*
- * Class:     com_wxn_bookread_jni_SheenBidiNative
- * Method:    bidiRunsExplicitNative
- * Signature: (Ljava/lang/String;Z)[I
- *
- * 显式声明的段落基调（HTML dir / CSS direction）。
- * @param rtl   true = 强制基级 1（RTL）；false = 强制基级 0（LTR）
- *              ——SBAlgorithm.h:93-95：baseLevel 为具体级别时  被忽略
- *              （SBBase.h 仅有 SBLevelDefaultLTR/RTL 宏，无具体级别宏，字面量 cast）
- * @return IntArray：[0]=段落基级（=传入值），[1..] 每 3 个元素一个 run（offset, length, level），
- *         视觉顺序。失败返回 length=0 的空数组。
- */
-JNIEXPORT jintArray JNICALL
-Java_com_wxn_bookread_jni_SheenBidiNative_bidiRunsExplicitNative(JNIEnv *env,
-                                     jobject thiz,
-                                     jstring text,
-                                     jboolean rtl) {
-    return bidiRunsImpl(env, text, rtl ? (SBLevel)1 : (SBLevel)0);
-}
-
 /*
  * Class:     com_wxn_bookread_jni_SheenBidiNative
  * Method:    nativeVersion

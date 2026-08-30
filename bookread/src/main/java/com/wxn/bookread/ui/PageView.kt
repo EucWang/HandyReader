@@ -628,14 +628,15 @@ class PageView : FrameLayout, IDataSource, PageCallback {
                     for(itemTag in filterTags) {
                         var startTagCharInLineIndex = -1
                         var endTagCharInLineIndex = -1
+                        // 文本口径 → 数组口径（图片占数组位不占文本位，M2-③）
                         if (itemTag.start >= clickLine.charStartOffset && itemTag.start <= clickLine.charEndOffset) {
-                            startTagCharInLineIndex = itemTag.start - clickLine.charStartOffset
+                            startTagCharInLineIndex = clickLine.arrayIndexAt(itemTag.start - clickLine.charStartOffset)
                         } else if (itemTag.start < clickLine.charStartOffset) {
                             startTagCharInLineIndex = 0
                         }
 
                         if (itemTag.end >= clickLine.charStartOffset && itemTag.end <= clickLine.charEndOffset) {
-                            endTagCharInLineIndex = itemTag.end - clickLine.charStartOffset
+                            endTagCharInLineIndex = clickLine.arrayIndexAt(itemTag.end - clickLine.charStartOffset)
                         } else if (itemTag.end > clickLine.charEndOffset) {
                             endTagCharInLineIndex = clickLine.textChars.size - 1
                         }

@@ -26,6 +26,17 @@ object ListOrderCalculator {
         else annotations.firstOrNull { it.uuid == liTag.parentUuid }
 
     /**
+     * 选出段落的「自身 li」：注解链 = [祖先链…, 自身标签]（DFS 先序，祖先 li 在前、
+     * 自身 li 在链尾——native get_fathers_tags 先返回祖先、cur_tags 追加在后）。
+     *
+     * 历史缺陷：firstOrNull 命中祖先 li → findParentTag 解析到外层 ol →
+     * 嵌套 ol 计数全部挂到外层计数器（序号扁平 1,2,3,4，EPUB-B 验收缺陷）。
+     * 全项目唯一 li 选取入口，prescan 与排版期必须同源
+     */
+    fun findOwnLi(annotations: List<TextTag>): TextTag? =
+        annotations.lastOrNull { it.name == "li" }
+
+    /**
      * 计算当前 li 的序号。
      * 计数器按 parentTag.uuid 分组——嵌套列表（ol>ol、ol>ul>ol）天然独立计数，互不干扰；
      * 同一 ol 在文档中多次出现（被标题打断后继续）共享同一 uuid → 计数自动延续；
@@ -55,7 +66,7 @@ object ListOrderCalculator {
         for (paragraph in contents) {
             if (paragraph !is ReaderText.Text) continue
             val annotations = paragraph.annotations
-            val liTag = annotations.firstOrNull { it.name == "li"} ?: continue
+            val liTag = findOwnLi(annotations) ?: continue
             val parent = findParentTag(liTag, annotations) ?: continue
             if (parent.name != "ol") continue
             val order: Int = nextOrder(liTag, parent, sim)

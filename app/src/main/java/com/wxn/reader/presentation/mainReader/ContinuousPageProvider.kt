@@ -1038,7 +1038,7 @@ class ContinuousPageProvider(
 
                 val lineSb = StringBuilder()
                 for (i in line.textChars.indices) {
-                    val offset = i + line.charStartOffset
+                    val offset = line.textIndexAt(i) + line.charStartOffset
                     if (isOffsetInTextSelection(locator, line.paragraphIndex, offset)) {
                         val ch = line.textChars[i]
                         if (!ch.isImage && ch.charData.isNotEmpty()) {
@@ -1072,13 +1072,14 @@ class ContinuousPageProvider(
             start.itemOffset + start.line.lineBottom,
             start.itemOffset + start.line.lineTop,
             start.line.paragraphIndex,
-            start.line.charStartOffset + start.charIdx
+            // 文本口径（图片占数组位不占文本位，M2-③）：写入 Locator 的段内文本偏移
+            start.line.charStartOffset + start.line.textIndexAt(start.charIdx)
         )
         pageController.upSelectedEnd(
             end.char.end,
             end.itemOffset + end.line.lineBottom,
             end.line.paragraphIndex,
-            end.line.charStartOffset + end.charIdx
+            end.line.charStartOffset + end.line.textIndexAt(end.charIdx)
         )
 
         // 记录旧选区范围（在 cache 更新之前）

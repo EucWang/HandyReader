@@ -1,8 +1,6 @@
 package com.wxn.bookread.provider
 
 import android.content.Context
-import android.content.res.loader.ResourcesProvider
-import android.graphics.BitmapFactory
 import android.graphics.Color
 import android.graphics.Typeface
 import android.net.Uri
@@ -19,6 +17,7 @@ import com.wxn.base.bean.CssFontWeight
 import com.wxn.base.bean.CssTextAlign
 import com.wxn.base.bean.InlineStyle
 import com.wxn.base.bean.ReaderText
+import com.wxn.base.bean.SegmentResult
 import com.wxn.base.bean.TextDirection
 import com.wxn.base.bean.TextTag
 import com.wxn.base.ext.isContentPath
@@ -28,7 +27,6 @@ import com.wxn.base.util.Coroutines
 import com.wxn.base.util.Logger
 import com.wxn.base.util.PathUtil
 import com.wxn.base.util.launchIO
-import com.wxn.bookread.data.model.LineDot
 import com.wxn.bookread.data.model.TextChapter
 import com.wxn.bookread.data.model.TextChar
 import com.wxn.bookread.data.model.TextLine
@@ -38,6 +36,16 @@ import com.wxn.bookread.data.model.preference.ReaderPreferences
 import com.wxn.bookread.data.source.local.ReadTipPreferencesUtil
 import com.wxn.bookread.data.source.local.ReaderPreferencesUtil
 import com.wxn.bookread.ext.dp
+import com.wxn.bookread.provider.ChapterProvider.dualColumnEnabled
+import com.wxn.bookread.provider.ChapterProvider.getTextChapter
+import com.wxn.bookread.provider.ChapterProvider.paddingHorizontal
+import com.wxn.bookread.provider.ChapterProvider.paddingVertical
+import com.wxn.bookread.provider.ChapterProvider.recomputeDerivedSizes
+import com.wxn.bookread.provider.ChapterProvider.setViewSize
+import com.wxn.bookread.provider.ChapterProvider.upStyle
+import com.wxn.bookread.provider.ChapterProvider.upVisibleSize
+import com.wxn.bookread.provider.ChapterProvider.viewHeight
+import com.wxn.bookread.provider.ChapterProvider.viewWidth
 import com.wxn.bookread.textHeight
 import com.wxn.bookread.ui.ListDotRenderer
 import com.wxn.bookread.ui.RenderResources
@@ -1144,7 +1152,12 @@ object ChapterProvider {
             contentPaint
         }
         textPaint.set(parentPaint)
-
+        // 方案 §2.2 D 防御项：letter-spacing 在 shaping 后拉开 glyph，会拆断阿拉伯等连写文字。
+        // 章级方向（chapterIsRtl）只有此处可知；本拷贝供新引擎与 setTextTable 共用，置 0 不泄漏
+        // 到 upStyle 的跨章节共享单例画笔。
+        if (chapterIsRtl) {
+            textPaint.letterSpacing = 0f
+        }
 
         var marginLeft = 0f
         var marginRight = 0f
@@ -1260,11 +1273,7 @@ object ChapterProvider {
             } != null
         } else false
 
-        val seg = paragraph.segDirect
-        val isPureLtr = seg == null ||
-                (seg.direction == TextDirection.LTR &&
-                        seg.runs.isEmpty() &&
-                        !seg.baseRtl)
+        val seg = paragraph.segDirect ?: SegmentResult(TextDirection.LTR, false, emptyList())
 
         //是否是列表，嵌套列表
 
@@ -1273,9 +1282,7 @@ object ChapterProvider {
         var listOrder: Int = 0
         var liTag : TextTag? = null
         isListRow = if (paragraph is ReaderText.Text) {
-            liTag = paragraph.annotations.firstOrNull { tag ->
-                tag.name == "li"
-            }
+            liTag = ListOrderCalculator.findOwnLi(paragraph.annotations)
             listOrder = ListOrderCalculator.getLiOrder(liTag, paragraph.annotations)
             liTag != null
         } else false
@@ -1292,7 +1299,7 @@ object ChapterProvider {
                     val orderLabelWidth = if (listOrder > 0) {
                         val maxOrder = ListOrderCalculator.maxOrderOf(liTag, paragraph.annotations)
                         RenderResources.listMarkerPaint.measureText(
-                            ListDotRenderer.orderedLabel(maxOrder, seg?.baseRtl == true))
+                            ListDotRenderer.orderedLabel(maxOrder, seg?.anchorBaseRtl == true))
                     } else 0f
 
                     val listIndent = ListDotRenderer.calcListIndent(listLevel, textPaint.textSize,
@@ -1300,7 +1307,7 @@ object ChapterProvider {
 
                     // 列表缩进作用于阅读起始侧：RTL 段（走 RTL 引擎）加在右侧（为圆点预留空间），
                     // 其余（纯 LTR legacy / 混合 LTR 基调）维持左侧现状
-                    if (!isPureLtr && seg?.baseRtl == true) {
+                    if (seg?.anchorBaseRtl == true) {
                         marginRight += listIndent
                     } else {
                         marginLeft += listIndent
@@ -1330,7 +1337,7 @@ object ChapterProvider {
         }
 
         // Center/Right alignment → suppress firstLineIndent (paragraph indent breaks centered/right text)
-        if (!isTableRow && !isPureLtr && seg?.baseRtl == true &&
+        if (!isTableRow && seg?.baseRtl == true &&
             textAlign == CssTextAlign.CssTextAlignLeft) {
             textAlign = CssTextAlign.CssTextAlignRight
         }
@@ -1360,63 +1367,9 @@ object ChapterProvider {
                 durY,
                 bounds   // v4：透传
             )
-        } else if (hasInlineImg) {     //有段落内的图片
-            if (isPureLtr) {
-                setTextWithInnerImg(
-                    paragraph,
-                    textPaint,
-                    marginLeft,
-                    marginRight,
-                    firstLineIndent,
-                    paragraphIndex,
-                    textAlign,
-                    lineHeightParam,
-                    textPages,
-                    pageLines,
-                    pageLengths,
-                    stringBuilder,
-                    durY,
-                    bounds   // v4：透传
-                )
-            } else {
-                // F2: 构造含 Span 的 CharSequence(仅当段落有 inline 字号时)
-                // ★ 命名注意:局部变量用 paragraphInlineFontSizes(避免与 setNormalText 参数 inlineFontSizes 同名遮蔽)
-                val paragraphInlineFontSizes: List<InlineStyle>? = if (paragraph is ReaderText.Text) {
-                    paragraph.inlineStyles
-                } else {
-                    null  // 标题(ReaderText.Chapter)/图片走旧路径
-                }
-                val charSequence: CharSequence = buildSpannedText(text, paragraphInlineFontSizes)
-
-                TextLayoutProvider.layoutNormalTextRtl(
-                    charSequence,
-                    paragraphInlineFontSizes,
-                    seg,
-                    textPaint,
-                    marginLeft,
-                    marginRight,
-                    firstLineIndent,
-                    isTitle,
-                    isListRow,
-                    listLevel,
-                    listOrder,
-                    paragraphIndex,
-                    textAlign,
-                    lineHeightParam,
-                    paragraph,
-                    textPages,
-                    pageLines,
-                    pageLengths,
-                    stringBuilder,
-                    durY,
-                    bounds,
-                    chapterIsRtl,
-                    hasInlineImg
-                )
-            }
         } else {                    //没有段落内的图片
             // F2: 构造含 Span 的 CharSequence(仅当段落有 inline 字号时)
-            // ★ 命名注意:局部变量用 paragraphInlineFontSizes(避免与 setNormalText 参数 inlineFontSizes 同名遮蔽)
+            // ★ 命名注意:局部变量用 paragraphInlineFontSizes
             val paragraphInlineFontSizes: List<InlineStyle>? = if (paragraph is ReaderText.Text) {
                 paragraph.inlineStyles
             } else {
@@ -1425,54 +1378,36 @@ object ChapterProvider {
             val charSequence: CharSequence = buildSpannedText(text, paragraphInlineFontSizes)
 
             // buildSpannedText 内部判断 null/empty → 直接返回原 String 引用(零开销)
-            if (isPureLtr) {
-                setNormalText(
-                    charSequence,            // ← F3 CharSequence 替代 String
-                    paragraphInlineFontSizes,   // ← F4 几何轨用
-                    textPaint,
-                    marginLeft,
-                    marginRight,
-                    firstLineIndent,
-                    isTitle,
-                    isListRow,
-                    listLevel,
-                    listOrder,
-                    paragraphIndex,
-                    textAlign,
-                    lineHeightParam,
-                    textPages,
-                    pageLines,
-                    pageLengths,
-                    stringBuilder,
-                    durY,
-                    bounds   // v4：透传
-                )
-            } else {
-                TextLayoutProvider.layoutNormalTextRtl(
-                    charSequence,
-                    paragraphInlineFontSizes,
-                    seg,
-                    textPaint,
-                    marginLeft,
-                    marginRight,
-                    firstLineIndent,
-                    isTitle,
-                    isListRow,
-                    listLevel,
-                    listOrder,
-                    paragraphIndex,
-                    textAlign,
-                    lineHeightParam,
-                    paragraph,
-                    textPages,
-                    pageLines,
-                    pageLengths,
-                    stringBuilder,
-                    durY,
-                    bounds,
-                    chapterIsRtl
-                )
-            }
+
+            TextLayoutProvider.layoutNormalTextRtl(
+                charSequence,
+                paragraphInlineFontSizes,
+                seg,
+                textPaint,
+
+                marginLeft,
+                marginRight,
+                firstLineIndent,
+                isTitle,
+                isListRow,
+
+                listLevel,
+                listOrder,
+                paragraphIndex,
+                textAlign,
+                lineHeightParam,
+                paragraph,
+
+                textPages,
+                pageLines,
+                pageLengths,
+                stringBuilder,
+
+                durY,
+                bounds,
+                chapterIsRtl,
+                hasInlineImg  //是否有段落内的图片
+            )
         }
 
         // v4：底部间距在整段排完后追加（result.offsetY 已是整段排完的 Y）
@@ -1789,591 +1724,11 @@ object ChapterProvider {
         return LayoutCursor(durY, currentBounds)
     }
 
-    /**
-     * v4（方案 B）：返回类型从 Float 改为 [LayoutCursor]，新增 [bounds] 参数。
-     * 文本段部分按 setNormalText 同样的内部列流动；内联图片按行高缩放。
-     *
-     * v3 P7 修复（方案 B 下仍保留）：函数入口深拷贝 annotations + 基于 uuid 的同一性比较，
-     * 替代原「直接持有 paragraph.annotations 引用并原地修改 tag.start/end」。
-     * 方案 B 下虽无 retry，但同一段落可能跨页/跨列，深拷贝保证 annotation 偏移只发生一次，
-     * 且绝不写回 paragraph.annotations（函数幂等）。
-     */
-    private suspend fun setTextWithInnerImg(
-        paragraph: ReaderText,
-        textPaint: TextPaint,
-        marginLeft: Float,
-        marginRight: Float,
-        firstLineIndent: Float,
-        paragraphIndex: Int,
-        textAlign: CssTextAlign,
-        lineHeightParam: Float,
-        textPages: ArrayList<TextPage>,
-        pageLines: ArrayList<Int>,
-        pageLengths: ArrayList<Int>,
-        stringBuilder: StringBuilder,
-        offsetY: Float,
-        bounds: LayoutBounds = layoutBoundsPage()   // v4 新增
-    ): LayoutCursor {
-        var durY = offsetY
-        var currentBounds = bounds   // v4：局部变量，随列切换更新
-        if (paragraph is ReaderText.Text) {
-
-            val paragraphInlineStyles: List<InlineStyle>? = paragraph.inlineStyles
-            val hasInlineScale = !paragraphInlineStyles.isNullOrEmpty() &&
-                    paragraphInlineStyles.any { it.props.fontScale != null }
-            //根据偏移位置，查找该位置的字符是否存在字体大小的缩放
-            val charScaleLookup: (Int) -> Float = if (hasInlineScale) {
-                { offset ->
-                    paragraphInlineStyles.lastOrNull { offset in it.start until it.end }
-                        ?.props?.fontScale ?: 1f
-                }
-            } else {
-                { 1f }   // 零开销：无 inline 字号，所有字符 scale=1
-            }
-
-            // imgTags 深拷贝：避免原地修改 paragraph.annotations 中的 TextTag
-            var imgTags = paragraph.annotations.filter { tag ->
-                tag.name == "img" || tag.name == "image"
-            }.map { it.copy() }
-            // [P7 修复] allTags 深拷贝
-            val allTags = paragraph.annotations.map { it.copy() }
-            //根据图片的位置把段落分割成多个小段
-            val texts = arrayListOf<String>()
-            if (!imgTags.isEmpty()) {
-                var lastEnd = 0
-                imgTags = imgTags.sortedBy { it.start }
-                // [P7 修复] 基于 uuid 的同一性比较集合（替代原引用比较 tag != imgTag）
-                val imgTagUuids = imgTags.map { it.uuid }.toHashSet()
-                for ((index, imgTag) in imgTags.withIndex()) {
-                    if (index < imgTags.size - 1) {
-                        if (imgTag.start > 0 && imgTag.start < paragraph.line.length) {
-                            texts.add(paragraph.line.substring(lastEnd, imgTag.start))
-                            lastEnd = imgTag.start
-                        }
-                    } else {
-                        if (imgTag.start > 0 && imgTag.start < paragraph.line.length) { //最后一个位置
-                            texts.add(paragraph.line.substring(lastEnd, imgTag.start))
-                            texts.add(paragraph.line.substring(imgTag.start))
-                        }
-                    }
-
-                    //添加了图片作为一个字符,那么annotations中的标记索引都需要增加一个字符的偏移量了
-                    // [P7 修复] 用 uuid 同一性比较替代引用比较
-                    for (tag in allTags) {
-                        if (tag.uuid !in imgTagUuids) {
-                            if (tag.start > imgTag.start) {
-                                tag.start += 1
-                            }
-                            if (tag.end > imgTag.start) {
-                                tag.end += 1
-                            }
-                        }
-                    }
-                }
-            }
-            var morePartIndent = firstLineIndent
-            var newPartWithNewLine = true   //新的分段是否需要新的分行，
-            var latestPartLine: TextLine? = null
-            var pentingImg: TextTag? = null //上一小分段中，图片塞不下了， 放入到下一行第一个位置显示
-            var segBaseOriginal = 0   // 段在原始 paragraph.line 的起始 offset（C1，不含占位字）
-            for ((partIndex, text) in texts.withIndex()) {  //对每一部分都进行布局测量
-                val layoutSource: CharSequence = if (hasInlineScale) {
-                    buildSegmentSpanned(text, segBaseOriginal, paragraphInlineStyles)
-                } else {
-                    text   // 无 inline：保持纯 String（零开销，行为与改造前逐行等价）
-                }
-                val layout = StaticLayout.Builder.obtain(
-                    layoutSource,
-                    0,
-                    layoutSource.length,
-                    textPaint,
-                    currentBounds.width - marginLeft.roundToInt() - marginRight.roundToInt()   // v4：currentBounds.width
-                )
-                    .setAlignment(Layout.Alignment.ALIGN_NORMAL)
-                    .setIncludePad(true)
-                    .setIndents(
-                        intArrayOf(morePartIndent.toInt(), 0),
-                        intArrayOf(0, 0)
-                    )
-                    .build()
-
-                for (layoutLineIndex in 0 until layout.lineCount) {  //测量得到行数, 对每一行进行遍历  //排版，按行遍历
-                    val offsetStart = layout.getLineStart(layoutLineIndex)
-                    val offsetEnd = layout.getLineEnd(layoutLineIndex)
-                    val textLine =
-                        if (layoutLineIndex == 0 && partIndex > 0 && latestPartLine != null) {
-                            latestPartLine
-                        } else {
-                            //这里需要加上前面几段的文字的偏移
-                            var offsetLast = 0
-                            if (partIndex > 0) {
-                                for ((pIndex, pText) in texts.withIndex()) {
-                                    if (pIndex < partIndex) {
-                                        offsetLast += (pText.length + 1) //每一段后面都会追加1个图片占位字.
-                                    } else {
-                                        break
-                                    }
-                                }
-                            }
-                            TextLine(
-                                isTitle = false,
-                                paragraphIndex = paragraphIndex,
-                                charStartOffset = offsetLast + offsetStart,
-                                charEndOffset = offsetLast + offsetEnd
-                            )
-                        }
-                    if (latestPartLine != null) {
-                        latestPartLine = null
-                    }
-                    if (pentingImg != null) {
-                        val pairs = pentingImg.paramsPairs()
-                        val imgSrc = pairs.firstOrNull { it.first == "src" }?.second.orEmpty()
-                        val width =
-                            pairs.firstOrNull { it.first == "width" }?.second?.toIntOrNull() ?: 0
-                        val height =
-                            pairs.firstOrNull { it.first == "height" }?.second?.toIntOrNull() ?: 0
-                        if (imgSrc.isNotEmpty() && width > 0 && height > 0) {
-                            //根据行高度, 缩放图片的宽度
-                            val targetImgHeight = (textPaint.textHeight * lineSpacingExtra).toInt()
-                            val (imgW, imgH) = ImageLayoutProvider.fillImageSize(
-                                width,
-                                height,
-                                imgSrc,
-                                2 * targetImgHeight,
-                                targetImgHeight
-                            )
-                            textLine.textChars.add(
-                                TextChar(
-                                    imgSrc,
-                                    morePartIndent,
-                                    morePartIndent + imgW,
-                                    true
-                                )
-                            )
-                        }
-                        pentingImg = null
-                    }
-                    val layoutLineWords = text.substring(offsetStart, offsetEnd)
-
-                    textLine.text += layoutLineWords        //  //增加一次换行
-                    val desiredWidth = layout.getLineWidth(layoutLineIndex)   //排版要求的宽度
-                    var isLastLine = (layoutLineIndex == layout.lineCount - 1)
-
-                    //v4 方案 B：逐行判断「装不下当前列 → 切列/建新页」。
-                    // ★ 必须在 addCharsToLineXxx 之前判断——否则切列后 textLine 的 X 坐标仍用旧列的 currentBounds 计算。
-                    if (durY + textPaint.textHeight * lineSpacingExtra * lineHeightParam > visibleBottom) {
-                        if (currentBounds.isLeftColumn) {
-                            currentBounds = layoutBoundsRightColumn()
-                            durY = paddingVertical.toFloat()
-                        } else {
-                            val lastPage = textPages.last()
-                            lastPage.text = stringBuilder.toString()
-                            pageLines.add(lastPage.textLines.size)
-                            pageLengths.add(lastPage.text.length)
-                            lastPage.height = durY
-
-                            textPages.add(TextPage())
-                            stringBuilder.clear()
-                            durY = paddingVertical.toFloat()
-                            currentBounds = if (dualColumnEnabled) layoutBoundsLeftColumn() else layoutBoundsPage()
-                        }
-                    }
-
-                    when (textAlign) {
-                        CssTextAlign.CssTextAlignLeft, CssTextAlign.CssTextAlignJustify, CssTextAlign.CssTextAlignUndefined -> addCharsToLineLeft(
-                            textLine,
-                            layoutLineWords.toStringArray(),
-                            textPaint,
-                            marginLeft + (if (layoutLineIndex == 0) morePartIndent else 0f),
-                            currentBounds,
-                            charScaleLookup,
-                            segBaseOriginal + offsetStart
-                        )
-
-                        CssTextAlign.CssTextAlignRight -> addCharsToLineRight(
-                            textLine,
-                            layoutLineWords.toStringArray(),
-                            textPaint,
-                            desiredWidth,
-                            marginRight,
-                            currentBounds,
-                            charScaleLookup,
-                            segBaseOriginal + offsetStart
-                        )
-
-                        CssTextAlign.CssTextAlignCenter -> addCharsToLineCenter(
-                            textLine,
-                            layoutLineWords.toStringArray(),
-                            textPaint,
-                            desiredWidth,
-                            currentBounds,
-                            charScaleLookup,
-                            segBaseOriginal + offsetStart
-                        )
-//                        CssTextAlign.CssTextAlignJustify -> {
-//                            if (layout.lineCount == 1) {
-//                                addCharsToLineLeft(textLine, words.toStringArray(), textPaint, marginLeft)
-//                            } else {
-//                                if (isLastLine) {    //两端对齐，除了最后一行
-//                                    addCharsToLineLeft(textLine, words.toStringArray(), textPaint, marginLeft)
-//                                } else {
-//                                    addCharsToLineMiddle(textLine, words.toStringArray(), textPaint, desiredWidth, marginLeft)
-//                                }
-//                            }
-//                        }
-                    }
-
-                    stringBuilder.append(layoutLineWords)
-
-                    if (isLastLine) {
-                        if (partIndex == texts.size - 1) {
-                            stringBuilder.append("\n")  //段落的最后一行，增加换行符
-                        } else {
-                            val lastLineEnd = textLine.textChars.last().end
-                            imgTags.getOrNull(partIndex)?.let { imgTag ->
-                                val pairs = imgTag.paramsPairs()
-
-                                val imgWidth =
-                                    pairs.firstOrNull { it.first == "width" }?.second?.toIntOrNull()
-                                        ?: 0
-                                val imgHeight =
-                                    pairs.firstOrNull { it.first == "height" }?.second?.toIntOrNull()
-                                        ?: 0
-                                val imgSrc =
-                                    pairs.firstOrNull { it.first == "src" }?.second.orEmpty()
-                                val lineWidth =
-                                    currentBounds.width - marginLeft.roundToInt() - marginRight.roundToInt()   // v4：currentBounds.width
-                                if (imgWidth > 0 && imgHeight > 0 && imgSrc.isNotEmpty()) {
-                                    val targetImgHeight =
-                                        (textPaint.textHeight * lineSpacingExtra).toInt()
-                                    //根据行高度, 缩放图片的宽度
-                                    val (imgW, imgH) = ImageLayoutProvider.fillImageSize(
-                                        imgWidth,
-                                        imgHeight,
-                                        imgSrc,
-                                        2 * targetImgHeight,
-                                        targetImgHeight
-                                    )
-                                    Logger.d("ChapterProvider::imgTag[$imgTag],img.size=[$imgWidth,$imgHeight],calc size[$imgW, $imgH], lastLineEnd=$lastLineEnd,morePartIndent=$morePartIndent")
-                                    val newLineEnd = lastLineEnd + imgW - currentBounds.startX   // v4：currentBounds.startX
-                                    if (newLineEnd < lineWidth) {
-                                        morePartIndent = newLineEnd
-                                        newPartWithNewLine = false
-                                        textLine.textChars.add(
-                                            TextChar(
-                                                imgSrc,
-                                                lastLineEnd,
-                                                lastLineEnd + imgW,
-                                                true
-                                            )
-                                        )
-                                    } else {
-                                        morePartIndent = imgW.toFloat()
-                                        newPartWithNewLine = true
-                                        pentingImg = imgTag
-                                    }
-//                                    Logger.d("ChapterProvider::imgTag[$imgTag],imgWidth=$imgWidth,lastLineEnd=$lastLineEnd,morePartIndent=$morePartIndent,newPartWithNewLine=$newPartWithNewLine")
-                                }
-                            }
-                        }
-                    }
-
-                    if (newPartWithNewLine) {
-                        val lastPage = textPages.last()
-                        lastPage.textLines.add(textLine)    //将新生成的一行加入到最后一页中
-                        textLine.upTopBottom(durY, textPaint)       //设置行的上，下，以及基线位置
-//            durY += textPaint.textHeight * lineSpacingExtra * lineHeightParam   //将行高度，行间距加入到durY值中
-                        durY += textPaint.textHeight * lineSpacingExtra   //将行高度，行间距加入到durY值中
-                        lastPage.height = durY
-                    } else {
-                        latestPartLine = textLine
-                        newPartWithNewLine = true
-                    }
-                }
-                segBaseOriginal += text.length
-            }
-            // [P7 修复] 注意：函数结束时 NEVER 把 allTags 写回 paragraph.annotations（副本被丢弃）
-        }
-        return LayoutCursor(durY, currentBounds)
-    }
-
-    /***
-     * 为 setTextWithInnerImg 构造 每个小段内的 inlineStyle 的SpannableString
-     */
-    private fun buildSegmentSpanned(
-        segment: String,
-        segBaseOriginal: Int,
-        inlineStyles: List<InlineStyle>
-    ): CharSequence {
-        val segEndOriginal = segBaseOriginal + segment.length
-        val hits = inlineStyles.filter {
-            it.props.fontScale != null && it.start < segEndOriginal && it.end > segBaseOriginal
-        }
-        if (hits.isEmpty()) return segment // no inline Style, pass
-        val ssb = SpannableStringBuilder(segment)
-        hits.forEach { style ->
-            val start = (style.start - segBaseOriginal).coerceIn(0, segment.length)
-            val end = (style.end - segBaseOriginal).coerceIn(start, segment.length)
-            val scale = style.props.fontScale ?: 1.0f
-            if (end > start) {
-                ssb.setSpan(
-                    RelativeSizeSpan(scale),
-                    start,
-                    end,
-                    Spanned.SPAN_EXCLUSIVE_EXCLUSIVE)
-            }
-        }
-        return ssb
-    }
-
-
-    /***
-     * 只有文本内容的Text的测量。
-     *
-     * v4（方案 B「内部列流动」核心）：返回类型从 Float 改为 [LayoutCursor]，新增 [bounds] 参数。
-     * 子函数内部处理「列→新列→新页」流动，与单列逐行判断「是否新页」的逻辑完全同构：
-     *   - 当前行装不下当前列 → 若当前是左列则切右列（同页），若右列/单列则建新页回左列
-     * 切列后字符 X 坐标自动落到新列起点（[addCharsToLineXxx] 用 bounds.startX）。
-     * 默认 [LayoutBounds.page] 保证单列模式行为完全不变。
-     */
-    private suspend fun setNormalText(
-        text: CharSequence,                          // F3: String → CharSequence(支持 Spannable)
-        inlineFontSizes: List<InlineStyle>?,      // F3 新增:几何轨 per-char scale 反查数据源
-        textPaint: TextPaint,
-        marginLeft: Float,
-        marginRight: Float,
-        firstLineIndent: Float,
-        isTitle: Boolean,
-        isListRow: Boolean,
-        listLevel: Int,
-        listOrder: Int,
-        paragraphIndex: Int,
-        textAlign: CssTextAlign,
-        lineHeightParam: Float,
-        textPages: ArrayList<TextPage>,
-        pageLines: ArrayList<Int>,
-        pageLengths: ArrayList<Int>,
-        stringBuilder: StringBuilder,
-        offsetY: Float,
-        bounds: LayoutBounds = layoutBoundsPage()   // v4 新增：列边界（入口列）
-    ): LayoutCursor {
-        var durY = offsetY
-        var currentBounds = bounds   // v4：局部变量，随列切换更新
-        val layout = StaticLayout.Builder.obtain(
-            text,
-            0,
-            text.length,
-            textPaint,
-            currentBounds.width - marginLeft.roundToInt() - marginRight.roundToInt()   // v4：currentBounds.width 替代 visibleWidth
-        ).setAlignment(Layout.Alignment.ALIGN_NORMAL)
-            .setIncludePad(true)
-            .setIndents(intArrayOf(firstLineIndent.toInt(), 0), intArrayOf(0, 0))
-            .build()
-        // F3: text 是 SpannableStringBuilder 时,系统自动检测 Spanned 接口并应用 RelativeSizeSpan,
-        // 分行点正确;text 是 String 时(无 inline 字号),行为与改造前完全一致。
-
-        // F3 几何轨 scale 反查闭包(每段构造一次,行循环复用)
-        // ★ 用 lastOrNull:与 parseTextCss 的"后到覆盖"语义一致,匹配 C++ xml_ext::parse 深度优先
-        //   遍历(外层 span 先 push,内层 span 后 push → 后到的更内层)。
-        //   Phase 1 不处理真正的 DOM 嵌套优先级(需 parentUuid 建树,过度设计),
-        //   重叠 span 的边缘情况留 Phase 2。
-        val charScaleLookup: (Int) -> Float = if (inlineFontSizes.isNullOrEmpty()) {
-            { 1f }   // 零开销:无 inline 字号,所有字符 scale=1
-        } else {
-            { offset ->
-                inlineFontSizes.lastOrNull { offset in it.start until it.end }?.props?.fontScale ?: 1f
-            }
-        }
-
-        for (lineIndex in 0 until layout.lineCount) {  //排版，按行遍历
-            val offsetStart = layout.getLineStart(lineIndex)
-            val offsetEnd = layout.getLineEnd(lineIndex)
-            val textLine = TextLine(
-                isTitle = isTitle,
-                paragraphIndex = paragraphIndex,
-                charStartOffset = offsetStart,
-                charEndOffset = offsetEnd
-            )
-            val words = text.substring(offsetStart, offsetEnd)   // F3: CharSequence.substring 返回 String
-//            textLine.text = if (lineIndex == layout.lineCount - 1) "$words\n" else words        //  //增加一次换行
-            textLine.text = words        //  //增加一次换行
-            val desiredWidth = layout.getLineWidth(lineIndex)   //排版要求的宽度
-            val isLastLine = (lineIndex == layout.lineCount - 1)
-
-            // ── F3 统一行高公式(无 inline/有 inline 都走这条,T0a/T0e 已验证)──
-            // actualLineHeight = (descent - ascent) × lineSpacingExtra × lineHeightParam
-            // - descent - ascent: 系统返回的实际行盒(T0a/T0e 证明 == bottom - top,leading 已隐含)
-            // - lineSpacingExtra: 用户行间距系数(ReaderPreferences.lineHeight,默认 1.5)
-            // - lineHeightParam:  CSS line-height 单段系数(默认 1f,有 CSS line-height 时非 1)
-            //   ★ 顺带修既有 bug(§0.4):原切页判断用三重乘积但 durY 累加只两重(lineHeightParam 被丢),
-            //     本方案切页判断和 durY 累加都用 actualLineHeight(含 lineSpacingExtra × lineHeightParam)。
-            //     注:这会改变有 CSS line-height 段落的翻页点(有意的行为变更,D14 决策),T11b 回归验证。
-            val lineAscent = layout.getLineAscent(lineIndex).toFloat()        // 负值
-            val lineDescent = layout.getLineDescent(lineIndex).toFloat()      // 正值
-            val actualLineHeight = (lineDescent - lineAscent) * lineSpacingExtra * lineHeightParam
-            val actualDescent = lineDescent * lineSpacingExtra * lineHeightParam   // upTopBottom 用(基线 = bottom - descent)
-
-            //v4 方案 B：逐行判断「装不下当前列 → 切列/建新页」，与单列分页同构。
-            // ★ 必须在 addCharsToLineXxx 之前判断——否则切列后 textLine 的 X 坐标仍用旧列的 currentBounds 计算，
-            //   导致溢出行落到新列却带着旧列的 X 坐标（文字错位/重叠）。
-            // F3: 用 actualLineHeight(已含 lineSpacingExtra × lineHeightParam 三重乘积,与 durY 累加对齐)
-            if (durY + actualLineHeight > visibleBottom) {
-                if (currentBounds.isLeftColumn) {
-                    // 左列满 → 切右列（同页），不建新页
-                    currentBounds = layoutBoundsRightColumn()
-                    durY = paddingVertical.toFloat()
-                } else {
-                    // 右列满 / 单列装不下 → 建新页，回左列（或单列 page）
-                    val lastPage = textPages.last()
-                    lastPage.text = stringBuilder.toString()
-                    pageLines.add(lastPage.textLines.size)
-                    pageLengths.add(lastPage.text.length)
-                    lastPage.height = durY
-
-                    textPages.add(TextPage())
-                    stringBuilder.clear()
-                    durY = paddingVertical.toFloat()
-                    currentBounds = if (dualColumnEnabled) layoutBoundsLeftColumn() else layoutBoundsPage()
-                }
-            }
-
-            when (textAlign) {
-                CssTextAlign.CssTextAlignLeft, CssTextAlign.CssTextAlignUndefined -> addCharsToLineLeft(
-                    textLine,
-                    words.toStringArray(),
-                    textPaint,
-                    marginLeft + (if (lineIndex == 0) firstLineIndent.toFloat() else 0f),
-                    currentBounds,   // v4：透传当前列（此时已是切列后的正确列）
-                    charScaleLookup, offsetStart   // F4
-                )
-
-                CssTextAlign.CssTextAlignRight -> addCharsToLineRight(
-                    textLine,
-                    words.toStringArray(),
-                    textPaint,
-                    desiredWidth,
-                    marginRight,
-                    currentBounds,
-                    charScaleLookup, offsetStart   // F4
-                )
-
-                CssTextAlign.CssTextAlignCenter -> addCharsToLineCenter(
-                    textLine,
-                    words.toStringArray(),
-                    textPaint,
-                    desiredWidth,
-                    currentBounds,
-                    charScaleLookup, offsetStart   // F4
-                )
-
-                CssTextAlign.CssTextAlignJustify -> {
-                    if (layout.lineCount == 1) {
-                        addCharsToLineLeft(
-                            textLine,
-                            words.toStringArray(),
-                            textPaint,
-                            marginLeft + (if (lineIndex == 0) firstLineIndent.toFloat() else 0f),
-                            currentBounds,
-                            charScaleLookup, offsetStart   // F4
-                        )
-                    } else {
-                        if (isLastLine) {    //两端对齐，除了最后一行
-                            addCharsToLineLeft(
-                                textLine,
-                                words.toStringArray(),
-                                textPaint,
-                                marginLeft + (if (lineIndex == 0) firstLineIndent.toFloat() else 0f),
-                                currentBounds,
-                                charScaleLookup, offsetStart   // F4
-                            )
-                        } else {
-                            addCharsToLineMiddle(
-                                textLine,
-                                words.toStringArray(),
-                                textPaint,
-                                desiredWidth,
-                                marginLeft + (if (lineIndex == 0) firstLineIndent.toFloat() else 0f),
-                                currentBounds,
-                                charScaleLookup, offsetStart   // F4
-                            )
-                        }
-                    }
-                }
-            }
-
-            if (lineIndex == 0 && isListRow && listLevel > 0) { //第一行，并且是列表
-                textLine.lineDot = LineDot(true, listLevel, order = listOrder)
-            }
-
-            stringBuilder.append(words)
-            if (isLastLine) stringBuilder.append("\n")  //段落的最后一行，增加换行符
-
-            val lastPage = textPages.last()
-            lastPage.textLines.add(textLine)    //将新生成的一行加入到最后一页中
-            textLine.upTopBottom(durY, actualLineHeight, actualDescent)   // F3+F7: 新重载,混合字号行高
-            durY += actualLineHeight                                            // F3: 统一三重乘积累加
-            lastPage.height = durY
-        }
-        return LayoutCursor(durY, currentBounds)
-    }
-
-    /****
-     * 段落的中间行， 两端对齐。
-     *
-     * v4（P4 修复）：新增 [bounds] 参数，内部用 bounds.width 替代单例 visibleWidth，
-     * 用 bounds.startX 替代 paddingHorizontal。切列后传 rightColumn() 即可让字符 X 坐标落到新列起点。
-     * 默认 LayoutBounds.page() 保证单列模式行为完全不变。
-     *
-     * F4: 新增 [charScaleLookup]/[paragraphOffset],按字符实际 scale 算宽度(混合字号)。
-     *      desiredWidth 已是 layout.getLineWidth 返回的混合字号宽度(Span 路径下正确),
-     *      无需自己重算总宽,直接用(避免与几何轨自算总宽不一致,触发 exceed 误判)。
-     */
-    private suspend fun addCharsToLineMiddle(
-        textLine: TextLine,
-        words: Array<String>,
-        textPaint: TextPaint,
-        desiredWidth: Float,
-        offsetX: Float,
-        bounds: LayoutBounds = layoutBoundsPage(),
-        charScaleLookup: (Int) -> Float = { 1f },   // F4 新增(默认向后兼容)
-        paragraphOffset: Int = 0                     // F4 新增:words[0] 在段落中的全局 offset
-    ) {
-//        val tipPreference = readTipPreferencesUtil?.readTIpPreferencesFlow?.firstOrNull()
-//        val textFullJustify = tipPreference?.textFullJustify == true
-//        if (!textFullJustify) { //非两端对齐, 即左对齐
-//            addCharsToLineLeft(textLine, words, textPaint, offsetX)
-//            return
-//        }
-
-        //两端对齐显示
-        val gapCount: Int = words.lastIndex                 //空白间隔的个数
-        val gapWidth = if (gapCount > 0) (bounds.width - desiredWidth) / gapCount else 0f
-        var x = offsetX
-        workPaint.set(textPaint)
-        val baseTextSize = textPaint.textSize
-        words.forEachIndexed { index, char ->               //遍历每个显示的字符
-            val scale = charScaleLookup(paragraphOffset + index)
-            workPaint.textSize = baseTextSize * scale   // scale=1 跳过赋值,避免 native fontMetrics 重算
-            val chWidth: Float = StaticLayout.getDesiredWidth(char, workPaint) //单个字符的显示宽度(含 scale)
-            val x1 = if (index != words.lastIndex) {
-                x + chWidth + gapWidth
-            } else {
-                x + chWidth
-            }
-            textLine.addTextChar(
-                charData = char,
-                start = bounds.startX + x,    // v4：bounds.startX 替代 paddingHorizontal
-                end = bounds.startX + x1
-            )
-            x = x1
-        }
-        exceed(textLine, words, bounds)
-    }
 
     /****
      * 从左向右自然排列一行字符, 即左对齐。
      *
-     * v4（P4 修复）：新增 [bounds] 参数（同 [addCharsToLineMiddle]）。
+     * v4（P4 修复）：新增 [bounds] 参数
      *
      * F4: 新增 [charScaleLookup]/[paragraphOffset],按字符实际 scale 算宽度(混合字号)。
      */
@@ -2405,26 +1760,6 @@ object ChapterProvider {
     }
 
     /**
-     * 居中显示文本。
-     *
-     * v4（P4 修复）：新增 [bounds] 参数，居中按 bounds.width 计算（v4）。
-     *
-     * F4: 透传 [charScaleLookup]/[paragraphOffset]。
-     */
-    private fun addCharsToLineCenter(
-        textLine: TextLine,
-        words: Array<String>,
-        textPaint: TextPaint,
-        desiredWidth: Float,
-        bounds: LayoutBounds = layoutBoundsPage(),
-        charScaleLookup: (Int) -> Float = { 1f },   // F4 新增(默认向后兼容)
-        paragraphOffset: Int = 0                     // F4 新增
-    ) {
-        val x = (bounds.width - desiredWidth) / 2  //标题栏居中显示，左偏移（v4：bounds.width）
-        addCharsToLineLeft(textLine, words, textPaint, x, bounds, charScaleLookup, paragraphOffset)
-    }
-
-    /**
      * 右对齐显示文本。
      *
      * v4（P4 修复）：新增 [bounds] 参数，右对齐按 bounds.width 计算（v4）。
@@ -2445,7 +1780,6 @@ object ChapterProvider {
         val x = bounds.width - desiredWidth - marginRight  //标题栏居中显示，左偏移（v4：bounds.width）
         addCharsToLineLeft(textLine, words, textPaint, x, bounds, charScaleLookup, paragraphOffset)
     }
-
 
     /****
      * 显示的一行内容，计算的偏移位置检测是否超过了边界， 对偏移进行纠偏。

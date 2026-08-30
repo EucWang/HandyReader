@@ -13,7 +13,7 @@ import com.wxn.bookread.data.model.TextChar
  * 规则：
  *  - renderGroup != 0 且与当前缓冲组相同且 typeface 一致 → 累积
  *  - renderGroup 变 / renderGroup==0 / typeface 变（hasGlyph fallback）/ 图片 / 行末 → flush
- *  - renderGroup == 0（setNormalText 纯 LTR 路径，未分组）→ 逐字 drawText（= 现状，零回归）
+ *  - renderGroup == 0  → 逐字 drawText（= 现状，零回归）
  *
  * 落点 = 组内 min(ch.start)（左边缘，方向无关）。
  * paint = 组首字快照（组内 uniform，由 renderGroup 构造保证 + typeface 引用校验）。

@@ -4,6 +4,7 @@ import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.wxn.base.bean.TextDirection
 import com.wxn.bookread.jni.SheenBidiNative
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
@@ -67,6 +68,8 @@ class RTLSegmenterInstrumentedTest {
             seg.baseRtl)
         assertEquals("B1 失败: direction 应为 RTL（基调）", TextDirection.RTL, seg.direction)
         assertEquals("B1 失败: 混合段 runs 应保留", 2, seg.runs.size)
+        assertEquals("B1 失败: declaredRtl=null → anchorBaseRtl 应恒等于 baseRtl",
+            seg.baseRtl, seg.anchorBaseRtl)
         println("B1 ★ 通过: 数字开头+阿语结尾段基调 = RTL（基级权威）")
     }
 
@@ -94,6 +97,8 @@ class RTLSegmenterInstrumentedTest {
             seg.baseRtl)
         assertEquals("B2 失败: direction 应为 RTL", TextDirection.RTL, seg.direction)
         assertEquals("B2 失败: 混合段 runs 应保留", 2, seg.runs.size)
+        assertEquals("B2 失败: declaredRtl=null → anchorBaseRtl 应恒等于 baseRtl",
+            seg.baseRtl, seg.anchorBaseRtl)
         println("B2 ★ 通过: 阿语开头+数字结尾段基调 = RTL（旧 runs[0] 反推 bug 的真实现场，已修复）")
     }
 
@@ -119,6 +124,8 @@ class RTLSegmenterInstrumentedTest {
         assertEquals("B3 失败: direction 应为 RTL", TextDirection.RTL, seg.direction)
         assertEquals("B3 失败: AN 得偶数级（视觉 LTR run）→ 混合段 runs 应保留，实际 ${seg.runs.size}",
             2, seg.runs.size)
+        assertEquals("B3 失败: declaredRtl=null → anchorBaseRtl 应恒等于 baseRtl",
+            seg.baseRtl, seg.anchorBaseRtl)
         println("B3 ★ 通过: 阿拉伯-印度数字（AN 弱型）不改基调；AN run level 2 混合段形态正确")
     }
 
@@ -140,6 +147,8 @@ class RTLSegmenterInstrumentedTest {
         assertTrue("B4 失败: baseRtl 应为 false", !seg.baseRtl)
         assertTrue("B4 失败: 无 RTL run 应走纯 LTR fast path（runs 清空），实际 ${seg.runs.size}",
             seg.runs.isEmpty())
+        assertEquals("B4 失败: declaredRtl=null → anchorBaseRtl 应恒等于 baseRtl",
+            seg.baseRtl, seg.anchorBaseRtl)
         println("B4 ★ 通过: 纯数字段维持 LTR 兜底语义")
     }
 
@@ -161,81 +170,85 @@ class RTLSegmenterInstrumentedTest {
         assertEquals("B5 失败: direction 应为 LTR（基调，非 MIXED）", TextDirection.LTR, seg.direction)
         assertTrue("B5 失败: baseRtl 应为 false", !seg.baseRtl)
         assertEquals("B5 失败: 混合段 runs 应保留", 2, seg.runs.size)
+        assertEquals("B5 失败: declaredRtl=null → anchorBaseRtl 应恒等于 baseRtl",
+            seg.baseRtl, seg.anchorBaseRtl)
         println("B5 ★ 通过: LTR 基调混合段契约正确（列表圆点左侧场景的地基）")
     }
 
     // ─────────────────────────────────────────────────────────────────────────
-    // B6-B8: dir 声明继承（MIX-1 修复，docs/plans/2026-08-27-plan-rtl-dir-inheritance.md §6 V2）。
-    //   declaredRtl 参数 → SheenBidiNative.bidiRunsExplicit → JNI 以具体基级（0/1）创建段落，
-    //   SheenBidi 官方语义（SBAlgorithm.h:93-95）：baseLevel 为具体级别时 P2-P3 首强嗅探被忽略。
+    // B6-B8: dir 声明继承契约 —— D 方向解耦
+    //   (docs/plans/2026-08-29-plan-u5-mixed-base-ltr-line-order-fix.md §4.2)：
+    //   排版基调 baseRtl 恒 = SheenBidi 首强（declaredRtl 不再强制基级，U5 缺陷根消除）；
+    //   declaredRtl 的唯一消费 = 锚点方向 anchorBaseRtl（= declaredRtl ?: baseRtl）。
     // ─────────────────────────────────────────────────────────────────────────
 
     /**
-     * B6: segment("Hello world", declaredRtl = true) → baseRtl == true。
-     *     嗅探路径下此文本为 LTR（B4/B5 族）——显式声明覆盖的正面证明。
-     *     输出形态 = fast path 产物（direction==LTR && runs.isEmpty() && baseRtl==true），
-     *     这正是 C-K4（ChapterProvider isPureLtr 加 !seg.baseRtl 守卫）所堵漏洞的输入形态。
+     * B6: segment("Hello world", declaredRtl = true) → baseRtl == false（首强 LTR）、
+     *     anchorBaseRtl == true（显式声明只达列表锚点）。
+     *     D 方向解耦：声明不再强制基级——若仍强制，阿语段在 dir=ltr 书中会被压成基级 0，
+     *     视觉序 runs 跨行拼装错乱（U5 缺陷根）。
      */
     @Test
-    fun B6_explicitRtl_forcesLatinBase() {
+    fun B6_explicitRtl_latinKeepsFirstStrongBase() {
         val text = "Hello world"
 
-        val bidi = SheenBidiNative.bidiRunsExplicit(text, baseRtl = true)
-        println("B6: bidi = $bidi")
-        assertEquals("B6 失败: 显式 RTL 基级应原样取回，baseLevel=${bidi.baseLevel} 应为 1",
-            1, bidi.baseLevel)
-
         val seg = RTLSegmenter.segment(text, declaredRtl = true)
-        println("B6: segment → direction=${seg.direction} baseRtl=${seg.baseRtl} runs=${seg.runs.size}")
-        assertTrue("B6 失败: declaredRtl=true 应强制 baseRtl（嗅探路径此文本为 LTR）",
-            seg.baseRtl)
-        assertEquals("B6 失败: 纯拉丁 run 均为视觉 LTR → fast path direction=LTR",
-            TextDirection.LTR, seg.direction)
-        assertTrue("B6 失败: 无 RTL run 应走 fast path（runs 清空），实际 ${seg.runs.size}",
+        println("B6: segment → direction=${seg.direction} baseRtl=${seg.baseRtl} " +
+            "anchorBaseRtl=${seg.anchorBaseRtl} runs=${seg.runs.size}")
+        assertTrue("B6 失败: 首强 LTR 文本的排版基调应为 false（D 下声明不再强制基级）",
+            !seg.baseRtl)
+        assertTrue("B6 失败: 显式声明应传导到锚点方向 anchorBaseRtl", seg.anchorBaseRtl)
+        assertEquals("B6 失败: direction 应为 LTR（首强基调）", TextDirection.LTR, seg.direction)
+        assertTrue("B6 失败: 纯拉丁段应走 fast path（runs 清空），实际 ${seg.runs.size}",
             seg.runs.isEmpty())
-        println("B6 ★ 通过: 显式 RTL 强制纯拉丁段基调（MIX-1 的 Hello/Chapter 1 列表项形态）")
+
+        // 对照：无声明 → 锚点回退首强（declaredRtl=null → anchorBaseRtl == baseRtl 恒等式）
+        val segNoDecl = RTLSegmenter.segment(text)
+        assertEquals("B6 失败: 无声明时 anchorBaseRtl 应恒等于 baseRtl",
+            segNoDecl.baseRtl, segNoDecl.anchorBaseRtl)
+        println("B6 ★ 通过: 显式 RTL 声明只达锚点，排版基调恒首强（D 方向解耦契约）")
     }
 
     /**
-     * B7: segment("مرحبا", declaredRtl = false) → baseRtl == false。
-     *     强制 LTR 纯阿语段（嗅探路径为 RTL 的反向证明）；
-     *     输出形态 direction==RTL && runs.isEmpty() && baseRtl==false（进 RTL 引擎合成）。
+     * B7: segment("مرحبا", declaredRtl = false) → baseRtl == true（首强 RTL）、
+     *     anchorBaseRtl == false（显式 LTR 声明只达锚点）。
      */
     @Test
-    fun B7_explicitLtr_forcesArabicBase() {
+    fun B7_explicitLtr_arabicKeepsFirstStrongBase() {
         val text = "مرحبا"
 
-        val bidi = SheenBidiNative.bidiRunsExplicit(text, baseRtl = false)
-        println("B7: bidi = $bidi")
-        assertEquals("B7 失败: 显式 LTR 基级应原样取回，baseLevel=${bidi.baseLevel} 应为 0",
-            0, bidi.baseLevel)
-
         val seg = RTLSegmenter.segment(text, declaredRtl = false)
-        println("B7: segment → direction=${seg.direction} baseRtl=${seg.baseRtl} runs=${seg.runs.size}")
-        assertTrue("B7 失败: declaredRtl=false 应强制 baseRtl=false（嗅探路径此文本为 RTL）",
-            !seg.baseRtl)
-        assertEquals("B7 失败: 纯阿语 run 均为 RTL → fast path direction=RTL",
-            TextDirection.RTL, seg.direction)
-        assertTrue("B7 失败: 无 LTR run 应走 fast path（runs 清空），实际 ${seg.runs.size}",
+        println("B7: segment → direction=${seg.direction} baseRtl=${seg.baseRtl} " +
+            "anchorBaseRtl=${seg.anchorBaseRtl} runs=${seg.runs.size}")
+        assertTrue("B7 失败: 首强 RTL 文本的排版基调应为 true（D 下声明不再强制基级）",
+            seg.baseRtl)
+        assertFalse("B7 失败: 显式 LTR 声明应使锚点方向为 LTR", seg.anchorBaseRtl)
+        assertEquals("B7 失败: direction 应为 RTL（首强基调）", TextDirection.RTL, seg.direction)
+        assertTrue("B7 失败: 纯阿语段应走 fast path（runs 清空），实际 ${seg.runs.size}",
             seg.runs.isEmpty())
-        println("B7 ★ 通过: 显式 LTR 强制纯阿语段基调（A5 场景3 的地基）")
+        println("B7 ★ 通过: 显式 LTR 声明只达锚点，阿语段排版基调恒首强 RTL")
     }
 
     /**
-     * B8: segment("   ", declaredRtl = true) → direction==RTL && baseRtl==true。
-     *     空白段让位（C-K2c）：空白文本无强字符，嗅探恒 LTR；显式声明时按声明。
+     * B8: segment("   ", declaredRtl = true) → 空白段无强字符：排版基调恒 LTR 兜底
+     *     （与 B4 契约一致，D 下声明不再改变基调），显式声明只达锚点 anchorBaseRtl=true。
      */
     @Test
     fun B8_blankText_explicitRtl() {
         val seg = RTLSegmenter.segment("   ", declaredRtl = true)
-        println("B8: segment → direction=${seg.direction} baseRtl=${seg.baseRtl}")
-        assertEquals("B8 失败: 空白段 + 显式 RTL 应 direction=RTL", TextDirection.RTL, seg.direction)
-        assertTrue("B8 失败: 空白段 + 显式 RTL 应 baseRtl=true", seg.baseRtl)
+        println("B8: segment → direction=${seg.direction} baseRtl=${seg.baseRtl} " +
+            "anchorBaseRtl=${seg.anchorBaseRtl}")
+        assertEquals("B8 失败: 空白段排版基调应恒 LTR 兜底（D 下声明不再改变基调）",
+            TextDirection.LTR, seg.direction)
+        assertTrue("B8 失败: 空白段 baseRtl 应为 false", !seg.baseRtl)
+        assertTrue("B8 失败: 空白段 + 显式 RTL → 锚点方向应为 RTL", seg.anchorBaseRtl)
 
-        // 对照：无声明时空白段维持旧契约（LTR 兜底）
+        // 对照：无声明时锚点回退首强兜底（LTR），恒等式成立
         val segLegacy = RTLSegmenter.segment("   ")
-        assertEquals("B8 失败: 空白段无声明应维持 LTR 兜底（零回归）", TextDirection.LTR, segLegacy.direction)
-        assertTrue("B8 失败: 空白段无声明应 baseRtl=false（零回归）", !segLegacy.baseRtl)
-        println("B8 ★ 通过: 空白段让位契约正确（显式声明生效 + 无声明零回归）")
+        assertEquals("B8 失败: 空白段无声明应维持 LTR 兜底（零回归）",
+            TextDirection.LTR, segLegacy.direction)
+        assertEquals("B8 失败: 无声明时 anchorBaseRtl 应恒等于 baseRtl",
+            segLegacy.baseRtl, segLegacy.anchorBaseRtl)
+        println("B8 ★ 通过: 空白段让位契约正确（基调恒 LTR 兜底 + 声明只达锚点）")
     }
 }

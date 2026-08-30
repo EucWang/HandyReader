@@ -1478,7 +1478,7 @@ class PageViewController @OptIn(UnstableApi::class)
 
             for ((index, ch) in line.textChars.withIndex()) {
                 if (!ch.isImage && ch.charData.isNotEmpty() && ch.charData.length == 1) {
-                    val charIndexInParagraph = line.charStartOffset + index
+                    val charIndexInParagraph = line.charStartOffset + line.textIndexAt(index)
                     if (charIndexInParagraph >= startOffset && charIndexInParagraph <= endOffset) {
                         if (!found) topY = line.lineTop
                         found = true

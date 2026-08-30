@@ -71,7 +71,7 @@ data class TextLine(
      * 方向；段落首行永不与前一段落共享 → 首行必为新建行）。run.isRtl 只决定 run 自身
      * StaticLayout 的文本方向，不决定行方向。
      * 驱动 cursor 起点/推进、相邻摆放、对齐（anchorLine/justify/indent）、列表圆点锚定侧。
-     * 默认 false（setNormalText 纯 LTR 路径不赋值，保持 LTR 语义）。
+     * 默认 false
      */
     var isRtl: Boolean = false
 ) {
@@ -85,7 +85,7 @@ data class TextLine(
     /**
      * F7 新增:用于混合字号行(lineHeight/descent 来自 layout.getLineAscent/getLineDescent)。
      *
-     * - [lineHeight]: 实际行高(已含 lineSpacingExtra 系数,见 setNormalText F3 公式)
+     * - [lineHeight]: 实际行高(已含 lineSpacingExtra 系数)
      * - [descent]:   实际 descent(已含 lineSpacingExtra 系数;基线 = bottom - descent)
      *
      * 与原 `upTopBottom(durY, textPaint)` 重载并存,非 inline 段落继续用原重载(零影响)。
@@ -109,6 +109,38 @@ data class TextLine(
     }
 
     fun getTextCharsCount(): Int {
+        return textChars.size
+    }
+
+    /**
+     * 行内两种下标口径的双向换算（图片 TextChar 只占数组位、不占文本位）：
+     * - 数组口径：textChars 的下标（含图片占位），用于 ShapedRunBuffer 相邻探测、视觉 span 等渲染链路；
+     * - 文本口径：= 本行在 line.text 中的下标（不含图片），用于 charStartOffset + index 求
+     *   段内偏移、标签/inlineStyle 匹配、选区 sC/eC 与 lineText 截取（统一坐标约定，方案 M2-③）。
+     */
+    fun textCharCount(): Int = textChars.count { !it.isImage }
+
+    /** 数组下标 → 文本下标：[arrayIndex] 之前（不含）的非图片字符数。越界按钳制处理。 */
+    fun textIndexAt(arrayIndex: Int): Int {
+        if (arrayIndex <= 0) return 0
+        var n = 0
+        val upper = arrayIndex.coerceAtMost(textChars.size)
+        for (i in 0 until upper) {
+            if (!textChars[i].isImage) n++
+        }
+        return n
+    }
+
+    /** 文本下标 → 数组下标：第 [textIndex] 个非图片字符的数组位；行内图片后缀/越界时返回 textChars.size。 */
+    fun arrayIndexAt(textIndex: Int): Int {
+        if (textIndex < 0) return 0
+        var n = 0
+        textChars.forEachIndexed { i, ch ->
+            if (!ch.isImage) {
+                if (n == textIndex) return i
+                n++
+            }
+        }
         return textChars.size
     }
 

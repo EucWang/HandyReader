@@ -10,25 +10,26 @@ object RTLSegmenter {
     fun segment(text: String, declaredRtl: Boolean? = null) : SegmentResult {
         if (text.isBlank()) {
             return SegmentResult(
-                if (declaredRtl == true) TextDirection.RTL else TextDirection.LTR,
-                declaredRtl == true,
-                emptyList())
+                TextDirection.LTR,
+                false,
+                emptyList(),
+                // 空白段无强字符：基调 = LTR 兜底（与 B4 契约一致）；锚点仍由显式声明决定
+                declaredRtl ?: false
+            )
         }
 
-        val bidiParagraph =
-            if (declaredRtl != null) {
-                //强制基级方向
-                SheenBidiNative.bidiRunsExplicit(text, declaredRtl)
-            } else {
-                SheenBidiNative.bidiRuns(text, baseRtl = false)
-            }
+        // ★ D 方向解耦：排版基调恒 = SheenBidi 首强（显式 dir 不再强制基级——基级与内容
+        //   首强冲突时视觉序 runs 跨行拼装错乱，U5 缺陷根）。declaredRtl 的唯一消费 =
+        //   锚点方向 anchorBaseRtl。
+        val bidiParagraph = SheenBidiNative.bidiRuns(text, baseRtl = false)
 
         val runs = bidiParagraph.runs
         if (runs.isEmpty()) {
             return SegmentResult(
-                if (declaredRtl == true) TextDirection.RTL else TextDirection.LTR,
-                declaredRtl == true,
-                emptyList()
+                TextDirection.LTR,
+                false,
+                emptyList(),
+                declaredRtl ?: false
             )
         }
 
@@ -44,14 +45,16 @@ object RTLSegmenter {
             return SegmentResult(
                 TextDirection.RTL,
                 baseRtl,
-                emptyList()
+                emptyList(),
+                declaredRtl ?: baseRtl
             )
         }
         if (!hasRtlRun) {
             return SegmentResult(
                 TextDirection.LTR,
                 baseRtl,
-                emptyList()
+                emptyList(),
+                declaredRtl ?: baseRtl
             )
         }
 
@@ -61,7 +64,8 @@ object RTLSegmenter {
             // 混合段：direction=基调，runs=视觉序
             runs = runs.map {
                 RunLayout(it.isRtl, it.offset, it.length)
-            }
+            },
+            declaredRtl ?: baseRtl
         )
     }
 }

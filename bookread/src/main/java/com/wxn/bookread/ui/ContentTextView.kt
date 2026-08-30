@@ -77,8 +77,9 @@ class ContentTextView(context: Context, attrs: AttributeSet?) : View(context, at
             relativePage(rp)?.let { page ->
                 for ((li, line) in page.textLines.withIndex()) {
                     if (line.paragraphIndex == paragraphIndex) {
+                        // ci 为文本口径（不含图片占位，M2-③）；行内非图片字符数校验
                         val ci = textOffset - line.charStartOffset
-                        if (ci >= 0 && ci < line.textChars.size) {
+                        if (ci >= 0 && ci < line.textCharCount()) {
                             return VisualPos(rp, li, ci)
                         }
                     }
@@ -424,7 +425,7 @@ class ContentTextView(context: Context, attrs: AttributeSet?) : View(context, at
         val lineBottom = textLine.lineBottom + relativeOffset
 
         var noteColor = "#FFFF00"
-        val (left, right) = textLine.textChars.visualSpan { i -> (i + lineStartOffset) in start..<end } ?: return
+        val (left, right) = textLine.textChars.visualSpan { i -> (textLine.textIndexAt(i) + lineStartOffset) in start..<end } ?: return
         val top = lineTop - (marginTop / 2)
         val bottom = lineBottom + (marginBottom / 2)
 
@@ -461,7 +462,7 @@ class ContentTextView(context: Context, attrs: AttributeSet?) : View(context, at
             val lineBottom = textLine.lineBottom + relativeOffset
 
             val (left, right) = textLine.textChars.visualSpan { index ->
-                (index + lineStartOffset) in matchStart until matchEnd
+                (textLine.textIndexAt(index) + lineStartOffset) in matchStart until matchEnd
             } ?: continue
 
             val top = lineTop - RenderResources.dp4
@@ -506,7 +507,7 @@ class ContentTextView(context: Context, attrs: AttributeSet?) : View(context, at
                 RenderResources.noteIconBmp?.let { noteIcon ->
                     // R1 N1-a：图标锚定阅读方向起点——RTL 贴右缘、LTR 贴左缘，均向行内伸展（镜像对称，不越行宽）。
                     // 空行兜底：left=0/right=viewWidth → LTR 得 0f（同旧行为）、RTL 得右缘。
-                    val lineRtl = textLine.isRtl || textLine.textChars.any { it.renderGroup > 0 }
+                    val lineRtl = textLine.isRtl
                     val iconDiameter = 2 * RenderResources.dp12
                     val iconLeft = if (lineRtl) right - iconDiameter else left
                     val iconTop = lineTop - RenderResources.dp12
@@ -613,12 +614,17 @@ class ContentTextView(context: Context, attrs: AttributeSet?) : View(context, at
         var hightlightColor: String = "#FFFFFF00"
         var underlineColor: String = "#FF575757"
 
+        var textOnlyIdx = 0
         textLine.textChars.forEachIndexed { index, ch ->
             var isHighlight = false     //是否高亮
             var isUnderline = false
             var isBold = false
             var isSmall = false
-            val charIndex = textLine.charStartOffset + index
+            // 文本口径下标（图片占数组位、不占文本位，M2-③）：标签/inlineStyle/选区匹配专用；
+            // ShapedRunBuffer 相邻探测（index+1）仍用数组口径 index。
+            val textIdx = textOnlyIdx
+            if (!ch.isImage) textOnlyIdx++
+            val charIndex = textLine.charStartOffset + textIdx
             val parentPaint = if (defaultTextPaint != null) defaultTextPaint else {
                 val texttag = if (textTags.size == 1) {
                     val tag = textTags[0]
@@ -687,7 +693,7 @@ class ContentTextView(context: Context, attrs: AttributeSet?) : View(context, at
             RenderResources.drawingPaint.set(parentPaint)
 
             val resolved = if (!isTitle && !ch.isImage && !textLine.isTableCell) {
-                val charOffsetInParagraph = textLine.charStartOffset + index   // isTableCell 已排除,rowLineOffset 分支不达
+                val charOffsetInParagraph = textLine.charStartOffset + textIdx   // isTableCell 已排除,rowLineOffset 分支不达
                 InlineStyle.resolve(inlineStyles, charOffsetInParagraph)
             } else {
                 InlineCssProps()
@@ -735,7 +741,7 @@ class ContentTextView(context: Context, attrs: AttributeSet?) : View(context, at
             }
             val selRange = drawSelectionRange
             if (selRange != null && isCharInSelection(
-                    drawRelativePage, drawLineIndex, index,
+                    drawRelativePage, drawLineIndex, textIdx,
                     selRange.sP, selRange.sL, selRange.sC,
                     selRange.eP, selRange.eL, selRange.eC
                 )) {
@@ -933,7 +939,7 @@ class ContentTextView(context: Context, attrs: AttributeSet?) : View(context, at
                             end = textChar.end
                             if (x > start && x < end) {
                                 val paragraphIndex = textLine.paragraphIndex
-                                val textOffset = textLine.charStartOffset + charIndex
+                                val textOffset = textLine.charStartOffset + textLine.textIndexAt(charIndex)
                                 val locator = readSelectionLocator()
                                 if (locator != null) {
                                     if (locator.startParagraphIndex == paragraphIndex &&
@@ -994,7 +1000,7 @@ class ContentTextView(context: Context, attrs: AttributeSet?) : View(context, at
                             end = textChar.end
                             if (x > start && x < end) {
                                 val paragraphIndex = textLine.paragraphIndex
-                                val textOffset = textLine.charStartOffset + charIndex
+                                val textOffset = textLine.charStartOffset + textLine.textIndexAt(charIndex)
                                 val locator = readSelectionLocator()
                                 if (locator != null) {
                                     if (locator.endParagraphIndex == paragraphIndex &&
@@ -1038,7 +1044,7 @@ class ContentTextView(context: Context, attrs: AttributeSet?) : View(context, at
             textLine.lineBottom + relativeOffset(relativePage),
             textLine.lineTop + relativeOffset(relativePage),
             textLine.paragraphIndex,
-            textLine.charStartOffset + charIndex
+            textLine.charStartOffset + textLine.textIndexAt(charIndex)
         )
     }
 
@@ -1052,7 +1058,7 @@ class ContentTextView(context: Context, attrs: AttributeSet?) : View(context, at
 
         upSelectedEnd(
             textChar.end, textLine.lineBottom + relativeOffset(relativePage),
-            textLine.paragraphIndex, textLine.charStartOffset + charIndex
+            textLine.paragraphIndex, textLine.charStartOffset + textLine.textIndexAt(charIndex)
         )
         upSelectChars()
     }
@@ -1230,10 +1236,10 @@ class ContentTextView(context: Context, attrs: AttributeSet?) : View(context, at
         val startLine = relativePage(sP)?.textLines?.getOrNull(sL)
         val endLine = relativePage(eP)?.textLines?.getOrNull(eL)
         if (startLine == null || endLine == null) return
-        if (sC !in startLine.textChars.indices || eC !in endLine.textChars.indices) return
-
-        val sChar = startLine.textChars[sC]
-        val eChar = endLine.textChars[eC]
+        // sC/eC 为文本口径（M2-③），换算数组下标后取锚点字符
+        if (sC < 0 || sC >= startLine.textCharCount() || eC < 0 || eC >= endLine.textCharCount()) return
+        val sChar = startLine.textChars.getOrNull(startLine.arrayIndexAt(sC)) ?: return
+        val eChar = endLine.textChars.getOrNull(endLine.arrayIndexAt(eC)) ?: return
         val sOff = relativeOffset(sP)
         val eOff = relativeOffset(eP)
 
@@ -1259,9 +1265,9 @@ class ContentTextView(context: Context, attrs: AttributeSet?) : View(context, at
         val eC = endPos.charIndex
 
         val sLine = relativePage(sP)?.textLines?.getOrNull(sL) ?: return null
-        val sChar = sLine.textChars.getOrNull(sC) ?: return null
+        val sChar = sLine.textChars.getOrNull(sLine.arrayIndexAt(sC)) ?: return null
         val eLine = relativePage(eP)?.textLines?.getOrNull(eL) ?: return null
-        val eChar = eLine.textChars.getOrNull(eC) ?: return null
+        val eChar = eLine.textChars.getOrNull(eLine.arrayIndexAt(eC)) ?: return null
 
         val sY = sLine.lineBottom + relativeOffset(sP) + RenderResources.handleLineHeightPx - RenderResources.handleRadiusPx
         val eY = eLine.lineBottom + relativeOffset(eP) + RenderResources.handleLineHeightPx - RenderResources.handleRadiusPx
@@ -1371,7 +1377,7 @@ class ContentTextView(context: Context, attrs: AttributeSet?) : View(context, at
             startLine.lineBottom + offset,
             startLine.lineTop + offset,
             targetParagraphIndex,
-            startLine.charStartOffset + startInfo.charIdx
+            startLine.charStartOffset + startLine.textIndexAt(startInfo.charIdx)
         )
 
         val endLine = page.textLines.getOrNull(endInfo.lineIdx) ?: return
@@ -1381,7 +1387,7 @@ class ContentTextView(context: Context, attrs: AttributeSet?) : View(context, at
             endChar.end,
             endLine.lineBottom + offset,
             targetParagraphIndex,
-            endLine.charStartOffset + endInfo.charIdx
+            endLine.charStartOffset + endLine.textIndexAt(endInfo.charIdx)
         )
 
         upSelectChars()

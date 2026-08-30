@@ -242,7 +242,7 @@ object LanguageDetector {
         for (w in words) {
             for ((lang, dict) in FUNCTION_WORDS) {
                 if (w in dict) {
-                    hits[lang] = hits.getOrDefault(lang, 0) + 1
+                    hits[lang] = (hits[lang] ?: 0) + 1
                 }
             }
         }

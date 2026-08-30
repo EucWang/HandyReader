@@ -10,7 +10,8 @@ data class LineDot(
     var anchorX: Float = Float.NaN,
     var order:Int = 0,
     /**
-     * 标记绘制方向 = 排版段落基调（segDirect.baseRtl），
+     * 标记绘制方向 = 列表锚点方向（segDirect.anchorBaseRtl：显式 dir 声明优先、
+     * 无声明回退 SheenBidi 首强；D 方向解耦——与排版基调 baseRtl 分离），
      * 由排版引擎落锚时与 anchorX 同点写入。
      * legacy 纯 LTR 路径不写入 → 默认 false。
      */
