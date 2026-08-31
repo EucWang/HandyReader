@@ -1367,7 +1367,7 @@ object ChapterProvider {
                 durY,
                 bounds   // v4：透传
             )
-        } else {                    //没有段落内的图片
+        } else {                    //非表格行：列表/行内图/标题/普通段（含 RTL/LTR/混排），全部走 RTL 引擎 layoutNormalTextRtl
             // F2: 构造含 Span 的 CharSequence(仅当段落有 inline 字号时)
             // ★ 命名注意:局部变量用 paragraphInlineFontSizes
             val paragraphInlineFontSizes: List<InlineStyle>? = if (paragraph is ReaderText.Text) {

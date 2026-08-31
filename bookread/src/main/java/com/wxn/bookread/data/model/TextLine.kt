@@ -65,6 +65,7 @@ data class TextLine(
 
     var lineDot: LineDot? = null,
 
+
     /**
      * 行方向：true=RTL，false=LTR。
      * 新建行（!lineShared）恒 = 段落基调 segDirect.baseRtl（UAX#9：行的基方向恒为段落嵌入
@@ -73,8 +74,19 @@ data class TextLine(
      * 驱动 cursor 起点/推进、相邻摆放、对齐（anchorLine/justify/indent）、列表圆点锚定侧。
      * 默认 false
      */
-    var isRtl: Boolean = false
-) {
+    var isRtl: Boolean = false,
+
+    /**
+     * 粘合段重锚标记：
+     * 行发生过 level>=1 多块重锚 （行内块序 ≠ list 序）。
+     * justify 的线性重排执行器（distributeWords/distributeJustifyChars）按 list 序
+     * 左→右重放会二次镜像 → postProcessRtlLine 对此类行跳过 justify
+     * （退化 anchorLine起始边锚定，与 justify 首/末行退化同哲学)
+     * 运行时布局产物，不持久化。
+     */
+    var spanReordered: Boolean = false,
+
+    ) {
 
     fun upTopBottom(durY: Float, textPaint: TextPaint) {
         lineTop = durY

@@ -63,7 +63,7 @@ object RTLSegmenter {
             baseRtl = baseRtl,
             // 混合段：direction=基调，runs=视觉序
             runs = runs.map {
-                RunLayout(it.isRtl, it.offset, it.length)
+                RunLayout(it.isRtl, it.offset, it.length, it.level)
             },
             declaredRtl ?: baseRtl
         )

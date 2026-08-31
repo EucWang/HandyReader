@@ -11,20 +11,19 @@ import com.wxn.base.bean.ReaderText
 import com.wxn.base.bean.RunLayout
 import com.wxn.base.bean.SegmentResult
 import com.wxn.base.bean.TextTag
+import com.wxn.bookread.data.beans.LineAssemblyState
+import com.wxn.bookread.data.beans.LineBlockRecord
 import com.wxn.bookread.data.model.LineDot
 import com.wxn.bookread.data.model.TextChar
 import com.wxn.bookread.data.model.TextLine
 import com.wxn.bookread.data.model.TextPage
 import com.wxn.bookread.data.model.isTrimableWs
-import com.wxn.bookread.ext.isCjkCode
-import com.wxn.bookread.ext.isConnectedScriptCode
 import com.wxn.bookread.ext.isWordChar
 import com.wxn.bookread.provider.ChapterProvider.dualColumnEnabled
 import com.wxn.bookread.provider.ChapterProvider.lineSpacingExtra
 import com.wxn.bookread.provider.ChapterProvider.paddingVertical
 import com.wxn.bookread.provider.ChapterProvider.visibleBottom
 import com.wxn.bookread.textHeight
-import java.util.Arrays
 import kotlin.math.roundToInt
 
 object TextLayoutProvider {
@@ -67,7 +66,8 @@ object TextLayoutProvider {
         val paint = textPaint
 
         val runs = if (segDirect.runs.isEmpty()) {
-            listOf(RunLayout(segDirect.baseRtl, 0, text.length))
+            listOf(RunLayout(segDirect.baseRtl, 0, text.length,
+                if (segDirect.baseRtl) 1 else 0))
         } else {
             segDirect.runs
         }
@@ -83,11 +83,21 @@ object TextLayoutProvider {
         } else emptyList()
         //得到被bidi算法，和 行内图片 切分得到的分段集合
         // ★ SheenBidi runs 是视觉序（左→右；B1/B2 仪器测试实测：'نص 123' 的 runs[0] 是数字 run）。
-        //   堆叠按「阅读序」从起始边推进：RTL 基调 = 逻辑序 = 视觉序的【run 级逆序】——逆序后首
-        //   run 恰为逻辑首 run，从右缘起排，后续 run 依次向左 → 视觉位置与 Calibre/标准 bidi 一致；
-        //   LTR 基调视觉序即逻辑序，保持原序。
+        //   消费序恒 = 逻辑序（buildLayoutItems 内 sortedBy offset；D+ 方案 W2）：
+        //   RTL 基调下 sortedBy ≡ 旧 asReversed（奇基调无 level-0 字符，逐位等价，零回归）；
+        //   LTR 基调下修复「视觉序消费 → 粘合段跨行内容错乱」（U7 主缺陷，视觉序≠逻辑序
+        //   ⟺ 存在相邻 level>=1 块对，无粘合段行两种序逐位相同）。
         //   （修复前：RTL 基调按视觉序从右缘消费 → 整行块顺序镜像，LD-B 混排 li 与 Calibre 对照可复现）
         val layoutItems = buildLayoutItems(runs, imgTags, segDirect.baseRtl)
+
+        // ★ D+ 行关闭粘合段重锚：仅「首强 LTR 基调 + 混排（含 RTL run）+ 无行内图」启用
+        //   （hasInlineImg 由 ChapterProvider:1409 位置传参，行内图段真实走本引擎）。
+        //   排除图段为防损坏必要设计：图片 TextChar 插在块间会误连 span / 自建行走块记录跨行失同步 /
+        //   绝对坐标系不参与槽位打包（方案 §3 非目标、§8 风险 8 含扩展接线清单）。
+        //   RTL 基调整行即单粘合段（现有行为已正确，零回归红线）；纯 LTR 段无 >=1 块（重锚恒 no-op）。
+        val assembly = if (!segDirect.baseRtl && segDirect.runs.size >= 2 && !hasInlineImage) {
+            LineAssemblyState()
+        } else null
 
         // 首个 Run 定方向
         var lineIsRtl = if (layoutItems.any { it is LayoutItem.Run }) {
@@ -280,7 +290,8 @@ object TextLayoutProvider {
 
                             chapterIsRtl,
                             cursor,
-                            paragraphLines
+                            paragraphLines,
+                            assembly
                         )
                         currentBounds = targetBounds
                         durY = targetY
@@ -294,6 +305,12 @@ object TextLayoutProvider {
         // N2: 段落收尾补 "\n"——与旧引擎 page.text 语义对齐：段界可读（TalkBack 不连读）、
         // pageLengths 基数一致。空段在上游 setTypeText:1095 早退、不进本函数，不会重复补。
         stringBuilder.append("\n")
+
+        // ★ D+：最后一行关闭——所有行必须在 postProcess/justify 之前完成重锚，
+        //   否则 postProcessRtlLine 消费的是重锚前的名义坐标、spanReordered 标记晚到
+        //   （末行 justify 现由 isLastLine 退化兜住、anchorLine 整行平移与重锚可交换，
+        //   属巧合不变量，不依赖——见方案 W3-4）
+        assembly?.let { finalizePendingLine(it) }
 
         for ((i, rec) in paragraphLines.withIndex()) {
             postProcessRtlLine(
@@ -346,6 +363,7 @@ object TextLayoutProvider {
         chapterIsRtl: Boolean,                 // 双列切列方向
         cursor: Float,
         paragraphLines: ArrayList<LineRecord>,
+        assembly: LineAssemblyState? // 处理段落LTR中混合了RTL的场景下，行重排处理
     ): Triple<LayoutBounds, Float, Float> {
 
         val lineStart = layout.getLineStart(lineIndex)
@@ -415,6 +433,8 @@ object TextLayoutProvider {
             // charStartOffset 恒为原始段内文本偏移，不做图片数修正（方案 M2-③ 统一坐标约定）。
             lastLine
         } else {
+            //上一行关闭 → 执行粘合段重锚
+            assembly?.let { finalizePendingLine(it) }
             TextLine(
                 isTitle = isTitle,
                 paragraphIndex = paragraphIndex,
@@ -452,6 +472,17 @@ object TextLayoutProvider {
             lineIsRtl,
             targetCursor
         )
+
+        // ★ 记录本行块（名义坐标已定稿；level 供行关闭时粘合段判定）
+        if (assembly != null && textLine.textChars.size > charsBaseStart) {
+            assembly.pendingLine = textLine
+            assembly.blocks.add(
+                LineBlockRecord(
+                    charsBaseStart,
+                    textLine.textChars.size,
+                    run.level)
+            )
+        }
 
         targetCursor = if (lineIsRtl) blockMin else blockMax
 
@@ -708,7 +739,9 @@ object TextLayoutProvider {
         val effWidth = rawWidth - 2 * inkSize
 
         // ── Job 1: justify ──
-        if (lineEffAlign == CssTextAlign.CssTextAlignJustify) {
+        //justify（ 重锚行的 list 序 ≠ 视觉序，线性重排会二次镜像 → 精确跳过）
+        if (lineEffAlign == CssTextAlign.CssTextAlignJustify &&
+            !textLine.spanReordered) {
             justifyLine(chars, effStart, effEnd, effWidth, textSize, lineIsRtl)
         }
 
@@ -726,6 +759,8 @@ object TextLayoutProvider {
      *  - WORD_DISTRIBUTE：现状按词（renderGroup）整组平移，几何与历史位图级一致
      *  - CHAR_DISTRIBUTE：CJK 逐字拉开（现状语义，预算剔除首尾空白）
      *  - HYBRID：词距封顶 0.5em + 组内字距摊入（长词提前断行的满行）
+     *  - ★ C5 分发序：非图行按视觉序（组盒 min(start)）传入执行器，含图行保持数组序（现状）；
+     *    修复前按数组序（逻辑序）分发，LTR 基调含多词 RTL 块的行被整块镜像（U7 验收缺陷）
      */
     private fun justifyLine(
         chars: ArrayList<TextChar>,
@@ -735,49 +770,12 @@ object TextLayoutProvider {
         textSize: Float,
         lineIsRtl: Boolean
     ) {
-//        //按照renderGroup分组，得到多少个词，CJK每个字就是一个词
-//        val words = chars.groupBy { it.renderGroup }.values.toList()
-//
-//        if (words.size > 1) {
-//            //有多少个间隔
-//            val gapCount = words.size - 1
-//
-//            if (gapCount <= 0) return   // 单词行不 justify
-//
-//            val contentWidth = words.sumOf { w ->
-//                (w.maxOf { it.end } - w.minOf { it.start }).toDouble()
-//            }.toFloat()
-//            val gapWidth = (boundsWidth - contentWidth) / gapCount
-//            val maxGapWidth = textSize * 0.5f
-//
-//            if (gapWidth <= 0f || gapWidth > maxGapWidth) return   // 超宽/极端拉伸 → 跳过
-//
-//            distributeWords(words, boundsStartX, boundsEndX, gapWidth, lineIsRtl)
-//        } else {
-//            // CJK（整行 1 个 renderGroup，无空格）→ 逐字拉开
-//            val charWords = chars.map { listOf(it) }   // 每个 char 独立成"词"，复用 distributeWords
-//
-//            //有多少个间隔
-//            val gapCount = charWords.size - 1
-//
-//            if (gapCount <= 0) return   // 单词行不 justify
-//
-//            val contentWidth = charWords.sumOf { w ->
-//                (w.maxOf { it.end } - w.minOf { it.start }).toDouble()
-//            }.toFloat()
-//            val gapWidth = (boundsWidth - contentWidth) / gapCount
-//            val maxGapWidth = textSize * 0.25f
-//
-//            if (gapWidth <= 0f || gapWidth > maxGapWidth) return   // 超宽/极端拉伸 → 跳过
-//
-//            distributeWords(charWords, boundsStartX, boundsEndX, gapWidth, lineIsRtl)
-//        }
         val plan = JustifyChecker.resolveJustifyPlan(chars, boundsWidth, textSize)
         when (plan.mode) {
             JustifyPlan.Mode.SKIP -> return
 
             JustifyPlan.Mode.WORD_DISTRIBUTE -> distributeWords(
-                chars.groupBy { it.renderGroup }.values.toList(),
+                justifyWordGroups(chars, lineIsRtl), //非图行视觉序，含图行数组序
                 boundsStartX,
                 boundsEndX,
                 plan.wordGap,
@@ -785,17 +783,17 @@ object TextLayoutProvider {
             )
 
             JustifyPlan.Mode.CHAR_DISTRIBUTE -> distributeJustifyChars(
-                chars,
+                charsInVisualOrder(chars, lineIsRtl),
                 plan.wordGap,
                 0f,
                 boundsStartX,
                 boundsEndX,
                 lineIsRtl,
                 hybridGroups = false
-            )
+            ) //
 
             JustifyPlan.Mode.HYBRID -> distributeJustifyChars(
-                chars,
+                charsInVisualOrder(chars, lineIsRtl),
                 plan.wordGap,
                 plan.perChar,
                 boundsStartX,
@@ -919,9 +917,11 @@ object TextLayoutProvider {
     /**
      * 按词（renderGroup 分组）重新分布：词内字符只平移不改宽度（保 HarfBuzz 连写形态）。
      *
-     * 方向感知（D4 关键）：
-     *   - baseRtl：cursor 从 boundsEndX 向左；words[0]=最低 renderGroup=阅读首词=视觉最右 → 对齐到 endX
-     *   - baseLtr：cursor 从 boundsStartX 向右；words[0]=最低 renderGroup=阅读首词=视觉最左 → 对齐到 startX
+     * 方向感知（D4 关键，★ C5 起入参序由调用方保证为视觉摆放序）：
+     *   - baseRtl：cursor 从 boundsEndX 向左；words 应按 x 降序传入（justifyWordGroups 产出，
+     *     ≡ 历史数组序），词[0]=视觉最右 → 对齐到 endX
+     *   - baseLtr：cursor 从 boundsStartX 向右；words 应按 x 升序传入（justifyWordGroups 产出），
+     *     词[0]=视觉最左 → 对齐到 startX
      *
      * @param gapWidth 词间距：justify 正值（拉开）/ exceedRtl 负值（压缩）
      *
@@ -974,6 +974,8 @@ object TextLayoutProvider {
      * 压缩词间距挤入列宽。与 justify 互补：justify 守卫 gapWidth>0，exceedRtl 守卫 gapWidth<0，天然互斥。
      *
      * 返回值无意义（第二遍遍历中，anchorLine 会兜底处理 exceedRtl 未覆盖的单字超宽）。
+     * ★（审查 R4）死代码注记：调用点已注释（postProcessRtlLine），本函数仍按数组序分组——
+     *   若未来复活该路径，必须同步视觉序化（justifyWordGroups），否则 U7 类镜像缺陷随之复发。
      * 守卫：
      *  - words.size > 1（单词无法压缩）
      *  - gapWidth < 0（未超宽则跳过）
@@ -1065,12 +1067,13 @@ object TextLayoutProvider {
         imgTags: List<TextTag>,
         baseRtl: Boolean
     ): List<LayoutItem> {
-        // ★ runs 是视觉序（L→R）；堆叠消费需要逻辑序。RTL 基调下 run 级整体逆序 = 逻辑序
-        //   （L2 重排在两极层级下 = 整段反转，B1/B2 实测验证）。注意只能 run 级逆序：
-        //   run 内部「图前文本/图/图后文本」子项本就按 offset 升序（逻辑序）生成，若对整个
-        //   items 平铺反转会把 run 内部顺序也镜像 → RTL 段内嵌图片时图片两侧文本互换。
-        //   imgTags 按 start 升序单调消费，run 逆序后 offset 仍单调递增，归并语义不变。
-        val orderedRuns = if (baseRtl) runs.asReversed() else runs
+        // ★ runs 是视觉序（L→R）；堆叠消费需要逻辑序。
+        // 消费序恒 = 逻辑序（sortedBy offset）。
+        //   RTL 基调下与既有 asReversed 逐位等价,奇基调无 level-0 字符，
+        //   LTR 基调下修复「视觉序消费 → 跨行内容错乱」
+        //   附带修正：imgTags 归并 隐含「run offset 单调递增」前提，
+        //   视觉序 runs 在粘合情形 offset 非单调 → 图段图片归属错 run（潜伏缺陷），排序后恒成立。
+        val orderedRuns = runs.sortedBy { it.offset }
         if (imgTags.isEmpty()) {
             return orderedRuns.map {
                 LayoutItem.Run(it)
@@ -1093,7 +1096,8 @@ object TextLayoutProvider {
                             RunLayout(
                                 run.isRtl,
                                 segStart,
-                                imgTag.start - segStart
+                                imgTag.start - segStart,
+                                run.level
                             )
                         )
                     )
@@ -1108,7 +1112,8 @@ object TextLayoutProvider {
                         RunLayout(
                             run.isRtl,
                             segStart,
-                            segEnd - segStart
+                            segEnd - segStart,
+                            run.level
                         )
                     )
                 )
@@ -1241,4 +1246,140 @@ object TextLayoutProvider {
         return ImageLayoutResult(targetBounds, targetY + actualLineHeight,
             if (lineIsRtl) newImgLeft else newImgRight)
     }
+
+
+    /***
+     * 关闭挂起行——对 level>=1 连续块数 >=2 的行执行粘合段重锚
+     */
+    private fun finalizePendingLine(state: LineAssemblyState) {
+        val line = state.pendingLine ?: return
+        state.pendingLine = null
+
+        try {
+            if (state.blocks.size >= 2 && !line.textChars.any { it.isImage }) {
+                if (reorderGluedSpans(line.textChars, state.blocks)) {
+                    //justify 线性重排会二次镜像 → 精确跳过
+                    line.spanReordered = true
+                }
+            }
+        } finally {
+            state.blocks.clear()
+        }
+    }
+
+    /****
+     * 粘合段重锚
+     * 扫描行内块序列（逻辑序），
+     * level>=1 的极大连续段 = 粘合段；
+     * 段内块数 >=2 时  组内按逻辑序从槽右端向左重锚
+     * @return 是否发生过重锚
+     */
+    internal fun reorderGluedSpans(
+        chars: ArrayList<TextChar>,
+        blocks: List<LineBlockRecord>
+    ) : Boolean {
+        var reordered = false
+        var i = 0
+        while (i < blocks.size) {
+            if (blocks[i].level >= 1) {
+                var j = i
+                while(j + 1 < blocks.size && blocks[j + 1].level >= 1) {
+                    j++
+                }
+                if (j > i) {
+                    reanchorSpanRightToLeft(chars, blocks.subList(i, j + 1))
+                    reordered = true
+                }
+                i = j + 1
+            } else {
+                i++
+            }
+        }
+        return reordered
+    }
+
+    /****
+     * 组内右→左重锚：
+     * 槽右端 = 逻辑末块右缘 （名义左打包 ⇒ 块连续无洞）
+     * 块内相对坐标不变（宽度/连写形态保持）
+     */
+    private fun reanchorSpanRightToLeft(chars: ArrayList<TextChar>,
+                                        blocks: List<LineBlockRecord>) {
+        //排版在最右边的的x坐标
+        var slotRight = Float.NEGATIVE_INFINITY
+        for (block in blocks) {
+            for (bindex in block.charStart until block.charEnd) {
+                if (chars[bindex].end > slotRight) {
+                    slotRight = chars[bindex].end
+                }
+            }
+        }
+
+        var rightAnchor = slotRight
+        for(block in blocks) {
+            //空块零宽防御：跳过且不消耗槽位（否则 width=-Inf → shift=NaN → rightAnchor=+Inf 污染后续块；
+            //引擎路径由 charsBaseStart 守卫保证非空，此处防直调/未来改动）
+            if (block.charStart >= block.charEnd) continue
+            //一个block 的起始x坐标，结束x坐标
+            var minStart = Float.POSITIVE_INFINITY
+            var maxEnd = Float.NEGATIVE_INFINITY
+            for(bindex in block.charStart until block.charEnd) {
+                if (chars[bindex].start < minStart) {
+                    minStart = chars[bindex].start
+                }
+                if (chars[bindex].end > maxEnd) {
+                    maxEnd = chars[bindex].end
+                }
+            }
+            //一个block的宽度
+            val width = maxEnd - minStart
+            val shift = (rightAnchor - width) - minStart
+            if (shift != 0f) {
+                for (bindex in block.charStart until block.charEnd) {
+                    chars[bindex].start += shift
+                    chars[bindex].end += shift
+                }
+            }
+            rightAnchor -= width
+        }
+    }
+
+
+    /***
+     * 镜像修复
+     * WORD 路径分发的组序列：非图行按视觉序，含图行保持数组序。
+     * 历史 groupBy 数组序 = 逻辑序， 在「数组序 == 视觉摆放序」的行上成立：
+     * 纯 LTR 行   RTL 基调行 行为不变； 含图行保持数组序： 图片 TextChar 为 ImageLayoutProvider 绝对坐标，本修复不触碰。
+     * LTR 基调含多词 RTL 块的行（U7 纯阿语行）逻辑序 = 视觉序的逆 → 按数组序摆放即整块镜像
+     * 修后按组盒 min(start) 排序：LTR 行升序（屏幕左→右摆放），RTL 行降序（右→左，
+     *  历史数组序，RTL 基调逐位等价零回归）。Kotlin sortedBy* 稳定：零宽并列 x 保持数组序
+     */
+    internal fun justifyWordGroups(chars: List<TextChar>,
+                                   lineIsRtl:Boolean) : List<List<TextChar>> {
+        val pairs = chars.groupBy {
+                it.renderGroup
+            }.values
+            .map { g ->
+                g.minOf {
+                    it.start
+                } to g
+            }
+
+        val ordered = when {
+            chars.any { it.isImage } -> pairs  // 数组首现序
+            lineIsRtl -> pairs.sortedByDescending { it.first }
+            else -> pairs.sortedBy { it.first }
+        }
+
+        return ordered.map{ it.second }
+    }
+
+
+    /**
+     * CHAR_DISTRIBUTE / HYBRID 路径字符序列（视觉序，语义同 [justifyWordGroups]）。
+     * 图片行走不到此二路径（resolveJustifyPlan hasImage → wordDistribute/SKIP，:87-101），
+     * 故无需图行分支。
+     */
+    internal fun charsInVisualOrder(chars: List<TextChar>, lineIsRtl: Boolean): List<TextChar> =
+        if (lineIsRtl) chars.sortedByDescending { it.start } else chars.sortedBy { it.start }
 }
