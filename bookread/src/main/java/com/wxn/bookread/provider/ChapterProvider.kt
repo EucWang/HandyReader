@@ -31,8 +31,11 @@ import com.wxn.bookread.data.model.TextChapter
 import com.wxn.bookread.data.model.TextChar
 import com.wxn.bookread.data.model.TextLine
 import com.wxn.bookread.data.model.TextPage
+import com.wxn.bookread.data.model.addTextChar
+import com.wxn.bookread.data.model.getTextCharReverseAt
 import com.wxn.bookread.data.model.preference.BASE_FONT_SIZE
 import com.wxn.bookread.data.model.preference.ReaderPreferences
+import com.wxn.bookread.data.model.upTopBottom
 import com.wxn.bookread.data.source.local.ReadTipPreferencesUtil
 import com.wxn.bookread.data.source.local.ReaderPreferencesUtil
 import com.wxn.bookread.ext.dp
@@ -1152,10 +1155,19 @@ object ChapterProvider {
             contentPaint
         }
         textPaint.set(parentPaint)
-        // 方案 §2.2 D 防御项：letter-spacing 在 shaping 后拉开 glyph，会拆断阿拉伯等连写文字。
-        // 章级方向（chapterIsRtl）只有此处可知；本拷贝供新引擎与 setTextTable 共用，置 0 不泄漏
-        // 到 upStyle 的跨章节共享单例画笔。
-        if (chapterIsRtl) {
+        // N-Q1 段落级防御（方案 §2.2 D 修订）：letter-spacing 在 shaping 后拉开 glyph，会拆断
+        // 阿拉伯等连写文字；框架对连写脚本的测量/绘制口径亦不一致。
+        // 谓词 = 段落基调 RTL 或含任何 RTL run——与引擎 run 切分同源（同用 paragraph.segDirect），
+        // 单一 paraSpacingZeroed 同时驱动画笔置零与行盖章，结构上杜绝布局/渲染判定分叉。
+        // segDirect 由 BookHelper.disposeContent 为每个 Text/.Chapter 无条件写入（表格段亦为
+        // Text，按其扁平化文本分段）；?: chapterIsRtl 仅为 null 防御路径（生产不可达，
+        // 直调测试可达，保守取章级与既有章级语义一致）。
+        // 本拷贝供新引擎与 setTextTable 共用，置 0 不泄漏到 upStyle 的跨章节共享单例画笔。
+        val paraSpacingZeroed = paragraph.segDirect
+            ?.let { it.baseRtl || it.runs.any { run -> run.isRtl } }
+            ?: chapterIsRtl
+
+        if (paraSpacingZeroed) {
             textPaint.letterSpacing = 0f
         }
 
@@ -1365,7 +1377,8 @@ object ChapterProvider {
                 pageLengths,
                 stringBuilder,
                 durY,
-                bounds   // v4：透传
+                bounds,   // v4：透传
+                paraSpacingZeroed
             )
         } else {                    //非表格行：列表/行内图/标题/普通段（含 RTL/LTR/混排），全部走 RTL 引擎 layoutNormalTextRtl
             // F2: 构造含 Span 的 CharSequence(仅当段落有 inline 字号时)
@@ -1406,7 +1419,8 @@ object ChapterProvider {
                 durY,
                 bounds,
                 chapterIsRtl,
-                hasInlineImg  //是否有段落内的图片
+                hasInlineImg,  //是否有段落内的图片
+                paraSpacingZeroed
             )
         }
 
@@ -1446,7 +1460,8 @@ object ChapterProvider {
         pageLengths: ArrayList<Int>,
         stringBuilder: StringBuilder,
         offsetY: Float,
-        bounds: LayoutBounds = layoutBoundsPage()   // v4 新增
+        bounds: LayoutBounds = layoutBoundsPage(),   // v4 新增
+        paraSpacingZeroed: Boolean = false
     ): LayoutCursor {
         var durY = offsetY
         var currentBounds = bounds   // v4：局部变量，随列切换更新
@@ -1568,6 +1583,7 @@ object ChapterProvider {
                                 rowLineOffset = tagCell.start,
                                 isTableCell = true
                             )
+                            textLine.letterSpacingZeroed = paraSpacingZeroed
                             val words = text.substring(offsetStart, offsetEnd)
                             textLine.text = words
                             val desiredWidth = layout.getLineWidth(lineIndex)   //排版要求的宽度

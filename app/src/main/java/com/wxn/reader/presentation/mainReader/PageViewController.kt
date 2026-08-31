@@ -43,6 +43,7 @@ import com.wxn.reader.service.TtsStateHolder
 import com.wxn.reader.util.TtsServiceController
 import com.wxn.base.bean.TtsPlaybackStatus
 import com.wxn.base.ext.statusBarHeight
+import com.wxn.bookread.data.model.textIndexAt
 import com.wxn.bookread.ext.getPageIndexFromLocator
 import com.wxn.bookread.ext.orZero
 import com.wxn.reader.presentation.mainReader.helpers.JumpHelper

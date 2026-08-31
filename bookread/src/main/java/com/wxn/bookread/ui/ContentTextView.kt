@@ -24,6 +24,9 @@ import com.wxn.base.util.Logger
 import com.wxn.bookread.data.model.TextChar
 import com.wxn.bookread.data.model.TextLine
 import com.wxn.bookread.data.model.TextPage
+import com.wxn.bookread.data.model.arrayIndexAt
+import com.wxn.bookread.data.model.endExclusiveUtf16
+import com.wxn.bookread.data.model.textIndexAt
 import com.wxn.bookread.data.model.visualSpan
 import com.wxn.bookread.provider.ChapterProvider
 import com.wxn.bookread.provider.ImageProvider
@@ -79,7 +82,7 @@ class ContentTextView(context: Context, attrs: AttributeSet?) : View(context, at
                     if (line.paragraphIndex == paragraphIndex) {
                         // ci 为文本口径（不含图片占位，M2-③）；行内非图片字符数校验
                         val ci = textOffset - line.charStartOffset
-                        if (ci >= 0 && ci < line.textCharCount()) {
+                        if (ci >= 0 && ci < line.text.length) {
                             return VisualPos(rp, li, ci)
                         }
                     }
@@ -620,10 +623,10 @@ class ContentTextView(context: Context, attrs: AttributeSet?) : View(context, at
             var isUnderline = false
             var isBold = false
             var isSmall = false
-            // 文本口径下标（图片占数组位、不占文本位，M2-③）：标签/inlineStyle/选区匹配专用；
-            // ShapedRunBuffer 相邻探测（index+1）仍用数组口径 index。
+            // 文本口径下标（图片占数组位、不占文本位，M2-③；UTF-16 码元口径，M3 §3.4）：
+            // 标签/inlineStyle/选区匹配专用；ShapedRunBuffer 相邻探测（index+1）仍用数组口径 index。
             val textIdx = textOnlyIdx
-            if (!ch.isImage) textOnlyIdx++
+            if (!ch.isImage) textOnlyIdx += ch.charData.length
             val charIndex = textLine.charStartOffset + textIdx
             val parentPaint = if (defaultTextPaint != null) defaultTextPaint else {
                 val texttag = if (textTags.size == 1) {
@@ -691,6 +694,14 @@ class ContentTextView(context: Context, attrs: AttributeSet?) : View(context, at
             }
 
             RenderResources.drawingPaint.set(parentPaint)
+
+            // N-Q1 渲染侧防御（段落级）：本段布局用置零拷贝测量（存储 x 无字距，X-Dump 实证），
+            // 渲染画笔却取自 upStyle 烧入 prefs.letterSpacing 的全局共享画笔——ShapedRunBuffer
+            // 整组 drawText 按带距节距铺开字形，与存储 x 失配（组内右漂 → 重叠 + 右缘溢出裁切）。
+            // 此处置零镜像布局侧防御（textLine 参数原已在此作用域，零签名/穿参改动）。
+            if (textLine.letterSpacingZeroed) {
+                RenderResources.drawingPaint.letterSpacing = 0f
+            }
 
             val resolved = if (!isTitle && !ch.isImage && !textLine.isTableCell) {
                 val charOffsetInParagraph = textLine.charStartOffset + textIdx   // isTableCell 已排除,rowLineOffset 分支不达
@@ -1092,12 +1103,13 @@ class ContentTextView(context: Context, attrs: AttributeSet?) : View(context, at
                     if (relativePos == sP && relativePos == eP) {
                         for (lineIndex in sL..eL) {
                             val lineText = textPage.textLines[lineIndex].text
+                            val line = textPage.textLines[lineIndex]
+                            val endExcl = line.endExclusiveUtf16(eC).coerceAtMost(lineText.length)
                             if (lineIndex == sL && lineIndex == eL) {
                                 stringBuilder.append(
                                     lineText.substring(
                                         sC.coerceIn(0, lineText.length),
-                                        (eC + 1).coerceIn(sC.coerceIn(0, lineText.length), lineText.length)
-                                    )
+                                        endExcl)
                                 )
                             } else if (lineIndex == sL) {
                                 stringBuilder.append(
@@ -1105,10 +1117,7 @@ class ContentTextView(context: Context, attrs: AttributeSet?) : View(context, at
                                 )
                             } else if (lineIndex == eL) {
                                 stringBuilder.append(
-                                    lineText.substring(
-                                        0,
-                                        (eC + 1).coerceAtMost(lineText.length)
-                                    )
+                                    lineText.substring(0, endExcl)
                                 )
                             } else {
                                 stringBuilder.append(lineText)
@@ -1128,13 +1137,12 @@ class ContentTextView(context: Context, attrs: AttributeSet?) : View(context, at
                         }
                     } else if (relativePos == eP) {
                         for (lineIndex in 0..eL) {
-                            val lineText = textPage.textLines[lineIndex].text
+                            val line = textPage.textLines[lineIndex]
+                            val lineText = line.text
+                            val endExcl = line.endExclusiveUtf16(eC).coerceAtMost(lineText.length)
                             if (lineIndex == eL) {
                                 stringBuilder.append(
-                                    lineText.substring(
-                                        0,
-                                        (eC + 1).coerceAtMost(lineText.length)
-                                    )
+                                    lineText.substring(0, endExcl)
                                 )
                             } else {
                                 stringBuilder.append(lineText)
@@ -1236,8 +1244,9 @@ class ContentTextView(context: Context, attrs: AttributeSet?) : View(context, at
         val startLine = relativePage(sP)?.textLines?.getOrNull(sL)
         val endLine = relativePage(eP)?.textLines?.getOrNull(eL)
         if (startLine == null || endLine == null) return
-        // sC/eC 为文本口径（M2-③），换算数组下标后取锚点字符
-        if (sC < 0 || sC >= startLine.textCharCount() || eC < 0 || eC >= endLine.textCharCount()) return
+        // sC/eC 为文本口径（M2-③；UTF-16 码元，M3 §3.3），换算数组下标后取锚点字符；
+        // 上限守卫须用行文本码元长（textCharCount 是码点数，emoji 行会误拒合法位）
+        if (sC < 0 || sC >= startLine.text.length || eC < 0 || eC >= endLine.text.length) return
         val sChar = startLine.textChars.getOrNull(startLine.arrayIndexAt(sC)) ?: return
         val eChar = endLine.textChars.getOrNull(endLine.arrayIndexAt(eC)) ?: return
         val sOff = relativeOffset(sP)

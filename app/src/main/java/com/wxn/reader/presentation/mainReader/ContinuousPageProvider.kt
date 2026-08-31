@@ -11,6 +11,7 @@ import com.wxn.bookread.data.model.TextChapter
 import com.wxn.bookread.data.model.TextChar
 import com.wxn.bookread.data.model.TextLine
 import com.wxn.bookread.data.model.TextPage
+import com.wxn.bookread.data.model.textIndexAt
 import com.wxn.bookread.provider.ChapterProvider
 import com.wxn.bookread.ui.IDataSource
 import com.wxn.bookread.ui.PageCallback

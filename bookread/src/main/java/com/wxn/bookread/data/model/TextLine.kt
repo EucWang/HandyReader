@@ -88,72 +88,14 @@ data class TextLine(
 
     ) {
 
-    fun upTopBottom(durY: Float, textPaint: TextPaint) {
-        lineTop = durY
-        lineBottom = lineTop + textPaint.textHeight
-        lineBase = lineBottom - textPaint.fontMetrics.descent
-    }
-
     /**
-     * F7 新增:用于混合字号行(lineHeight/descent 来自 layout.getLineAscent/getLineDescent)。
-     *
-     * - [lineHeight]: 实际行高(已含 lineSpacingExtra 系数)
-     * - [descent]:   实际 descent(已含 lineSpacingExtra 系数;基线 = bottom - descent)
-     *
-     * 与原 `upTopBottom(durY, textPaint)` 重载并存,非 inline 段落继续用原重载(零影响)。
+     *  段落级字距防御标志：本行所属段落布局时对测量画笔执行了 letterSpacing 置零
+     * （段落基调 RTL 或含任何 RTL run——setTypeText 谓词）。渲染侧据此在
+     * drawingPaint.set(parentPaint) 之后镜像置零，保证绘制推进量与存储 x 同口径。
+     * 布局产物、随行对象只读消费；默认 false（TextPage.format() 等兜底路径以全局画笔
+     * 测+绘，两侧自洽，不置零）。
+     * 命名按用途而非方向：base-LTR 混排段此值为 true 而 isRtl=false，方向式命名会自相矛盾。
      */
-    fun upTopBottom(durY: Float, lineHeight: Float, descent: Float) {
-        lineTop = durY
-        lineBottom = lineTop + lineHeight
-        lineBase = lineBottom - descent
-    }
-
-    fun addTextChar(charData: String, start: Float, end: Float, renderGroup: Int = 0) {
-        textChars.add(TextChar(charData, start = start, end = end, renderGroup = renderGroup))
-    }
-
-    fun getTextCharAt(index: Int): TextChar {
-        return textChars[index]
-    }
-
-    fun getTextCharReverseAt(index: Int): TextChar {
-        return textChars[textChars.lastIndex - index]
-    }
-
-    fun getTextCharsCount(): Int {
-        return textChars.size
-    }
-
-    /**
-     * 行内两种下标口径的双向换算（图片 TextChar 只占数组位、不占文本位）：
-     * - 数组口径：textChars 的下标（含图片占位），用于 ShapedRunBuffer 相邻探测、视觉 span 等渲染链路；
-     * - 文本口径：= 本行在 line.text 中的下标（不含图片），用于 charStartOffset + index 求
-     *   段内偏移、标签/inlineStyle 匹配、选区 sC/eC 与 lineText 截取（统一坐标约定，方案 M2-③）。
-     */
-    fun textCharCount(): Int = textChars.count { !it.isImage }
-
-    /** 数组下标 → 文本下标：[arrayIndex] 之前（不含）的非图片字符数。越界按钳制处理。 */
-    fun textIndexAt(arrayIndex: Int): Int {
-        if (arrayIndex <= 0) return 0
-        var n = 0
-        val upper = arrayIndex.coerceAtMost(textChars.size)
-        for (i in 0 until upper) {
-            if (!textChars[i].isImage) n++
-        }
-        return n
-    }
-
-    /** 文本下标 → 数组下标：第 [textIndex] 个非图片字符的数组位；行内图片后缀/越界时返回 textChars.size。 */
-    fun arrayIndexAt(textIndex: Int): Int {
-        if (textIndex < 0) return 0
-        var n = 0
-        textChars.forEachIndexed { i, ch ->
-            if (!ch.isImage) {
-                if (n == textIndex) return i
-                n++
-            }
-        }
-        return textChars.size
-    }
+    var letterSpacingZeroed: Boolean = false
 
 }

@@ -115,4 +115,81 @@ class TextLineIndexConventionTest {
         assertEquals(0, line.arrayIndexAt(-1))
         assertEquals(2, line.arrayIndexAt(99))
     }
+
+    // ── M3：emoji（代理对）行 UTF-16 口径（方案 §5.1 增 4 例） ──
+
+    @Test
+    fun emojiLine_utf16UnitAdvance() {
+        // "a😀b"：a=1 码元，😀=2 码元，b=1 码元；line.text.length == 4
+        val line = TextLine(text = "a😀b").apply {
+            textChars.add(textChar("a"))
+            textChars.add(textChar("😀"))
+            textChars.add(textChar("b"))
+        }
+        // textCharCount 保持码点计数语义（§2 契约钉，防未来被误当文本上界）
+        assertEquals(3, line.textCharCount())
+        // 数组 → 文本：emoji 前下标 +0，emoji 后下标 +2（★ M3 核心换算）
+        assertEquals(0, line.textIndexAt(0))   // a 前
+        assertEquals(1, line.textIndexAt(1))   // 😀 前（a 占 1 码元）
+        assertEquals(3, line.textIndexAt(2))   // b 前（a+😀 = 3 码元）
+        assertEquals(4, line.textIndexAt(3))   // 尾越界 → 总码元长
+        // 文本 → 数组：起始码元位命中
+        assertEquals(0, line.arrayIndexAt(0))  // 码元 0 → a
+        assertEquals(1, line.arrayIndexAt(1))  // 码元 1 → 😀（起始命中）
+        assertEquals(2, line.arrayIndexAt(3))  // 码元 3 → b
+        assertEquals(3, line.arrayIndexAt(4))  // 码元 4（行末）→ size 兜底
+    }
+
+    @Test
+    fun imageAndEmoji_pathNotCounted_rulesStack() {
+        // [IMG(路径串)][😀][b]：图占数组位不占文本位 + 代理对计长，双规则叠加；
+        // 图片 charData 用长路径 fixture——若 isImage 守卫失效，路径长度会泄入码元和
+        val line = TextLine(text = "😀b").apply {
+            textChars.add(imageChar("file://very/long/path.png"))
+            textChars.add(textChar("😀"))
+            textChars.add(textChar("b"))
+        }
+        assertEquals(2, line.textCharCount())
+        assertEquals(0, line.textIndexAt(0))   // 图位 → 0
+        assertEquals(0, line.textIndexAt(1))   // 😀 前：图不计长
+        assertEquals(2, line.textIndexAt(2))   // b 前：😀 计 2 码元
+        assertEquals(3, line.textIndexAt(3))   // 尾
+        assertEquals(1, line.arrayIndexAt(0))  // 码元 0 → 😀（跳过图）
+        assertEquals(2, line.arrayIndexAt(2))  // 码元 2 → b
+        assertEquals(3, line.arrayIndexAt(3))  // 越界 → size
+    }
+
+    @Test
+    fun endExclusiveUtf16_boundaries() {
+        // 行尾 emoji：右边界 = 行文本长，不切代理对（§3.3 selectText 截取核心）
+        val line = TextLine(text = "a😀").apply {
+            textChars.add(textChar("a"))
+            textChars.add(textChar("😀"))
+        }
+        assertEquals(1, line.endExclusiveUtf16(0))    // a 右边界 = eC+1（无 emoji 等价）
+        assertEquals(3, line.endExclusiveUtf16(1))    // 😀 起始 → 右边界 3 = 行长
+        assertEquals(3, line.endExclusiveUtf16(3))    // eC = 行长 → 兜底行长
+        assertEquals(3, line.endExclusiveUtf16(99))   // 越界钳制 → 行长
+        // 无 emoji 行逐位等价 eC + 1（零回归钉）
+        val plain = TextLine(text = "abc").apply {
+            "abc".forEach { textChars.add(textChar(it.toString())) }
+        }
+        assertEquals(1, plain.endExclusiveUtf16(0))
+        assertEquals(2, plain.endExclusiveUtf16(1))
+        assertEquals(3, plain.endExclusiveUtf16(2))
+    }
+
+    @Test
+    fun arrayIndexAt_midSurrogate_roundsUp() {
+        // R10 契约：中位代理对（陈旧 locator 的 mid-pair 值）→ 该字符之后一个字符位
+        val line = TextLine(text = "a😀b").apply {
+            textChars.add(textChar("a"))
+            textChars.add(textChar("😀"))
+            textChars.add(textChar("b"))
+        }
+        // 😀 占码元 [1,3)：码元 2 = 代理对中位 → 向上取整 = b 的数组位
+        assertEquals(2, line.arrayIndexAt(2))
+        // 码元 3 = b 起始（合法位）→ 同为 b，与中位取整结果一致
+        assertEquals(2, line.arrayIndexAt(3))
+    }
 }

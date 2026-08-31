@@ -84,7 +84,9 @@ import com.wxn.base.util.PathUtil
 import com.wxn.bookread.data.model.TextChar
 import com.wxn.bookread.data.model.TextLine
 import com.wxn.bookread.data.model.TextPage
+import com.wxn.bookread.data.model.arrayIndexAt
 import com.wxn.bookread.data.model.preference.ReaderPreferences
+import com.wxn.bookread.data.model.textIndexAt
 import com.wxn.bookread.data.model.visualSpan
 import com.wxn.bookread.provider.ChapterProvider
 import com.wxn.bookread.provider.ImageProvider
@@ -1215,10 +1217,10 @@ private fun drawTextChars(
         var isHighlight = false
         var isBold = false
         var isSmall = false
-        // 文本口径下标（图片占数组位、不占文本位，M2-③）：标签/inlineStyle 匹配专用；
-        // ShapedRunBuffer 相邻探测（index+1）仍用数组口径 index。
+        // 文本口径下标（图片占数组位、不占文本位，M2-③；UTF-16 码元口径，M3 §3.4）：
+        // 标签/inlineStyle 匹配专用；ShapedRunBuffer 相邻探测（index+1）仍用数组口径 index。
         val textIdx = textOnlyIdx
-        if (!ch.isImage) textOnlyIdx++
+        if (!ch.isImage) textOnlyIdx += ch.charData.length
         val charIndex = textLine.charStartOffset + textIdx
 
         val parentPaint = if (defaultTextPaint != null) defaultTextPaint else {
@@ -1267,6 +1269,11 @@ private fun drawTextChars(
         }
 
         RenderResources.drawingPaint.set(parentPaint)
+        // N-Q1 渲染侧防御（与 ContentTextView.drawChars 同源同型，审查 R13）：见彼处注释。
+        if (textLine.letterSpacingZeroed) {
+            RenderResources.drawingPaint.letterSpacing = 0f
+        }
+
         val resolved = if (!isTitle && !ch.isImage && !textLine.isTableCell) {
             val charOffsetInParagraph = textLine.charStartOffset + textIdx
             InlineStyle.resolve(inlineStyles, charOffsetInParagraph)
@@ -2069,7 +2076,7 @@ private fun drawAnnotationBackgrounds(
         textLine.textChars.forEachIndexed { charIdx, ch ->
             // 文本口径（图片占数组位不占文本位，M2-③）：标签区间匹配专用
             val textIdx = textOnlyIdx
-            if (!ch.isImage) textOnlyIdx++
+            if (!ch.isImage) textOnlyIdx += ch.charData.length
             val charIndex = textLine.charStartOffset + textIdx
             for (tag in tags) {
                 if (tag.start <= charIndex && charIndex < tag.end) {

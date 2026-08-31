@@ -127,4 +127,27 @@ class LtrPageTextNewlineInstrumentedTest {
         // 对照：内容不含别的分隔符
         assertFalse(ch.pages[0].text.contains("\n\n"))
     }
+
+    // ── N-Q1 段落级防御钉（plan nq1-nq2 Phase 1 改动点 1-3 契约，审查 R20）：
+    //    纯 LTR 段不携带置零标志（用户字距正常应用）；segDirect=null 防御路径谓词回退
+    //    chapterIsRtl（本章 LTR）→ 同样 false，与画笔不置零同口径。
+    @Test
+    fun letterSpacingZeroedFlag_pureLtrAndNullSeg_pinnedFalse() {
+        val p1 = ReaderText.Text("First paragraph with enough words to wrap").apply {
+            segDirect = RTLSegmenter.segment(line)
+        }
+        val lines1 = chapter(listOf(p1)).pages.flatMap { it.textLines }
+            .filter { it.textChars.isNotEmpty() }
+        assertTrue("纯 LTR 段应成行", lines1.isNotEmpty())
+        assertTrue(
+            "纯 LTR 段不携带置零标志（用户字距正常应用）",
+            lines1.all { !it.letterSpacingZeroed }
+        )
+
+        // 防御路径 M5 同钉：null segDirect → 谓词回退 chapterIsRtl（本章聚合 LTR）→ false
+        val p2 = ReaderText.Text("Plain fallback paragraph without segDirect")
+        val lines2 = chapter(listOf(p2)).pages.flatMap { it.textLines }
+            .filter { it.textChars.isNotEmpty() }
+        assertTrue("null 兜底段不携带置零标志（与画笔不置零同口径）", lines2.all { !it.letterSpacingZeroed })
+    }
 }

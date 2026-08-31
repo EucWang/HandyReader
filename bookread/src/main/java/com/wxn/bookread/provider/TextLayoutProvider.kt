@@ -17,7 +17,9 @@ import com.wxn.bookread.data.model.LineDot
 import com.wxn.bookread.data.model.TextChar
 import com.wxn.bookread.data.model.TextLine
 import com.wxn.bookread.data.model.TextPage
+import com.wxn.bookread.data.model.addTextChar
 import com.wxn.bookread.data.model.isTrimableWs
+import com.wxn.bookread.data.model.upTopBottom
 import com.wxn.bookread.ext.isWordChar
 import com.wxn.bookread.provider.ChapterProvider.dualColumnEnabled
 import com.wxn.bookread.provider.ChapterProvider.lineSpacingExtra
@@ -53,7 +55,8 @@ object TextLayoutProvider {
         offsetY: Float,
         bounds: LayoutBounds = layoutBoundsPage(),
         chapterIsRtl: Boolean,                 // 双列切列方向
-        hasInlineImage: Boolean = false
+        hasInlineImage: Boolean = false,
+        paraSpacingZeroed: Boolean = false
     ): LayoutCursor {
 
         var durY = offsetY  //行绘制位置
@@ -313,6 +316,9 @@ object TextLayoutProvider {
         assembly?.let { finalizePendingLine(it) }
 
         for ((i, rec) in paragraphLines.withIndex()) {
+
+            rec.line.letterSpacingZeroed = paraSpacingZeroed
+
             postProcessRtlLine(
                 textLine = rec.line,
                 bounds = rec.bounds,

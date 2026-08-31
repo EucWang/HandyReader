@@ -27,6 +27,7 @@ import com.wxn.base.util.Coroutines
 import com.wxn.base.util.Logger
 import com.wxn.base.util.PathUtil
 import com.wxn.bookread.data.model.TextLine
+import com.wxn.bookread.data.model.arrayIndexAt
 import com.wxn.bookread.data.model.visualSpan
 import com.wxn.bookread.provider.ChapterProvider
 import com.wxn.bookread.ui.delegate.CoverPageDelegate

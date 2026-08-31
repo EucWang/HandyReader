@@ -7,6 +7,7 @@ import com.wxn.base.bean.CssTextAlign
 import com.wxn.base.bean.ReaderText
 import com.wxn.base.bean.TextTag
 import com.wxn.bookread.data.model.TextPage
+import com.wxn.bookread.data.model.textIndexAt
 import com.wxn.bookread.textHeight
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
@@ -30,6 +31,9 @@ import org.junit.runner.RunWith
  */
 @RunWith(AndroidJUnit4::class)
 class LtrInlineImageFlowInstrumentedTest {
+
+    /** M2-① 断言参照物：layout() 实际传入引擎的局部 TextPaint（全局 contentPaint 本测试不配置，不可作参照） */
+    private lateinit var lastLayoutPaint: TextPaint
 
     private fun configure() {
         ChapterProvider.apply {
@@ -58,6 +62,7 @@ class LtrInlineImageFlowInstrumentedTest {
             textSize = 48f
             isAntiAlias = true
         }
+        lastLayoutPaint = paint
         val paragraph = ReaderText.Text(text).apply {
             annotations = listOf(
                 TextTag(
@@ -170,9 +175,11 @@ class LtrInlineImageFlowInstrumentedTest {
         assertEquals("图片在数组首位", true, line.textChars.first().isImage)
         assertEquals("图片行 charStartOffset=imgTag.start（原始，无修正）", 0, line.charStartOffset)
 
-        // M2-①：图片行行高公式 = textHeight × lineSpacingExtra × lineHeightParam（统一后含全部系数）
+        // M2-①：图片行行高公式 = 排版 paint 的 textHeight × lineSpacingExtra × lineHeightParam。
+        // 参照物必须与引擎同源（layout() 的局部 paint）：旧断言错用未配置的全局
+        // contentPaint，产生 76.38 vs 19.09 假差异（基线例外方案例 1，2026-08-31 取证）
         val imgLineHeight = line.lineBottom - line.lineTop
-        val expectedH = ChapterProvider.contentPaint.textHeight * ChapterProvider.lineSpacingExtra
+        val expectedH = lastLayoutPaint.textHeight * ChapterProvider.lineSpacingExtra
         assertTrue(
             "图片行高 $imgLineHeight 应≈ textHeight×spacing $expectedH（M2-①）",
             kotlin.math.abs(imgLineHeight - expectedH) <= 1.5f

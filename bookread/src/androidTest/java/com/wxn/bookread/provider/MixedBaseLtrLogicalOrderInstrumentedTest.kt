@@ -184,4 +184,22 @@ class MixedBaseLtrLogicalOrderInstrumentedTest {
             lines.any { it.spanReordered }
         )
     }
+
+    // ── N-Q1 段落级防御钉（plan nq1-nq2 Phase 1 改动点 1-3 契约，审查 R20）：
+    //    混排段（LTR 基调含 RTL run）与 RTL 基调段的全部行携带 letterSpacingZeroed=true，
+    //    渲染侧据此镜像置零——标志丢失即静默复发 N-Q1 布局/渲染分叉。
+    @Test
+    fun letterSpacingZeroedFlag_mixedAndRtlParagraphs_pinnedTrue() {
+        // LTR 基调混排段（含 RTL run）：谓词 true → 全部行盖章
+        val mixed = linesOf(chapter(listOf(para("如下——وصل الجيش الأول 300 فارس إلى"))))
+        assertTrue("混排段应成行", mixed.isNotEmpty())
+        assertTrue(
+            "LTR 基调混排段全部行应携带置零标志（渲染镜像依据）",
+            mixed.all { it.letterSpacingZeroed }
+        )
+
+        // RTL 基调段：baseRtl=true → 同样盖章
+        val rtl = linesOf(chapter(listOf(para("نص عربي قصير مع كلمات لتغطية أكثر من سطر"))))
+        assertTrue("RTL 基调段全部行应携带置零标志", rtl.all { it.letterSpacingZeroed })
+    }
 }
