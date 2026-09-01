@@ -20,6 +20,7 @@ import com.wxn.bookread.data.model.TextPage
 import com.wxn.bookread.data.model.addTextChar
 import com.wxn.bookread.data.model.isTrimableWs
 import com.wxn.bookread.data.model.upTopBottom
+import com.wxn.bookread.ext.isPerCharDrawSafeCode
 import com.wxn.bookread.ext.isWordChar
 import com.wxn.bookread.provider.ChapterProvider.dualColumnEnabled
 import com.wxn.bookread.provider.ChapterProvider.lineSpacingExtra
@@ -575,6 +576,19 @@ object TextLayoutProvider {
     ) {
         val lineStart = layout.getLineStart(lineIndex)
         val lineEnd = layout.getLineEnd(lineIndex)
+
+        var needsRunShaping = false
+        var cpIdx = run.offset
+        val runEndOffset = run.offset + run.length
+        while (cpIdx < runEndOffset) {
+            val cp = Character.codePointAt(text, cpIdx)
+            if (!cp.isPerCharDrawSafeCode()) {
+                needsRunShaping = true
+                break
+            }
+            cpIdx += Character.charCount(cp)
+        }
+
         val isLastLayoutLine = lineIndex == layout.lineCount - 1
         val paint = layout.paint
 
@@ -625,7 +639,7 @@ object TextLayoutProvider {
             val absLeft = startX + minOf(localStart, localEnd)
             val absRight = startX + maxOf(localStart, localEnd)
 
-            textLine.addTextChar(ch, absLeft, absRight, renderGroup)
+            textLine.addTextChar(ch, absLeft, absRight, renderGroup, needsRunShaping)
 
             val isWhiespace = ch.firstOrNull()?.isWhitespace() == true
             val nextParaOffset = run.offset + nextOffset
@@ -703,9 +717,10 @@ object TextLayoutProvider {
             return
         }
 
-        // Justify 首/末行退化为起始边对齐
+        // P3：CSS 语义——仅末行不 justify（单行段落同时是末行，仍不拉伸）；
+        // 首行在缩进后内容盒内两端对齐（缩进由 indentApplies 的 Justify 分支保证进预算）
         val lineEffAlign = when {
-            textAlign == CssTextAlign.CssTextAlignJustify && (isFirstLine || isLastLine) ->
+            textAlign == CssTextAlign.CssTextAlignJustify && isLastLine ->
                 if (paragraphIsRtl) CssTextAlign.CssTextAlignRight else CssTextAlign.CssTextAlignLeft
 
             else -> textAlign
@@ -727,6 +742,7 @@ object TextLayoutProvider {
             val indentApplies =  when (lineEffAlign) {
                 CssTextAlign.CssTextAlignRight -> paragraphIsRtl
                 CssTextAlign.CssTextAlignLeft -> !paragraphIsRtl
+                CssTextAlign.CssTextAlignJustify -> true  // P3(R1)：justify 首行按段落基调起始侧扣缩进（下方 paragraphIsRtl 分派复用）
                 else -> false
             }
             if (indentApplies) {

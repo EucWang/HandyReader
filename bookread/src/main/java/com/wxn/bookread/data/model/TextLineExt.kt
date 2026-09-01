@@ -80,8 +80,16 @@ fun TextLine.upTopBottom(durY: Float, lineHeight: Float, descent: Float) {
     lineBase = lineBottom - descent
 }
 
-fun TextLine.addTextChar(charData: String, start: Float, end: Float, renderGroup: Int = 0) {
-    textChars.add(TextChar(charData, start = start, end = end, renderGroup = renderGroup))
+fun TextLine.addTextChar(charData: String,
+                         start: Float,
+                         end: Float,
+                         renderGroup: Int = 0,
+                         needsRunShaping: Boolean = false) {
+    textChars.add(TextChar(charData,
+        start = start,
+        end = end,
+        renderGroup = renderGroup,
+        needsRunShaping = needsRunShaping))
 }
 
 fun TextLine.getTextCharAt(index: Int): TextChar {

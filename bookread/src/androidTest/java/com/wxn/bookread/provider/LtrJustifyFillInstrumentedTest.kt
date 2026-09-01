@@ -7,6 +7,7 @@ import com.wxn.base.bean.CssTextAlign
 import com.wxn.base.bean.ReaderText
 import com.wxn.bookread.data.model.TextLine
 import com.wxn.bookread.data.model.TextPage
+import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -25,7 +26,10 @@ import kotlin.math.abs
  *  2. 拉丁行词距封顶：空白相邻对/跨组对间距 ≤0.5em+1f（shaping 无关；组内字距精度
  *     由 JVM JustifyApplierTest 坐标断言覆盖）；
  *  3. 阿文段落纯词距对齐（无字距、无上限，竞品一致）：判据同 1 的两级口径（RTL 取左缘）
- *     + 词距非负 + isRtl。
+ *     + 词距非负 + isRtl；
+ *  4. P3（docs/plans/2026-08-31-plan-p3-justify-firstline-css.md）：justify 首行 CSS 语义——
+ *     首行在缩进后内容盒内两端对齐（分布签名口径，见各用例注释）、真·短行首行 SKIP =
+ *     现状起始边锚定、单行段落（首行即末行）仍退化不拉伸。
  *
  * 运行（需连接设备，Windows 原生终端）:
  *   gradlew :bookread:connectedDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class=com.wxn.bookread.provider.LtrJustifyFillInstrumentedTest
@@ -44,7 +48,10 @@ class LtrJustifyFillInstrumentedTest {
         "العنصر الثاني طويل جدا ويتوقع أن يلتف على أكثر من سطر واحد للتأكد من أن النقطة تظهر " +
         "على السطر الأول فقط وبشكل واضح ومقروء للقارئ في كل الأحوال"
 
-    private fun layoutPages(text: String): Pair<ArrayList<TextPage>, TextPaint> {
+    private fun layoutPages(
+        text: String,
+        firstLineIndent: Float = 0f
+    ): Pair<ArrayList<TextPage>, TextPaint> {
         ChapterProvider.apply {
             paddingHorizontal = 40
             paddingVertical = 40
@@ -70,7 +77,7 @@ class LtrJustifyFillInstrumentedTest {
             paint,
             marginLeft = 0f,
             marginRight = 0f,
-            firstLineIndent = 0f,
+            firstLineIndent = firstLineIndent,
             isTitle = false,
             isListRow = false,
             listLevel = 0,
@@ -198,5 +205,127 @@ class LtrJustifyFillInstrumentedTest {
         }
         // 纯词距无上限（竞品一致），仅断言非负（禁压缩）
         lines.forEach { assertWordGapBounds(it, paint, capped = false) }
+    }
+
+    // ── P3 主例：首行在缩进后内容盒内两端对齐（S1a+S1b 双钉） ──
+    // 口径（docs/reviews/2026-09-01-review-p3-justify-firstline-round2.md I-3 / C4 实证 F-1/F-2）：
+    // 「已分布」的可靠证据 = distributeWords 分布签名（组间 gap 全等 + 盒缘精确贴合）；
+    // post-hoc 重算 resolveJustifyPlan 对已分布行恒得 SKIP（循环论证），不作分支判据。
+    // fixture：英文 + 中文尾——首行折行落在 CJK 内部（非空格收尾 ⇒ contentWidth ≤ effWidth，
+    // WORD_DISTRIBUTE 稳定触发，无「行尾空格边际超宽 → SKIP」边际）。
+    @Test
+    fun p3_firstLine_justify_fillsIndentedBox_distributionSignature() {
+        val indent = 2f * 48f
+        val text = "The quick brown fox 春眠不觉晓处处闻啼鸟夜来风雨声花落知多少" +
+                "春晓春眠不觉晓处处闻啼鸟夜来风雨声花落知多少"
+        val (pages, paint) = layoutPages(text, firstLineIndent = indent)
+        val lines = visibleLines(pages)
+        assertTrue("应折行 ≥3 行（实际 ${lines.size}）", lines.size >= 3)
+
+        val ink = TextLayoutProvider.inkPad(paint.textSize)
+        val effStart = ChapterProvider.paddingHorizontal + indent + ink   // 缩进后盒缘
+        val effEnd = ChapterProvider.visibleRight - ink
+
+        // 钉 S1a+分布：首组盒左缘 = 缩进位（缺 S1a 时 justify 拉到无缩进位，必红）
+        val first = lines.first()
+        val boxes = first.textChars.filter { !it.isImage }
+            .groupBy { it.renderGroup }
+            .values.map { g -> g.minOf { it.start } to g.maxOf { it.end } }
+            .sortedBy { it.first }
+        assertTrue("首行应 ≥2 组（实际 ${boxes.size}）", boxes.size >= 2)
+        assertTrue(
+            "首组左缘应在缩进位 effStart=$effStart，实际 ${boxes.first().first}",
+            abs(boxes.first().first - effStart) <= 0.01f
+        )
+
+        // 钉 S1b+分布：组间 gap 全等 + 末组右缘贴合缩进后 effEnd（首行不进 justify 则右缘自然短缺，必红）
+        val gaps = (0 until boxes.size - 1).map { boxes[it + 1].first - boxes[it].second }
+        assertTrue(
+            "首行应带 distributeWords 分布签名：gaps=$gaps " +
+                    "boxes=[${boxes.first()}, ${boxes.last()}] effEnd=$effEnd",
+            gaps.maxOf { it } - gaps.minOf { it } <= 0.01f &&
+                    abs(boxes.last().second - effEnd) <= 0.01f
+        )
+
+        // 末行仍起始边对齐（退化不变量）：墨迹左缘 = 全宽 effStart（无缩进）
+        val lastLeft = lines.last().textChars.filter {
+            !it.isImage && it.charData.firstOrNull()?.isWhitespace() != true
+        }.minOf { it.start }
+        val lastEffStart = ChapterProvider.paddingHorizontal + ink
+        assertTrue(
+            "末行应左对齐至全宽 effStart=$lastEffStart，实际 $lastLeft",
+            abs(lastLeft - lastEffStart) <= 2f
+        )
+    }
+
+    // ── P3 兜底例：真·短行首行 SKIP = 现状起始边锚定（§2-2 等价域：行方向==段落基调） ──
+    // fixture：2 短词 + 超长不可断词——断行按缩进后宽度打包，首行不会自然只含短词，
+    // 真·短行只能由「下一词放不下」制造（JustifyChecker perCharWidth 超限 → 真·短行 SKIP）。
+    // post-hoc SKIP 在此有效：真·短行未被改写，重算自洽（无 C4-F2 循环论证问题）。
+    @Test
+    fun p3_firstLine_trueShortRow_skips_startAnchoredLikeLegacy() {
+        val indent = 4f * 48f
+        val longWord = "extraordinarilyunbreakablecompoundword"
+        val text = "ab cd $longWord and more common words here to fill the remaining lines"
+        val (pages, paint) = layoutPages(text, firstLineIndent = indent)
+        val lines = visibleLines(pages)
+        assertTrue("应折行 ≥2 行（实际 ${lines.size}）", lines.size >= 2)
+
+        val first = lines.first()
+        // fixture 意图钉：首行恰为 2 短词（不满足说明长词估宽失准，须调 fixture）
+        val firstText = first.text.trim()
+        assertTrue("首行应恰为 2 短词，实际 \"$firstText\"", firstText == "ab cd")
+
+        val ink = TextLayoutProvider.inkPad(paint.textSize)
+        val effStart = ChapterProvider.paddingHorizontal + indent + ink
+        val effEnd = ChapterProvider.visibleRight - ink
+        val effWidth = ChapterProvider.visibleWidth - indent - 2 * ink
+
+        val plan = JustifyChecker.resolveJustifyPlan(first.textChars, effWidth, paint.textSize)
+        assertEquals("真·短行首行应 SKIP", JustifyPlan.Mode.SKIP, plan.mode)
+
+        // SKIP 兜底 = 起始边锚定（逐位等价现状）：首字符在缩进位，墨迹不拉伸
+        val inkChars = first.textChars.filter {
+            !it.isImage && it.charData.firstOrNull()?.isWhitespace() != true
+        }
+        val contentLeft = inkChars.minOf { it.start }
+        val contentRight = inkChars.maxOf { it.end }
+        assertTrue(
+            "首字符应在缩进位 effStart=$effStart，实际 $contentLeft",
+            abs(contentLeft - effStart) <= 2f
+        )
+        assertTrue(
+            "真·短行不应拉伸：右缘缺口应 > 2em，实际 gap=${effEnd - contentRight}",
+            effEnd - contentRight > 2f * paint.textSize
+        )
+    }
+
+    // ── P3 单行钉：首行即末行 → 仍退化起始边（§2-4），缩进可见、不拉伸 ──
+    // 防退化钉：S1b 前后行为逐位一致；此例防将来退化条件再被改动时单行段被误拉伸。
+    @Test
+    fun p3_singleLineParagraph_firstIsLast_staysStartAligned() {
+        val indent = 2f * 48f
+        val text = "Just one line"
+        val (pages, paint) = layoutPages(text, firstLineIndent = indent)
+        val lines = visibleLines(pages)
+        assertEquals("单行段应恰 1 行（实际 ${lines.size}）", 1, lines.size)
+
+        val ink = TextLayoutProvider.inkPad(paint.textSize)
+        val effStart = ChapterProvider.paddingHorizontal + indent + ink
+        val effEnd = ChapterProvider.visibleRight - ink
+
+        val inkChars = lines.first().textChars.filter {
+            !it.isImage && it.charData.firstOrNull()?.isWhitespace() != true
+        }
+        val contentLeft = inkChars.minOf { it.start }
+        val contentRight = inkChars.maxOf { it.end }
+        assertTrue(
+            "首字符应在缩进位 effStart=$effStart，实际 $contentLeft",
+            abs(contentLeft - effStart) <= 2f
+        )
+        assertTrue(
+            "单行段不应拉伸：右缘缺口应 > 2em，实际 gap=${effEnd - contentRight}",
+            effEnd - contentRight > 2f * paint.textSize
+        )
     }
 }
