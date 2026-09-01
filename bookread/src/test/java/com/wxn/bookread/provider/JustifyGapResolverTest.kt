@@ -104,10 +104,14 @@ class JustifyGapResolverTest {
     // ── B3 真·短行 / 连写脚本纯词距 ──
 
     @Test
-    fun skip_twoWordPathologicalLine() {
+    fun word_trueShortLine_fillsViaUncappedWordGap() {
+        // 原 skip_twoWordPathologicalLine：行为反转见 docs/plans/2026-09-01-plan-justify-true-shortline-wordfill.md
         // "aa" + 30 字母超长词：within=31，perChar=(900-330-50)/31≈16.8 > 10
+        // → 不再放弃对齐，回退无上限纯词距：raw=(900-330)/1=570（与连写脚本 R1 同型）
         val chars = line(listOf("aa", "wwwwwwwwwwwwwwwwwwwwwwwwwwwwww"))
-        assertEquals(JustifyPlan.Mode.SKIP, resolve(chars, 900f).mode)
+        val plan = resolve(chars, 900f)
+        assertEquals(JustifyPlan.Mode.WORD_DISTRIBUTE, plan.mode)
+        assertEquals(570f, plan.wordGap, 0.01f)
     }
 
     @Test
@@ -117,7 +121,10 @@ class JustifyGapResolverTest {
         val plan = resolve(chars, 270f)   // (270-120-50)/10=10
         assertEquals(JustifyPlan.Mode.HYBRID, plan.mode)
         assertEquals(10f, plan.perChar, 0f)
-        assertEquals(JustifyPlan.Mode.SKIP, resolve(chars, 271f).mode)   // 10.1 > 10 → SKIP
+        // 超 0.1em 上限 → 无上限纯词距回退（不再 SKIP）：raw=(271-120)/1=151
+        val fallback = resolve(chars, 271f)   // 10.1 > 10
+        assertEquals(JustifyPlan.Mode.WORD_DISTRIBUTE, fallback.mode)
+        assertEquals(151f, fallback.wordGap, 0.01f)
     }
 
     @Test

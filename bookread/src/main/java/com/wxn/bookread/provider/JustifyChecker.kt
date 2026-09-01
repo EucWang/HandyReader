@@ -18,8 +18,8 @@ object JustifyChecker {
 
     /**
      *  justify 混合分布的组内字距上限系数（em）：
-     *  每字符摊入超过即视为真·短行，
-     *  放弃 justify
+     *  每字符摊入超过则回退为无上限纯词距拉满
+     *  （不再放弃对齐，见 docs/plans/2026-09-01-plan-justify-true-shortline-wordfill.md）
      * */
     const val JUSTIFY_MAX_CHAR_GAP_FACTOR = 0.1f
 
@@ -171,10 +171,17 @@ object JustifyChecker {
             return JustifyPlan.SKIP
         }
         val perCharWidth = (effWidth - contentWidth - across * maxWordGap) / within
-        //分配给每个字母间的额外宽度也超限制了
-        if (perCharWidth > textSize * JUSTIFY_MAX_CHAR_GAP_FACTOR) {
-            return JustifyPlan.SKIP  //// 真·短行：字距摊入超限
+        //分配给每个字母间的额外宽度小于限制
+        if (perCharWidth <= textSize * JUSTIFY_MAX_CHAR_GAP_FACTOR) {
+            return JustifyPlan.hybrid(maxWordGap, perCharWidth)
         }
-        return JustifyPlan.hybrid(maxWordGap, perCharWidth)
+        //真·短行（字距摊入超限）→ 无上限纯词距拉满，绝不放弃中间行对齐
+        val gapWidthRaw = (effWidth - contentWidth) / gapCount
+        return if (gapWidthRaw > 0f) {
+            JustifyPlan.wordDistribute(gapWidthRaw)
+        } else {
+            JustifyPlan.SKIP  // 负压缩防御（理论不可达：perChar>cap ⇒ effWidth>contentWidth）
+        }
+
     }
 }
