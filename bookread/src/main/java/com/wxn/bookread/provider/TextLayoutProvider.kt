@@ -745,16 +745,14 @@ object TextLayoutProvider {
         val effWidth = rawWidth - 2 * inkSize
 
         // ── Job 1: justify ──
-        //justify（ 重锚行的 list 序 ≠ 视觉序，线性重排会二次镜像 → 精确跳过）
-        if (lineEffAlign == CssTextAlign.CssTextAlignJustify &&
-            !textLine.spanReordered) {
+        // C4（2026-08-31）：摘除 spanReordered 守卫——重锚行的 justify 安全性已由 C5
+        // 视觉序分发保证（justifyWordGroups/charsInVisualOrder 按组盒/字符 x 序摆放，
+        // 数组序不参与），守卫残留只会让混排重锚行无声放弃拉伸（右侧留白）
+        if (lineEffAlign == CssTextAlign.CssTextAlignJustify) {
             justifyLine(chars, effStart, effEnd, effWidth, textSize, lineIsRtl)
         }
 
-        // ── Job 2: exceedRtl（超宽压缩）── 貌似没有什么效果
-//        exceedZipWidth(chars, boundsStartX, boundsEndX, boundsWidth, baseRtl)
-
-        // ── Job 3: 锚点定位 + 溢出钳制 ， 左/右/居中共用 ──
+        // ── Job 2: 锚点定位 + 溢出钳制 ， 左/右/居中共用 ──
         anchorLine(chars, lineEffAlign, lineIsRtl, rawStart, rawEnd, rawWidth, inkSize)
     }
 
@@ -973,40 +971,6 @@ object TextLayoutProvider {
             }
         }
     }
-
-
-    /**
-     * 超宽压缩：contentWidth > boundsWidth 时，把 (boundsWidth - contentWidth)（负值）均摊到词间 gap，
-     * 压缩词间距挤入列宽。与 justify 互补：justify 守卫 gapWidth>0，exceedRtl 守卫 gapWidth<0，天然互斥。
-     *
-     * 返回值无意义（第二遍遍历中，anchorLine 会兜底处理 exceedRtl 未覆盖的单字超宽）。
-     * ★（审查 R4）死代码注记：调用点已注释（postProcessRtlLine），本函数仍按数组序分组——
-     *   若未来复活该路径，必须同步视觉序化（justifyWordGroups），否则 U7 类镜像缺陷随之复发。
-     * 守卫：
-     *  - words.size > 1（单词无法压缩）
-     *  - gapWidth < 0（未超宽则跳过）
-     *
-     * 不变量（C3）：origCharWidth = ch.end - ch.start 先捕获，再 ch.end += shift，再 ch.start = ch.end - origCharWidth。
-     */
-    private fun exceedZipWidth(
-        chars: ArrayList<TextChar>,
-        boundsStartX: Float,
-        boundsEndX: Float,
-        boundsWidth: Float,
-        baseRtl: Boolean
-    ) {
-        val words = chars.groupBy { it.renderGroup }.values.toList()
-        if (words.size <= 1) return   // 单词无法压缩，交 anchorLine 兜底
-
-        val contentWidth =
-            words.sumOf { w -> (w.maxOf { it.end } - w.minOf { it.start }).toDouble() }.toFloat()
-        val gapCount = words.size - 1
-        val gapWidth = (boundsWidth - contentWidth) / gapCount
-        if (gapWidth >= 0f) return    // 未超宽，跳过
-
-        distributeWords(words, boundsStartX, boundsEndX, gapWidth, baseRtl)
-    }
-
 
     /**
      * 按 lineEffAlign 锚定整行 + 溢出钳制。
@@ -1264,7 +1228,7 @@ object TextLayoutProvider {
         try {
             if (state.blocks.size >= 2 && !line.textChars.any { it.isImage }) {
                 if (reorderGluedSpans(line.textChars, state.blocks)) {
-                    //justify 线性重排会二次镜像 → 精确跳过
+                    // spanReordered 标记：C5 起 justify 按视觉序分发，不再据此跳过（C4）；仅诊断/测试用
                     line.spanReordered = true
                 }
             }

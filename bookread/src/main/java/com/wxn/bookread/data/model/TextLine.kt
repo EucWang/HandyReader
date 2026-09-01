@@ -78,10 +78,9 @@ data class TextLine(
 
     /**
      * 粘合段重锚标记：
-     * 行发生过 level>=1 多块重锚 （行内块序 ≠ list 序）。
-     * justify 的线性重排执行器（distributeWords/distributeJustifyChars）按 list 序
-     * 左→右重放会二次镜像 → postProcessRtlLine 对此类行跳过 justify
-     * （退化 anchorLine起始边锚定，与 justify 首/末行退化同哲学)
+     * 行发生过 level>=1 多块重锚（行内块序 ≠ list 序；重锚只改 x 坐标，数组序不动）。
+     * C5 起 justify 执行器按视觉序分发，重锚行不再据此跳过 justify（C4 摘除守卫）；
+     * 本标记仅作重锚形态的诊断/测试选择器（W5-b-3、MixedBaseLtr 断言用）。
      * 运行时布局产物，不持久化。
      */
     var spanReordered: Boolean = false,

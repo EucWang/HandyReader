@@ -7,6 +7,7 @@ import org.junit.Test
 /**
  * C5（U7 镜像修复）JVM 钉：justify 分发视觉序（方案 §5 W5-a）。
  * 直测前提同 GluedSpanReorderTest / JustifyGapResolverTest：object 无 Android 初始化器路径。
+ * C4 追加：重锚形态（glued span，块序 ≠ x 序 ≠ 简单逆序）视觉序钉。
  */
 class JustifyVisualOrderTest {
 
@@ -87,5 +88,22 @@ class JustifyVisualOrderTest {
             .map { g -> g.minOf { it.start } to g.joinToString("") { it.charData } }
             .sortedBy { it.first }.map { it.second }
         assertEquals(listOf("بلغوا", "نحو", "فارس"), groupsByX)
+    }
+
+    // ── C4：重锚形态（块序 ≠ x 序 ≠ 简单逆序）——粘合段组的视觉序分发 ──
+    @Test
+    fun reanchoredGluedSpanLine_wordGroups_visualOrder() {
+        // 逻辑/数组序 [CJK][AR1][300][AR2]（粘合段 = AR1+300+AR2 三个 level>=1 块）；
+        // 视觉槽位（LTR 基调，屏幕 L→R）：[CJK][AR2][300][AR1]——粘合段内部逻辑逆序，
+        // 数字居中不动（MixedBaseLtr singleLine 真值形态的同构缩样：
+        // [如下——][إلى][فارس][300][الأول][الجيش][وصل]）
+        val chars = mirroredLine(
+            listOf("如下", "وصل", "300", "فارس"),
+            xPerWord = listOf(0f, 150f, 110f, 70f)
+        )
+        assertEquals(
+            listOf("如下", "فارس", "300", "وصل"),
+            groupWords(chars, rtl = false)
+        )
     }
 }
