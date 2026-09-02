@@ -105,7 +105,7 @@ object TableLayoutProvider {
                             lastPage.text = stringBuilder.toString()
                             pageLines.add(lastPage.textLines.size)
                             pageLengths.add(lastPage.text.length)
-                            lastPage.height = durY
+                            lastPage.height = maxOf(lastPage.height, durY)   // §2.4 页高单调化
 
                             textPages.add(TextPage())
                             stringBuilder.clear()
@@ -118,6 +118,8 @@ object TableLayoutProvider {
                         }
                     }
                     val layoutBounds = currentBounds   // 固定快照，单元格坐标 + 边框线均基于此
+                    // 列流当前块快照（初值 = 起始列；行中途溢出切列/新页时随 currentBounds 更新）
+                    var chunkBounds = layoutBounds
                     val fullWidth =
                         layoutBounds.width - marginLeft.roundToInt() - marginRight.roundToInt()   // v4：layoutBounds.width
                     var textLineMaps = hashMapOf<Int, ArrayList<TextLine>>()  //遍历完，用来合并TextLine
@@ -183,25 +185,39 @@ object TableLayoutProvider {
                     for ((index, line) in lines.withIndex()) { //按行处理不同单元格的内容
                         val lineHeight = textPaint.textHeight * lineSpacingExtra * lineHeightParam
                         val textLines = textLineMaps.get(line).orEmpty()
-                        // v4 方案 B + [bugfix]：表格只做页面级拆分（不切列——单元格已基于 layoutBounds 排好）。
-                        // 原 visibleHeight → visibleBottom 的 bugfix 保留。
+                        // v4 方案 B + [bugfix]：原 visibleHeight → visibleBottom 修复保留。
+                        // 列流（2026-09-02-plan-table-column-flow.md R3）：行中途溢出时双列首列 →
+                        // 同页次列承接——格断行结构只随列宽、不随列身份变（两列 width 相等）→
+                        // 已排版字符盒整体 X 平移 + 边框按当前块快照重建，无需重排版；
+                        // 次列再溢出 / 单列 → 新页回首列（门禁决策点①）。
                         if (durY + lineHeight > visibleBottom) {
-                            val lastPage = textPages.last()
-                            lastPage.text = stringBuilder.toString()
-                            pageLines.add(lastPage.textLines.size)
-                            pageLengths.add(lastPage.text.length)
-                            lastPage.height = durY
+                            val nextChunk = nextChunkBounds(currentBounds, chapterIsRtl, dualColumnEnabled)
+                            if (nextChunk == null) {
+                                val lastPage = textPages.last()
+                                lastPage.text = stringBuilder.toString()
+                                pageLines.add(lastPage.textLines.size)
+                                pageLengths.add(lastPage.text.length)
+                                lastPage.height = maxOf(lastPage.height, durY)
 
-                            textPages.add(TextPage())
-                            stringBuilder.clear()
-                            durY = paddingVertical.toFloat()
-                            // 新页从左列开始（表格跨页时整段重排到左列/单列）
-                            currentBounds = when {
-                                !dualColumnEnabled -> layoutBoundsPage()
-                                chapterIsRtl -> layoutBoundsRightColumn()
-                                else -> layoutBoundsLeftColumn()
+                                textPages.add(TextPage())
+                                stringBuilder.clear()
+                                // 新页从首列开始（表格跨页时整段重排到首列/单列）
+                                currentBounds = when {
+                                    !dualColumnEnabled -> layoutBoundsPage()
+                                    chapterIsRtl -> layoutBoundsRightColumn()
+                                    else -> layoutBoundsLeftColumn()
+                                }
+                            } else {
+                                // 列流：同页次列承接——不结页、不清 stringBuilder（TTS 跨块续拼）
+                                currentBounds = nextChunk
                             }
+                            durY = paddingVertical.toFloat()
+                            chunkBounds = currentBounds   // 新页路径同样走（单列新页 bounds == 原快照 → dx=0）
                         }
+
+                        // 本行字符盒平移到当前块（每逻辑行只发射一次，无累积；dx=0 时零开销等价现状）
+                        val dx = (chunkBounds.startX - layoutBounds.startX).toFloat()
+                        if (dx != 0f) textLines.forEach { tls -> tls.textChars.forEach { it.start += dx; it.end += dx } }
 
                         var words = StringBuilder()
                         textLines.forEach {
@@ -225,7 +241,7 @@ object TableLayoutProvider {
 
                         lastPage.textLines.addAll(
                             TableRenderProvider.buildRowBorders(
-                                layoutBounds = layoutBounds,
+                                layoutBounds = chunkBounds,   // 当前块快照（列流后 = 次列；单列 = 原快照）
                                 fullWidth = fullWidth.toFloat(),
                                 marginLeft = marginLeft,
                                 marginRight = marginRight,
@@ -239,7 +255,8 @@ object TableLayoutProvider {
                         )
 
                         durY += lineHeight
-                        lastPage.height = durY
+                        // 页高单调化（§2.4 / 审查 r2 F-C6）：同页双纪元下块 2 不得覆盖块 1 峰值
+                        lastPage.height = maxOf(lastPage.height, durY)
                     }
                 } else {
                     /* 暂时不考虑跨行或者跨列的情况 */
@@ -271,6 +288,22 @@ object TableLayoutProvider {
     // 首列判定：LTR 章节首列=左列；RTL 章节首列=右列
     private fun LayoutBounds.isFirstColumnOf(chapterIsRtl: Boolean): Boolean =
         if (chapterIsRtl) isRightColumn else isLeftColumn
+
+    /**
+     * 溢出时的下一块几何（列流方案 §2.2，internal 纯决策函数，JVM 可测）：
+     * 双列且当前在首列 → 次列（同页列流）；否则 null（新页回首列——次列再溢出/单列）。
+     * 调用方传 ChapterProvider 单例 dualColumnEnabled；次列工厂读单例列几何。
+     */
+    internal fun nextChunkBounds(
+        cur: LayoutBounds,
+        chapterIsRtl: Boolean,
+        dualColumnEnabled: Boolean
+    ): LayoutBounds? {
+        if (!dualColumnEnabled || !cur.isColumn) return null      // 单列 / 防御性 FULL → 新页（现状）
+        return if (cur.isFirstColumnOf(chapterIsRtl)) {
+            if (chapterIsRtl) layoutBoundsLeftColumn() else layoutBoundsRightColumn()
+        } else null
+    }
 
     /**
      *  tr 标签的行索引（index 参数缺失/非法按 0）

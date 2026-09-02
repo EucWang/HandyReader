@@ -1,4 +1,4 @@
-package com.wxn.bookread.provider
+﻿package com.wxn.bookread.provider
 
 import android.text.TextPaint
 import androidx.test.ext.junit.runners.AndroidJUnit4
@@ -11,6 +11,7 @@ import com.wxn.bookread.data.model.upLinesPosition
 import com.wxn.bookread.textHeight
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -76,7 +77,8 @@ class TableLayoutInstrumentedTest {
     private class RowResult(
         val pages: ArrayList<TextPage>,
         val sb: StringBuilder,
-        val cellTextLines: List<TextLine>
+        val cellTextLines: List<TextLine>,
+        val cursor: LayoutCursor? = null
     )
 
     private fun layoutRow(
@@ -85,21 +87,35 @@ class TableLayoutInstrumentedTest {
         paraSpacingZeroed: Boolean = false,
         ts: Float = 40f,
         width: Int = 906,
-        align: CssTextAlign = CssTextAlign.CssTextAlignLeft
+        align: CssTextAlign = CssTextAlign.CssTextAlignLeft,
+        dual: Boolean = false,
+        chapterIsRtl: Boolean = false,
+        boundsFactory: (() -> LayoutBounds)? = null,   // configProvider 配置之后求值（列几何依赖单例字段）
+        visibleBottomLines: Float? = null   // 非 null：visibleBottom = paddingVertical + N×行盒高（列流用）
     ): RowResult {
         configProvider(width)
+        if (dual) {   // 双列 harness（列流方案 §4）：columnWidth=433; columnGapActual=40; visibleWidth=906
+            ChapterProvider.columnGapActual = 40
+            ChapterProvider.columnWidth = (ChapterProvider.visibleWidth - ChapterProvider.columnGapActual) / 2
+            ChapterProvider.dualColumnEnabled = true
+        }
+        if (visibleBottomLines != null) {
+            val lh = boxGeometry(ts).second
+            ChapterProvider.visibleBottom = (ChapterProvider.paddingVertical + visibleBottomLines * lh).toInt()
+        }
         val pages = arrayListOf(TextPage())
         val sb = StringBuilder()
-        TableLayoutProvider.layoutTableRow(
+        val cursor = TableLayoutProvider.layoutTableRow(
             paragraph, paint(ts),
             marginLeft = 0f, marginRight = 0f,
             paragraphIndex = 0, textAlign = align, lineHeightParam = 1f,
             textPages = pages, pageLines = arrayListOf(), pageLengths = arrayListOf(),
             stringBuilder = sb, offsetY = 40f,
-            bounds = layoutBoundsPage(), paraSpacingZeroed = paraSpacingZeroed,
-            tableIsRtl = tableIsRtl, chapterIsRtl = false
+            bounds = boundsFactory?.invoke() ?: layoutBoundsPage(),
+            paraSpacingZeroed = paraSpacingZeroed,
+            tableIsRtl = tableIsRtl, chapterIsRtl = chapterIsRtl
         )
-        return RowResult(pages, sb, pages.flatMap { p -> p.textLines }.filter { it.isTableCell })
+        return RowResult(pages, sb, pages.flatMap { p -> p.textLines }.filter { it.isTableCell }, cursor)
     }
 
     /** 用 TableGeometry 纯函数独立复算第 col 列的内容区（与被测代码平行核算，非同一份实现） */
@@ -668,5 +684,236 @@ class TableLayoutInstrumentedTest {
         assertTrue("空格列 textChars 为空", cols[1].textChars.isEmpty())
         assertEquals("空白列恰 1 个空白盒", 1, cols[2].textChars.size)
         assertTrue("行基调盖章", cols.all { !it.isRtl })
+    }
+
+    // ─────────────────────────────────────────────────────────────
+    // [column-flow] 行中途溢出承接同页次列（方案 2026-09-02-plan-table-column-flow.md R3 §4）
+    // 几何：padH=40；左列 [40,473]、右列 [513,946]、列距 473、间隙中线 493
+
+    /** 单词强制断词文本：恰折为 [lines] 个逻辑行（窄列断词与 StaticLayout 行为一致） */
+    private fun forceBreakText(lines: Int, fullWidth: Float, ts: Float = 40f): String {
+        val usable = fullWidth * (100 / 100f) - 2 * TableGeometry.CELL_INNER_PADDING   // "100%" 列
+        val capacity = (usable / paint(ts).measureText("A")).toInt()
+        return "A".repeat((lines - 1) * capacity + capacity / 2)
+    }
+
+    private companion object {
+        const val COL_W = 433f
+        const val GAP_MID = 493f   // padH + COL_W + gap/2 = 40+433+20
+        const val COL_DIST = 473f  // 右列 startX − 左列 startX
+    }
+
+    /** T-1：RTL 首列（右列）中途溢出 → 行 2 承接左列；X 刚性平移、边框按块重建、页高单调、cursor 落左列 */
+    @Test
+    fun column_flow_rtl_first_column_overflows_to_second() {
+        val text = forceBreakText(3, COL_W)
+        val row = layoutRow(
+            tableRow(text, listOf(0 to text.length), "100%"),
+            tableIsRtl = true, dual = true, chapterIsRtl = true,
+            boundsFactory = { layoutBoundsRightColumn() }, visibleBottomLines = 2.5f)
+        val (_, lineHeight, inline) = boxGeometry(40f)
+        assertEquals("前置：单格 3 逻辑行", 3, row.cellTextLines.size)
+        assertEquals("列流不结页", 1, row.pages.size)
+
+        // 按列分块（间隙中线 493 分界）
+        val b1 = row.cellTextLines.filter { sortedBoxes(it).minOf { c -> c.start } > GAP_MID }
+        val b2 = row.cellTextLines.filter { sortedBoxes(it).minOf { c -> c.start } <= GAP_MID }
+        assertEquals("块 1 = 行 0-1（右列）", 2, b1.size)
+        assertEquals("块 2 = 行 2（左列）", 1, b2.size)
+
+        // 平行核算两列内容区（RTL 100%：leftOffset = cellLeftOffset，同一函数非同一调用点）
+        val usable = COL_W - 2 * TableGeometry.CELL_INNER_PADDING
+        val loR = 40f + COL_W + 40f + TableGeometry.cellLeftOffset(COL_W, 0, 100, true)
+        val loL = 40f + TableGeometry.cellLeftOffset(COL_W, 0, 100, true)
+        b1.flatMap { sortedBoxes(it) }.forEach {
+            assertTrue("块1 盒应落右列内容区", it.start >= loR - 2f && it.end <= loR + usable + 2f) }
+        b2.flatMap { sortedBoxes(it) }.forEach {
+            assertTrue("块2 盒应落左列内容区", it.start >= loL - 2f && it.end <= loL + usable + 2f) }
+
+        // X 刚性平移：RTL 右缘锚定 → 块1/块2 maxEnd 差 = 列距
+        val maxEnd1 = b1.flatMap { sortedBoxes(it) }.maxOf { it.end }
+        val maxEnd2 = b2.flatMap { sortedBoxes(it) }.maxOf { it.end }
+        assertEquals("块界 X 平移 = 列距 473", COL_DIST, maxEnd1 - maxEnd2, 1f)
+
+        // 块 2 Y：durY 重置 + blockOffset(单格 = 0) + inline（F-C4）
+        assertEquals(ChapterProvider.paddingVertical + inline, b2.single().lineTop, 0.01f)
+
+        // 边框按块重建：顶线（右列）+ 竖线×6（右 4 左 2）+ 底线（左列，无顶线）
+        val segs = row.pages.single().textLines.filter { it.isLine }
+        val hs = segs.filter { it.lineStart.first != it.lineEnd.first }
+        assertEquals("顶线 + 底线", 2, hs.size)
+        val topH = hs.first { it.lineStart.first > GAP_MID }
+        val botH = hs.first { it.lineStart.first < GAP_MID }
+        assertEquals(ChapterProvider.paddingVertical.toFloat(), topH.lineStart.second, 0.01f)
+        assertEquals(ChapterProvider.paddingVertical + lineHeight, botH.lineStart.second, 0.01f)
+        // 边框跨表格内容区（contentLeft/Right = 列界 + margin），非单元格内容区
+        assertEquals(40f + COL_W + 40f, topH.lineStart.first, 0.01f)     // 右列 contentLeft = 513
+        assertEquals(40f + 2 * COL_W + 40f, topH.lineEnd.first, 0.01f)   // 右列 contentRight = 946
+        assertEquals(40f, botH.lineStart.first, 0.01f)                    // 左列 contentLeft
+        assertEquals(40f + COL_W, botH.lineEnd.first, 0.01f)              // 左列 contentRight = 473
+        val vs = segs.filter { it.lineStart.first == it.lineEnd.first }
+        assertEquals("3 逻辑行 × 2 竖线", 6, vs.size)
+        vs.filter { it.lineStart.first < GAP_MID }.forEach {
+            assertEquals(ChapterProvider.paddingVertical.toFloat(), it.lineStart.second, 0.01f)
+            assertEquals(ChapterProvider.paddingVertical + lineHeight, it.lineEnd.second, 0.01f)
+        }
+
+        // 页高单调化（F-C6）：块 2 不得覆盖块 1 峰值（未修复时 = padding + 1×行高，可区分）
+        assertEquals(ChapterProvider.paddingVertical + 2 * lineHeight, row.pages.single().height, 0.01f)
+        // TTS 全文完整；cursor 落左列 + 1 行
+        assertEquals("$text\n", row.sb.toString())
+        assertEquals(layoutBoundsLeftColumn(), row.cursor?.bounds)
+        assertEquals(ChapterProvider.paddingVertical + lineHeight, row.cursor!!.offsetY, 0.01f)
+    }
+
+    /**
+     * T-1b（F-C3 实施修正）：首行即溢出——级联路径契约锁。
+     * 行首预检（L97，与发射溢出同式且先行）先做同页切列（右→左），发射行 0 仍溢出 →
+     * 新页回首列（右）；行 1 列流承接左列；行 2 次列再溢出 → 新页右列。
+     * 注：发射循环内 index=0 的"纯列流承接"不可达（预检必然先拦截）——本用例锁
+     * 级联正确性：空页结页、顶边框随实际首发块、无内容丢失、TTS 跨结页/列流续拼完整。
+     */
+    @Test
+    fun column_flow_first_line_overflows_cascade_contract() {
+        val text = forceBreakText(3, COL_W)
+        val row = layoutRow(
+            tableRow(text, listOf(0 to text.length), "100%"),
+            tableIsRtl = true, dual = true, chapterIsRtl = true,
+            boundsFactory = { layoutBoundsRightColumn() }, visibleBottomLines = 0.5f)
+        assertEquals(3, row.pages.size)
+        assertEquals("页 1 为预检切列后的空页结页（既有新页路径行为）", "", row.pages[0].text)
+        assertTrue(row.pages[0].textLines.isEmpty())
+        // 页 2：行 0（右列，顶线随实际首发块）+ 行 1（列流承接左列）
+        val p2Lines = row.pages[1].textLines.filter { it.isTableCell }
+        assertEquals(2, p2Lines.size)
+        assertTrue("行 0 应平移到右列（新页首列）", sortedBoxes(p2Lines[0]).minOf { it.start } > GAP_MID)
+        assertTrue("行 1 应列流承接左列", sortedBoxes(p2Lines[1]).minOf { it.start } < GAP_MID)
+        val p2H = row.pages[1].textLines.filter { it.isLine && it.lineStart.first != it.lineEnd.first }
+        assertEquals("顶线恰 1 条且随首发块", 1, p2H.size)
+        assertTrue(p2H[0].lineStart.first > GAP_MID)
+        // 页 3：行 2（次列再溢出 → 新页右列）
+        val p3Lines = row.pages[2].textLines.filter { it.isTableCell }
+        assertEquals(1, p3Lines.size)
+        assertTrue(sortedBoxes(p3Lines[0]).minOf { it.start } > GAP_MID)
+        assertEquals("TTS 跨结页/列流续拼完整（末页内容在 sb，页 text 由章节循环收尾写）", "$text\n",
+            row.pages[0].text + row.pages[1].text + row.sb.toString())
+        assertEquals(layoutBoundsRightColumn(), row.cursor?.bounds)
+    }
+
+    /** T-2：LTR 镜像——首列（左列）中途溢出承接右列；左缘锚定 → minStart 平移 +473 */
+    @Test
+    fun column_flow_ltr_mirror() {
+        val text = forceBreakText(3, COL_W)
+        val row = layoutRow(
+            tableRow(text, listOf(0 to text.length), "100%"),
+            tableIsRtl = false, dual = true, chapterIsRtl = false,
+            boundsFactory = { layoutBoundsLeftColumn() }, visibleBottomLines = 2.5f)
+        val (_, lineHeight, inline) = boxGeometry(40f)
+        assertEquals(3, row.cellTextLines.size)
+        assertEquals(1, row.pages.size)
+        val b1 = row.cellTextLines.filter { sortedBoxes(it).minOf { c -> c.start } < GAP_MID }
+        val b2 = row.cellTextLines.filter { sortedBoxes(it).minOf { c -> c.start } > GAP_MID }
+        assertEquals(2, b1.size); assertEquals(1, b2.size)
+        // LTR 左缘锚定：全部行共享同一 minStart → 块界差 = +473
+        val minStart1 = b1.flatMap { sortedBoxes(it) }.minOf { it.start }
+        val minStart2 = b2.flatMap { sortedBoxes(it) }.minOf { it.start }
+        assertEquals(COL_DIST, minStart2 - minStart1, 1f)
+        assertEquals(ChapterProvider.paddingVertical + inline, b2.single().lineTop, 0.01f)
+        // 边框镜像：顶线左列、底线右列
+        val hs = row.pages.single().textLines.filter { it.isLine && it.lineStart.first != it.lineEnd.first }
+        assertEquals(2, hs.size)
+        assertTrue(hs.any { it.lineStart.first < GAP_MID && it.lineStart.second == ChapterProvider.paddingVertical.toFloat() })
+        assertTrue(hs.any { it.lineStart.first > GAP_MID && it.lineStart.second == ChapterProvider.paddingVertical + lineHeight })
+        assertEquals(ChapterProvider.paddingVertical + 2 * lineHeight, row.pages.single().height, 0.01f)
+        assertEquals("$text\n", row.sb.toString())
+        assertEquals(layoutBoundsRightColumn(), row.cursor?.bounds)
+    }
+
+    /** T-3：次列起始跨页——续排行平移到新页首列 X（§1 潜在不一致的修复锁，R3 行为改进） */
+    @Test
+    fun second_column_start_cross_page_translates_to_first_column() {
+        val text = forceBreakText(2, COL_W)
+        val row = layoutRow(
+            tableRow(text, listOf(0 to text.length), "100%"),
+            tableIsRtl = false, dual = true, chapterIsRtl = false,
+            boundsFactory = { layoutBoundsRightColumn() }, visibleBottomLines = 1.5f)
+        assertEquals(2, row.pages.size)
+        val p1Line = row.pages[0].textLines.filter { it.isTableCell }.single()
+        val p2Line = row.pages[1].textLines.filter { it.isTableCell }.single()
+        val minStart1 = sortedBoxes(p1Line).minOf { it.start }
+        val minStart2 = sortedBoxes(p2Line).minOf { it.start }
+        assertTrue("行 0 应在右列（次列）", minStart1 > GAP_MID)
+        assertTrue("行 1 应平移到新页首列（左列）", minStart2 < GAP_MID)
+        assertEquals("跨页平移 = 列距", -COL_DIST, minStart2 - minStart1, 1f)
+        // 边框：页 1 顶线在右列；页 2 底线在左列（isFirstLogicLine 只随行 0）
+        val p1H = row.pages[0].textLines.filter { it.isLine && it.lineStart.first != it.lineEnd.first }
+        val p2H = row.pages[1].textLines.filter { it.isLine && it.lineStart.first != it.lineEnd.first }
+        assertEquals(1, p1H.size); assertTrue(p1H[0].lineStart.first > GAP_MID)
+        assertEquals(1, p2H.size); assertTrue(p2H[0].lineStart.first < GAP_MID)
+        assertEquals(layoutBoundsLeftColumn(), row.cursor?.bounds)
+        assertEquals("TTS 跨结页续拼完整（末页内容在 sb）", "$text\n",
+            row.pages[0].text + row.sb.toString())
+    }
+
+    /** T-4：单列回归——新页拆分 X 不平移（dx=0，与现状逐位一致） */
+    @Test
+    fun single_column_new_page_dx_zero() {
+        val text = forceBreakText(2, 906f)   // 单列全宽 906
+        val row = layoutRow(
+            tableRow(text, listOf(0 to text.length), "100%"),
+            tableIsRtl = false, dual = false, visibleBottomLines = 1.5f)
+        assertEquals(2, row.pages.size)
+        val p1Line = row.pages[0].textLines.filter { it.isTableCell }.single()
+        val p2Line = row.pages[1].textLines.filter { it.isTableCell }.single()
+        assertEquals("单列新页拆分 X 不平移",
+            sortedBoxes(p1Line).minOf { it.start }, sortedBoxes(p2Line).minOf { it.start }, 0.01f)
+        assertEquals(layoutBoundsPage(), row.cursor?.bounds)
+        val p1H = row.pages[0].textLines.filter { it.isLine && it.lineStart.first != it.lineEnd.first }.single()
+        val p2H = row.pages[1].textLines.filter { it.isLine && it.lineStart.first != it.lineEnd.first }.single()
+        assertEquals("边框同页宽 X", p1H.lineStart.first, p2H.lineStart.first, 0.01f)
+    }
+
+    /** T-5（F-C7 重定义）：双列页底 justify 早退契约——列流页 upLinesPosition 零位移 */
+    @Test
+    fun column_flow_page_dual_justify_early_return_contract() {
+        val text = forceBreakText(3, COL_W)
+        val row = layoutRow(
+            tableRow(text, listOf(0 to text.length), "100%"),
+            tableIsRtl = true, dual = true, chapterIsRtl = true,
+            boundsFactory = { layoutBoundsRightColumn() }, visibleBottomLines = 2.5f)
+        val page = row.pages.single()
+        // 页尾追加正文行（真实页结构，绕开"页尾边框行"守卫——锁定的是双列早退守卫本身）
+        page.textLines.add(TextLine().apply {
+            lineTop = row.cursor!!.offsetY; lineBase = lineTop + 50f; lineBottom = lineTop + 60f
+        })
+        val preTop = page.textLines.map { it.lineTop }
+        val preHeight = page.height
+        // 构造"若不早退即必然位移"的触发条件
+        ChapterProvider.visibleBottom = page.textLines.last().lineBottom.toInt() + 100
+        ChapterProvider.visibleHeight = page.height.toInt()
+        page.upLinesPosition()
+        page.textLines.forEachIndexed { i, ln ->
+            assertEquals("第 $i 行应零位移（双列早退对列流页成立）", preTop[i], ln.lineTop, 0.0001f)
+        }
+        assertEquals("页高不变", preHeight, page.height, 0.01f)
+    }
+
+    /**
+     * nextChunkBounds 决策矩阵直测（JVM 探针红 → F-C1/C10 fallback：仪器直测）。
+     * 覆盖：RTL/LTR 首列→次列、LTR/RTL 次列→null、单列→null、防御性 FULL→null。
+     */
+    @Test
+    fun next_chunk_bounds_decision_matrix() {
+        ChapterProvider.columnGapActual = 40
+        ChapterProvider.columnWidth = 433
+        ChapterProvider.paddingHorizontal = 40
+        assertEquals(layoutBoundsLeftColumn(),
+            TableLayoutProvider.nextChunkBounds(layoutBoundsRightColumn(), true, true))
+        assertEquals(layoutBoundsRightColumn(),
+            TableLayoutProvider.nextChunkBounds(layoutBoundsLeftColumn(), false, true))
+        assertNull(TableLayoutProvider.nextChunkBounds(layoutBoundsRightColumn(), false, true))
+        assertNull(TableLayoutProvider.nextChunkBounds(layoutBoundsLeftColumn(), true, true))
+        assertNull(TableLayoutProvider.nextChunkBounds(layoutBoundsPage(), false, false))
+        assertNull(TableLayoutProvider.nextChunkBounds(layoutBoundsPage(), false, true))
     }
 }

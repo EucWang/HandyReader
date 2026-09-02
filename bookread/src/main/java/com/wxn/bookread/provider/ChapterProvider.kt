@@ -804,7 +804,8 @@ object ChapterProvider {
         }
         //一个章节的全部自然段落/图片/标题都遍历完，
         val lastPage = textPages.last()
-        lastPage.height = cursor.offsetY + 20.dp   //一个章节最后一页，高度加上20dp（v4：cursor.offsetY）
+        // 页高单调化（列流方案 §2.4）：同页双纪元（表格列流/预检切列）下 cursor.offsetY 可能小于块 1 峰值
+        lastPage.height = maxOf(lastPage.height, cursor.offsetY + 20.dp)   //一个章节最后一页，高度加上20dp（v4：cursor.offsetY）
         lastPage.text = stringBuilder.toString()    //
         if (pageLines.size < textPages.size) {      //最后一页的行数没有统计上，则加上
             pageLines.add(lastPage.textLines.size)
@@ -939,7 +940,7 @@ object ChapterProvider {
                     lastPage.text = stringBuilder.toString()
                     pageLines.add(lastPage.textLines.size)
                     pageLengths.add(lastPage.text.length)
-                    lastPage.height = durY
+                    lastPage.height = maxOf(lastPage.height, durY)   // 页高单调化（列流方案 §2.4）
                     textPages.add(TextPage())           //增加新一页
                     stringBuilder.clear()
                     durY = paddingVertical.toFloat()         //修改当前页的距离顶部的偏移量
@@ -1109,7 +1110,7 @@ object ChapterProvider {
                     lastPage.text = stringBuilder.toString()
                     pageLines.add(lastPage.textLines.size)
                     pageLengths.add(lastPage.text.length)
-                    lastPage.height = durY
+                    lastPage.height = maxOf(lastPage.height, durY)   // 页高单调化（列流方案 §2.4）
 
                     textPages.add(TextPage())
                     stringBuilder.clear()
