@@ -14,8 +14,17 @@ import com.wxn.bookread.data.model.TextLine
 object TableRenderProvider {
 
 
-    const val BORDER_COLOR = "#333333"   // 与 legacy 一致
+    const val BORDER_COLOR = "#333333"   // lineColor 字段填充值（绘制端不消费，数据契约保留）
     const val BORDER_WIDTH = 1f
+
+    /**
+     * 主题感知边框（S12）：边框色 = 当前正文文字色的 RGB + 固定 alpha。
+     * 文字色（contentPaint.color，upStyle 随主题刷新）与背景恒保对比 → 派生边框在
+     * 深/浅/自定义主题下自动可辨，无需感知主题枚举。
+     */
+    const val BORDER_ALPHA = 0x66   // 40%：实色可辨且弱于正文墨色
+
+    fun borderColorFor(textColor: Int): Int = textColor and 0x00FFFFFF or (BORDER_ALPHA shl 24)
 
     /**
      * 单元格 StaticLayout 对齐映射（已批方案 §6.3.3 / D2 / D8）。

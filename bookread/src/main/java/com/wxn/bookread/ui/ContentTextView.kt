@@ -31,6 +31,7 @@ import com.wxn.bookread.data.model.textIndexAt
 import com.wxn.bookread.data.model.visualSpan
 import com.wxn.bookread.provider.ChapterProvider
 import com.wxn.bookread.provider.ImageProvider
+import com.wxn.bookread.provider.TableRenderProvider
 import kotlin.math.min
 
 /**
@@ -552,7 +553,10 @@ class ContentTextView(context: Context, attrs: AttributeSet?) : View(context, at
                 val endx = textLine.lineEnd.first
                 val endy = textLine.lineEnd.second + relativeOffset
 
-                RenderResources.linePaint.color = textLine.lineColor.orEmpty().toColor() ?: Color.BLACK
+                // 主题感知边框（S12）：正文文字色与背景恒保对比 → 派生边框任意主题可辨；
+                // lineColor 字段保留不消费（数据契约不动），contentPaint.color 由 upStyle 随主题刷新
+                RenderResources.linePaint.color =
+                    TableRenderProvider.borderColorFor(ChapterProvider.contentPaint.color)
                 RenderResources.linePaint.strokeWidth = if (textLine.lineBorder > 0) textLine.lineBorder else 1f
 
                 drawLine(startx, starty, endx, endy, RenderResources.linePaint)

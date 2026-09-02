@@ -84,7 +84,8 @@ class TableLayoutInstrumentedTest {
         tableIsRtl: Boolean,
         paraSpacingZeroed: Boolean = false,
         ts: Float = 40f,
-        width: Int = 906
+        width: Int = 906,
+        align: CssTextAlign = CssTextAlign.CssTextAlignLeft
     ): RowResult {
         configProvider(width)
         val pages = arrayListOf(TextPage())
@@ -92,7 +93,7 @@ class TableLayoutInstrumentedTest {
         TableLayoutProvider.layoutTableRow(
             paragraph, paint(ts),
             marginLeft = 0f, marginRight = 0f,
-            paragraphIndex = 0, textAlign = CssTextAlign.CssTextAlignLeft, lineHeightParam = 1f,
+            paragraphIndex = 0, textAlign = align, lineHeightParam = 1f,
             textPages = pages, pageLines = arrayListOf(), pageLengths = arrayListOf(),
             stringBuilder = sb, offsetY = 40f,
             bounds = layoutBoundsPage(), paraSpacingZeroed = paraSpacingZeroed,
@@ -500,5 +501,172 @@ class TableLayoutInstrumentedTest {
         page.textLines.forEachIndexed { i, ln ->
             assertEquals("页尾边框行页应整体跳过 justify", preTop[i], ln.lineTop, 0.01f)
         }
+    }
+
+    // ─────────────────────────────────────────────────────────────
+    // [per-run] 单元格混排移植测试（方案 2026-09-02-plan-table-cell-per-run-engine.md §7.2）
+
+    /** T-I1（C §8.1 移植）：RTL 表纯拉丁/数字格——盒不重叠、宽合理、字符守恒 */
+    @Test
+    fun rtl_cell_ltr_boxes_no_overlap_and_sane_width() {
+        val p = paint(40f)
+        listOf("12345", "English Text").forEach { text ->
+            val row = layoutRow(tableRow(text, listOf(0 to text.length), "100%"), tableIsRtl = true)
+            val line = row.cellTextLines.single()
+            assertEquals("应单行", 1, row.cellTextLines.size)
+            val boxes = sortedBoxes(line)
+            assertEquals("字符数守恒", text.length, boxes.size)
+            for (k in 1 until boxes.size) {
+                assertTrue("相邻盒不重叠", boxes[k - 1].end <= boxes[k].start + 0.6f)
+            }
+            boxes.forEach { ch ->
+                assertTrue("盒宽合理：'${ch.charData}'",
+                    ch.end - ch.start <= 2.5f * p.measureText(ch.charData) + 2f)
+            }
+        }
+    }
+
+    /** T-I2（C §8.1b 移植）：RTL 表折行拉丁格——行首/行末不飞、patch 契约保持 */
+    @Test
+    fun rtl_cell_ltr_wrapped_lines_no_fly() {
+        val text = "antidisestablishmentarianism"
+        val row = layoutRow(tableRow(text, listOf(0 to text.length), "25%"), tableIsRtl = true, ts = 57f)
+        val cellLines = row.cellTextLines.sortedBy { it.charStartOffset }
+        assertTrue("窄列应折为多行（实际 ${cellLines.size}）", cellLines.size >= 2)
+
+        val p = paint(57f)
+        val allBoxes = cellLines.flatMap { sortedBoxes(it) }
+        assertEquals("折行字符数合计守恒", text.length, allBoxes.size)
+
+        cellLines.dropLast(1).forEach { ln ->
+            val boxes = sortedBoxes(ln)
+            val last = boxes.last()
+            assertEquals("非末行行末盒宽 = measureText（patch 契约）",
+                p.measureText(last.charData), last.end - last.start, 0.6f)
+        }
+        cellLines.forEach { ln ->
+            val boxes = sortedBoxes(ln)
+            assertTrue("行首盒宽合理（行首不再中毒）",
+                boxes.first().end - boxes.first().start <= 2.5f * p.measureText(boxes.first().charData) + 2f)
+            for (k in 1 until boxes.size) {
+                assertTrue(boxes[k - 1].end <= boxes[k].start + 0.6f)
+            }
+        }
+        val (lo, hi) = cellRegion(906, listOf(25), 0, true)
+        allBoxes.forEach { ch ->
+            assertTrue("盒应落在格内容区", ch.start >= lo - 2f && ch.end <= hi + 2f)
+        }
+    }
+
+    /** T-I3（C §8.2 移植 + 审查 F-A）：RTL 表混排格——组墨迹跨度=自然宽、组墨迹区间两两分离 */
+    @Test
+    fun rtl_cell_mixed_group_anchor_at_true_left() {
+        val text = "الكتاب Book 123 نهاية"
+        val row = layoutRow(tableRow(text, listOf(0 to text.length), "100%"), tableIsRtl = true)
+        val line = row.cellTextLines.single()
+        val chars = line.textChars.filter { !it.isImage }
+        assertEquals(text.length, chars.size)
+
+        val groups = chars.groupBy { it.renderGroup }.values
+        // 方向交界的中性空格随「后随 run」开头（SheenBidi run 边界），可形成纯空白组——
+        // 组计数与墨迹断言只对含墨组生效（空白无墨、盒值真实，不影响渲染与锚点）
+        val inkOf: (List<com.wxn.bookread.data.model.TextChar>) -> List<com.wxn.bookread.data.model.TextChar> =
+            { g -> g.filter { it.charData.firstOrNull()?.isWhitespace() != true } }
+        assertTrue("含墨组数应 ≥ 4（总组数 ${groups.size}）",
+            groups.count { inkOf(it).isNotEmpty() } >= 4)
+
+        val p = paint(40f)
+        groups.forEach { g ->
+            val ink = inkOf(g)
+            if (ink.isEmpty()) return@forEach   // 纯空白组：无墨迹可断言
+            val groupText = g.joinToString("") { it.charData }
+            val span = ink.maxOf { it.end } - ink.minOf { it.start }
+            assertTrue("组墨迹跨度 ≤ natural+3f：'$groupText'",
+                span <= p.measureText(groupText.trim()) + 3f)
+            g.filter { !it.needsRunShaping }.forEach { ch ->
+                assertTrue("强 LTR 盒宽合理：'${ch.charData}'",
+                    ch.end - ch.start <= 2.5f * p.measureText(ch.charData) + 2f)
+            }
+        }
+        // F-A：组墨迹区间两两分离（必须去空白成员——组尾空白的真实视觉槽可翻到组左侧）
+        val inkSorted = groups.mapNotNull { g ->
+            val ink = inkOf(g)
+            if (ink.isEmpty()) null else ink.minOf { it.start } to ink.maxOf { it.end }
+        }.sortedBy { it.first }
+        for (k in 1 until inkSorted.size) {
+            assertTrue("组墨迹区间应两两分离：$inkSorted",
+                inkSorted[k - 1].second <= inkSorted[k].first + 0.6f)
+        }
+    }
+
+    /** T-I4（门禁 D4 锁）：CENTER/RIGHT 对齐样式不改变格内锚定——恒表基调起始缘 */
+    @Test
+    fun cell_alignment_independent_start_edge() {
+        listOf(CssTextAlign.CssTextAlignCenter, CssTextAlign.CssTextAlignRight).forEach { align ->
+            val rtlRow = layoutRow(tableRow("Hello", listOf(0 to 5), "100%"), tableIsRtl = true, align = align)
+            val ltrRow = layoutRow(tableRow("Hello", listOf(0 to 5), "100%"), tableIsRtl = false, align = align)
+            val (loR, hiR) = cellRegion(906, listOf(100), 0, true)
+            val (loL, _) = cellRegion(906, listOf(100), 0, false)
+            val usable = hiR - loR
+            val rtlBoxes = sortedBoxes(rtlRow.cellTextLines.single())
+            val ltrBoxes = sortedBoxes(ltrRow.cellTextLines.single())
+            val rtlW = rtlBoxes.maxOf { it.end } - rtlBoxes.minOf { it.start }
+            assertEquals("RTL 表 $align 样式仍锚右缘", loR + usable - rtlW, rtlBoxes.minOf { it.start }, 1f)
+            assertEquals("LTR 表 $align 样式仍锚左缘", loL, ltrBoxes.minOf { it.start }, 1f)
+        }
+    }
+
+    /** T-I5（T1/T3 镜像锁）：LTR 表阿语格——行基调不翻向（D3）、贴起始左缘 */
+    @Test
+    fun ltr_table_arabic_cell_mirror_unchanged() {
+        val row = layoutRow(tableRow("عمر 25", listOf(0 to 3, 4 to 6), "60%;40%"), tableIsRtl = false)
+        val line0 = row.cellTextLines.first { it.colIndex == 0 }
+        assertEquals("D3：行基调 = 表基调（整格不翻向）", false, line0.isRtl)
+        val boxes0 = sortedBoxes(line0)
+        val (lo0, _) = cellRegion(906, listOf(60, 40), 0, false)
+        assertTrue("阿语格贴起始左缘（min=${boxes0.minOf { it.start }}, lo0=$lo0）",
+            boxes0.minOf { it.start } in (lo0 - 1f)..(lo0 + 4f))
+        assertTrue("阿语组整组整形", boxes0.all { it.needsRunShaping })
+        for (k in 1 until boxes0.size) {
+            assertTrue(boxes0[k - 1].end <= boxes0[k].start + 0.6f)
+        }
+    }
+
+    /** T-I6：TTS 拼接契约 + 行标志透传（发射循环零改动的行为锁） */
+    @Test
+    fun rtl_table_mixed_row_tts_and_flags_contract() {
+        val row = layoutRow(
+            tableRow("AB Cd", listOf(0 to 2, 3 to 5), "50%;50%"),
+            tableIsRtl = true, paraSpacingZeroed = true)
+        assertEquals("TTS 单行拼接", "AB\tCd\n", row.sb.toString())
+        assertTrue("行基调盖章", row.cellTextLines.all { it.isRtl })
+        assertTrue("letterSpacingZeroed 透传", row.cellTextLines.all { it.letterSpacingZeroed })
+        assertEquals("rowLineOffset = tagCell.start",
+            listOf(0, 3), row.cellTextLines.sortedBy { it.colIndex }.map { it.rowLineOffset })
+
+        // col0 折 2 行 + col1 单行：发射循环按逻辑行合并（key 语义保持）。
+        // 断行空格归属行 0（"AAAA "，与现状单 layout 逐位一致）；逻辑行间无分隔符，仅末行补 \n
+        val row2 = layoutRow(
+            tableRow("AAAA BBBB X", listOf(0 to 9, 10 to 11), "25%;75%"),
+            tableIsRtl = true, ts = 57f)
+        assertEquals("TTS 折行拼接", "AAAA \tXBBBB\n", row2.sb.toString())
+        assertEquals(2, row2.cellTextLines.filter { it.colIndex == 0 }.size)
+        assertEquals(1, row2.cellTextLines.filter { it.colIndex == 1 }.size)
+    }
+
+    /** T-I7（审查 F-B）：空/空白格契约——每列 1 个 TextLine、垂直居中记账一致 */
+    @Test
+    fun blank_and_whitespace_cell_emit_single_box() {
+        val line = "L  X"   // 0='L',1=' ',2=' ',3='X' → 三格："L"、""（空段）、" "
+        val row = layoutRow(
+            tableRow(line, listOf(0 to 1, 1 to 1, 2 to 3), "34%;33%;33%"),
+            tableIsRtl = false)
+        val cols = row.cellTextLines.sortedBy { it.colIndex }
+        assertEquals("三列各 1 个 TextLine", listOf(0, 1, 2), cols.map { it.colIndex })
+        assertTrue("三列 lineTop 全等（垂直居中记账一致）",
+            cols.map { it.lineTop }.distinctBy { Math.round(it * 100) }.size == 1)
+        assertTrue("空格列 textChars 为空", cols[1].textChars.isEmpty())
+        assertEquals("空白列恰 1 个空白盒", 1, cols[2].textChars.size)
+        assertTrue("行基调盖章", cols.all { !it.isRtl })
     }
 }

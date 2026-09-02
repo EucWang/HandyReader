@@ -61,7 +61,6 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
-import androidx.core.graphics.toColorInt
 import androidx.core.graphics.withClip
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewModelScope
@@ -90,6 +89,7 @@ import com.wxn.bookread.data.model.textIndexAt
 import com.wxn.bookread.data.model.visualSpan
 import com.wxn.bookread.provider.ChapterProvider
 import com.wxn.bookread.provider.ImageProvider
+import com.wxn.bookread.provider.TableRenderProvider
 import com.wxn.bookread.ui.ListDotRenderer
 import com.wxn.bookread.ui.RenderResources
 import com.wxn.bookread.ui.TextPageFactory
@@ -1139,7 +1139,10 @@ private fun drawPageContent(
                     }
                 }
             } else if (textLine.isLine) {
-                RenderResources.linePaint.color = textLine.lineColor?.toColorInt() ?: 0xFF333333.toInt()
+                // 主题感知边框（S12）：与 ContentTextView 同口径——正文文字色派生，
+                // 不取 lineColor 固定色（深色主题下 #333333 不可辨）
+                RenderResources.linePaint.color =
+                    TableRenderProvider.borderColorFor(ChapterProvider.contentPaint.color)
                 RenderResources.linePaint.strokeWidth = if (textLine.lineBorder > 0) textLine.lineBorder else 1f
                 canvas.drawLine(
                     textLine.lineStart.first, textLine.lineStart.second,

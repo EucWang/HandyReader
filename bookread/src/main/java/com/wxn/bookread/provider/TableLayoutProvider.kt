@@ -1,14 +1,20 @@
 package com.wxn.bookread.provider
 
+import android.text.Layout
 import android.text.StaticLayout
 import android.text.TextDirectionHeuristics
 import android.text.TextPaint
 import com.wxn.base.bean.CssTextAlign
 import com.wxn.base.bean.ReaderText
+import com.wxn.base.bean.RunLayout
 import com.wxn.base.bean.TextTag
+import com.wxn.bookread.data.beans.LineAssemblyState
+import com.wxn.bookread.data.beans.LineBlockRecord
+import com.wxn.bookread.data.model.TextChar
 import com.wxn.bookread.data.model.TextLine
 import com.wxn.bookread.data.model.TextPage
 import com.wxn.bookread.data.model.upTopBottom
+import com.wxn.bookread.ext.isWordChar
 import com.wxn.bookread.provider.ChapterProvider.dualColumnEnabled
 import com.wxn.bookread.provider.ChapterProvider.lineSpacingExtra
 import com.wxn.bookread.provider.ChapterProvider.paddingVertical
@@ -141,62 +147,28 @@ object TableLayoutProvider {
                             tableIsRtl
                         ).toInt()
 
-                        // 对齐/方向进 layout（P-L4 修复）：由 StaticLayout 自身处理（alignOf 映射 + 表格基调），
-                        // 废弃 legacy 三路 addChars* 手工偏移数学（P-L1 双重叠加 startX 同步根除）
-                        val layout = StaticLayout.Builder.obtain(
-                            text,
-                            0,
-                            text.length,
-                            textPaint,
-                            usableWidth
-                        ).setAlignment(TableRenderProvider.alignOf(textAlign, tableIsRtl))
-                            .setTextDirection(
-                                if (tableIsRtl) TextDirectionHeuristics.RTL
-                                else TextDirectionHeuristics.LTR
-                            )
-                            .setIncludePad(true)
-                            .build()
-
                         // 单元格内容区左缘（canvas 绝对坐标；P-L1：只在此处加一次 startX）
                         val cellStartX = layoutBounds.startX + marginLeft + leftOffset
-                        //每个单元格的字符串，生成多行的情况，每一行都是一个TextLine
-                        for (lineIndex in 0 until layout.lineCount) {
-                            val offsetStart = layout.getLineStart(lineIndex)
-                            val offsetEnd = layout.getLineEnd(lineIndex)
-                            val textLine = TextLine(
-                                isTitle = false,
-                                paragraphIndex = paragraphIndex,
-                                charStartOffset = offsetStart,
-                                charEndOffset = offsetEnd,
-                                rowIndex = rowIndex,
-                                colIndex = index,
-                                rowLineOffset = tagCell.start,
-                                isTableCell = true
-                            )
-                            textLine.text = text.substring(offsetStart, offsetEnd)
-                            textLine.isRtl = tableIsRtl
-                            textLine.letterSpacingZeroed = paraSpacingZeroed
-
-                            // 统一摆放（P-L2/P-L3 修复）：与正文共用 placeCharsFromLayout——逐字 gph 坐标与断行
-                            // 同源（字符盒=字形位置），renderGroup/needsRunShaping 分组整词绘制（连写正确）；
-                            // ★ runLength 必传：漏传时预扫描区间为空 → needsRunShaping 恒 false → 连写断裂静默回归
-                            TextLayoutProvider.placeCharsFromLayout(
-                                layout,
-                                lineIndex,
-                                cellStartX,
-                                text,
-                                cellStyleBoundaries(paragraph, tagCell, text.length),
-                                textLine,
-                                charIsRtl = tableIsRtl,
-                                offsetBase = 0,
-                                runLength = text.length
-                            )
-
-                            if (textLineMaps.get(lineIndex) == null) {
-                                textLineMaps[lineIndex] = arrayListOf<TextLine>()
-                            }
-                            textLineMaps.get(lineIndex)?.add(textLine)
-                        }
+                        // per-run 排版（方案 2026-09-02-plan-table-cell-per-run-engine.md）：
+                        // 格内文本经 SheenBidi 分段后逐 run 建单方向 StaticLayout，跨 run 共享行装配——
+                        // 与正文 layoutNormalTextRtl 同构。此后 placeCharsFromLayout 的全部调用方
+                        // 均为单方向 layout，其「单方向」前提构造性成立（bidi run 边界 ph 光标位
+                        // 污染字符盒的根因就此消灭）。行发射循环（页拆分/TTS/垂直居中/边框）不动。
+                        val cellMap = layoutCellRuns(
+                            cellText = text,
+                            textPaint = textPaint,
+                            usableWidth = usableWidth,
+                            cellStartX = cellStartX,
+                            tableIsRtl = tableIsRtl,
+                            paragraphIndex = paragraphIndex,
+                            rowIndex = rowIndex,
+                            colIndex = index,
+                            cellCharStart = tagCell.start,
+                            paragraph = paragraph,
+                            tagCell = tagCell,
+                            paraSpacingZeroed = paraSpacingZeroed
+                        )
+                        cellMap.forEach { (k, v) -> textLineMaps.getOrPut(k) { arrayListOf() }.addAll(v) }
                         leftOffsetPercent += tagPercent
                     }
 
@@ -308,4 +280,247 @@ object TableLayoutProvider {
         tagTr?.paramsPairs()?.firstOrNull {
             it.first == "index"
         }?.second?.toIntOrNull() ?: 0
+
+    // ─────────────────────────────────────────────────────────────
+    // 单元格 per-run 排版移植件（方案 2026-09-02-plan-table-cell-per-run-engine.md）
+    // 纯几何/纯判定件：无 Android API，bookread/src/test JVM 直测（同 tableRowIndex 先例）
+
+    /**
+     * §3.5 对齐映射（门禁裁决 D4）：表格绘制不受用户对齐样式影响——
+     * 单元格恒锚表基调起始缘：LTR 表 → 左缘 0；RTL 表 → 右缘 usable−contentW。
+     * 超宽行不钳制：按起始缘锚定自然外溢（与现状 ALIGN_NORMAL 同型）。
+     */
+    internal fun cellAnchorTargetLeft(
+        contentWidth: Float,
+        usableWidth: Int,
+        tableIsRtl: Boolean
+    ): Float = if (tableIsRtl) usableWidth - contentWidth else 0f
+
+    /** 行内词截断判定（正文 TextLayoutProvider L230-232 同源）：line0 在词内断开（两侧均非 CJK 字母） */
+    internal fun cellLine0MidWord(runText: String, line0End: Int): Boolean =
+        line0End < runText.length &&
+                runText[line0End - 1].isWordChar() &&
+                runText[line0End].isWordChar()
+
+    /** 共享行回退判定（正文 L233-235 同源）：line0 实宽超剩余宽度（±1f 容差）或词内截断 */
+    internal fun cellSharedLineShouldFallback(
+        sharedLine: Boolean,
+        line0Width: Float,
+        firstLineWidth: Int,
+        midWord: Boolean
+    ): Boolean = sharedLine && (line0Width > firstLineWidth + 1f || midWord)
+
+    /**
+     * 共享行推回（正文 shiftRunLineToCursor L521-551 数学，cell-local）：
+     * 把 [fromIndex, size) 的新增块整体平移，使其「近端」贴 cursor
+     * （RTL 近端 = 块右缘 max end / LTR 近端 = 块左缘 min start），块内相对位置与宽度不变。
+     * @return 块平移后的 (minStart, maxEnd)
+     */
+    internal fun cellShiftRunBlock(
+        chars: List<TextChar>,
+        fromIndex: Int,
+        lineIsRtl: Boolean,
+        cursor: Float
+    ): Pair<Float, Float> {
+        if (fromIndex >= chars.size) return Pair(cursor, cursor)
+        var blockMin = Float.POSITIVE_INFINITY
+        var blockMax = Float.NEGATIVE_INFINITY
+        for (i in fromIndex until chars.size) {
+            if (chars[i].start < blockMin) blockMin = chars[i].start
+            if (chars[i].end > blockMax) blockMax = chars[i].end
+        }
+        val shift = if (lineIsRtl) cursor - blockMax else cursor - blockMin
+        if (shift != 0f) {
+            for (i in fromIndex until chars.size) {
+                chars[i].start += shift
+                chars[i].end += shift
+            }
+        }
+        return Pair(blockMin + shift, blockMax + shift)
+    }
+
+    /**
+     * 单元格 per-run 排版（方案 2026-09-02-plan-table-cell-per-run-engine.md §3.3；
+     * 正文 layoutNormalTextRtl L107-307 裁剪同源，行尾注释标注源出处——阶段二合并对照）。
+     *
+     * 与正文的 3 处刻意差异（方案 §3.1）：
+     *  ① 行基调 = 表级嵌入方向 tableIsRtl（正文 = 段落首强 segDirect.baseRtl，D3）——
+     *     格继承表方向是 CSS direction 语义，并锁定 T1/T3 镜像（阿语格+LTR 表）现状；
+     *     SheenBidi runs 只用于 run 枚举与 run.isRtl（强字符 run 边界与基级无关）。
+     *  ② 无分页/切列/行内图/列表/TTS 分支（有界性：Y 坐标由发射循环 upTopBottom 延后赋值）。
+     *  ③ 空白 run 不跳过（正文 L166 continue）：空/空白格也发射 1 个（空）TextLine，
+     *     保持 cellBoxCounts 垂直居中记账与现状逐位一致。
+     *
+     * @return 逻辑行 key（格内从 0 计）→ 该格该行的 TextLine（单格单逻辑行恒 1 个）
+     */
+    private fun layoutCellRuns(
+        cellText: String,
+        textPaint: TextPaint,
+        usableWidth: Int,
+        cellStartX: Float,                 // 内容区左缘 canvas 坐标
+        tableIsRtl: Boolean,
+        paragraphIndex: Int,
+        rowIndex: Int,
+        colIndex: Int,
+        cellCharStart: Int,                // tagCell.start（rowLineOffset 契约）
+        paragraph: ReaderText.Text,
+        tagCell: TextTag,
+        paraSpacingZeroed: Boolean
+    ): HashMap<Int, ArrayList<TextLine>> {
+        val textLineMaps = hashMapOf<Int, ArrayList<TextLine>>()
+        val boundaries = cellStyleBoundaries(paragraph, tagCell, cellText.length)
+
+        val seg = RTLSegmenter.segment(cellText, declaredRtl = tableIsRtl)
+        val runs = if (seg.runs.isEmpty()) {
+            // 纯方向/空文本：合成全覆盖单 run（正文 L72-77 同源；空文本 → 1 行 → 空 TextLine，
+            // cellBoxCounts 记账与现状一致——§3.1 差异③）
+            listOf(RunLayout(seg.baseRtl, 0, cellText.length, if (seg.baseRtl) 1 else 0))
+        } else {
+            seg.runs.sortedBy { it.offset }        // 逻辑序消费（正文 L95/L1066 同源）
+        }
+
+        var lineIsRtl = tableIsRtl                 // ★ D3：表级嵌入方向（非格内首强）
+        var cursor = if (lineIsRtl) usableWidth.toFloat() else 0f
+        var logicLineIndex = -1                    // textLineMaps 的逻辑行 key（发射循环按 key 升序消费）
+        // 粘合段重锚（正文 L102 条件 !baseRtl && runs≥2 的 D3 推论：仅 LTR 表可能出 LTR 基行）
+        val assembly = if (!tableIsRtl && seg.runs.size >= 2) LineAssemblyState() else null
+
+        for (run in runs) {
+            val runText = cellText.substring(run.offset, run.offset + run.length)
+            // （正文 L166 对 blank run continue——单元格不跳，§3.1 差异③）
+
+            val atEdge = if (lineIsRtl) cursor >= usableWidth - 0.5f else cursor <= 0.5f   // 正文 L168-172
+            val firstLineWidth = if (atEdge) usableWidth else
+                ((if (lineIsRtl) cursor else usableWidth.toFloat() - cursor)
+                    .roundToInt()).coerceAtLeast(1)                                            // 正文 L174-181
+            var sharedLine = !atEdge && logicLineIndex >= 0        // 正文 L183（格内无段界，行界=首行界）
+            val sharedLineIndent = usableWidth - firstLineWidth
+            val leftIndentArr = if (lineIsRtl) intArrayOf(0, 0) else intArrayOf(sharedLineIndent, 0)
+            val rightIndentArr = if (lineIsRtl) intArrayOf(sharedLineIndent, 0) else intArrayOf(0, 0)
+            var layout = StaticLayout.Builder.obtain(runText, 0, runText.length, textPaint, usableWidth)
+                .setAlignment(Layout.Alignment.ALIGN_NORMAL)        // 对齐后置到 anchorCellLine（§3.5 D4）
+                .setTextDirection(
+                    if (run.isRtl) TextDirectionHeuristics.RTL else TextDirectionHeuristics.LTR)
+                .setIncludePad(false)                               // 正文 L212；仅影响 Y 向 padding（§9-R5）
+                .setIndents(leftIndentArr, rightIndentArr)
+                .build()
+
+            // 共享行回退重建（正文 L229-245 同源：碎片超宽/词内截断 → 整块换行重排）
+            if (cellSharedLineShouldFallback(
+                    sharedLine,
+                    layout.getLineWidth(0),
+                    firstLineWidth,
+                    cellLine0MidWord(runText, layout.getLineEnd(0)))
+            ) {
+                sharedLine = false
+                layout = StaticLayout.Builder.obtain(runText, 0, runText.length, textPaint, usableWidth)
+                    .setAlignment(Layout.Alignment.ALIGN_NORMAL)
+                    .setTextDirection(
+                        if (run.isRtl) TextDirectionHeuristics.RTL else TextDirectionHeuristics.LTR)
+                    .setIncludePad(false)
+                    .setIndents(intArrayOf(0, 0), intArrayOf(0, 0))
+                    .build()
+            }
+
+            for (lineIndex in 0 until layout.lineCount) {
+                val lineShared = sharedLine && lineIndex == 0
+                val line: TextLine
+                if (!lineShared) {
+                    lineIsRtl = tableIsRtl                  // 正文 L251（行基=嵌入方向）
+                    cursor = if (lineIsRtl) usableWidth.toFloat() else 0f
+                    assembly?.let { finalizeCellPendingLine(it) }   // 行关闭→重锚（正文 L443-444）
+                    logicLineIndex++
+                    line = TextLine(
+                        isTitle = false,
+                        paragraphIndex = paragraphIndex,
+                        charStartOffset = run.offset + layout.getLineStart(lineIndex),   // cell-local（现状 L169 契约）
+                        charEndOffset = run.offset + layout.getLineEnd(lineIndex),
+                        rowIndex = rowIndex,
+                        colIndex = colIndex,
+                        rowLineOffset = cellCharStart,      // 现状 L173 契约
+                        isTableCell = true
+                    )
+                    line.isRtl = lineIsRtl                  // 现状 L177 契约（= tableIsRtl，逐位保持）
+                    line.letterSpacingZeroed = paraSpacingZeroed   // 现状 L178 契约
+                    textLineMaps.getOrPut(logicLineIndex) { arrayListOf() }.add(line)
+                } else {
+                    // 共享行 = 前一 run 的末行（本格行映射中该逻辑行的既有 TextLine）
+                    line = textLineMaps.getValue(logicLineIndex).last()
+                }
+                val charsBaseStart = line.textChars.size
+
+                // ★ 保真修正（门禁裁决③）：charIsRtl = run.isRtl（正文 L473 同源）——
+                //   现状传 tableIsRtl，混排格行末 patch 方向不正确（本缺陷族的一部分）。
+                //   runLength 必传：预扫描 run 级，漏传 → needsRunShaping 恒 false → 连写断裂静默回归
+                TextLayoutProvider.placeCharsFromLayout(
+                    layout,
+                    lineIndex,
+                    cellStartX,
+                    cellText,
+                    boundaries,
+                    line,
+                    charIsRtl = run.isRtl,
+                    offsetBase = run.offset,
+                    runLength = run.length
+                )
+                line.text += runText.substring(
+                    layout.getLineStart(lineIndex), layout.getLineEnd(lineIndex))   // 正文 L498-502
+                line.charEndOffset = run.offset + layout.getLineEnd(lineIndex)   // 正文 L453
+
+                // 反向 run 共享行推回 packing 位（正文 L478-483/L496）
+                val (blockMin, blockMax) = cellShiftRunBlock(
+                    line.textChars, charsBaseStart, lineIsRtl, cursor)
+                cursor = if (lineIsRtl) blockMin else blockMax
+
+                // 粘合段块记录（正文 L486-494）
+                assembly?.let {
+                    if (line.textChars.size > charsBaseStart) {
+                        it.pendingLine = line
+                        it.blocks.add(LineBlockRecord(charsBaseStart, line.textChars.size, run.level))
+                    }
+                }
+            }
+        }
+        assembly?.let { finalizeCellPendingLine(it) }       // 末行关闭重锚（正文 L317）
+
+        // cell-local 对齐锚定（§3.5 D4：恒锚表基调起始缘；锚定在重锚后 = 正文 L317→L323 同序）
+        for ((_, tls) in textLineMaps) {
+            tls.forEach { anchorCellLine(it, cellStartX, usableWidth, tableIsRtl) }
+        }
+        return textLineMaps
+    }
+
+    /** 正文 anchorLine L1001-1050 的表格切片（D4：无 textAlign/justify/inkPad/图片/列表圆点） */
+    private fun anchorCellLine(
+        textLine: TextLine,
+        cellStartX: Float,
+        usableWidth: Int,
+        tableIsRtl: Boolean
+    ) {
+        val chars = textLine.textChars
+        if (chars.isEmpty()) return
+        val contentLeft = chars.minOf { it.start }
+        val contentRight = chars.maxOf { it.end }
+        val targetLeft = cellStartX + cellAnchorTargetLeft(
+            contentRight - contentLeft, usableWidth, tableIsRtl)
+        val shift = targetLeft - contentLeft
+        if (shift != 0f) {
+            chars.forEach { it.start += shift; it.end += shift }
+        }
+    }
+
+    /** 正文 finalizePendingLine L1244-1258 移植（直调 internal TextLayoutProvider.reorderGluedSpans） */
+    private fun finalizeCellPendingLine(state: LineAssemblyState) {
+        val line = state.pendingLine ?: return
+        state.pendingLine = null
+        try {
+            if (state.blocks.size >= 2 && !line.textChars.any { it.isImage }) {
+                if (TextLayoutProvider.reorderGluedSpans(line.textChars, state.blocks)) {
+                    line.spanReordered = true
+                }
+            }
+        } finally {
+            state.blocks.clear()
+        }
+    }
 }
