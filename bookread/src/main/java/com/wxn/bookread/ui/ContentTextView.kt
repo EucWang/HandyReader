@@ -26,6 +26,7 @@ import com.wxn.bookread.data.model.TextLine
 import com.wxn.bookread.data.model.TextPage
 import com.wxn.bookread.data.model.arrayIndexAt
 import com.wxn.bookread.data.model.endExclusiveUtf16
+import com.wxn.bookread.data.model.format
 import com.wxn.bookread.data.model.textIndexAt
 import com.wxn.bookread.data.model.visualSpan
 import com.wxn.bookread.provider.ChapterProvider

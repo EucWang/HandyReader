@@ -31,11 +31,9 @@ import com.wxn.bookread.data.model.TextChapter
 import com.wxn.bookread.data.model.TextChar
 import com.wxn.bookread.data.model.TextLine
 import com.wxn.bookread.data.model.TextPage
-import com.wxn.bookread.data.model.addTextChar
-import com.wxn.bookread.data.model.getTextCharReverseAt
 import com.wxn.bookread.data.model.preference.BASE_FONT_SIZE
 import com.wxn.bookread.data.model.preference.ReaderPreferences
-import com.wxn.bookread.data.model.upTopBottom
+import com.wxn.bookread.data.model.upLinesPosition
 import com.wxn.bookread.data.source.local.ReadTipPreferencesUtil
 import com.wxn.bookread.data.source.local.ReaderPreferencesUtil
 import com.wxn.bookread.ext.dp
@@ -63,21 +61,6 @@ import kotlin.math.roundToInt
 object ChapterProvider {
 
     val paragraphIndent: String = "　　" //段落缩进
-    val oneParagraphIndent: String = "　" //段落缩进
-    val JS_PATTERN: Pattern =
-        Pattern.compile("(<js>[\\w\\W]*?</js>|@js:[\\w\\W]*$)", Pattern.CASE_INSENSITIVE)
-    val EXP_PATTERN: Pattern = Pattern.compile("\\{\\{([\\w\\W]*?)\\}\\}")
-    val imgPattern: Pattern =
-        Pattern.compile(
-            "<img\\b[^>]*?(?:\\s+src=[\"']([^\"']*)[\"'])?[^>]*?(?:\\s+width=[\"']([^\"']*)[\"'])?[^>]*?(?:\\s+height=[\"']([^\"']*)[\"'])?[^>]*?>",
-            Pattern.CASE_INSENSITIVE
-        )
-//        Pattern.compile("<img .*?src.*?=.*?\"(.*?(?:,\\{.*\\})?)\".*?>", Pattern.CASE_INSENSITIVE)
-
-    val nameRegex = Regex("\\s+作\\s*者.*")
-    val authorRegex = Regex(".*?作\\s*?者[:：]")
-    val fileNameRegex = Regex("[\\\\/:*?\"<>|.]")
-    val splitGroupRegex = Regex("[,;，；]")
 
     var readerPreferencesUtil: ReaderPreferencesUtil? = null
     var readTipPreferencesUtil: ReadTipPreferencesUtil? = null
@@ -240,13 +223,7 @@ object ChapterProvider {
      * paginated but before they were displayed).
      */
     val styleVersion = java.util.concurrent.atomic.AtomicInteger(0)
-    
-    /*
-     * F4 新增:几何轨工作 paint,用于 addCharsToLineXxx 按字符 scale 算宽度时临时切 textSize。
-     * 与现有 contentPaint/titlePaint 等共享相同线程模型(getTextChapter 在 launchIO 单协程内串行调用,
-     * PageViewController.loadChapterDispatcher = limitedParallelism(1)),无新增线程安全风险。
-     */
-    private val workPaint = TextPaint()
+
 
     private val typerfaceMap = mutableMapOf<String, Typeface>()
 
@@ -673,6 +650,7 @@ object ChapterProvider {
 
         ListOrderCalculator.clear()
         ListOrderCalculator.prescan(contents)
+        val tableMap = TableDirectionResolver.preScan(contents)
 
 //        Logger.d("ChapterProvider::getTextChapter::chapterIndex=[${chapter.chapterIndex}]," +
 //                "paddingHorizontal=$paddingHorizontal,paddingVertical=$paddingVertical," +
@@ -774,6 +752,8 @@ object ChapterProvider {
                         )
                     } else {
                         val title = paragraph.tryParseToChapter(chapter.chapterIndex)
+                        val tableIsRtl = tableMap[index] ?: false
+
                         if (title != null) {
                             setTypeText(
                                 title,
@@ -784,7 +764,8 @@ object ChapterProvider {
                                 pageLengths,
                                 stringBuilder,
                                 true,
-                                chapterIsRtl
+                                chapterIsRtl,
+                                tableIsRtl,
                             )
                         } else {
                             setTypeText(
@@ -796,7 +777,8 @@ object ChapterProvider {
                                 pageLengths,
                                 stringBuilder,
                                 false,
-                                chapterIsRtl
+                                chapterIsRtl,
+                                tableIsRtl,
                             )
                         }
                     }
@@ -812,7 +794,8 @@ object ChapterProvider {
                         pageLengths,
                         stringBuilder,
                         true,
-                        chapterIsRtl
+                        chapterIsRtl,
+                        false
                     )
                 }
 
@@ -1088,7 +1071,8 @@ object ChapterProvider {
         pageLengths: ArrayList<Int>,
         stringBuilder: StringBuilder,
         isTitle: Boolean,
-        chapterIsRtl: Boolean
+        chapterIsRtl: Boolean,
+        tableIsRtl: Boolean
     ): LayoutCursor {
 //        Logger.d("ChapterProvider::setTypeText::paragraph=${paragraph}")
         val offsetY = cursor.offsetY
@@ -1330,11 +1314,13 @@ object ChapterProvider {
         }
 
         //是否是表格行
-        val isTableRow: Boolean = if (paragraph is ReaderText.Text) {
+        val tagTr = if (paragraph is ReaderText.Text) {
             paragraph.annotations.firstOrNull { tag ->
                 tag.name == "tr"
-            } != null
-        } else false
+            }
+        } else null
+        val isTableRow: Boolean = (tagTr != null)
+        val tableRowIndex: Int = TableLayoutProvider.tableRowIndex(tagTr)
 
         // Alignment decision chain: (1) title → Center, (2) table row + Undefined → Left,
         // (3) forceAlignOverride → user choice, (4) CSS Undefined → user fallback, (5) CSS value → keep as-is
@@ -1357,14 +1343,14 @@ object ChapterProvider {
             firstLineIndent = 0f
         }
 
-        if (!isTableRow && !isListRow) {
+        if ((!isTableRow || tableRowIndex == 0) && !isListRow) {
 //            Logger.d("ChapterProvider::userSetParagraphSpacing=$userSetParagraphSpacing")
             durY += if (userSetParagraphSpacing > 0) (userSetParagraphSpacing * textPaint.textHeight) else marginTop
         }
 
         // v4：子函数返回 LayoutCursor，透传 bounds
         val result = if (isTableRow) {               //是表格行
-            setTextTable(
+            TableLayoutProvider.layoutTableRow(
                 paragraph,
                 textPaint,
                 marginLeft,
@@ -1378,7 +1364,9 @@ object ChapterProvider {
                 stringBuilder,
                 durY,
                 bounds,   // v4：透传
-                paraSpacingZeroed
+                paraSpacingZeroed,
+                tableIsRtl = tableIsRtl,
+                chapterIsRtl = chapterIsRtl
             )
         } else {                    //非表格行：列表/行内图/标题/普通段（含 RTL/LTR/混排），全部走 RTL 引擎 layoutNormalTextRtl
             // F2: 构造含 Span 的 CharSequence(仅当段落有 inline 字号时)
@@ -1437,383 +1425,6 @@ object ChapterProvider {
         }
 //        durY += textPaint.textHeight * paragraphSpacing   //是段落，则加上段落间距 //TODO
         return LayoutCursor(adjustedY, result.bounds)
-    }
-
-    /**
-     * v4（方案 B）：返回类型从 Float 改为 [LayoutCursor]，新增 [bounds] 参数。
-     * 表格行作为原子单元切列（不拆分）。
-     *
-     * [bugfix]：原 `durY + lineHeight > visibleHeight` 改为 `> visibleBottom`——
-     * visibleHeight 是高度值，visibleBottom 是 Y 偏移，分页判断应该用后者。
-     * 此 bug 在单列下因两者差值（= paddingVertical）较小而偶发未暴露，双列/大边距下会少建一页。
-     */
-    private suspend fun setTextTable(
-        paragraph: ReaderText,
-        textPaint: TextPaint,
-        marginLeft: Float,
-        marginRight: Float,
-        paragraphIndex: Int,
-        textAlign: CssTextAlign,
-        lineHeightParam: Float,
-        textPages: ArrayList<TextPage>,
-        pageLines: ArrayList<Int>,
-        pageLengths: ArrayList<Int>,
-        stringBuilder: StringBuilder,
-        offsetY: Float,
-        bounds: LayoutBounds = layoutBoundsPage(),   // v4 新增
-        paraSpacingZeroed: Boolean = false
-    ): LayoutCursor {
-        var durY = offsetY
-        var currentBounds = bounds   // v4：局部变量，随列切换更新
-        if (paragraph is ReaderText.Text) {
-            val tagTable = paragraph.annotations.firstOrNull { tag ->
-                tag.name == "table"
-            }
-            val tagTr = paragraph.annotations.firstOrNull { tag ->
-                tag.name == "tr"
-            }
-            val tagCells = paragraph.annotations.filter { tag ->
-                tag.name == "td" || tag.name == "th"
-            }
-            if (tagCells.isNotEmpty()) {
-                var rows = 0    //表格行数
-                var cols = 0    //表格列数
-                var tablePercents = arrayListOf<Int>()   //每一行所占的百分比
-                tagTable?.paramsPairs()?.forEach { param ->
-                    if (param.first == "cols") {
-                        cols = param.second.toIntOrNull() ?: 0
-                    } else if (param.first == "rows") {
-                        rows = param.second.toIntOrNull() ?: 0
-                    } else if (param.first == "table_percent") {
-                        val pers = param.second.split(";")
-                        if (pers.isNotEmpty()) {
-                            for (per in pers) {
-                                if (per.endsWith("%")) {
-                                    tablePercents.add(
-                                        per.substring(0, per.length - 1).toIntOrNull() ?: 0
-                                    )
-                                }
-                            }
-                        }
-                    }
-                }
-                //当前行索引
-                val rowIndex = tagTr?.paramsPairs()?.firstOrNull { param ->
-                    param.first == "index"
-                }?.second?.toIntOrNull() ?: 0
-//                Logger.d("ChapterProvider::rows=$rows,cols=$cols,rowIndex=$rowIndex")
-                if (tagCells.size == tablePercents.size) { //
-                    val tableCellInnerPadding = 10          //表格单元格内的左右padding
-                    var leftOffsetPercent: Int = 0  //距离左边的宽度的百分比
-                    // v4 方案 B：表格行作为原子单元，整段在同一个列内排版（不中途切列）。
-                    // 先用「单行高度」做预检：若连一行都放不下当前列，则切列/建新页。
-                    // 切列后用 layoutBounds 快照固定本段表格的列几何——单元格坐标和边框线都基于它，
-                    // 保证一致；下方行渲染循环只做页面级拆分（不再切列）。
-                    val singleLineHeight = textPaint.textHeight * lineSpacingExtra * lineHeightParam
-                    if (durY + singleLineHeight > visibleBottom) {
-                        if (currentBounds.isLeftColumn) {
-                            currentBounds = layoutBoundsRightColumn()
-                            durY = paddingVertical.toFloat()
-                        } else {
-                            val lastPage = textPages.last()
-                            lastPage.text = stringBuilder.toString()
-                            pageLines.add(lastPage.textLines.size)
-                            pageLengths.add(lastPage.text.length)
-                            lastPage.height = durY
-
-                            textPages.add(TextPage())
-                            stringBuilder.clear()
-                            durY = paddingVertical.toFloat()
-                            currentBounds = if (dualColumnEnabled) layoutBoundsLeftColumn() else layoutBoundsPage()
-                        }
-                    }
-                    val layoutBounds = currentBounds   // 固定快照，单元格坐标 + 边框线均基于此
-                    val fullWidth =
-                        layoutBounds.width - marginLeft.roundToInt() - marginRight.roundToInt()   // v4：layoutBounds.width
-                    var maxLineCount = 1 //最大行数，用来计算一行的高度
-                    var textLineMaps = hashMapOf<Int, ArrayList<TextLine>>()  //遍历完，用来合并TextLine
-                    //每个单元格
-                    for (index in 0 until tagCells.size) {
-                        val tagCell = tagCells[index]
-                        val tagPercent: Int = tablePercents[index] //当前单元格所占的宽度的百分比,
-//                        Logger.d("ChapterProvider::setTextTable::line[${paragraph.line}],tagCell[$tagCell],index[$index],tagPercent=$tagPercent")
-                        val text =
-                            if (tagCell.start in 0 until paragraph.line.length && tagCell.end in 0..paragraph.line.length) {
-                                paragraph.line.substring(tagCell.start, tagCell.end)
-                            } else if (tagCell.start in 0 until paragraph.line.length && tagCell.end > paragraph.line.length) {
-                                paragraph.line.substring(tagCell.start)
-                            } else {
-                                ""
-                            }
-
-                        val usableWidth =
-                            (fullWidth * (tagPercent / 100f) - 2 * tableCellInnerPadding).toInt()   //可用宽度
-                        val leftOffset =
-                            (fullWidth * (leftOffsetPercent / 100f) + tableCellInnerPadding).toInt()    //距离屏幕左边的偏移位置
-                        var rightOffset = layoutBounds.endX - (usableWidth + leftOffset)     //距离屏幕右边的偏移量（v4：layoutBounds.endX）
-                        if (rightOffset < 0) {
-                            rightOffset = 0
-                        }
-
-                        val layout = StaticLayout.Builder.obtain(
-                            text,
-                            0,
-                            text.length,
-                            textPaint,
-                            usableWidth
-                        )
-                            .setAlignment(Layout.Alignment.ALIGN_NORMAL)
-                            .setIncludePad(true)
-                            .build()
-                        val lineCount = layout.lineCount
-                        if (lineCount > maxLineCount) {
-                            maxLineCount = lineCount
-                        }
-                        //每个单元格的字符串，生成多行的情况，每一行都是一个TextLine
-                        for (lineIndex in 0 until layout.lineCount) {
-                            val offsetStart = layout.getLineStart(lineIndex)
-                            val offsetEnd = layout.getLineEnd(lineIndex)
-                            val textLine = TextLine(
-                                isTitle = false,
-                                paragraphIndex = paragraphIndex,
-                                charStartOffset = offsetStart,
-                                charEndOffset = offsetEnd,
-                                rowIndex = rowIndex,
-                                colIndex = index,
-                                rowLineOffset = tagCell.start,
-                                isTableCell = true
-                            )
-                            textLine.letterSpacingZeroed = paraSpacingZeroed
-                            val words = text.substring(offsetStart, offsetEnd)
-                            textLine.text = words
-                            val desiredWidth = layout.getLineWidth(lineIndex)   //排版要求的宽度
-//                                var isLastLine = (lineIndex == layout.lineCount - 1)
-                            when (textAlign) {
-                                CssTextAlign.CssTextAlignLeft, CssTextAlign.CssTextAlignJustify, CssTextAlign.CssTextAlignUndefined -> addCharsToLineLeft(
-                                    textLine,
-                                    words.toStringArray(),
-                                    textPaint,
-                                    layoutBounds.startX.toFloat() + leftOffset + marginLeft,   // v4：layoutBounds.startX
-                                    layoutBounds
-                                )
-
-                                CssTextAlign.CssTextAlignRight -> addCharsToLineRight(
-                                    textLine,
-                                    words.toStringArray(),
-                                    textPaint,
-                                    desiredWidth,
-                                    (layoutBounds.endX - usableWidth - leftOffset - layoutBounds.startX).toFloat().coerceAtLeast(0f),   // v4：相对列内右边距
-                                    layoutBounds
-                                )
-
-                                CssTextAlign.CssTextAlignCenter -> {
-                                    addCharsToLineLeft(
-                                        textLine, words.toStringArray(), textPaint,
-                                        layoutBounds.startX.toFloat() + leftOffset + marginLeft + (usableWidth - desiredWidth) / 2f,   // v4：layoutBounds.startX
-                                        layoutBounds
-                                    )
-                                }
-                            }
-                            if (textLineMaps.get(lineIndex) == null) {
-                                textLineMaps[lineIndex] = arrayListOf<TextLine>()
-                            }
-                            textLineMaps.get(lineIndex)?.add(textLine)
-                        }
-                        leftOffsetPercent += tagPercent
-                    }
-
-                    val lines: List<Int> = textLineMaps.keys.toList().sorted()
-                    for ((index, line) in lines.withIndex()) { //按行处理不同单元格的内容
-                        val lineHeight = textPaint.textHeight * lineSpacingExtra * lineHeightParam
-                        val textLines = textLineMaps.get(line).orEmpty()
-                        // v4 方案 B + [bugfix]：表格只做页面级拆分（不切列——单元格已基于 layoutBounds 排好）。
-                        // 原 visibleHeight → visibleBottom 的 bugfix 保留。
-                        if (durY + lineHeight > visibleBottom) {
-                            val lastPage = textPages.last()
-                            lastPage.text = stringBuilder.toString()
-                            pageLines.add(lastPage.textLines.size)
-                            pageLengths.add(lastPage.text.length)
-                            lastPage.height = durY
-
-                            textPages.add(TextPage())
-                            stringBuilder.clear()
-                            durY = paddingVertical.toFloat()
-                            // 新页从左列开始（表格跨页时整段重排到左列/单列）
-                            currentBounds = if (dualColumnEnabled) layoutBoundsLeftColumn() else layoutBoundsPage()
-                        }
-
-                        var words = StringBuilder()
-                        textLines.forEach {
-                            if (!words.isEmpty()) {
-                                words.append("\t")
-                            }
-                            words.append(it.text)
-                        }
-                        stringBuilder.append(words)
-                        val lastLine = (index == lines.size - 1)
-                        if (lastLine) {
-                            stringBuilder.append("\n")
-                        }
-                        val lastPage = textPages.last()
-                        textLines.forEach {
-                            it.upTopBottom(durY, textPaint)
-                        }
-                        lastPage.textLines.addAll(textLines)
-
-                        //增加表格的边框线（v4：用 layoutBounds.startX/endX 替代 paddingHorizontal/visibleRight）
-                        if (index == 0) {
-                            //横线， 上面的一条横线
-                            lastPage.textLines.add(
-                                TextLine(
-                                    isLine = true,
-                                    lineStart = Pair(marginLeft + layoutBounds.startX, durY),
-                                    lineEnd = Pair(layoutBounds.endX - marginRight, durY),
-                                    lineBorder = 1f,
-                                    lineColor = "#333333"
-                                )
-                            )
-                        }
-
-                        //竖线
-                        var leftPercent = 0f
-                        var percents = arrayListOf<Int>()
-                        percents.add(0)
-                        percents.addAll(tablePercents)
-                        for ((iline, percent) in percents.withIndex()) {
-                            if (iline == percents.size - 1) {
-                                lastPage.textLines.add(
-                                    TextLine(
-                                        isLine = true,
-                                        lineStart = Pair(layoutBounds.endX - marginRight, durY),
-                                        lineEnd = Pair(
-                                            layoutBounds.endX - marginRight,
-                                            durY + lineHeight
-                                        ),
-                                        lineBorder = 1f,
-                                        lineColor = "#333333"
-                                    )
-                                )
-                            } else {
-                                leftPercent += percent
-                                val left = fullWidth * (leftPercent / 100f)
-                                lastPage.textLines.add(
-                                    TextLine(
-                                        isLine = true,
-                                        lineStart = Pair(
-                                            left + layoutBounds.startX + marginLeft,
-                                            durY
-                                        ),
-                                        lineEnd = Pair(
-                                            left + layoutBounds.startX + marginLeft,
-                                            durY + lineHeight
-                                        ),
-                                        lineBorder = 1f,
-                                        lineColor = "#333333"
-                                    )
-                                )
-                            }
-                        }
-
-                        if (rowIndex == rows - 1 && index == lines.size - 1) { //最后一条数据的底部的横线
-                            lastPage.textLines.add(
-                                TextLine(
-                                    isLine = true,
-                                    lineStart = Pair(
-                                        marginLeft + layoutBounds.startX,
-                                        durY + lineHeight
-                                    ),
-                                    lineEnd = Pair(layoutBounds.endX - marginRight, durY + lineHeight),
-                                    lineBorder = 1f,
-                                    lineColor = "#333333"
-                                )
-                            )
-                        }
-
-                        durY += lineHeight
-                        lastPage.height = durY
-                    }
-                } else {
-                    /* 暂时不考虑跨行或者跨列的情况 */
-                }
-            }
-        }
-        return LayoutCursor(durY, currentBounds)
-    }
-
-
-    /****
-     * 从左向右自然排列一行字符, 即左对齐。
-     *
-     * v4（P4 修复）：新增 [bounds] 参数
-     *
-     * F4: 新增 [charScaleLookup]/[paragraphOffset],按字符实际 scale 算宽度(混合字号)。
-     */
-    private fun addCharsToLineLeft(
-        textLine: TextLine,
-        words: Array<String>,
-        textPaint: TextPaint,
-        offsetX: Float,
-        bounds: LayoutBounds = layoutBoundsPage(),
-        charScaleLookup: (Int) -> Float = { 1f },   // F4 新增(默认向后兼容)
-        paragraphOffset: Int = 0                     // F4 新增:words[0] 在段落中的全局 offset
-    ) {
-        var x = offsetX
-        workPaint.set(textPaint)
-        val baseTextSize = textPaint.textSize
-        words.forEachIndexed { i, char ->
-            val scale = charScaleLookup(paragraphOffset + i)
-            workPaint.textSize = baseTextSize * scale   // scale=1 跳过赋值,避免 native fontMetrics 重算
-            val cw = StaticLayout.getDesiredWidth(char, workPaint)
-            val x1 = x + cw
-            textLine.addTextChar(
-                charData = char,
-                start = bounds.startX + x,    // v4：bounds.startX 替代 paddingHorizontal
-                end = bounds.startX + x1
-            )
-            x = x1
-        }
-        exceed(textLine, words, bounds)
-    }
-
-    /**
-     * 右对齐显示文本。
-     *
-     * v4（P4 修复）：新增 [bounds] 参数，右对齐按 bounds.width 计算（v4）。
-     *
-     * F4: 透传 [charScaleLookup]/[paragraphOffset]。desiredWidth 已是 layout.getLineWidth
-     *      返回的混合字号宽度(Span 路径下正确),无需重算。
-     */
-    private fun addCharsToLineRight(
-        textLine: TextLine,
-        words: Array<String>,
-        textPaint: TextPaint,
-        desiredWidth: Float,
-        marginRight: Float,
-        bounds: LayoutBounds = layoutBoundsPage(),
-        charScaleLookup: (Int) -> Float = { 1f },   // F4 新增(默认向后兼容)
-        paragraphOffset: Int = 0                     // F4 新增
-    ) {
-        val x = bounds.width - desiredWidth - marginRight  //标题栏居中显示，左偏移（v4：bounds.width）
-        addCharsToLineLeft(textLine, words, textPaint, x, bounds, charScaleLookup, paragraphOffset)
-    }
-
-    /****
-     * 显示的一行内容，计算的偏移位置检测是否超过了边界， 对偏移进行纠偏。
-     *
-     * v4（P4 修复）：新增 [bounds] 参数，用 bounds.endX 替代单例 visibleRight 做越界检测。
-     * 切列后传 rightColumn()，越界检测以右列右边界为准。
-     */
-    private fun exceed(textLine: TextLine, words: Array<String>, bounds: LayoutBounds = layoutBoundsPage()) {
-        val endX = textLine.textChars.lastOrNull()?.end ?: 0f    //一行的最后一个字符显示的左边位置
-        if (endX > bounds.endX.toFloat()) {    //超过了可视区域的右侧（v4：bounds.endX）
-            val diff = (endX - bounds.endX) / words.size    //将超过的偏移量分配到每个字符上，然后对显示的一行每个字符位置进行修正
-            for (index in 0..words.lastIndex) {
-                val textChar = textLine.getTextCharReverseAt(index) //反方向上进行
-                val offset = diff * (words.size - index)
-                textChar.start = textChar.start - offset
-                textChar.end = textChar.end - offset
-            }
-        }
     }
 
     /***

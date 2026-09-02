@@ -466,11 +466,13 @@ object TextLayoutProvider {
         placeCharsFromLayout(
             layout,
             lineIndex,
-            run,
             targetBounds.startX.toFloat(),
             text,
             boundaries,
-            textLine
+            textLine,
+            run.isRtl,
+            run.offset,
+            run.length
         )
 
         val (blockMin, blockMax) = shiftRunLineToCursor(
@@ -565,21 +567,23 @@ object TextLayoutProvider {
      *   per-run 纯方向 layout 消除了后 2 个（无方向混合 → 无行首跨向字 / 无bidi接缝）。
      *   详见 docs/plans/2026-08-12-plan-placechars-from-layout.md §4。
      */
-    private fun placeCharsFromLayout(
+    internal fun placeCharsFromLayout(
         layout: StaticLayout,              // 当前 run 子 layout（单方向 + 方向对称 setIndents）
         lineIndex: Int,                    // 当前 run layout 的行号
-        run: RunLayout,                    // 当前 run（isRtl + offset + length）
         startX: Float,                     // 列左边缘 canvas 坐标（= targetBounds.startX.toFloat()）
         text: CharSequence,                // 段落全文（buildSpannedText 产物，用于提取字符）
         paintBoundaryOffsets: Set<Int>,    // paint 边界 offset 集合（段落坐标，run 级预计算一次）
-        textLine: TextLine                 // 目标行（共享行时已含前一 run 的 chars）
+        textLine: TextLine,                // 目标行（共享行时已含前一 run 的 chars）
+        charIsRtl:Boolean = false,         // patch 方向：正文=run.isRtl；表格=tableIsRtl
+        offsetBase: Int = 0,               // 正文=run.offset；表格=0
+        runLength: Int,                    // 预扫描区间长度：正文=run.length；表格=单元格文本长（必传，无默认——漏传=连写断裂静默回归）
     ) {
         val lineStart = layout.getLineStart(lineIndex)
         val lineEnd = layout.getLineEnd(lineIndex)
 
         var needsRunShaping = false
-        var cpIdx = run.offset
-        val runEndOffset = run.offset + run.length
+        var cpIdx = offsetBase
+        val runEndOffset = offsetBase + runLength
         while (cpIdx < runEndOffset) {
             val cp = Character.codePointAt(text, cpIdx)
             if (!cp.isPerCharDrawSafeCode()) {
@@ -602,7 +606,7 @@ object TextLayoutProvider {
         var offset = lineStart
         while (offset < lineEnd) {
             // 获取当前字符的 Unicode 码点
-            val codePoint = Character.codePointAt(text, run.offset + offset)
+            val codePoint = Character.codePointAt(text, offsetBase + offset)
             //计算其对应的 char 数量
             val charCount = Character.charCount(codePoint)
             //计算下一个字符的偏移量。
@@ -611,7 +615,7 @@ object TextLayoutProvider {
             val isLineEnd = nextOffset >= lineEnd
 
             // 提取当前字符的字符串表示（可能包含两个 char，如 emoji）
-            val ch = text.subSequence(run.offset + offset, run.offset + nextOffset).toString()
+            val ch = text.subSequence(offsetBase + offset, offsetBase + nextOffset).toString()
             // 利用画笔测量该字符的绘制宽度（像素）。
             val chWidth = paint.measureText(ch)
 
@@ -625,7 +629,7 @@ object TextLayoutProvider {
             //      作为当前字符的结束位置（对于 RTL 文本，localEnd 可能小于 localStart）
             val localEnd = if (isLineEnd && !isLastLayoutLine) {
                 //行尾字符，但是不是run段的最后一个字符
-                if (run.isRtl) {
+                if (charIsRtl) {
                     localStart - chWidth
                 } else {
                     localStart + chWidth
@@ -642,7 +646,7 @@ object TextLayoutProvider {
             textLine.addTextChar(ch, absLeft, absRight, renderGroup, needsRunShaping)
 
             val isWhiespace = ch.firstOrNull()?.isWhitespace() == true
-            val nextParaOffset = run.offset + nextOffset
+            val nextParaOffset = offsetBase + nextOffset
             if (isWhiespace || nextParaOffset in paintBoundaryOffsets) {
                 renderGroup++
             }

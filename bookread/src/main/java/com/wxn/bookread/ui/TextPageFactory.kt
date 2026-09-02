@@ -5,6 +5,7 @@ import com.wxn.base.bean.TextCssInfo
 import com.wxn.base.bean.TextTag
 import com.wxn.bookread.data.model.SpeekBookStatus
 import com.wxn.bookread.data.model.TextPage
+import com.wxn.bookread.data.model.format
 
 class TextPageFactory(dataSource: IDataSource, val provider: PageViewDataProvider) :
     IPageFactory<TextPage>(dataSource) {
