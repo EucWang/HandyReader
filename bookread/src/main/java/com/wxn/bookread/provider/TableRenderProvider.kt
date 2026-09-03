@@ -48,6 +48,7 @@ object TableRenderProvider {
      */
     private fun hLine(x1: Float, x2: Float, y: Float) = TextLine(
         isLine = true,
+        lineTop = y, lineBottom = y,   // 退化 Y 带（横线无行高）：getLineMargin 按 Y 带取邻行间距，Y 缺省 0 会把邻行 margin 记成行 Y（笔记/朗读/搜索背景竖条延伸）
         lineStart = Pair(x1, y), lineEnd = Pair(x2, y),
         lineBorder = BORDER_WIDTH, lineColor = BORDER_COLOR
     )
@@ -57,6 +58,7 @@ object TableRenderProvider {
      */
     private fun vLine(x: Float, y1: Float, y2: Float) = TextLine(
         isLine = true,
+        lineTop = y1, lineBottom = y2, // Y 带 = 所在逻辑行带（rowTopY..rowTopY+rowBoxHeight）
         lineStart = Pair(x, y1), lineEnd = Pair(x, y2),
         lineBorder = BORDER_WIDTH, lineColor = BORDER_COLOR
     )

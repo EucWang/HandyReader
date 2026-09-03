@@ -466,11 +466,14 @@ object TableLayoutProvider {
                     line = TextLine(
                         isTitle = false,
                         paragraphIndex = paragraphIndex,
-                        charStartOffset = run.offset + layout.getLineStart(lineIndex),   // cell-local（现状 L169 契约）
-                        charEndOffset = run.offset + layout.getLineEnd(lineIndex),
+                        // A1（RC3，方案 2026-09-02-plan-table-select-hit-2d.md）：tr 段内段落级
+                        // = td 段内起点 + 格内偏移（正文 TextLayoutProvider.kt:448 同契约，M2-③）。
+                        // 消费端 `+ rowLineOffset` 补偿已同步全删，禁止单独回退本处
+                        charStartOffset = cellCharStart + run.offset + layout.getLineStart(lineIndex),
+                        charEndOffset = cellCharStart + run.offset + layout.getLineEnd(lineIndex),
                         rowIndex = rowIndex,
                         colIndex = colIndex,
-                        rowLineOffset = cellCharStart,      // 现状 L173 契约
+                        rowLineOffset = cellCharStart,      // 字段契约保留（tagCell.start）
                         isTableCell = true
                     )
                     line.isRtl = lineIsRtl                  // 现状 L177 契约（= tableIsRtl，逐位保持）
@@ -498,7 +501,7 @@ object TableLayoutProvider {
                 )
                 line.text += runText.substring(
                     layout.getLineStart(lineIndex), layout.getLineEnd(lineIndex))   // 正文 L498-502
-                line.charEndOffset = run.offset + layout.getLineEnd(lineIndex)   // 正文 L453
+                line.charEndOffset = cellCharStart + run.offset + layout.getLineEnd(lineIndex)   // 正文 L453；A1 段落级（同上）
 
                 // 反向 run 共享行推回 packing 位（正文 L478-483/L496）
                 val (blockMin, blockMax) = cellShiftRunBlock(

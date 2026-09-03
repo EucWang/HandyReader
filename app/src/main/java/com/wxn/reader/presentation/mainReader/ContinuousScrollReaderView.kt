@@ -90,6 +90,7 @@ import com.wxn.bookread.data.model.visualSpan
 import com.wxn.bookread.provider.ChapterProvider
 import com.wxn.bookread.provider.ImageProvider
 import com.wxn.bookread.provider.TableRenderProvider
+import com.wxn.bookread.provider.TextSelectionHandler
 import com.wxn.bookread.ui.ListDotRenderer
 import com.wxn.bookread.ui.RenderResources
 import com.wxn.bookread.ui.TextPageFactory
@@ -671,15 +672,15 @@ private fun checkTagInLineRect(
     if (startIdx !in 0 until line.textChars.size) return false
     if (endIdx !in 1 .. line.textChars.size) return false
 
-    val startChar = line.textChars[startIdx]
-    val endChar = if (endIdx < line.textChars.size) line.textChars[endIdx]
-                  else line.textChars.lastOrNull() ?: return false
-    Logger.d("ContinuousScrollReaderView::startChar=$startChar,endChar=$endChar")
+    // RTL 行 textChars 为逻辑序（视觉右→左），命中区间矩形必须取 min/max（对齐 PageView visualSpan 口径）
+    val from = startIdx
+    val to = minOf(endIdx, line.textChars.size - 1)   // 对应原 endChar = lastOrNull() 分支
+    val (spanLeft, spanRight) = line.textChars.visualSpan { it in from..to } ?: return false
 
     val lineRect = RectF(
-        startChar.start - padding,
+        spanLeft - padding,
         line.lineTop - padding,
-        endChar.end + padding,
+        spanRight + padding,
         line.lineBottom + padding
     )
 
@@ -721,13 +722,11 @@ private fun highlightAnnotationAndGetRect(
 
     for ((lIdx, line) in textPage.textLines.withIndex()) {
         if (line.isImage || line.isLine) continue
-        val lineOffset = if (line.isTableCell) line.rowLineOffset else 0
-
         val (tags, _) = pageFactory.getPagesAnnotation(
             chapterIndex,
             line.paragraphIndex,
-            line.charStartOffset + lineOffset,
-            line.charEndOffset + lineOffset
+            line.charStartOffset,
+            line.charEndOffset
         )
 
         val matchingTags = tags.filter {
@@ -768,10 +767,11 @@ private fun highlightAnnotationAndGetRect(
         pageController = pageProvider.pageController
     )
 
+    // RTL 行首尾端点视觉左右颠倒，返回矩形统一 min/max（现势消费面均中点锚定，零行为变化；防未来 .left/.width 消费踩雷）
     return RectF(
-        startChar!!.start - padding,
+        minOf(startChar!!.start, endChar!!.end) - padding,
         itemOffset + startLine!!.lineTop,
-        endChar!!.end + padding,
+        maxOf(startChar!!.start, endChar!!.end) + padding,
         itemOffset + endLine!!.lineBottom
     )
 }
@@ -821,12 +821,11 @@ private fun handleAnnotationTap(
             val dy = abs(localY - line.lineTop)
             if (dy > res.dp12 * 1.5f) continue
 
-            val lineOffset = if (line.isTableCell) line.rowLineOffset else 0
             val (tags, _) = pageFactory.getPagesAnnotation(
                 chapterIndex,
                 line.paragraphIndex,
-                line.charStartOffset + lineOffset,
-                line.charEndOffset + lineOffset
+                line.charStartOffset,
+                line.charEndOffset
             )
             val noteTag = tags.firstOrNull {
                 it.name == "note" && it.params.isNotEmpty() && it.params.contains("color")
@@ -845,9 +844,15 @@ private fun handleAnnotationTap(
 
     var clickLine: TextLine? = null
     for (line in textPage.textLines) {
+        if (line.isLine) continue   // 边框行：无字符命中语义，clickLine 恒取文本行（边框行 Y 带为真实行带，不得落入 Y 判定）
         if (localY >= line.lineTop && localY <= line.lineBottom) {
-            clickLine = line
-            break
+            // 表格同一 Y 带多个单元格行：取 X 跨距覆盖触点的格（对齐 PageView lineRect 双轴语义）
+            val span = line.textChars.visualSpan()
+            if (span != null && clickX >= span.first - padding && clickX <= span.second + padding) {
+                clickLine = line
+                break
+            }
+            if (clickLine == null) clickLine = line   // Y 兜底（触点在格间隙/行尾空白），等待同带内更精确命中
         }
     }
     val line = clickLine ?: run {
@@ -856,12 +861,11 @@ private fun handleAnnotationTap(
     }
     Logger.d("handleAnnotationTap::line[$line]")
 
-    val lineOffset = if (line.isTableCell) line.rowLineOffset else 0
     val (tags, _) = pageFactory?.getPagesAnnotation(
         chapterIndex,
         line.paragraphIndex,
-        line.charStartOffset + lineOffset,
-        line.charEndOffset + lineOffset
+        line.charStartOffset,
+        line.charEndOffset
     ) ?: (emptyList<TextTag>() to null)
 
     val filterTags = tags.filter { item ->
@@ -1098,13 +1102,11 @@ private fun drawPageContent(
                 lastParagraphIndex = paragraphIndex
                 RenderResources.shapedRunBuffer.clear()
             }
-            val offset = if (textLine.isTableCell) textLine.rowLineOffset else 0
-
             val (tags, cssInfo) = pageProvider.pageController.pageFactory?.getPagesAnnotation(
                 chapterIndex,
                 paragraphIndex,
-                textLine.charStartOffset + offset,
-                textLine.charEndOffset + offset
+                textLine.charStartOffset,
+                textLine.charEndOffset
             ) ?: (emptyList<TextTag>() to null)
 
             // 新增:每行预算一次 inlineFontSizes(避免每字符查 getReaderText)
@@ -1387,18 +1389,13 @@ private fun findTextCharAtPosition(
         val globalIndex = itemInfo.index
         val pageItem = mergedPages.getOrNull(globalIndex) ?: continue
 
-        for ((lineIndex, textLine) in pageItem.page.textLines.withIndex()) {
-            if (localY < textLine.lineTop || localY >= textLine.lineBottom) continue
-            for ((charIndex, textChar) in textLine.textChars.withIndex()) {
-                if (x >= textChar.start && x < textChar.end) {
-                    if (!textChar.isImage && textChar.charData.isNotEmpty()) {
-                        return HitResult(
-                            pageItem, globalIndex, itemTop,
-                            textLine, lineIndex, charIndex
-                        )
-                    }
-                    return null
-                }
+        // 二维命中（S10 RC1）：同 Y 带跨格继续扫描；图片字符/间隙严格无命中（决策点①=B）
+        val hitIdx = TextSelectionHandler.findTextPositionAt(pageItem.page.textLines, x, localY, 0f)
+        if (hitIdx != null) {
+            val (lineIndex, charIndex) = hitIdx
+            val textLine = pageItem.page.textLines[lineIndex]
+            if (textLine.textChars[charIndex].charData.isNotEmpty()) {
+                return HitResult(pageItem, globalIndex, itemTop, textLine, lineIndex, charIndex)
             }
             return null
         }
@@ -1418,7 +1415,8 @@ private fun selectWordAtChar(hitResult: HitResult): SelectionResult? {
     var pressedGlobalIndex = -1
 
     for ((lIdx, line) in page.textLines.withIndex()) {
-        if (line.paragraphIndex != targetParagraphIndex) continue
+        // 词边界分组（S10 RC2）：表格行收敛到单元格内，正文行维持 paragraphIndex 口径
+        if (!TextSelectionHandler.sameWordGroup(textLine, line)) continue
         for ((cIdx, ch) in line.textChars.withIndex()) {
             allChars.add(CharInfo(ch.charData, lIdx, cIdx))
             if (lIdx == hitResult.lineIndex && cIdx == hitResult.charIndex) {
@@ -2020,13 +2018,11 @@ private fun drawAnnotationBackgrounds(
 
         val (marginTop, marginBottom) = getLineMargin(index, textLine, textPage)
         val paragraphIndex = textLine.paragraphIndex
-        val offset = if (textLine.isTableCell) textLine.rowLineOffset else 0
-
         val (tags, _) = pageProvider.pageController.pageFactory?.getPagesAnnotation(
             chapterIndex,
             paragraphIndex,
-            textLine.charStartOffset + offset,
-            textLine.charEndOffset + offset
+            textLine.charStartOffset,
+            textLine.charEndOffset
         ) ?: (emptyList<TextTag>() to null)
 
         // 1. 笔记背景 + 图标（行跨度，空行回退全页宽——对齐 ContentTextView.tryDrawNote）

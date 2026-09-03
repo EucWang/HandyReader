@@ -191,9 +191,7 @@ class TextPageFactory(dataSource: IDataSource, val provider: PageViewDataProvide
 
         val effectedTextTags = arrayListOf<TextTag>()
         for (textTag in textTagList) {
-            if ((lineStartOffset in textTag.start until textTag.end) || (lineEndOffset in textTag.start..textTag.end)) {
-                effectedTextTags.add(textTag)
-            } else if (textTag.start in (lineStartOffset until lineEndOffset) || (textTag.end in ((lineStartOffset + 1)..lineEndOffset))) {
+            if (textTagAffectsLine(textTag, lineStartOffset, lineEndOffset)) {
                 effectedTextTags.add(textTag)
             }
         }
@@ -233,3 +231,10 @@ class TextPageFactory(dataSource: IDataSource, val provider: PageViewDataProvide
         return readerTexts[paragraphIndex]
     }
 }
+
+/** 行-[tag] 匹配谓词：半开区间严格相交（TextTag [start, end) 契约）。
+ *  旧实现的闭区间端点匹配会把「行终点 == tag 起点」的相邻行误判命中
+ * （نهاية 案例：行 [19,24) 误命中 tag [24,29)），空行/边框行 [0,0) 也会命中
+ * tag.start==0 的段落——严格相交同时消除这两族过绘。 */
+internal fun textTagAffectsLine(tag: TextTag, lineStartOffset: Int, lineEndOffset: Int): Boolean =
+    tag.start < lineEndOffset && tag.end > lineStartOffset

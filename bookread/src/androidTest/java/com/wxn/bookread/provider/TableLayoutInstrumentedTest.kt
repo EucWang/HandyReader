@@ -7,6 +7,7 @@ import com.wxn.base.bean.ReaderText
 import com.wxn.base.bean.TextTag
 import com.wxn.bookread.data.model.TextLine
 import com.wxn.bookread.data.model.TextPage
+import com.wxn.bookread.data.model.textIndexAt
 import com.wxn.bookread.data.model.upLinesPosition
 import com.wxn.bookread.textHeight
 import org.junit.Assert.assertEquals
@@ -915,5 +916,63 @@ class TableLayoutInstrumentedTest {
         assertNull(TableLayoutProvider.nextChunkBounds(layoutBoundsLeftColumn(), true, true))
         assertNull(TableLayoutProvider.nextChunkBounds(layoutBoundsPage(), false, false))
         assertNull(TableLayoutProvider.nextChunkBounds(layoutBoundsPage(), false, true))
+    }
+
+    // ─────────────────────────────────────────────────────────────
+    // RC3/A1（方案 2026-09-02-plan-table-select-hit-2d.md §2.5 步骤 3）：
+    // td 行 charStartOffset/charEndOffset tr 段内段落级化锁。
+
+    /** A1-1：td 行偏移段落级（cell-local 现状下必红） */
+    @Test
+    fun td_offset_paragraph_level_unique() {
+        val text = "Hello 25"
+        val row = layoutRow(tableRow(text, listOf(0 to 5, 6 to 8), "60%;40%"), tableIsRtl = false)
+        val lines = row.cellTextLines
+        val col0 = lines.first { it.colIndex == 0 }
+        val col1 = lines.first { it.colIndex == 1 }
+
+        // 首逻辑行 charStartOffset = tagCell.start（0 / 6）——cell-local 现状两者同为 0（红）
+        assertEquals("col0 首行 = td[0,5) 起点", 0, col0.charStartOffset)
+        assertEquals("col1 首行 = td[6,8) 起点", 6, col1.charStartOffset)
+        // 单行格：charEndOffset = tagCell.end
+        assertEquals(5, col0.charEndOffset)
+        assertEquals(8, col1.charEndOffset)
+        // 行区间长 = 行文本码元长（UTF-16）
+        lines.forEach { ln ->
+            assertEquals("区间长=行文本长", ln.text.length, ln.charEndOffset - ln.charStartOffset)
+        }
+        // 同 tr 内 td 区间互斥（resolveVisualPos 唯一性前提）
+        assertTrue("td 区间互斥",
+            minOf(col0.charEndOffset, col1.charEndOffset) <= maxOf(col0.charStartOffset, col1.charStartOffset))
+    }
+
+    /** A1-2：段落级往返不变量——tr 段文本 substring(charStart, charEnd) == line.text */
+    @Test
+    fun td_offset_locator_roundtrip() {
+        val text = "Hello 25"
+        val row = layoutRow(tableRow(text, listOf(0 to 5, 6 to 8), "60%;40%"), tableIsRtl = false)
+        row.cellTextLines.forEach { ln ->
+            assertEquals("tr 段文本往返应逐位相等",
+                text.substring(ln.charStartOffset, ln.charEndOffset), ln.text)
+        }
+    }
+
+    /** A1-3：删补偿后消费端字符级匹配谓词（charStartOffset + textIdx ∈ [tag.start, tag.end)） */
+    @Test
+    fun td_offset_tag_match_after_removal() {
+        val text = "Hello 25"
+        val row = layoutRow(
+            tableRow(text, listOf(0 to 5, 6 to 8), "60%;40%",
+                extraTags = listOf(TextTag(uuid = "hl", name = "highlight", start = 6, end = 8, params = "color=#FF0000"))),
+            tableIsRtl = false
+        )
+        val col0 = row.cellTextLines.first { it.colIndex == 0 }
+        val col1 = row.cellTextLines.first { it.colIndex == 1 }
+        fun hits(ln: TextLine) = ln.textChars.indices.any { i ->
+            val off = ln.charStartOffset + ln.textIndexAt(i)
+            off >= 6 && off < 8
+        }
+        assertTrue("highlight tag[6,8) 应命中 col1", hits(col1))
+        assertFalse("highlight tag[6,8) 不得命中 col0", hits(col0))
     }
 }

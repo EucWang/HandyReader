@@ -80,4 +80,36 @@ class TableRenderProviderBorderTest {
         )
         assertEquals("末逻辑行：3 竖线 + 底线", 4, last.size)
     }
+
+    @Test fun `边框行Y带为几何真实值-横线`() {
+        // F1（2026-09-03-plan-table-note-mark-fixes.md §2.1）：lineTop/Bottom 缺省 0 时
+        // getLineMargin 把邻行 margin 记成行 Y → 笔记/朗读/搜索背景竖条延伸。旧码此断言必红。
+        val lines = TableRenderProvider.buildRowBorders(
+            bounds, 400f, 0f, 0f, listOf(50, 50),
+            isFirstLogicLine = true, isLastTableRow = true, isLastLogicLine = true,
+            rowTopY = 100f, rowBoxHeight = 40f, tableIsRtl = false
+        )
+        val top = lines.first()
+        assertEquals("顶横线 lineTop = y", 100f, top.lineTop, 0.01f)
+        assertEquals("顶横线 lineBottom = y（退化带）", 100f, top.lineBottom, 0.01f)
+        assertEquals("顶横线 Y 带 = 线几何 Y", top.lineStart.second, top.lineTop, 0.01f)
+        val bottom = lines.last()
+        assertEquals("底横线 lineTop = rowTopY + rowBoxHeight", 140f, bottom.lineTop, 0.01f)
+        assertEquals("底横线 lineBottom 同（退化带）", 140f, bottom.lineBottom, 0.01f)
+    }
+
+    @Test fun `边框行Y带为几何真实值-竖线`() {
+        // F1：竖线 Y 带 = 所在逻辑行带 [rowTopY, rowTopY + rowBoxHeight]
+        val lines = TableRenderProvider.buildRowBorders(
+            bounds, 400f, 0f, 0f, listOf(50, 50),
+            isFirstLogicLine = true, isLastTableRow = true, isLastLogicLine = true,
+            rowTopY = 100f, rowBoxHeight = 40f, tableIsRtl = false
+        )
+        val verticals = lines.filter { it.lineStart.first == it.lineEnd.first }
+        assertEquals("顶线 + 3 竖线 + 底线中的竖线数", 3, verticals.size)
+        verticals.forEach {
+            assertEquals("竖线 lineTop = rowTopY", 100f, it.lineTop, 0.01f)
+            assertEquals("竖线 lineBottom = rowTopY + rowBoxHeight", 140f, it.lineBottom, 0.01f)
+        }
+    }
 }

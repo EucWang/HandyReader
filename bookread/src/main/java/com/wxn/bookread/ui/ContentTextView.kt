@@ -32,6 +32,7 @@ import com.wxn.bookread.data.model.visualSpan
 import com.wxn.bookread.provider.ChapterProvider
 import com.wxn.bookread.provider.ImageProvider
 import com.wxn.bookread.provider.TableRenderProvider
+import com.wxn.bookread.provider.TextSelectionHandler
 import kotlin.math.min
 
 /**
@@ -245,10 +246,8 @@ class ContentTextView(context: Context, attrs: AttributeSet?) : View(context, at
                 RenderResources.shapedRunBuffer.clear()
             }
 
-            val startOffset =
-                textLine.charStartOffset + if (textLine.isTableCell) textLine.rowLineOffset else 0   //当前行所在段落起始索引
-            val endOffset =
-                textLine.charEndOffset + if (textLine.isTableCell) textLine.rowLineOffset else 0         //当前行所在段落结束索引（不包含）
+            val startOffset = textLine.charStartOffset   //当前行所在段落起始索引
+            val endOffset = textLine.charEndOffset       //当前行所在段落结束索引（不包含）
             val (tags, textCssInfo) = factory.getPagesAnnotation(
                 chapterIndex,
                 paragraphIndex,
@@ -289,10 +288,8 @@ class ContentTextView(context: Context, attrs: AttributeSet?) : View(context, at
                     lastParagraphIndex = paragraphIndex
                     RenderResources.shapedRunBuffer.clear()
                 }
-                val startOffset =
-                    textLine.charStartOffset + if (textLine.isTableCell) textLine.rowLineOffset else 0      //当前行所在段落起始索引
-                val endOffset =
-                    textLine.charEndOffset + if (textLine.isTableCell) textLine.rowLineOffset else 0          //当前行所在段落结束索引（不包含）
+                val startOffset = textLine.charStartOffset   //当前行所在段落起始索引
+                val endOffset = textLine.charEndOffset       //当前行所在段落结束索引（不包含）
                 val (tags, textCssInfo) = factory.getPagesAnnotation(
                     chapterIdx,
                     paragraphIndex,
@@ -338,10 +335,8 @@ class ContentTextView(context: Context, attrs: AttributeSet?) : View(context, at
                         lastParagraphIndex = paragraphIndex
                         RenderResources.shapedRunBuffer.clear()
                     }
-                    val startOffset =
-                        textLine.charStartOffset + if (textLine.isTableCell) textLine.rowLineOffset else 0      //当前行所在段落起始索引
-                    val endOffset =
-                        textLine.charEndOffset + if (textLine.isTableCell) textLine.rowLineOffset else 0          //当前行所在段落结束索引（不包含）
+                    val startOffset = textLine.charStartOffset   //当前行所在段落起始索引
+                    val endOffset = textLine.charEndOffset       //当前行所在段落结束索引（不包含）
                     val (tags, textCssInfo) = factory.getPagesAnnotation(
                         chapterIdx,
                         paragraphIndex,
@@ -901,28 +896,11 @@ class ContentTextView(context: Context, attrs: AttributeSet?) : View(context, at
             }
 
             relativePage(relativePos)?.let { page -> //对应的TextPage
-                var top = 0f
-                var bottom = 0f
-                var start = 0f
-                var end = 0f
-                for ((lineIndex, textLine) in page.textLines.withIndex()) {
-                    top = textLine.lineTop + relativeOffset
-                    bottom = textLine.lineBottom + relativeOffset
-                    if (y > top && y < bottom) {
-                        for ((charIndex, textChar) in textLine.textChars.withIndex()) {
-                            start = textChar.start
-                            end = textChar.end
-                            if (x > start && x < end) {
-                                if (textChar.isImage) { //选中图片时， 显示个弹窗 TODO
-
-                                } else {
-                                    select(relativePos, lineIndex, charIndex)
-                                }
-                                return
-                            }
-                        }
-                        return
-                    }
+                // 二维命中（S10 RC1）：同 Y 带跨格继续扫描；图片字符/间隙严格无命中（决策点①=B）
+                val hit = TextSelectionHandler.findTextPositionAt(page.textLines, x, y, relativeOffset)
+                if (hit != null) {
+                    val (lineIndex, charIndex) = hit
+                    select(relativePos, lineIndex, charIndex)
                 }
             }
         }
@@ -942,46 +920,34 @@ class ContentTextView(context: Context, attrs: AttributeSet?) : View(context, at
             }
 
             relativePage(relativePos)?.let { page ->
-                var top = 0f
-                var bottom = 0f
-                var start = 0f
-                var end = 0f
-                for ((lineIndex, textLine) in page.textLines.withIndex()) {
-                    top = textLine.lineTop + relativeOffset
-                    bottom = textLine.lineBottom + relativeOffset
-                    if (y > top && y < bottom) {
-                        for ((charIndex, textChar) in textLine.textChars.withIndex()) {
-                            start = textChar.start
-                            end = textChar.end
-                            if (x > start && x < end) {
-                                val paragraphIndex = textLine.paragraphIndex
-                                val textOffset = textLine.charStartOffset + textLine.textIndexAt(charIndex)
-                                val locator = readSelectionLocator()
-                                if (locator != null) {
-                                    if (locator.startParagraphIndex == paragraphIndex &&
-                                        locator.startTextOffset == textOffset
-                                    ) {
-                                        return
-                                    }
-                                    if (paragraphIndex > locator.endParagraphIndex ||
-                                        (paragraphIndex == locator.endParagraphIndex && textOffset >= locator.endTextOffset)
-                                    ) {
-                                        return
-                                    }
-                                }
-                                upSelectedStart(
-                                    textChar.start,
-                                    textLine.lineBottom + relativeOffset,
-                                    textLine.lineTop + relativeOffset,
-                                    paragraphIndex,
-                                    textOffset
-                                )
-                                upSelectChars()
-                                return
-                            }
+                val hit = TextSelectionHandler.findTextPositionAt(page.textLines, x, y, relativeOffset)
+                if (hit != null) {
+                    val (lineIndex, charIndex) = hit
+                    val textLine = page.textLines[lineIndex]
+                    val textChar = textLine.textChars[charIndex]
+                    val paragraphIndex = textLine.paragraphIndex
+                    val textOffset = textLine.charStartOffset + textLine.textIndexAt(charIndex)
+                    val locator = readSelectionLocator()
+                    if (locator != null) {
+                        if (locator.startParagraphIndex == paragraphIndex &&
+                            locator.startTextOffset == textOffset
+                        ) {
+                            return
                         }
-                        return
+                        if (paragraphIndex > locator.endParagraphIndex ||
+                            (paragraphIndex == locator.endParagraphIndex && textOffset >= locator.endTextOffset)
+                        ) {
+                            return
+                        }
                     }
+                    upSelectedStart(
+                        textChar.start,
+                        textLine.lineBottom + relativeOffset,
+                        textLine.lineTop + relativeOffset,
+                        paragraphIndex,
+                        textOffset
+                    )
+                    upSelectChars()
                 }
             }
         }
@@ -1003,44 +969,32 @@ class ContentTextView(context: Context, attrs: AttributeSet?) : View(context, at
 
             Logger.d("ContentTextView:selectEndMove:x=$x,y=$y")
             relativePage(relativePos)?.let { page ->
-                var top: Float
-                var bottom: Float
-                var start: Float
-                var end: Float
-                for ((lineIndex, textLine) in page.textLines.withIndex()) {
-                    top = textLine.lineTop + relativeOffset
-                    bottom = textLine.lineBottom + relativeOffset
-                    if (y > top && y < bottom) {
-                        for ((charIndex, textChar) in textLine.textChars.withIndex()) {
-                            start = textChar.start
-                            end = textChar.end
-                            if (x > start && x < end) {
-                                val paragraphIndex = textLine.paragraphIndex
-                                val textOffset = textLine.charStartOffset + textLine.textIndexAt(charIndex)
-                                val locator = readSelectionLocator()
-                                if (locator != null) {
-                                    if (locator.endParagraphIndex == paragraphIndex &&
-                                        locator.endTextOffset == textOffset
-                                    ) {
-                                        return
-                                    }
-                                    if (paragraphIndex < locator.startParagraphIndex ||
-                                        (paragraphIndex == locator.startParagraphIndex && textOffset <= locator.startTextOffset)
-                                    ) {
-                                        return
-                                    }
-                                }
-                                upSelectedEnd(
-                                    textChar.end, textLine.lineBottom + relativeOffset,
-                                    paragraphIndex,
-                                    textOffset
-                                )
-                                upSelectChars()
-                                return
-                            }
+                val hit = TextSelectionHandler.findTextPositionAt(page.textLines, x, y, relativeOffset)
+                if (hit != null) {
+                    val (lineIndex, charIndex) = hit
+                    val textLine = page.textLines[lineIndex]
+                    val textChar = textLine.textChars[charIndex]
+                    val paragraphIndex = textLine.paragraphIndex
+                    val textOffset = textLine.charStartOffset + textLine.textIndexAt(charIndex)
+                    val locator = readSelectionLocator()
+                    if (locator != null) {
+                        if (locator.endParagraphIndex == paragraphIndex &&
+                            locator.endTextOffset == textOffset
+                        ) {
+                            return
                         }
-                        return
+                        if (paragraphIndex < locator.startParagraphIndex ||
+                            (paragraphIndex == locator.startParagraphIndex && textOffset <= locator.startTextOffset)
+                        ) {
+                            return
+                        }
                     }
+                    upSelectedEnd(
+                        textChar.end, textLine.lineBottom + relativeOffset,
+                        paragraphIndex,
+                        textOffset
+                    )
+                    upSelectChars()
                 }
             }
         }
@@ -1297,13 +1251,15 @@ class ContentTextView(context: Context, attrs: AttributeSet?) : View(context, at
         val page = relativePage(relativePos) ?: return
         if (lineIndex !in page.textLines.indices) return
 
-        val targetParagraphIndex = page.textLines[lineIndex].paragraphIndex
+        val pressedLine = page.textLines[lineIndex]
+        val targetParagraphIndex = pressedLine.paragraphIndex
 
         val allChars = mutableListOf<CharInfo>()
         var pressedGlobalIndex = -1
 
         for ((lIdx, line) in page.textLines.withIndex()) {
-            if (line.paragraphIndex != targetParagraphIndex) continue
+            // 词边界分组（S10 RC2）：表格行收敛到单元格内，正文行维持 paragraphIndex 口径
+            if (!TextSelectionHandler.sameWordGroup(pressedLine, line)) continue
             for ((cIdx, ch) in line.textChars.withIndex()) {
                 allChars.add(CharInfo(ch.charData, lIdx, cIdx))
                 if (lIdx == lineIndex && cIdx == charIndex) {

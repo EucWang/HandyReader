@@ -606,8 +606,8 @@ class PageView : FrameLayout, IDataSource, PageCallback {
             val paragraphIndex = clickLine.paragraphIndex
             dataProvider?.pageFactory?.let { factory ->
                 val (tags, textCssInfo) = factory.getPagesAnnotation(chapterIndex, paragraphIndex,
-                    clickLine.charStartOffset + if (clickLine.isTableCell) clickLine.rowLineOffset else 0,
-                    clickLine.charEndOffset + if(clickLine.isTableCell) clickLine.rowLineOffset else 0 )
+                    clickLine.charStartOffset,
+                    clickLine.charEndOffset)
                 val filterTags = tags.filter { item ->
                     (item.name == "a" && item.params.isNotEmpty() && item.params.contains("href")) ||
                         ((item.name == "underline" || item.name == "highlight") && item.params.isNotEmpty() && item.params.contains("color")) ||
