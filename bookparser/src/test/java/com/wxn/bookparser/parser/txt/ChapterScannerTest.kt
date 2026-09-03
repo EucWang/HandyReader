@@ -11,6 +11,7 @@ import org.junit.Assert.*
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
+import org.robolectric.annotation.Config
 import java.io.File
 
 class ChapterScannerTest {
@@ -418,6 +419,7 @@ class ChapterScannerTest {
 // 本组用例编译通过但不执行——核心守卫逻辑已被 BinaryMagicNumberDetectorTest（20 个纯 JVM 用例）完整覆盖，
 // scan() 里只是 3 行直通的 detect() 调用。
 @RunWith(RobolectricTestRunner::class)
+@Config(sdk = [34])
 class ChapterScannerBinaryGuardTest {
 
     private val context: Context by lazy {

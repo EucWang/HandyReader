@@ -25,6 +25,11 @@ import java.io.File
  *
  * 注意：本类用 Robolectric（构造 CachedFile 需要 Android Context）。
  * 若 Robolectric targetSdk=36 > maxSdk=35 问题未修复，本类会 initializationError（§8.4 前置问题）。
+ *
+ * 2026-09-03 尝试 @Config(sdk=[34]) 解锁（方案 import-metadata-query-fallback）：SDK 初始化通过后，
+ * scan_utf16le_multiChapter_byteLengthsAreCodeUnitAligned 失败——期望 2 章实际 [1]，属
+ * ChapterScanner 解析/去重逻辑与该测试假设的存量不一致（本类构造传全字段 builder，CachedFile
+ * 零查询，与元数据降级阶梯无关）。为不阻塞该方案回归基线，恢复阻塞状态，待独立排查后解锁。
  */
 @RunWith(RobolectricTestRunner::class)
 class ChapterScannerUtf16ByteOffsetTest {
