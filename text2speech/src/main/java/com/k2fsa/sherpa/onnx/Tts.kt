@@ -150,6 +150,15 @@ class OfflineTts(
         } else {
             newFromFile(config)
         }
+        // [HandyReader patch] native 配置校验失败时 newFromFile/newFromAsset 返回 0 而非抛异常，
+        // 后续 sampleRate() 等调用会对空指针解引用导致 SIGSEGV（进程被杀，try/catch 无法拦截）。
+        // 此处转抛异常，使调用方SherpaOnnxEngine.initTts 的 catch 走 onInit(ERROR) 优雅失败。
+        if (ptr == 0L) {
+            throw IllegalStateException(
+                "Failed to create OfflineTts (ptr==0); invalid config or missing model files, " +
+                    "see sherpa-onnx logs above for the exact config error"
+            )
+        }
     }
 
     fun sampleRate() = getSampleRate(ptr)
@@ -320,7 +329,9 @@ fun getOfflineTtsConfig(
     val vits = if (modelName.isNotEmpty() && voices.isEmpty()) {
         OfflineTtsVitsModelConfig(
             model = "$modelDir/$modelName",
-            lexicon = "$modelDir/$lexicon",
+            // [HandyReader patch] 与上游不同：上游恒拼接 "$modelDir/$lexicon"，空 lexicon 会生成
+            // 指向目录的非法路径；勿在同步上游时丢失此守卫
+            lexicon = if (lexicon.isEmpty()) "" else "$modelDir/$lexicon",
             tokens = "$modelDir/tokens.txt",
             dataDir = dataDir,
         )
@@ -332,7 +343,10 @@ fun getOfflineTtsConfig(
         OfflineTtsMatchaModelConfig(
             acousticModel = "$modelDir/$acousticModelName",
             vocoder = vocoder,
-            lexicon = "$modelDir/$lexicon",
+            // [HandyReader patch] 与上游不同：上游恒拼接 "$modelDir/$lexicon"，空 lexicon 会生成
+            // 指向目录的非法路径，native 校验失败返回空指针并在 sampleRate() 崩溃（en_US-ljspeech 等
+            // 无 lexicon.txt 的 matcha 模型必崩）；勿在同步上游时丢失此守卫
+            lexicon = if (lexicon.isEmpty()) "" else "$modelDir/$lexicon",
             tokens = "$modelDir/tokens.txt",
             dataDir = dataDir,
         )
