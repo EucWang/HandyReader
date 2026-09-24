@@ -13,7 +13,7 @@ import com.wxn.reader.presentation.notes.NotesScreen
 import com.wxn.reader.presentation.pdfReader.PdfReaderScreen
 import com.wxn.reader.presentation.settings.components.DeletedBooksScreen
 import com.wxn.reader.presentation.settings.components.GeneralSettings
-import com.wxn.reader.presentation.settings.components.SpeakerScreen
+import com.wxn.reader.presentation.settings.components.TtsSettingsScreen
 import com.wxn.reader.presentation.shelves.ShelvesScreen
 import com.wxn.reader.presentation.settings.components.ThemeScreen
 import com.wxn.reader.presentation.sharedComponents.PremiumScreen
@@ -95,7 +95,7 @@ fun SetupNavGraph(startDestination: String) {
         composable(
             route = Screens.TtsSetScreen.route,
         ) {
-            SpeakerScreen()
+            TtsSettingsScreen()
         }
         //composable(
         //    route = Screens.OnlineBooksScreen.route,

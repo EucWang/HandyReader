@@ -50,6 +50,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavHostController
 import com.wxn.reader.R
 import com.wxn.reader.navigation.LocalNavController
+import com.wxn.reader.navigation.Screens
 import com.wxn.reader.presentation.settings.SettingsViewModel
 import com.wxn.reader.util.LanguageInfo
 import com.wxn.reader.util.LanguageUtil
@@ -235,15 +236,18 @@ fun GeneralSettings(
 
                 HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
 
-    //            ListItem(
-    //                headlineContent = { Text(stringResource(R.string.tts_set))},
-    //                leadingContent = { Icon(Icons.Outlined.SmartToy, contentDescription = "tts") },
-    //                trailingContent = {},
-    //                modifier = Modifier.clickable {
-    //                    navController.navigate(Screens.TtsSetScreen.route)
-    //                }
-    //            )
-                //TODO 采用Edge TTS
+                ListItem(
+                    headlineContent = { Text(stringResource(R.string.tts_set)) },
+                    leadingContent = {
+                        Icon(
+                            Icons.Outlined.AutoStories,
+                            contentDescription = "Text to speech",
+                        )
+                    },
+                    modifier = Modifier.clickable {
+                        navController.navigate(Screens.TtsSetScreen.route)
+                    },
+                )
             }
         }
 
