@@ -1,9 +1,11 @@
 package com.wxn.reader.presentation.mainReader
 
 import android.app.Application
+import android.content.Intent
 import android.graphics.Rect
 import android.graphics.RectF
 import androidx.compose.runtime.Stable
+import androidx.core.content.ContextCompat
 import androidx.compose.ui.graphics.Color
 import androidx.core.graphics.toRect
 import androidx.lifecycle.AndroidViewModel
@@ -77,7 +79,14 @@ import com.wxn.reader.util.tts.TtsPreviewCommand
 import com.wxn.reader.util.tts.TtsPreviewPolicy
 import com.wxn.reader.util.tts.TtsReaderSession
 import com.wxn.reader.util.tts.TtsVoicesUiState
+import com.wxn.reader.util.tts.media.TtsMediaPlaybackState
+import com.wxn.reader.util.tts.media.TtsMediaProgress
+import com.wxn.reader.util.tts.media.TtsMediaSessionService
+import com.wxn.reader.util.tts.media.TtsMediaState
+import com.wxn.reader.util.tts.media.TtsPlaybackCoordinator
+import com.wxn.reader.util.tts.media.TtsPlaybackHandlers
 import kotlinx.coroutines.Dispatchers
+import java.util.UUID
 
 @HiltViewModel
 @Stable
@@ -114,6 +123,7 @@ class MainReadViewModel @Inject constructor(
     private val addOrUpdateReadingActivityUseCase: AddReadingActivityUseCase,
     private val getReadingActivityByDateUseCase: GetReadingActivityByDateUseCase,
     private val ttsNavigator: TtsNavigator,
+    private val ttsPlaybackCoordinator: TtsPlaybackCoordinator,
 
     private val textParser: TextParser,
     val pageController: PageViewController,
@@ -253,6 +263,7 @@ class MainReadViewModel @Inject constructor(
     private val ttsReaderSession = TtsReaderSession()
     private var activeTtsReaderSessionId: Long? = null
     private var ttsSessionKeepingPanel: Long? = null
+    private val ttsMediaOwnerId = "reader-${UUID.randomUUID()}"
     private val _ttsSpeed = MutableStateFlow(1.0)
     val ttsSpeed: StateFlow<Double> = _ttsSpeed.asStateFlow()
 
@@ -309,6 +320,14 @@ class MainReadViewModel @Inject constructor(
         val bookUri = savedStateHandle.get<String>("bookUri")
 
         pageController.scope = viewModelScope
+        ttsPlaybackCoordinator.register(
+            ownerId = ttsMediaOwnerId,
+            handlers = TtsPlaybackHandlers(
+                onPlay = ::resumeTtsFromMedia,
+                onPause = ::pauseTts,
+                onStop = ::stopTts,
+            ),
+        )
 
         viewModelScope.launch {
             readerPrefsUtil.readerPrefsFlow.stateIn(viewModelScope).collect { pref ->
@@ -404,6 +423,8 @@ class MainReadViewModel @Inject constructor(
     }
 
     override fun onCleared() {
+        stopTts()
+        ttsPlaybackCoordinator.unregister(ttsMediaOwnerId)
         pageController.clear()
         currentDayStartTime = 0
 //        _initialLocator.value = null
@@ -498,6 +519,11 @@ class MainReadViewModel @Inject constructor(
         _curChapterIndex.value = curChapterIndex
         _curChapterPageIndex.value = pageController.durPageIndex
         _curChapterName.value = curChapter.title.orEmpty()
+        if (_isTtsOn.value) {
+            publishTtsMediaState(
+                if (_isTtsPlaying.value) TtsMediaPlaybackState.Playing else TtsMediaPlaybackState.Paused,
+            )
+        }
         val isLastPage = (curChapterIndex >= curChapter.chaptersSize - 1 && curPageInChpaterIndex >= curChapter.pageSize - 1)
 
         _isBookmarked.value = (pageController.textChapter(0)?.pages?.getOrNull(pageController.durPageIndex)?.bookmarkId ?: -1) > 0
@@ -1220,7 +1246,17 @@ class MainReadViewModel @Inject constructor(
             val sessionId = ttsReaderSession.begin()
             activeTtsReaderSessionId = sessionId
             ttsSessionKeepingPanel = null
-            pageController.readPage(ttsNavigator) {
+            publishTtsMediaState(TtsMediaPlaybackState.Playing)
+            startTtsMediaSessionService()
+            pageController.readPage(
+                ttsNavigator = ttsNavigator,
+                isNarrationActive = { ttsReaderSession.isActive(sessionId) },
+                onParagraphStarted = {
+                    if (ttsReaderSession.isActive(sessionId)) {
+                        publishTtsMediaState(TtsMediaPlaybackState.Playing)
+                    }
+                },
+            ) {
                 viewModelScope.launch {
                     finishTtsPlayback(sessionId)
                 }
@@ -1232,6 +1268,7 @@ class MainReadViewModel @Inject constructor(
             ttsSessionKeepingPanel = null
             _isTtsOn.value = false
             _isTtsPlaying.value = false
+            clearTtsMediaSession()
         }
     }
 
@@ -1242,9 +1279,23 @@ class MainReadViewModel @Inject constructor(
             if (!isPlayging) {
                 ttsPlay()
             } else {
-                stopTts()
+                pauseTts()
             }
         }
+    }
+
+    fun pauseTts() {
+        if (!_isTtsPlaying.value) {
+            return
+        }
+        ttsReaderSession.cancel()
+        activeTtsReaderSessionId = null
+        ttsSessionKeepingPanel = null
+        ttsNavigator.stop()
+        pageController.stopReadPage()
+        _isTtsOn.value = true
+        _isTtsPlaying.value = false
+        publishTtsMediaState(TtsMediaPlaybackState.Paused)
     }
 
     fun stopTts() {
@@ -1255,6 +1306,7 @@ class MainReadViewModel @Inject constructor(
         pageController.stopReadPage()
         _isTtsOn.value = false
         _isTtsPlaying.value = false
+        clearTtsMediaSession()
     }
 
     fun hideOutHrefDialog() {
@@ -1266,6 +1318,11 @@ class MainReadViewModel @Inject constructor(
     fun setTtsSpeed(speed: Float) {
         _ttsSpeed.value = speed.toDouble()
         ttsNavigator.setSpeed(speed)
+        if (_isTtsOn.value) {
+            publishTtsMediaState(
+                if (_isTtsPlaying.value) TtsMediaPlaybackState.Playing else TtsMediaPlaybackState.Paused,
+            )
+        }
     }
 
     fun setTtsPitch(pitch: Float) {
@@ -1309,11 +1366,14 @@ class MainReadViewModel @Inject constructor(
 
     fun previewTtsVoice(voiceName: String) {
         if (TtsPreviewPolicy.commandFor(_isTtsPlaying.value) == TtsPreviewCommand.StopNarrationThenPreview) {
-            ttsSessionKeepingPanel = activeTtsReaderSessionId
+            ttsReaderSession.cancel()
+            activeTtsReaderSessionId = null
+            ttsSessionKeepingPanel = null
             _isTtsPlaying.value = false
             ttsNavigator.stop()
             pageController.stopReadPage()
             _isTtsOn.value = true
+            publishTtsMediaState(TtsMediaPlaybackState.Paused)
         }
         ttsNavigator.previewVoice(voiceName, replaceCurrentSpeech = true)
     }
@@ -1335,5 +1395,59 @@ class MainReadViewModel @Inject constructor(
         _isTtsOn.value = preservePanel
         _isTtsPlaying.value = false
         pageController.stopReadPage()
+        if (preservePanel) {
+            publishTtsMediaState(TtsMediaPlaybackState.Paused)
+        } else {
+            clearTtsMediaSession()
+        }
+    }
+
+    private fun resumeTtsFromMedia() {
+        if (!_isTtsPlaying.value && !pageController.currentPage()?.text.isNullOrEmpty()) {
+            ttsPlay()
+        }
+    }
+
+    private fun publishTtsMediaState(playbackState: TtsMediaPlaybackState) {
+        val currentBook = book.value ?: return
+        val estimate = TtsMediaProgress.estimate(
+            totalCharacters = currentBook.wordCount,
+            progression = pageController.progression,
+            speechRate = _ttsSpeed.value.toFloat(),
+        )
+        ttsPlaybackCoordinator.publish(
+            ownerId = ttsMediaOwnerId,
+            state = TtsMediaState(
+                bookId = currentBook.id,
+                bookTitle = currentBook.title.orEmpty(),
+                chapterTitle = _curChapterName.value,
+                progression = estimate.progression,
+                estimatedDurationMs = estimate.estimatedDurationMs,
+                estimatedPositionMs = estimate.estimatedPositionMs,
+                estimatedRemainingMs = estimate.estimatedRemainingMs,
+                playbackState = playbackState,
+            ),
+        )
+    }
+
+    private fun startTtsMediaSessionService() {
+        runCatching {
+            ContextCompat.startForegroundService(
+                getApplication(),
+                Intent(getApplication(), TtsMediaSessionService::class.java),
+            )
+        }.onFailure { error ->
+            Logger.e("MainReadViewModel::startTtsMediaSessionService failed: $error")
+        }
+    }
+
+    private fun clearTtsMediaSession() {
+        ttsPlaybackCoordinator.publish(
+            ownerId = ttsMediaOwnerId,
+            state = TtsMediaState(),
+        )
+        getApplication<Application>().stopService(
+            Intent(getApplication(), TtsMediaSessionService::class.java),
+        )
     }
 }

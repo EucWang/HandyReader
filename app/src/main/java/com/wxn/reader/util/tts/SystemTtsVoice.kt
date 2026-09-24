@@ -112,6 +112,9 @@ class TtsReaderSession {
     }
 
     @Synchronized
+    fun isActive(token: Long): Boolean = activeToken == token
+
+    @Synchronized
     fun finish(token: Long): Boolean {
         if (activeToken != token) {
             return false

@@ -263,6 +263,10 @@
     <string name="tts_voices_loading">Loading system voices…</string>
     <string name="tts_voices_error">System voices are unavailable.</string>
     <string name="tts_retry">Retry</string>
+    <string name="tts_media_stop">Stop</string>
+    <string name="tts_media_progress_description">%1$d%% · ~%2$s remaining</string>
+    <string name="tts_media_remaining_hours_minutes">%1$d h %2$d min</string>
+    <string name="tts_media_remaining_minutes">%d min</string>
     <string name="tts_preview">Preview</string>
     <string name="tts_system_settings">System TTS</string>
     <string name="tts_language_from_book">Use book language</string>

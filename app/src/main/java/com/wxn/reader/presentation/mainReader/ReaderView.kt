@@ -210,7 +210,7 @@ fun ReaderView(
                 voicesUiState = ttsVoicesUiState,
                 selectedVoiceName = selectedTtsVoiceName,
                 onPlay = viewModel::toggleTts,
-                onPause = viewModel::toggleTts,
+                onPause = viewModel::pauseTts,
                 onEnd = viewModel::stopTts,
                 onSpeedChange = viewModel::setTtsSpeed,
                 onPitchChange = viewModel::setTtsPitch,

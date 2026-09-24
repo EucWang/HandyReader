@@ -40,8 +40,12 @@ import com.wxn.reader.util.tts.TtsNavigator
 import com.wxn.reader.util.tts.TtsPageBuffer
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.currentCoroutineContext
+import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.firstOrNull
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.io.Reader
 import javax.inject.Inject
@@ -67,6 +71,7 @@ open class PageViewController @Inject constructor(
 ) : PageViewDataProvider, PageViewCallback, SelectTextCallback {
 
     var scope: CoroutineScope? = null
+    private var narrationJob: Job? = null
 //    var titleDate = MutableLiveData<String>()
 
     override var book: Book? = null
@@ -1042,8 +1047,10 @@ open class PageViewController @Inject constructor(
     fun currentPage() : TextPage? = textChapter(0)?.page(durChapterPos())
 
     fun stopReadPage() {
-        scope?.launchIO {
-            val chapter = textChapter(0) ?: return@launchIO
+        narrationJob?.cancel()
+        narrationJob = null
+        scope?.launch(Dispatchers.IO) {
+            val chapter = textChapter(0) ?: return@launch
             for(page in chapter.pages) {
                 val currentTextLines = page.textLines
                 if (currentTextLines.isNotEmpty()) {
@@ -1058,11 +1065,18 @@ open class PageViewController @Inject constructor(
         }
     }
 
-    fun readPage(ttsNavigator: TtsNavigator, onFinish:()->Unit) {
+    fun readPage(
+        ttsNavigator: TtsNavigator,
+        isNarrationActive: () -> Boolean,
+        onParagraphStarted: () -> Unit = {},
+        onFinish: () -> Unit,
+    ) {
         Logger.i("PageViewController::readPage::durChapterIndex=${durChapterIndex},durPageIndex=$durPageIndex")
-        var status = 1
-        scope?.launchIO {
-            do {
+        narrationJob?.cancel()
+        narrationJob = scope?.launch(Dispatchers.IO) {
+            var status = 1
+            while (status == 1 && isNarrationActive()) {
+                currentCoroutineContext().ensureActive()
                 val chapter = textChapter(0)
                 if (chapter == null) {
                     status = 0
@@ -1072,6 +1086,9 @@ open class PageViewController @Inject constructor(
                         startPageIndex = durPageIndex,
                     )
                     status = ttsNavigator.playPages(pages.pages()) { targetLines, isReading ->
+                        if (!isNarrationActive()) {
+                            return@playPages
+                        }
                         val targetPageIndex = pages.pageIndexFor(targetLines) ?: return@playPages
                         val targetPage = chapter.pages.getOrNull(targetPageIndex) ?: return@playPages
                         for (textLine in targetPage.textLines) {
@@ -1084,6 +1101,13 @@ open class PageViewController @Inject constructor(
                             setPageIndex(targetPageIndex)
                         }
                         callBack?.upContent()
+                        if (isReading) {
+                            onParagraphStarted()
+                        }
+                    }
+                    currentCoroutineContext().ensureActive()
+                    if (!isNarrationActive()) {
+                        break
                     }
                     if (status == 1) {
                         Logger.d("MainReadViewModel::ttsPlay::then moveToNextChapter")
@@ -1099,8 +1123,10 @@ open class PageViewController @Inject constructor(
                         Logger.d("MainReadViewModel::ttsPlay::status=$status")
                     }
                 }
-            } while(status == 1)
-            onFinish()
+            }
+            if (isNarrationActive()) {
+                onFinish()
+            }
         }
     }
 

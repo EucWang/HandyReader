@@ -259,6 +259,10 @@
     <string name="tts_voices_loading">Загрузка системных голосов…</string>
     <string name="tts_voices_error">Системные голоса недоступны.</string>
     <string name="tts_retry">Повторить</string>
+    <string name="tts_media_stop">Остановить</string>
+    <string name="tts_media_progress_description">%1$d%% · осталось ~%2$s</string>
+    <string name="tts_media_remaining_hours_minutes">%1$d ч %2$d мин</string>
+    <string name="tts_media_remaining_minutes">%d мин</string>
     <string name="page_horizontal_margins">Горизонтальные поля</string>
     <string name="page_vertial_margins">Вертикальные поля</string>
     <string name="background_image">Фоновое изображение</string>

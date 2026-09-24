@@ -198,4 +198,5 @@ dependencies {
     implementation(project(":text2speech"))
 
     testImplementation(libs.junit)
+    testImplementation("org.robolectric:robolectric:4.12.2")
 }

@@ -51,6 +51,7 @@ import com.wxn.reader.domain.use_case.notes.GetNotesForBookUseCase
 import com.wxn.reader.presentation.mainReader.PageViewController
 import com.wxn.reader.util.PdfBitmapConverter
 import com.wxn.reader.util.tts.TtsNavigator
+import com.wxn.reader.util.tts.media.TtsPlaybackCoordinator
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -339,6 +340,10 @@ object AppModule {
     fun provideTtsNavigator(application: Application,
                             ttsPreferencesUtil: TtsPreferencesUtil) : TtsNavigator =
         TtsNavigator(application, ttsPreferencesUtil)
+
+    @Provides
+    @Singleton
+    fun provideTtsPlaybackCoordinator(): TtsPlaybackCoordinator = TtsPlaybackCoordinator()
 
     @Provides
     @Singleton
