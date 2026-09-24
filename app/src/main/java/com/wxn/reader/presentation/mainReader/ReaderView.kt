@@ -53,6 +53,7 @@ import com.wxn.reader.R
 import com.wxn.reader.navigation.LocalNavController
 import com.wxn.reader.navigation.Screens
 import com.wxn.reader.presentation.bookReader.components.TextToolbar
+import com.wxn.reader.presentation.bookReader.components.TtsPlayer
 import com.wxn.reader.presentation.bookReader.components.dialogs.NoteContent
 import com.wxn.reader.presentation.bookReader.components.dialogs.NoteDialog
 import com.wxn.reader.presentation.bookReader.components.drawers.AnnotationsDrawer
@@ -112,10 +113,14 @@ fun ReaderView(
 
     val isTtsOn by viewModel.isTtsOn.collectAsStateWithLifecycle()
     val enableTts by viewModel.enableTts.collectAsStateWithLifecycle()
-//    val isTtsPlaying by viewModel.isTtsPlaying.collectAsStateWithLifecycle()
-//    val ttsSpeed by viewModel.ttsSpeed.collectAsStateWithLifecycle()
-//    val ttsPitch by viewModel.ttsPitch.collectAsStateWithLifecycle()
-//    val ttsLanguage by viewModel.ttsLanguage.collectAsStateWithLifecycle()
+    val isTtsPlaying by viewModel.isTtsPlaying.collectAsStateWithLifecycle()
+    val ttsSpeed by viewModel.ttsSpeed.collectAsStateWithLifecycle()
+    val ttsPitch by viewModel.ttsPitch.collectAsStateWithLifecycle()
+    val ttsBufferedParagraphs by viewModel.ttsBufferedParagraphs.collectAsStateWithLifecycle()
+    val ttsLanguage by viewModel.ttsLanguage.collectAsStateWithLifecycle()
+    val useBookTtsLanguage by viewModel.useBookTtsLanguage.collectAsStateWithLifecycle()
+    val ttsVoicesUiState by viewModel.ttsVoicesUiState.collectAsStateWithLifecycle()
+    val selectedTtsVoiceName by viewModel.selectedTtsVoiceName.collectAsStateWithLifecycle()
 
     val outHref by viewModel.outHref.collectAsStateWithLifecycle()
     val showOutHrefDialog by viewModel.showOutHrefDialog.collectAsStateWithLifecycle()
@@ -193,28 +198,30 @@ fun ReaderView(
                 }
             }
 
-    //        TtsPlayer(
-    //            areToolbarsVisible = areToolbarsVisible,
-    //            isTtsOn = isTtsOn,
-    //            isTtsPlaying = isTtsPlaying,
-    //            speed = ttsSpeed,
-    //            pitch = ttsPitch,
-    //            language = ttsLanguage,
-    //            onPlay = {
-    //                viewModel.setTtsPlaying(true)
-    //            },
-    //            onPause = {
-    //                viewModel.setTtsPlaying(false)
-    //            },
-    //            onEnd = {
-    //                viewModel.toggleTts()
-    //            },
-    //            onSpeedChange = { viewModel.setTtsSpeed(it.toDouble()) },
-    //            onPitchChange = { viewModel.setTtsPitch(it.toDouble()) },
-    //            onLanguageChange = { viewModel.setTtsLanguage(it) },
-    //            onSkipToNextUtterance = { viewModel.skipToNextUtterance() },
-    //            onSkipToPreviousUtterance = { viewModel.skipToPreviousUtterance() }
-    //        )
+            TtsPlayer(
+                areToolbarsVisible = areToolbarsVisible,
+                isTtsOn = isTtsOn,
+                isTtsPlaying = isTtsPlaying,
+                speed = ttsSpeed,
+                pitch = ttsPitch,
+                bufferedParagraphs = ttsBufferedParagraphs,
+                language = ttsLanguage,
+                useBookLanguage = useBookTtsLanguage,
+                voicesUiState = ttsVoicesUiState,
+                selectedVoiceName = selectedTtsVoiceName,
+                onPlay = viewModel::toggleTts,
+                onPause = viewModel::toggleTts,
+                onEnd = viewModel::stopTts,
+                onSpeedChange = viewModel::setTtsSpeed,
+                onPitchChange = viewModel::setTtsPitch,
+                onBufferedParagraphsChange = viewModel::setTtsBufferedParagraphs,
+                onLanguageChange = viewModel::setTtsLanguage,
+                onUseBookLanguage = viewModel::useBookTtsLanguage,
+                onLoadVoices = viewModel::loadTtsVoices,
+                onRetryVoices = viewModel::retryTtsVoices,
+                onVoiceChange = viewModel::setTtsVoice,
+                onPreviewVoice = viewModel::previewTtsVoice,
+            )
             // ActionModeLayout
             if (showTextToolbar || isHighlightsDrawerOpen || isChaptersDrawerOpen || isNotesDrawerOpen || isBookmarksDrawerOpen) {
                 Box(

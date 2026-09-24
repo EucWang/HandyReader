@@ -56,4 +56,5 @@ dependencies {
     ksp(libs.hilt.compiler)
 
     implementation(project(":base"))
+    testImplementation(libs.junit)
 }

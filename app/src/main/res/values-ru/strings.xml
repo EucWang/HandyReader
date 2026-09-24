@@ -255,6 +255,10 @@
     <string name="progression_format">Прогресс: %1$s</string>
     <string name="date_format">Дата: %1$s</string>
     <string name="tts_set">Текст в речь</string>
+    <string name="tts_buffered_paragraphs">Буфер абзацев: %1$d</string>
+    <string name="tts_voices_loading">Загрузка системных голосов…</string>
+    <string name="tts_voices_error">Системные голоса недоступны.</string>
+    <string name="tts_retry">Повторить</string>
     <string name="page_horizontal_margins">Горизонтальные поля</string>
     <string name="page_vertial_margins">Вертикальные поля</string>
     <string name="background_image">Фоновое изображение</string>

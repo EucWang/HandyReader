@@ -23,6 +23,8 @@ public interface TextToSpeechEngine {
 
     void setTextToSpeechQueueMode(int mode);
 
+    int getTextToSpeechQueueMode();
+
     void setAudioStream(int audioStream);
 
     void setOnInitListener(TextToSpeech.OnInitListener onInitListener);
@@ -40,7 +42,9 @@ public interface TextToSpeechEngine {
      */
     int setLocale(Locale locale);
 
-    void setVoice(Voice voice);
+    int setVoice(Voice voice);
+
+    int resetVoice();
 
     List<Voice> getSupportedVoices();
 

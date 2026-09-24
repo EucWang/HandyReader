@@ -260,8 +260,24 @@ public class Speech {
      * @return speech instance
      */
     public Speech setVoice(final Voice voice) {
-        textToSpeechEngine.setVoice(voice);
+        setTextToSpeechVoice(voice);
         return this;
+    }
+
+    /**
+     * Sets the voice and returns the platform result.
+     */
+    public int setTextToSpeechVoice(final Voice voice) {
+        return textToSpeechEngine.setVoice(voice);
+    }
+
+    /**
+     * Returns to the engine voice selected for the current language.
+     *
+     * @return speech instance
+     */
+    public int resetTextToSpeechVoice() {
+        return textToSpeechEngine.resetVoice();
     }
 
     /**
@@ -313,6 +329,13 @@ public class Speech {
     public Speech setTextToSpeechQueueMode(final int mode) {
         textToSpeechEngine.setTextToSpeechQueueMode(mode);
         return this;
+    }
+
+    /**
+     * Returns the queue behavior used by the next speech request.
+     */
+    public int getTextToSpeechQueueMode() {
+        return textToSpeechEngine.getTextToSpeechQueueMode();
     }
 
     /**

@@ -13,7 +13,7 @@ plugins {
     id("kotlin-parcelize")
 
     id("com.mikepenz.aboutlibraries.plugin")
-    alias(libs.plugins.google.gms.google.services)
+    alias(libs.plugins.google.gms.google.services) apply false
     id("kotlinx-serialization")
     // Add the Crashlytics Gradle plugin
     id("com.google.firebase.crashlytics")
@@ -21,9 +21,15 @@ plugins {
     id("androidx.room")
 }
 
+if (file("google-services.json").exists()) {
+    apply(plugin = "com.google.gms.google-services")
+}
+
 val apikeyPropertiesFile = rootProject.file("key.properties")
 val apikeyProperties = Properties().apply {
-    load(FileInputStream(apikeyPropertiesFile))
+    if (apikeyPropertiesFile.exists()) {
+        load(FileInputStream(apikeyPropertiesFile))
+    }
 }
 
 room {
@@ -190,4 +196,6 @@ dependencies {
     implementation(project(":bookread"))
     implementation(project(":base"))
     implementation(project(":text2speech"))
+
+    testImplementation(libs.junit)
 }

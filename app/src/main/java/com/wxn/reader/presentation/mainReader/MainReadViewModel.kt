@@ -70,7 +70,13 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import java.util.Calendar
 import javax.inject.Inject
+import com.wxn.reader.util.tts.TtsEngineState
+import com.wxn.reader.util.tts.TtsLanguageSelector
 import com.wxn.reader.util.tts.TtsNavigator
+import com.wxn.reader.util.tts.TtsPreviewCommand
+import com.wxn.reader.util.tts.TtsPreviewPolicy
+import com.wxn.reader.util.tts.TtsReaderSession
+import com.wxn.reader.util.tts.TtsVoicesUiState
 import kotlinx.coroutines.Dispatchers
 
 @HiltViewModel
@@ -244,14 +250,29 @@ class MainReadViewModel @Inject constructor(
 
     private val _isTtsPlaying = MutableStateFlow(false)
     val isTtsPlaying: StateFlow<Boolean> = _isTtsPlaying.asStateFlow()
+    private val ttsReaderSession = TtsReaderSession()
+    private var activeTtsReaderSessionId: Long? = null
+    private var ttsSessionKeepingPanel: Long? = null
     private val _ttsSpeed = MutableStateFlow(1.0)
     val ttsSpeed: StateFlow<Double> = _ttsSpeed.asStateFlow()
 
     private val _ttsPitch = MutableStateFlow(1.0)
     val ttsPitch: StateFlow<Double> = _ttsPitch.asStateFlow()
 
-    private val _ttsLanguage = MutableStateFlow(LanguageUtil.languageMaps[1])
-    val ttsLanguage: StateFlow<LanguageInfo?> = _ttsLanguage.asStateFlow()
+    private val _ttsBufferedParagraphs = MutableStateFlow(3)
+    val ttsBufferedParagraphs: StateFlow<Int> = _ttsBufferedParagraphs.asStateFlow()
+
+    private val _ttsLanguage = MutableStateFlow(LanguageUtil.LANG_EN)
+    val ttsLanguage: StateFlow<LanguageInfo> = _ttsLanguage.asStateFlow()
+
+    private val _useBookTtsLanguage = MutableStateFlow(true)
+    val useBookTtsLanguage: StateFlow<Boolean> = _useBookTtsLanguage.asStateFlow()
+
+    private val _ttsVoicesUiState = MutableStateFlow<TtsVoicesUiState>(TtsVoicesUiState.Loading)
+    val ttsVoicesUiState: StateFlow<TtsVoicesUiState> = _ttsVoicesUiState.asStateFlow()
+
+    private val _selectedTtsVoiceName = MutableStateFlow("")
+    val selectedTtsVoiceName: StateFlow<String> = _selectedTtsVoiceName.asStateFlow()
 
     private suspend fun fetchBook(bookId: Long): Boolean {
         try {
@@ -301,6 +322,21 @@ class MainReadViewModel @Inject constructor(
                 _appPreferences.value = pref
                 Logger.d("MainReadViewModel::init appPreferences[$pref]")
             }
+        }
+
+        viewModelScope.launch {
+            ttsNavigator.preferencesFlow.collect { preferences ->
+                _ttsSpeed.value = preferences.speed.toDouble()
+                _ttsPitch.value = preferences.pitch.toDouble()
+                _ttsBufferedParagraphs.value = preferences.bufferedParagraphs
+                LanguageInfo.fromCode(preferences.localeCode)?.let { _ttsLanguage.value = it }
+                _selectedTtsVoiceName.value = preferences.voiceName
+                _useBookTtsLanguage.value = preferences.useBookLanguage
+            }
+        }
+
+        viewModelScope.launch {
+            ttsNavigator.engineState.collect(::updateTtsVoicesUiState)
         }
 
         ChapterProvider.init(context, readerTipPrefsUtil, readerPrefsUtil)
@@ -1172,17 +1208,28 @@ class MainReadViewModel @Inject constructor(
         _isTtsOn.value = true
         _isTtsPlaying.value = true
 
-        val lang = book.value?.language
+        val lang = TtsLanguageSelector.selectCode(
+            bookLanguageCode = book.value?.language,
+            savedLanguageCode = _ttsLanguage.value.code,
+            useBookLanguage = _useBookTtsLanguage.value,
+        )
         Logger.d("MainReadViewModel::ttsPlay::lang[$lang]")
-        val langInfo = LanguageInfo.fromCode(lang ?: "en")
-        if (ttsNavigator.setLanguage(langInfo)) {
+        val langInfo = LanguageInfo.fromCode(lang)
+        langInfo?.let { _ttsLanguage.value = it }
+        if (ttsNavigator.setLanguage(langInfo, _useBookTtsLanguage.value)) {
+            val sessionId = ttsReaderSession.begin()
+            activeTtsReaderSessionId = sessionId
+            ttsSessionKeepingPanel = null
             pageController.readPage(ttsNavigator) {
-                _isTtsOn.value = false
-                _isTtsPlaying.value = false
-                pageController.stopReadPage()
+                viewModelScope.launch {
+                    finishTtsPlayback(sessionId)
+                }
             }
         } else {
             ToastUtil.show("Language not supported")
+            ttsReaderSession.cancel()
+            activeTtsReaderSessionId = null
+            ttsSessionKeepingPanel = null
             _isTtsOn.value = false
             _isTtsPlaying.value = false
         }
@@ -1195,12 +1242,19 @@ class MainReadViewModel @Inject constructor(
             if (!isPlayging) {
                 ttsPlay()
             } else {
-                ttsNavigator.stop()
-                pageController.stopReadPage()
-                _isTtsOn.value = false
-                _isTtsPlaying.value = false
+                stopTts()
             }
         }
+    }
+
+    fun stopTts() {
+        ttsReaderSession.cancel()
+        activeTtsReaderSessionId = null
+        ttsSessionKeepingPanel = null
+        ttsNavigator.stop()
+        pageController.stopReadPage()
+        _isTtsOn.value = false
+        _isTtsPlaying.value = false
     }
 
     fun hideOutHrefDialog() {
@@ -1209,30 +1263,77 @@ class MainReadViewModel @Inject constructor(
     }
 
 
-//    fun setTtsSpeed(speed: Double) {
-//        _ttsSpeed.value = speed
-//        ttsNavigator.setSpeed(speed.toFloat())
-//    }
-//
-//    fun setTtsPitch(pitch: Double) {
-//        _ttsPitch.value = pitch
-//        ttsNavigator.setPitch(pitch.toFloat())
-//    }
-//
-//    fun setTtsLanguage(language: AppLanguage) {
-//        _ttsLanguage.value = language
-//        ttsNavigator.setLanguage(language)
-//    }
-//
-//    fun skipToNextUtterance() {
-//        viewModelScope.launch {
-////            ttsNavigator.value?.skipToNextUtterance()
-//        }
-//    }
-//
-//    fun skipToPreviousUtterance() {
-//        viewModelScope.launch {
-////            ttsNavigator.value?.skipToPreviousUtterance()
-//        }
-//    }
+    fun setTtsSpeed(speed: Float) {
+        _ttsSpeed.value = speed.toDouble()
+        ttsNavigator.setSpeed(speed)
+    }
+
+    fun setTtsPitch(pitch: Float) {
+        _ttsPitch.value = pitch.toDouble()
+        ttsNavigator.setPitch(pitch)
+    }
+
+    fun setTtsBufferedParagraphs(bufferedParagraphs: Int) {
+        _ttsBufferedParagraphs.value = bufferedParagraphs.coerceIn(3, 7)
+        ttsNavigator.setBufferedParagraphs(bufferedParagraphs)
+    }
+
+    fun setTtsLanguage(language: LanguageInfo) {
+        if (ttsNavigator.setLanguage(language, useBookLanguage = false)) {
+            _ttsLanguage.value = language
+            _useBookTtsLanguage.value = false
+        }
+    }
+
+    fun useBookTtsLanguage() {
+        _useBookTtsLanguage.value = true
+        ttsNavigator.useBookLanguage()
+    }
+
+    fun loadTtsVoices() {
+        viewModelScope.launch {
+            _selectedTtsVoiceName.value = ttsNavigator.selectedVoiceName()
+            updateTtsVoicesUiState(ttsNavigator.engineState.value)
+        }
+    }
+
+    fun retryTtsVoices() {
+        ttsNavigator.retryEngine()
+    }
+
+    fun setTtsVoice(voiceName: String) {
+        if (ttsNavigator.setVoice(voiceName)) {
+            _selectedTtsVoiceName.value = voiceName
+        }
+    }
+
+    fun previewTtsVoice(voiceName: String) {
+        if (TtsPreviewPolicy.commandFor(_isTtsPlaying.value) == TtsPreviewCommand.StopNarrationThenPreview) {
+            ttsSessionKeepingPanel = activeTtsReaderSessionId
+            _isTtsPlaying.value = false
+            ttsNavigator.stop()
+            pageController.stopReadPage()
+            _isTtsOn.value = true
+        }
+        ttsNavigator.previewVoice(voiceName, replaceCurrentSpeech = true)
+    }
+
+    private fun updateTtsVoicesUiState(engineState: TtsEngineState) {
+        _ttsVoicesUiState.value = when (engineState) {
+            TtsEngineState.Ready -> TtsVoicesUiState.Available(ttsNavigator.availableVoices())
+            else -> TtsVoicesUiState.forEngine(engineState)
+        }
+    }
+
+    private fun finishTtsPlayback(sessionId: Long) {
+        if (!ttsReaderSession.finish(sessionId)) {
+            return
+        }
+        val preservePanel = ttsSessionKeepingPanel == sessionId
+        activeTtsReaderSessionId = null
+        ttsSessionKeepingPanel = null
+        _isTtsOn.value = preservePanel
+        _isTtsPlaying.value = false
+        pageController.stopReadPage()
+    }
 }

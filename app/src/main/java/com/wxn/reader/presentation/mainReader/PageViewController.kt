@@ -35,12 +35,14 @@ import com.wxn.reader.domain.use_case.chapters.GetChapterByIdUserCase
 import com.wxn.reader.domain.use_case.chapters.GetChapterCountByBookIdUserCase
 import com.wxn.reader.domain.use_case.chapters.UpdateChapterWordCountUserCase
 import com.wxn.reader.domain.use_case.notes.GetNotesForBookUseCase
+import com.wxn.reader.util.tts.TtsChapterTransition
 import com.wxn.reader.util.tts.TtsNavigator
+import com.wxn.reader.util.tts.TtsPageBuffer
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.firstOrNull
+import kotlinx.coroutines.withContext
 import java.io.Reader
 import javax.inject.Inject
 import kotlin.collections.firstOrNull
@@ -752,6 +754,38 @@ open class PageViewController @Inject constructor(
         return true
     }
 
+    private suspend fun moveToNextChapterForNarration(): Boolean {
+        val nextChapterIndex = withContext(Dispatchers.Main) {
+            if (durChapterIndex >= chapterSize - 1 || book == null) {
+                return@withContext null
+            }
+
+            durPageIndex = 0
+            durChapterIndex++
+            prevTextChapter = curTextChapter
+            curTextChapter = nextTextChapter
+            nextTextChapter = null
+            durChapterIndex
+        } ?: return false
+
+        if (TtsChapterTransition.shouldLoadCurrentChapter(curTextChapter)) {
+            loadContent(nextChapterIndex, upContent = false, resetPageOffset = false)
+        }
+        if (curTextChapter == null) {
+            return false
+        }
+
+        Coroutines.mainScope().launchIO {
+            loadContent(nextChapterIndex + 1, upContent = false, resetPageOffset = false)
+        }
+        withContext(Dispatchers.Main) {
+            saveRead()
+            callBack?.upContent()
+            callBack?.upView()
+        }
+        return true
+    }
+
     override fun moveToPrevChapter(upContent: Boolean, toLast: Boolean): Boolean {
         if (durChapterIndex <= 0) {
             return false
@@ -1029,39 +1063,41 @@ open class PageViewController @Inject constructor(
         var status = 1
         scope?.launchIO {
             do {
-                var textLines : List<TextLine>? = currentPage()?.textLines
-                status = ttsNavigator.play(textLines) { targetLines, status ->
-                    val currentTextLines = currentPage()?.textLines ?: return@play
-                    if (currentTextLines.isNotEmpty()) {
-                        for (textLine in currentTextLines) {
-                            textLine.isReadAloud = false
-                            if (targetLines.contains(textLine)) {
-                                textLine.isReadAloud = status
-                                Logger.d("PageViewController::readPage::line[${textLine.text}]::set readAloud::status[$status]")
+                val chapter = textChapter(0)
+                if (chapter == null) {
+                    status = 0
+                } else {
+                    val pages = TtsPageBuffer(
+                        pages = chapter.pages.map(TextPage::textLines),
+                        startPageIndex = durPageIndex,
+                    )
+                    status = ttsNavigator.playPages(pages.pages()) { targetLines, isReading ->
+                        val targetPageIndex = pages.pageIndexFor(targetLines) ?: return@playPages
+                        val targetPage = chapter.pages.getOrNull(targetPageIndex) ?: return@playPages
+                        for (textLine in targetPage.textLines) {
+                            if (targetLines.any { it === textLine }) {
+                                textLine.isReadAloud = isReading
+                                Logger.d("PageViewController::readPage::line[${textLine.text}]::set readAloud::status[$isReading]")
                             }
                         }
+                        if (isReading && durPageIndex != targetPageIndex) {
+                            setPageIndex(targetPageIndex)
+                        }
+                        callBack?.upContent()
                     }
-                    callBack?.upContent()
-                }
-                if (status == 1) {
-                    Logger.d("MainReadViewModel::ttsPlay::then moveToNextPage or moveToNextChapter")
-                    with(Dispatchers.Main) {
-                        moveToNextPage()
-                        val curChapter = textChapter(0)
-                        if (curChapter != null) {
-                            if (durPageIndex >= curChapter.pageSize) {
-                                moveToNextChapter(true)
-                            }
-                        } else {
+                    if (status == 1) {
+                        Logger.d("MainReadViewModel::ttsPlay::then moveToNextChapter")
+                        withContext(Dispatchers.Main) {
+                            moveToNextPage()
+                        }
+                        if (durPageIndex >= chapter.pageSize && !moveToNextChapterForNarration()) {
                             status = 0
                         }
-                        delay(200)
-                    }
 //                } else if (status < 0) {
 //                    ToastUtil.show("Language not suppport.")
-                } else {
-                    Logger.d("MainReadViewModel::ttsPlay::status=$status")
-
+                    } else {
+                        Logger.d("MainReadViewModel::ttsPlay::status=$status")
+                    }
                 }
             } while(status == 1)
             onFinish()

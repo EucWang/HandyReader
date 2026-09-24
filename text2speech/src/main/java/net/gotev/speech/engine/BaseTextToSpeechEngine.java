@@ -12,6 +12,7 @@ import net.gotev.speech.TtsProgressListener;
 import com.wxn.base.util.Logger;
 
 import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
 
 public class BaseTextToSpeechEngine implements TextToSpeechEngine {
 
@@ -22,11 +23,12 @@ public class BaseTextToSpeechEngine implements TextToSpeechEngine {
     private float mTtsPitch = 1.0f;
     private Locale mLocale = Locale.getDefault();
     private Voice voice;
+    private boolean mIsInitialized;
 
     private int mTtsQueueMode = TextToSpeech.QUEUE_FLUSH;
     private int mAudioStream = TextToSpeech.Engine.DEFAULT_STREAM;
 
-    private final Map<String, TextToSpeechCallback> mTtsCallbacks = new HashMap<>();
+    private final Map<String, TextToSpeechCallback> mTtsCallbacks = new ConcurrentHashMap<>();
 
     @Override
     public void initTextToSpeech(Context context) {
@@ -35,23 +37,36 @@ public class BaseTextToSpeechEngine implements TextToSpeechEngine {
         }
 
         mTtsProgressListener = new TtsProgressListener(context, mTtsCallbacks);
-        mTextToSpeech = new TextToSpeech(context.getApplicationContext(), mTttsInitListener);
+        mTextToSpeech = new TextToSpeech(
+                context.getApplicationContext(),
+                this::onTextToSpeechInitialized
+        );
         mTextToSpeech.setOnUtteranceProgressListener(mTtsProgressListener);
-        mTextToSpeech.setLanguage(mLocale);
-        mTextToSpeech.setPitch(mTtsPitch);
-        mTextToSpeech.setSpeechRate(mTtsRate);
+    }
 
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
-            if (voice == null) {
-                voice = mTextToSpeech.getDefaultVoice();
+    private void onTextToSpeechInitialized(int status) {
+        if (status == TextToSpeech.SUCCESS) {
+            mIsInitialized = true;
+            mTextToSpeech.setLanguage(mLocale);
+            mTextToSpeech.setPitch(mTtsPitch);
+            mTextToSpeech.setSpeechRate(mTtsRate);
+
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+                if (voice == null) {
+                    voice = mTextToSpeech.getDefaultVoice();
+                }
+                mTextToSpeech.setVoice(voice);
             }
-            mTextToSpeech.setVoice(voice);
+        }
+
+        if (mTttsInitListener != null) {
+            mTttsInitListener.onInit(status);
         }
     }
 
     @Override
     public boolean isSpeaking() {
-        if (mTextToSpeech == null) {
+        if (mTextToSpeech == null || !mIsInitialized) {
             return false;
         }
 
@@ -66,14 +81,21 @@ public class BaseTextToSpeechEngine implements TextToSpeechEngine {
     @Override
     public int setLocale(Locale locale) {
         mLocale = locale;
-        if (mTextToSpeech != null) {
+        if (mTextToSpeech != null && mIsInitialized) {
             return mTextToSpeech.setLanguage(locale);
         }
-        return -1;
+        return TextToSpeech.LANG_AVAILABLE;
     }
 
     @Override
     public void say(String message, TextToSpeechCallback callback) {
+        if (!mIsInitialized) {
+            if (callback != null) {
+                callback.onError();
+            }
+            return;
+        }
+
         final String utteranceId = UUID.randomUUID().toString();
 
         if (callback != null) {
@@ -99,6 +121,7 @@ public class BaseTextToSpeechEngine implements TextToSpeechEngine {
                 mTtsCallbacks.clear();
                 mTextToSpeech.stop();
                 mTextToSpeech.shutdown();
+                mIsInitialized = false;
             } catch (final Exception exc) {
                 Logger.INSTANCE.e(getClass().getSimpleName() + "Warning while de-initing text to speech" + exc);
             }
@@ -108,6 +131,11 @@ public class BaseTextToSpeechEngine implements TextToSpeechEngine {
     @Override
     public void setTextToSpeechQueueMode(int mode) {
         mTtsQueueMode = mode;
+    }
+
+    @Override
+    public int getTextToSpeechQueueMode() {
+        return mTtsQueueMode;
     }
 
     @Override
@@ -125,7 +153,7 @@ public class BaseTextToSpeechEngine implements TextToSpeechEngine {
     @Override
     public void setPitch(float pitch) {
         mTtsPitch = pitch;
-        if (mTextToSpeech != null) {
+        if (mTextToSpeech != null && mIsInitialized) {
             mTextToSpeech.setPitch(pitch);
         }
     }
@@ -133,22 +161,46 @@ public class BaseTextToSpeechEngine implements TextToSpeechEngine {
     @Override
     public void setSpeechRate(float rate) {
         mTtsRate = rate;
-        if (mTextToSpeech != null) {
+        if (mTextToSpeech != null && mIsInitialized) {
             mTextToSpeech.setSpeechRate(rate);
         }
     }
 
     @Override
-    public void setVoice(Voice voice) {
-        this.voice = voice;
-        if (mTextToSpeech != null && Build.VERSION.SDK_INT >= 21) {
-            mTextToSpeech.setVoice(voice);
+    public int setVoice(Voice voice) {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.LOLLIPOP) {
+            return TextToSpeech.ERROR;
         }
+
+        if (mTextToSpeech == null || !mIsInitialized) {
+            this.voice = voice;
+            return TextToSpeech.SUCCESS;
+        }
+
+        final int result = mTextToSpeech.setVoice(voice);
+        if (result == TextToSpeech.SUCCESS) {
+            this.voice = voice;
+        }
+        return result;
+    }
+
+    @Override
+    public int resetVoice() {
+        voice = null;
+        if (mTextToSpeech == null || !mIsInitialized) {
+            return TextToSpeech.SUCCESS;
+        }
+
+        final int result = mTextToSpeech.setLanguage(mLocale);
+        if (result >= TextToSpeech.LANG_AVAILABLE) {
+            return TextToSpeech.SUCCESS;
+        }
+        return TextToSpeech.ERROR;
     }
 
     @Override
     public List<Voice> getSupportedVoices() {
-        if (mTextToSpeech != null && Build.VERSION.SDK_INT >= 23) {
+        if (mTextToSpeech != null && mIsInitialized && Build.VERSION.SDK_INT >= 23) {
             Set<Voice> voices = mTextToSpeech.getVoices();
             ArrayList<Voice> voicesList = new ArrayList<>(voices.size());
             voicesList.addAll(voices);
@@ -160,7 +212,7 @@ public class BaseTextToSpeechEngine implements TextToSpeechEngine {
 
     @Override
     public Voice getCurrentVoice() {
-        if (mTextToSpeech != null && Build.VERSION.SDK_INT >= 23) {
+        if (mTextToSpeech != null && mIsInitialized && Build.VERSION.SDK_INT >= 23) {
             return mTextToSpeech.getVoice();
         }
 

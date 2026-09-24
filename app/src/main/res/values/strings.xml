@@ -256,6 +256,16 @@
     <string name="progression_format">Progression: %1$s</string>
     <string name="date_format">Date: %1$s</string>
     <string name="tts_set">TextToSpeech</string>
+    <string name="tts_buffered_paragraphs">Buffered paragraphs: %1$d</string>
+    <string name="tts_voice">Voice</string>
+    <string name="tts_search_voices">Search voices</string>
+    <string name="tts_voice_automatic">Automatic (system default)</string>
+    <string name="tts_voices_loading">Loading system voices…</string>
+    <string name="tts_voices_error">System voices are unavailable.</string>
+    <string name="tts_retry">Retry</string>
+    <string name="tts_preview">Preview</string>
+    <string name="tts_system_settings">System TTS</string>
+    <string name="tts_language_from_book">Use book language</string>
     <string name="page_horizontal_margins">Horizontal Margins</string>
     <string name="page_vertial_margins">Vertical Margins</string>
     <string name="background_image">Background Image</string>
