@@ -91,7 +91,7 @@ object Logger {
      * 合并 message + throwable 的重载。
      *
      * 用于在抛出异常时同时附加可读消息（如上下文信息）。
-     * 内部委托给 `Timber.e(throwable, message)`，使 Timber Tree（如 SentryTree）
+     * 内部委托给 `Timber.e(throwable, message)`，使已 plant 的 Timber Tree
      * 可以同时获取到 throwable 和 message。
      */
     fun e(message: String, throwable: Throwable?) {

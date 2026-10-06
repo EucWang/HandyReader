@@ -17,17 +17,11 @@ import com.wxn.bookparser.domain.file.BookCacheManager
 import com.wxn.reader.data.source.local.AppPreferencesUtil
 import com.wxn.reader.data.source.local.GuidePrefUtil
 import com.wxn.reader.util.LanguageUtil
-import com.wxn.reader.util.SentryTree
 import com.wxn.reader.util.backup.EnsureContentHashWorker
 import com.wxn.reader.util.download.DownloadCleanupUtil
 import androidx.work.ExistingWorkPolicy
 import androidx.work.WorkManager
 import dagger.hilt.android.HiltAndroidApp
-import io.sentry.Hint
-import io.sentry.SentryEvent
-import io.sentry.SentryLevel
-import io.sentry.SentryOptions
-import io.sentry.android.core.SentryAndroid
 import kotlinx.coroutines.CoroutineExceptionHandler
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -141,31 +135,9 @@ class BookApplication : Application(), WorkConfiguration.Provider  {
         Logger.init(BuildConfig.DEBUG)
         ToastUtil.init(this)
 
-        SentryAndroid.init(this,  { options ->
-            options.dsn = "https://2a869e37b9dc5a699c56a00bf60d7acd@o4511029194194944.ingest.us.sentry.io/4511029196357632"
-            options.environment = if (BuildConfig.DEBUG ) "debug" else "release"
-            options.beforeSend = object : SentryOptions.BeforeSendCallback{
-                override fun execute(
-                    event: SentryEvent,
-                    hint: Hint
-                ): SentryEvent? {
-                    if (SentryLevel.DEBUG == event.level ||
-                        SentryLevel.INFO == event.level ||
-                        SentryLevel.WARNING == event.level) {
-                        return null
-                    } else {
-                        return event
-                    }
-                }
-            }
-        })
-
-        // plant SentryTree，转发所有模块的 ERROR 级别 Timber 日志到 Sentry。
-        // bookread/base 模块无需依赖 Sentry SDK，仅通过 Timber 即可获得监控能力。
-        timber.log.Timber.plant(SentryTree())
-
-        // G4：必须在 SentryAndroid.init() 之后安装 CrashHandler，使其能捕获 Sentry 已注册的
-        // default handler 并链式转发（否则会捕获 framework handler 导致 Sentry 上报静默失效）。
+        // 安装崩溃处理器：记录崩溃时间戳后转发给先前的 default handler
+        // （Firebase Crashlytics 在 ContentProvider 阶段注册的 handler 会被本处理器
+        // 捕获并链式转发，Java 崩溃仍进入 Crashlytics；native 崩溃由 crashlytics-ndk 捕获）。
         com.wxn.reader.util.CrashHandler.install(crashPrefs)
 
         applicationScope.launchIO {

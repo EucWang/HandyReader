@@ -10,7 +10,7 @@ import javax.inject.Inject
  *
  * **为什么不用 DataStore（C5 机制层论证）**，崩溃边界 DataStore 有 4 个失败模式：
  * - A: `edit` 序列化在独立 actor 协程，崩溃线程所在 CoroutineScope 被取消时 actor 存活无法保证
- * - B: 崩溃边界调 suspend `edit` 必须 runBlocking，actor 线程受影响时死锁 → Sentry 转发永不执行
+ * - B: 崩溃边界调 suspend `edit` 必须 runBlocking，actor 线程受影响时死锁 → 崩溃转发永不执行
  * - C: DataStore 首次访问等初始化+迁移检查，启动早期崩溃会与初始化协程纠缠死锁
  * - D（最致命）: 进程崩溃后 framework 发 SIGKILL 不可拦截，AtomicFile 先写 .tmp 再 rename 可能写半丢失/损坏
  *

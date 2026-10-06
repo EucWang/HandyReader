@@ -1037,7 +1037,7 @@ object ChapterProvider {
         textPages.last().textLines.add(textLine)
 
         // 后台预解码图片并写入 ImageProvider 缓存，使后续主线程 onDraw 的 getImage 调用成为零 I/O 缓存命中，
-        // 消除阅读页主线程图片文件 I/O（Sentry file.read 79ms）。
+        // 消除阅读页主线程图片文件 I/O（历史监控记录 file.read 79ms）。
         // 此处 width/height 是约束后的最终显示尺寸，与 drawImage 传给 getImage 的 target 尺寸一致 → sampleSize/缓存 key 必然命中。
         // 异步派发，不阻塞分页线程返回；赶不上的首帧由 getImage 同步兜底。
         Coroutines.scope().launchIO {

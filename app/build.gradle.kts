@@ -20,8 +20,6 @@ plugins {
     id("com.google.firebase.crashlytics")
 
     id("androidx.room")
-
-    id("io.sentry.android.gradle") version "6.1.0"
 }
 
 val apikeyPropertiesFile = rootProject.file("key.properties")
@@ -31,7 +29,7 @@ val apikeyProperties = Properties().apply {
     }
 }
 
-// 是否上传 ProGuard/源码映射到 Sentry 与 Firebase Crashlytics。
+// 是否上传 ProGuard/源码映射到 Firebase Crashlytics。
 // 受限网络环境默认关闭，需要上传时用 -PuploadMapping=true 打开。
 val uploadMapping = (project.findProperty("uploadMapping") as? String)?.equals("true", ignoreCase = true) ?: false
 
@@ -261,7 +259,7 @@ kotlin {
 // ─────────────────────────────────────────────────────────────────────────────
 
 // 需要剥离调试段的一方 CMake 产物（mobi + jp2forandroid 模块）。
-// 第三方预编译库（libonnxruntime/libsherpa-onnx-jni/libcrashlytics*/libsentry*/
+// 第三方预编译库（libonnxruntime/libsherpa-onnx-jni/libcrashlytics*/
 // libandroidx.graphics.path/libdatastore_shared_counter）不在此列——它们是上游发布
 // 形态，--strip-debug 对它们几乎无收益且无源码符号。
 val firstPartyNativeLibs = setOf(
@@ -444,25 +442,12 @@ dependencies {
     androidTestImplementation(libs.androidx.espresso.core)
 }
 
-sentry {
-    org.set("white-bear-studio")
-    projectName.set("android")
-
-    // this will upload your source code to Sentry to show it as part of the stack traces
-    // disable if you don't want to expose your sources
-    includeSourceContext.set(uploadMapping)
-    autoUploadProguardMapping.set(uploadMapping)
-}
-
 // 受限网络环境默认禁用映射/源码上传任务，避免构建因连不上
-// sentry.io / Firebase Crashlytics 接口而失败。
+// Firebase Crashlytics 接口而失败。
 // 需要上传时用 -PuploadMapping=true 打开。
 if (!uploadMapping) {
     tasks.matching {
-        it.name.startsWith("uploadSentry") ||
-                it.name.startsWith("sentryUpload") ||
-                it.name.startsWith("sentryBundle") ||
-                it.name.startsWith("uploadCrashlytics")
+        it.name.startsWith("uploadCrashlytics")
     }.configureEach {
         enabled = false
     }

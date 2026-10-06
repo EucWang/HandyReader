@@ -33,8 +33,6 @@ app/keystore.jks
 .idea
 /.kotlin
 /package-lock.json
-# Sentry Config File
-sentry.properties
 .worktrees
 /docs
 handyreader-e3ff6-6e29a5e9b8fe.json
