@@ -4429,7 +4429,10 @@ class MainReadViewModel @Inject constructor(
     }
 
     fun setTtsSpeed(speed: Float) {
-        pageController.setTtsSpeed(speed)
+        val validSpeed = (kotlin.math.round(speed * 100) / 100f)
+            .coerceIn(com.wxn.reader.util.tts.TtsNavigator.TTS_MIN_SPEED, com.wxn.reader.util.tts.TtsNavigator.TTS_MAX_SPEED)
+        _ttsSpeed.value = validSpeed
+        pageController.setTtsSpeed(validSpeed)
     }
 
     fun setTtsPitch(pitch: Float) {

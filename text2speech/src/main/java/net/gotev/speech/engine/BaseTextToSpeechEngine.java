@@ -247,7 +247,7 @@ public class BaseTextToSpeechEngine implements TextToSpeechEngine {
         if (mTextToSpeech != null) {
             return mTextToSpeech.setPitch(pitch);
         } else {
-            return TextToSpeech.ERROR;
+            return TextToSpeech.SUCCESS;
         }
     }
 
@@ -257,7 +257,7 @@ public class BaseTextToSpeechEngine implements TextToSpeechEngine {
         if (mTextToSpeech != null) {
             return mTextToSpeech.setSpeechRate(rate);
         } else {
-            return TextToSpeech.ERROR;
+            return TextToSpeech.SUCCESS;
         }
     }
 

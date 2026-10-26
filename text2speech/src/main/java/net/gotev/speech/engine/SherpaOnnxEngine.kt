@@ -176,10 +176,6 @@ class SherpaOnnxEngine constructor(
     }
 
     override fun setSpeechRate(rate: Float): Int {
-        if (!audioTrackPlayer.isValid() || tts == null) {
-            return TextToSpeech.ERROR
-        }
-//        stopPlay()
         this.mTtsRate = rate
         return TextToSpeech.SUCCESS
     }

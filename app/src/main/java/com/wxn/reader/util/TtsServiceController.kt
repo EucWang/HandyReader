@@ -281,7 +281,8 @@ class TtsServiceController @Inject constructor(
     private fun setSpeed(context: Context, speed: Float, onComplete: (Boolean) -> Unit) {
         Logger.i("TtsServiceController: 设置语速: $speed")
         // 验证参数
-        val validSpeed = speed.coerceIn(0.25f, 4.0f)
+        val validSpeed = (kotlin.math.round(speed * 100) / 100f)
+            .coerceIn(TtsNavigator.TTS_MIN_SPEED, TtsNavigator.TTS_MAX_SPEED)
         val intent = Intent(context, TtsPlaybackService::class.java).apply {
             action = ACTION_SET_SPEED
             putExtra(EXTRA_SPEED, validSpeed)
@@ -316,7 +317,8 @@ class TtsServiceController @Inject constructor(
     ) {
         Logger.i("TtsServiceController: 设置语调: $pitch")
         // 验证参数
-        val validPitch = pitch.coerceIn(TtsNavigator.TTS_MIN_PITCH, TtsNavigator.TTS_MAX_PITCH)
+        val validPitch = (kotlin.math.round(pitch * 100) / 100f)
+            .coerceIn(TtsNavigator.TTS_MIN_PITCH, TtsNavigator.TTS_MAX_PITCH)
         val intent = Intent(context, TtsPlaybackService::class.java).apply {
             action = ACTION_SET_PITCH
             putExtra(EXTRA_PITCH, validPitch)
