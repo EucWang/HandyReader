@@ -46,7 +46,7 @@ jobs:
       - name: Generate mock key.properties and google-services.json
         run: |
           touch key.properties
-          mkdir -p app
+          mkdir -p app/src/debug
           cat << 'EOF' > app/google-services.json
           {
             "project_info": {
@@ -69,11 +69,27 @@ jobs:
                   }
                 ],
                 "services": {}
+              },
+              {
+                "client_info": {
+                  "mobilesdk_app_id": "1:1234567890:android:abcdef1234567891",
+                  "android_client_info": {
+                    "package_name": "com.wxn.reader.debug"
+                  }
+                },
+                "oauth_client": [],
+                "api_key": [
+                  {
+                    "current_key": "fakeApiKeyForDebugBuild1234567890"
+                  }
+                ],
+                "services": {}
               }
             ],
             "configuration_version": "1"
           }
           EOF
+          cp app/google-services.json app/src/debug/google-services.json
 
       - name: Grant Execute Permission for Gradlew
         run: chmod +x gradlew
