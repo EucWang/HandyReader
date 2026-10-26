@@ -78,6 +78,12 @@ jobs:
       - name: Grant Execute Permission for Gradlew
         run: chmod +x gradlew
 
+      - name: Fetch SheenBidi Native Dependency
+        run: |
+          if [ ! -d "bookread/src/main/cpp/SheenBidi" ]; then
+            git clone --depth 1 --branch v3.0.0 https://github.com/Tehreer/SheenBidi.git bookread/src/main/cpp/SheenBidi
+          fi
+
       - name: Build Debug APK
         id: build_apk
         run: |
