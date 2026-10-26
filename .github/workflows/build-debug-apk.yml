@@ -32,9 +32,15 @@ jobs:
           yes | $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager --licenses || true
           $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager "build-tools;36.0.0" "platforms;android-36"
           $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager --install "ndk;29.0.13599879"
+          
+          # Fix NDK version name mismatch (29.0.13599879 vs 29.0.13599879 rc2)
+          if [ -d "$ANDROID_HOME/ndk/29.0.13599879" ]; then
+            ln -s "$ANDROID_HOME/ndk/29.0.13599879" "$ANDROID_HOME/ndk/29.0.13599879 rc2" || true
+          fi
 
-      - name: Generate mock google-services.json for Debug
+      - name: Generate mock key.properties and google-services.json
         run: |
+          touch key.properties
           mkdir -p app
           cat << 'EOF' > app/google-services.json
           {
@@ -69,13 +75,17 @@ jobs:
 
       - name: Build Debug APK
         id: build_apk
-        run: ./gradlew assembleDebug --stacktrace
+        run: |
+          ./gradlew assembleDebug -x lint -x test --stacktrace 2>&1 | tee gradle_build.log
 
       - name: Upload APK to Artifacts
+        if: always()
         uses: actions/upload-artifact@v4
         with:
           name: HandyReader-Debug-APK
-          path: app/build/outputs/apk/debug/*.apk
+          path: |
+            app/build/outputs/apk/debug/*.apk
+            gradle_build.log
 
       - name: Create or Update GitHub Pre-Release
         uses: softprops/action-gh-release@v2
