@@ -24,7 +24,7 @@ jobs:
         uses: actions/setup-java@v4
         with:
           java-version: '21'
-          distribution: 'temurin'
+          distribution: 'jetbrains'
           cache: gradle
 
       - name: Accept Licenses and Install Android Components
@@ -35,8 +35,13 @@ jobs:
           
           # Fix NDK version name mismatch (29.0.13599879 vs 29.0.13599879 rc2)
           if [ -d "$ANDROID_HOME/ndk/29.0.13599879" ]; then
-            ln -s "$ANDROID_HOME/ndk/29.0.13599879" "$ANDROID_HOME/ndk/29.0.13599879 rc2" || true
+            rm -rf "$ANDROID_HOME/ndk/29.0.13599879 rc2" || true
+            cp -r "$ANDROID_HOME/ndk/29.0.13599879" "$ANDROID_HOME/ndk/29.0.13599879 rc2"
+            if [ -f "$ANDROID_HOME/ndk/29.0.13599879 rc2/source.properties" ]; then
+              sed -i 's/Pkg.Revision = .*/Pkg.Revision = 29.0.13599879 rc2/' "$ANDROID_HOME/ndk/29.0.13599879 rc2/source.properties"
+            fi
           fi
+          echo "ANDROID_NDK_HOME=$ANDROID_HOME/ndk/29.0.13599879 rc2" >> $GITHUB_ENV
 
       - name: Generate mock key.properties and google-services.json
         run: |
@@ -76,7 +81,31 @@ jobs:
       - name: Build Debug APK
         id: build_apk
         run: |
+          set -o pipefail
           ./gradlew assembleDebug -x lint -x test --stacktrace 2>&1 | tee gradle_build.log
+
+      - name: Prepare Build Summary
+        if: always()
+        run: |
+          echo "### 📱 HandyReader 调试版构建产物" > build_summary.md
+          echo "- **分支**：\`feat/tts-speed-control\`" >> build_summary.md
+          echo "- **优化项**：" >> build_summary.md
+          echo "  - 0.8x / 0.9x / 1.0x / 1.2x 快捷倍速" >> build_summary.md
+          echo "  - 0.01 精度平滑加减微调" >> build_summary.md
+          echo "  - DataStore 即时持久化，修复退后台/杀进程后倍速回退" >> build_summary.md
+          echo "  - 修复底层引擎未就绪时倍速设置失效" >> build_summary.md
+          echo "" >> build_summary.md
+          if ls app/build/outputs/apk/debug/*.apk 1> /dev/null 2>&1; then
+            echo "✅ **Debug APK 构建成功！**" >> build_summary.md
+            echo "#### 生成的 APK 文件：" >> build_summary.md
+            ls -lh app/build/outputs/apk/debug/*.apk >> build_summary.md
+          else
+            echo "❌ **Debug APK 构建失败！**" >> build_summary.md
+            echo "#### gradle_build.log 尾部 80 行：" >> build_summary.md
+            echo '```text' >> build_summary.md
+            tail -n 80 gradle_build.log >> build_summary.md
+            echo '```' >> build_summary.md
+          fi
 
       - name: Upload APK to Artifacts
         if: always()
@@ -89,19 +118,14 @@ jobs:
 
       - name: Create or Update GitHub Pre-Release
         uses: softprops/action-gh-release@v2
-        if: success()
+        if: always()
         with:
           tag_name: v-debug-test
           name: "HandyReader 测试版 APK (TTS 优化)"
-          body: |
-            ### 📱 HandyReader 优化实测版
-            - **分支**：`feat/tts-speed-control`
-            - **优化项**：
-              - 0.8x / 0.9x / 1.0x / 1.2x 快捷倍速
-              - 0.01 精度平滑加减微调
-              - DataStore 即时持久化，修复退后台/杀进程后倍速回退
-              - 修复底层引擎未就绪时倍速设置失效
-          files: app/build/outputs/apk/debug/*.apk
+          body_path: build_summary.md
+          files: |
+            app/build/outputs/apk/debug/*.apk
+            gradle_build.log
           prerelease: true
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
