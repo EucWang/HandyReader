@@ -165,4 +165,42 @@ class BaseTextToSpeechEngineTest {
         verify(tts, times(2)).setLanguage(captor.capture())
         assertEquals(Locale.getDefault(), captor.allValues[1])
     }
+// T8：setSpeechRate 未初始化时保存速率并返回 SUCCESS，初始化后生效
+    @Test
+    fun setSpeechRate_beforeInit_returnsSuccessAndAppliesOnInit() {
+        val uninitEngine = BaseTextToSpeechEngine()
+        val res = uninitEngine.setSpeechRate(0.85f)
+        assertEquals(TextToSpeech.SUCCESS, res)
+
+        injectTts(uninitEngine, tts)
+        stubLanguageAvailable()
+        `when`(tts.setSpeechRate(0.85f)).thenReturn(TextToSpeech.SUCCESS)
+
+        uninitEngine.onTtsInit(TextToSpeech.SUCCESS, context)
+        verify(tts).setSpeechRate(0.85f)
+    }
+
+    // T9：setSpeechRate 初始化后直接委托底层 TTS
+    @Test
+    fun setSpeechRate_afterInit_delegatesToTts() {
+        `when`(tts.setSpeechRate(0.9f)).thenReturn(TextToSpeech.SUCCESS)
+        val res = engine.setSpeechRate(0.9f)
+        assertEquals(TextToSpeech.SUCCESS, res)
+        verify(tts).setSpeechRate(0.9f)
+    }
+
+    // T10：setPitch 未初始化时保存音调并返回 SUCCESS，初始化后生效
+    @Test
+    fun setPitch_beforeInit_returnsSuccessAndAppliesOnInit() {
+        val uninitEngine = BaseTextToSpeechEngine()
+        val res = uninitEngine.setPitch(1.1f)
+        assertEquals(TextToSpeech.SUCCESS, res)
+
+        injectTts(uninitEngine, tts)
+        stubLanguageAvailable()
+        `when`(tts.setPitch(1.1f)).thenReturn(TextToSpeech.SUCCESS)
+
+        uninitEngine.onTtsInit(TextToSpeech.SUCCESS, context)
+        verify(tts).setPitch(1.1f)
+    }
 }

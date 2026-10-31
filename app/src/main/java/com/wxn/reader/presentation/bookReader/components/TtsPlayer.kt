@@ -61,6 +61,10 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Text
 import com.wxn.reader.ui.theme.Slider
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.material3.OutlinedButton
+import androidx.compose.runtime.mutableFloatStateOf
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -643,16 +647,19 @@ fun TtsSettings(
     showTtsEngineSettings: () -> Unit,
     showTtsModelSettings: () -> Unit
 ) {
+    var speedPreview by remember(speed) { mutableFloatStateOf(speed) }
+    val displaySpeed = (kotlin.math.round(speedPreview * 100) / 100f)
+        .coerceIn(TtsNavigator.TTS_MIN_SPEED, TtsNavigator.TTS_MAX_SPEED)
 
     Box(
         modifier = Modifier
             .fillMaxWidth()
-            .height((if (ttsPrefs?.ttsEngineType != TTSEngineType.OFFLINE_NEURAL_AI) 320.dp else 270.dp) * heightAnimation)
+            .height((if (ttsPrefs?.ttsEngineType != TTSEngineType.OFFLINE_NEURAL_AI) 370.dp else 320.dp) * heightAnimation)
     ) {
         Column(
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Center,
-            modifier = Modifier.fillMaxSize()  .padding(16.dp)
+            modifier = Modifier.fillMaxSize().padding(16.dp)
         ) {
 
             Column(
@@ -668,22 +675,107 @@ fun TtsSettings(
                     modifier = Modifier.fillMaxWidth()
                 ) {
                     Text(
-                        text = stringResource(R.string.speed_x, speed.format(2)),
+                        text = stringResource(R.string.speed_x, displaySpeed.format(2)),
                         style = MaterialTheme.typography.titleMedium,
                         color = MaterialTheme.colorScheme.onSurface,
+                        modifier = Modifier.width(76.dp)
                     )
+
+                    IconButton(
+                        onClick = {
+                            val next = (kotlin.math.round((displaySpeed - 0.01f) * 100) / 100f)
+                                .coerceIn(TtsNavigator.TTS_MIN_SPEED, TtsNavigator.TTS_MAX_SPEED)
+                            speedPreview = next
+                            onSpeedChange(next)
+                        },
+                        modifier = Modifier.size(32.dp)
+                    ) {
+                        Text(
+                            text = "–",
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.primary
+                        )
+                    }
+
                     Slider(
-                        value = speed.toFloat(),
-                        onValueChange = onSpeedChange,
+                        value = speedPreview,
+                        onValueChange = { speedPreview = it },
+                        onValueChangeFinished = {
+                            val committed = (kotlin.math.round(speedPreview * 100) / 100f)
+                                .coerceIn(TtsNavigator.TTS_MIN_SPEED, TtsNavigator.TTS_MAX_SPEED)
+                            speedPreview = committed
+                            onSpeedChange(committed)
+                        },
                         valueRange = TtsNavigator.TTS_MIN_SPEED..TtsNavigator.TTS_MAX_SPEED,
-                        steps = 10,
+                        steps = 0,
                         modifier = Modifier
                             .weight(1f)
-                            .padding(start = 12.dp)
+                            .padding(horizontal = 2.dp)
                     )
+
+                    IconButton(
+                        onClick = {
+                            val next = (kotlin.math.round((displaySpeed + 0.01f) * 100) / 100f)
+                                .coerceIn(TtsNavigator.TTS_MIN_SPEED, TtsNavigator.TTS_MAX_SPEED)
+                            speedPreview = next
+                            onSpeedChange(next)
+                        },
+                        modifier = Modifier.size(32.dp)
+                    ) {
+                        Text(
+                            text = "+",
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.primary
+                        )
+                    }
                 }
 
-                Spacer(modifier = Modifier.height(12.dp))
+                // Quick presets: 0.8x, 0.9x, 1.0x, 1.2x
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(top = 2.dp, bottom = 8.dp)
+                ) {
+                    val presets = listOf(0.8f, 0.9f, 1.0f, 1.2f)
+                    presets.forEach { preset ->
+                        val isSelected = kotlin.math.abs(displaySpeed - preset) < 0.005f
+                        OutlinedButton(
+                            onClick = {
+                                speedPreview = preset
+                                onSpeedChange(preset)
+                            },
+                            contentPadding = PaddingValues(horizontal = 8.dp, vertical = 2.dp),
+                            modifier = Modifier
+                                .weight(1f)
+                                .height(32.dp),
+                            colors = if (isSelected) {
+                                ButtonDefaults.outlinedButtonColors(
+                                    containerColor = MaterialTheme.colorScheme.primaryContainer,
+                                    contentColor = MaterialTheme.colorScheme.onPrimaryContainer
+                                )
+                            } else {
+                                ButtonDefaults.outlinedButtonColors()
+                            },
+                            border = if (isSelected) {
+                                BorderStroke(1.5.dp, MaterialTheme.colorScheme.primary)
+                            } else {
+                                ButtonDefaults.outlinedButtonBorder
+                            }
+                        ) {
+                            Text(
+                                text = "${preset}x",
+                                style = MaterialTheme.typography.labelMedium,
+                                maxLines = 1
+                            )
+                        }
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(6.dp))
 
                 if (ttsPrefs?.ttsEngineType == TTSEngineType.SYSTEM) {
                     // Pitch control

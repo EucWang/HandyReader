@@ -36,6 +36,7 @@ import net.gotev.speech.Speech
 import net.gotev.speech.TextToSpeechCallbackAdapter
 import net.gotev.speech.engine.PlayErrorCode
 import java.util.Locale
+import kotlin.math.round
 import java.util.concurrent.atomic.AtomicReference
 import kotlin.coroutines.cancellation.CancellationException
 import kotlin.coroutines.resume
@@ -522,8 +523,19 @@ class TtsNavigator(
     override fun setSpeed(speed: Float) {
         Logger.i("TtsNavigator::setSpeed:speed=$speed, oldSpeed=${this.speed}")
         resetShutdownTimer()
-        val speechSpeed = speed.coerceIn(TTS_MIN_SPEED, TTS_MAX_SPEED)
+        val speechSpeed = (round(speed * 100) / 100f).coerceIn(TTS_MIN_SPEED, TTS_MAX_SPEED)
         if (speechSpeed != this.speed) {
+            this.speed = speechSpeed
+            lastEngineConfig = lastEngineConfig?.copy(speed = speechSpeed)
+            scope.launch {
+                ttsPreferencesUtil.ttsPreferencesFlow.firstOrNull()?.let { preferences ->
+                    ttsPreferencesUtil.updatePreferences(
+                        preferences.copy(
+                            speed = speechSpeed
+                        )
+                    )
+                }
+            }
             scope.launchIO {
                 Logger.d("TtsNavigator::setSpeed: try to wait engine init")
                 if (!ensureEngineInitialized()) return@launchIO
@@ -531,17 +543,7 @@ class TtsNavigator(
                 Logger.d("TtsNavigator::setSpeed: engine init done, continue")
                 if (speech?.setTextToSpeechRate(speechSpeed) == TextToSpeech.SUCCESS) {
                     Logger.d("TtsNavigator::setSpeed: success")
-                    this@TtsNavigator.speed = speechSpeed
                     restartChannel()
-                    scope.launch {
-                        ttsPreferencesUtil.ttsPreferencesFlow.firstOrNull()?.let { preferences ->
-                            ttsPreferencesUtil.updatePreferences(
-                                preferences.copy(
-                                    speed = speechSpeed
-                                )
-                            )
-                        }
-                    }
                 } else {
                     Logger.e("TtsNavigator::setSpeed:set speed failed.")
                 }
@@ -577,8 +579,19 @@ class TtsNavigator(
         Logger.i("TtsNavigator:setPitch:pitch[$pitch],ttsPitch[${this.pitch}]]")
         resetShutdownTimer()
 
-        val speechPitch = pitch.coerceIn(TTS_MIN_PITCH, TTS_MAX_PITCH)
+        val speechPitch = (round(pitch * 100) / 100f).coerceIn(TTS_MIN_PITCH, TTS_MAX_PITCH)
         if (speechPitch != this.pitch) {
+            this.pitch = speechPitch
+            lastEngineConfig = lastEngineConfig?.copy(pitch = speechPitch)
+            scope.launch {
+                ttsPreferencesUtil.ttsPreferencesFlow.firstOrNull()?.let { preferences ->
+                    ttsPreferencesUtil.updatePreferences(
+                        preferences.copy(
+                            pitch = speechPitch
+                        )
+                    )
+                }
+            }
             scope.launchIO {
                 Logger.d("TtsNavigator:setPitch: try to wait engine init")
                 if (!ensureEngineInitialized()) return@launchIO
@@ -586,17 +599,7 @@ class TtsNavigator(
                 Logger.d("TtsNavigator:setPitch: engine init done, continue")
                 if (speech?.setTextToSpeechPitch(speechPitch) == TextToSpeech.SUCCESS) {
                     Logger.d("TtsNavigator:setPitch success")
-                    this@TtsNavigator.pitch = speechPitch
                     restartChannel()
-                    scope.launch {
-                        ttsPreferencesUtil.ttsPreferencesFlow.firstOrNull()?.let { preferences ->
-                            ttsPreferencesUtil.updatePreferences(
-                                preferences.copy(
-                                    pitch = speechPitch
-                                )
-                            )
-                        }
-                    }
                 } else {
                     Logger.e("TtsNavigator::setPitch:set pitch failed.")
                 }
@@ -685,7 +688,11 @@ class TtsNavigator(
         onInit: (TtsEngineStatus) -> Unit) {
         Logger.i("TtsNavigator:setEngineInfo:engineType=$engineType,config=$modelConfig," +
                 "speed=$speed,pitch=$pitch,language=$language,speakerIndex=$speakerIndex")
-        lastEngineConfig = EngineConfig(engineType, modelConfig, speed, pitch, language, speakerIndex)
+        val validSpeed = (round(speed * 100) / 100f).coerceIn(TTS_MIN_SPEED, TTS_MAX_SPEED)
+        val validPitch = (round(pitch * 100) / 100f).coerceIn(TTS_MIN_PITCH, TTS_MAX_PITCH)
+        this.speed = validSpeed
+        this.pitch = validPitch
+        lastEngineConfig = EngineConfig(engineType, modelConfig, validSpeed, validPitch, language, speakerIndex)
         cancelShutdownTimer()
         scope.launchIO {  //切换到协程中执行
             if (isShutdown) return@launchIO

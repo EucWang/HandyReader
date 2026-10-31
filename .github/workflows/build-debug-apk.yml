@@ -1,0 +1,153 @@
+name: Build Debug APK
+
+on:
+  push:
+    branches:
+      - feat/tts-speed-control
+      - main
+  workflow_dispatch:
+
+jobs:
+  build:
+    name: Build Debug APK
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up JDK 21
+        uses: actions/setup-java@v4
+        with:
+          java-version: '21'
+          distribution: 'jetbrains'
+          cache: gradle
+
+      - name: Accept Licenses and Install Android Components
+        run: |
+          yes | $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager --licenses || true
+          $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager "build-tools;36.0.0" "platforms;android-36"
+          $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager --install "ndk;29.0.13599879"
+          
+          # Fix NDK version name mismatch (29.0.13599879 vs 29.0.13599879 rc2)
+          if [ -d "$ANDROID_HOME/ndk/29.0.13599879" ]; then
+            rm -rf "$ANDROID_HOME/ndk/29.0.13599879 rc2" || true
+            cp -r "$ANDROID_HOME/ndk/29.0.13599879" "$ANDROID_HOME/ndk/29.0.13599879 rc2"
+            if [ -f "$ANDROID_HOME/ndk/29.0.13599879 rc2/source.properties" ]; then
+              sed -i 's/Pkg.Revision = .*/Pkg.Revision = 29.0.13599879 rc2/' "$ANDROID_HOME/ndk/29.0.13599879 rc2/source.properties"
+            fi
+          fi
+          echo "ANDROID_NDK_HOME=$ANDROID_HOME/ndk/29.0.13599879 rc2" >> $GITHUB_ENV
+
+      - name: Generate mock key.properties and google-services.json
+        run: |
+          touch key.properties
+          mkdir -p app/src/debug
+          cat << 'EOF' > app/google-services.json
+          {
+            "project_info": {
+              "project_number": "1234567890",
+              "project_id": "mock-handy-reader",
+              "storage_bucket": "mock-handy-reader.appspot.com"
+            },
+            "client": [
+              {
+                "client_info": {
+                  "mobilesdk_app_id": "1:1234567890:android:abcdef1234567890",
+                  "android_client_info": {
+                    "package_name": "com.wxn.reader"
+                  }
+                },
+                "oauth_client": [],
+                "api_key": [
+                  {
+                    "current_key": "fakeApiKeyForDebugBuild1234567890"
+                  }
+                ],
+                "services": {}
+              },
+              {
+                "client_info": {
+                  "mobilesdk_app_id": "1:1234567890:android:abcdef1234567891",
+                  "android_client_info": {
+                    "package_name": "com.wxn.reader.debug"
+                  }
+                },
+                "oauth_client": [],
+                "api_key": [
+                  {
+                    "current_key": "fakeApiKeyForDebugBuild1234567890"
+                  }
+                ],
+                "services": {}
+              }
+            ],
+            "configuration_version": "1"
+          }
+          EOF
+          cp app/google-services.json app/src/debug/google-services.json
+
+      - name: Grant Execute Permission for Gradlew
+        run: chmod +x gradlew
+
+      - name: Fetch SheenBidi Native Dependency
+        run: |
+          if [ ! -d "bookread/src/main/cpp/SheenBidi" ]; then
+            git clone --depth 1 --branch v3.0.0 https://github.com/Tehreer/SheenBidi.git bookread/src/main/cpp/SheenBidi
+          fi
+
+      - name: Build Debug APK
+        id: build_apk
+        run: |
+          set -o pipefail
+          ./gradlew assembleDebug -x lint -x test --stacktrace 2>&1 | tee gradle_build.log
+
+      - name: Prepare Build Summary
+        if: always()
+        run: |
+          echo "### 📱 HandyReader 调试版构建产物" > build_summary.md
+          echo "- **分支**：\`feat/tts-speed-control\`" >> build_summary.md
+          echo "- **优化项**：" >> build_summary.md
+          echo "  - 0.8x / 0.9x / 1.0x / 1.2x 快捷倍速" >> build_summary.md
+          echo "  - 0.01 精度平滑加减微调" >> build_summary.md
+          echo "  - DataStore 即时持久化，修复退后台/杀进程后倍速回退" >> build_summary.md
+          echo "  - 修复底层引擎未就绪时倍速设置失效" >> build_summary.md
+          echo "" >> build_summary.md
+          if ls app/build/outputs/apk/debug/*.apk 1> /dev/null 2>&1; then
+            echo "✅ **Debug APK 构建成功！**" >> build_summary.md
+            echo "#### 生成的 APK 文件：" >> build_summary.md
+            ls -lh app/build/outputs/apk/debug/*.apk >> build_summary.md
+          else
+            echo "❌ **Debug APK 构建失败！**" >> build_summary.md
+            echo "#### gradle_build.log 尾部 80 行：" >> build_summary.md
+            echo '```text' >> build_summary.md
+            tail -n 80 gradle_build.log >> build_summary.md
+            echo '```' >> build_summary.md
+          fi
+
+      - name: Upload APK to Artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: HandyReader-Debug-APK
+          path: |
+            app/build/outputs/apk/debug/*.apk
+            gradle_build.log
+
+      - name: Create or Update GitHub Pre-Release
+        uses: softprops/action-gh-release@v2
+        if: always()
+        with:
+          tag_name: v-debug-test
+          name: "HandyReader 测试版 APK (TTS 优化)"
+          body_path: build_summary.md
+          files: |
+            app/build/outputs/apk/debug/*.apk
+            gradle_build.log
+          prerelease: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
