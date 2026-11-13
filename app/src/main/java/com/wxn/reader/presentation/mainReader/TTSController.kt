@@ -20,11 +20,13 @@ import com.wxn.bookread.provider.ChapterProvider
 import com.wxn.reader.R
 import com.wxn.reader.service.TtsEngineStatus
 import com.wxn.reader.service.TtsError
+import com.wxn.reader.service.TtsPlaybackService
 import com.wxn.reader.service.TtsState
 import com.wxn.reader.service.TtsStateHolder
 import com.wxn.reader.service.toLocalizedString
 import com.wxn.reader.util.LanguageInfo
 import com.wxn.reader.util.TtsServiceController
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.first
@@ -142,6 +144,10 @@ abstract class TTSController(
 
     private var ttsStateCollector: Job? = null
 
+    /** The chapter most recently handed to the TTS service (see [updateReadingPosition]). */
+    @Volatile
+    private var ttsChapter: TextChapter? = null
+
     /**
      * 初始化TTS状态监听
      */
@@ -159,6 +165,7 @@ abstract class TTSController(
 
     open fun clear(ownerToken: Long? = null) {
         stopTts()
+        ttsChapter = null
         ttsStateCollector?.cancel()
         ttsStateCollector = null
         Logger.i("PageViewController:clear()")
@@ -287,18 +294,33 @@ abstract class TTSController(
             return
         }
 
-        val curPage = currentPage()
+        // The displayed chapter may have nothing to read (e.g. an image-only chapter-number page).
+        // Start from the beginning of the next chapter that has text instead.
+        var startChapter: TextChapter = curChapter
+        var startPage: TextPage? = currentPage()
+        if (!hasSpeakableText(curChapter)) {
+            val lookup = findSpeakableChapter(curChapter.position + 1, curChapter.chaptersSize)
+            if (lookup !is SpeakableChapterLookup.Found) {
+                Logger.e("当前章节及后续章节都没有可朗读的文本: $lookup")
+                onFinished(StartTtsFinishedStatus.NoChapterData)
+                return
+            }
+            Logger.i("当前章节 ${curChapter.position} 没有可朗读的文本，从章节 ${lookup.chapter.position} 开始朗读")
+            startChapter = lookup.chapter
+            ttsChapter = startChapter
+            startPage = null
+        }
 
         // 2. 设置播放数据
         val success = ttsServiceController.setSpeakConfigsAndPlay(
             context,
-            curChapter,
-            curPage,
+            startChapter,
+            startPage,
             bookTitle = book?.title ?: "",
-            chapterTitle = curChapter.title,
+            chapterTitle = startChapter.title,
             bookCover = book?.coverImage,
             bookUri = book?.filePath ?: "",
-            chapterSize = curChapter.chaptersSize,
+            chapterSize = startChapter.chaptersSize,
             ttsConfig
         )
 
@@ -345,7 +367,20 @@ abstract class TTSController(
         val chapterIndex = locator.chapterIndex
 
         // 查找对应的页面
-        val textChapter = getCachedChapter(chapterIndex) ?: return
+        // The view only caches the chapters around the displayed one. When TTS skipped a text-less
+        // chapter, the chapter being read can be further away, so also check the one we gave TTS.
+        val textChapter = getCachedChapter(chapterIndex)
+            ?: ttsChapter?.takeIf {
+                it.position == chapterIndex && it.styleVersion == ChapterProvider.styleVersion.get()
+            }
+        if (textChapter == null) {
+            // Nothing laid out for the current style: jump to the chapter's start. Once it has
+            // loaded, it sits in the cache and the next sentence will fix the exact page.
+            if (chapterIndex != durChapterIndex) {
+                changeChapterAndPage(chapterIndex, 0, newProgress = -1.0)
+            }
+            return
+        }
         var speakingPageIndex = -1
         for (page in textChapter.pages) {
             val linesInParagraph = page.textLines.filter { textLine ->
@@ -388,56 +423,98 @@ abstract class TTSController(
         return chapter?.takeIf { it.styleVersion == ChapterProvider.styleVersion.get() }
     }
 
+    /**
+     * True when [chapter] yields at least one sentence for the TTS engine. Chapters made only of
+     * images (e.g. an EPUB spine item holding a picture of the chapter number) yield none, and
+     * [TtsServiceController.setSpeakStartChapterAndPage] silently refuses them.
+     */
+    private fun hasSpeakableText(chapter: TextChapter): Boolean {
+        val state = ttsStateHolder.state.value
+        val language = state.bookLocale ?: state.language
+        return TtsPlaybackService.calcSpeakSentences(chapter, null, language)
+            ?.second?.isNotEmpty() == true
+    }
+
+    private sealed interface SpeakableChapterLookup {
+        data class Found(val chapter: TextChapter) : SpeakableChapterLookup
+        data object EndOfBook : SpeakableChapterLookup
+        data class LoadFailed(val chapterIndex: Int) : SpeakableChapterLookup
+    }
+
+    /**
+     * Returns the first chapter at or after [fromIndex] that has something to read, skipping
+     * text-less chapters (see [hasSpeakableText]).
+     */
+    private suspend fun findSpeakableChapter(fromIndex: Int, chaptersSize: Int): SpeakableChapterLookup {
+        var chapterIndex = fromIndex
+        while (chapterIndex < chaptersSize) {
+            val candidate = try {
+                getCachedChapter(chapterIndex)
+                    ?: loadChapter(chapterIndex, upContent = false, resetPageOffset = false)
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                Logger.e("加载章节异常: ${e.message}")
+                null
+            }
+            if (candidate == null) {
+                Logger.e("加载章节失败: $chapterIndex")
+                return SpeakableChapterLookup.LoadFailed(chapterIndex)
+            }
+            if (hasSpeakableText(candidate)) return SpeakableChapterLookup.Found(candidate)
+            Logger.i("章节 $chapterIndex 没有可朗读的文本，跳过")
+            chapterIndex++
+        }
+        return SpeakableChapterLookup.EndOfBook
+    }
+
     @OptIn(UnstableApi::class)
     private suspend fun provideNextChapterToTts(requestedChapterIndex: Int) {
         Logger.i("PageViewController::provideNextChapterToTts,$requestedChapterIndex")
 
-        // 从缓存获取或加载章节
-        val chapter = getCachedChapter(requestedChapterIndex)
+        // The navigator is now waiting on an empty sentence channel: it only asks for another
+        // chapter when a sentence finishes playing. If we hand it a chapter with nothing to say,
+        // no sentence ever plays and playback hangs forever. So skip ahead to the first chapter
+        // that has text, or stop if the rest of the book has none.
+        val lookup = findSpeakableChapter(
+            requestedChapterIndex,
+            ttsStateHolder.state.value.chapterSize
+        )
+        val chapter = when (lookup) {
+            is SpeakableChapterLookup.Found -> lookup.chapter
+            SpeakableChapterLookup.EndOfBook -> {
+                Logger.i("没有更多可朗读的章节，结束朗读")
+                stopReadPageNew()
+                return
+            }
+            is SpeakableChapterLookup.LoadFailed -> {
+                ttsStateHolder.reportError(TtsError.ChapterLoadFailed(lookup.chapterIndex), context)
+                return
+            }
+        }
 
-        if (chapter != null) {
-            Logger.i("从缓存提供章节: index=${chapter.position}")
-            // 通过TtsServiceController发送章节到服务
-            ttsServiceController.setSpeakStartChapterAndPage(
-                context, chapter,
-                null,
-                bookTitle = book?.title ?: "",
-                chapterTitle = chapter.title,
-                bookCover = book?.coverImage,
-                bookUri = book?.filePath ?: "",
-                chapterSize = chapter.chaptersSize
-            )
-        } else {
-            Logger.w("缓存中没有章节 $requestedChapterIndex，尝试加载")
-            try {
-                val loadedChapter =
-                    loadChapter(requestedChapterIndex, upContent = false, resetPageOffset = false)
-                // 等待加载完成后再次尝试提供
-                if (loadedChapter != null) {
-                    Logger.i("加载后提供章节: index=${loadedChapter.position}")
-                    ttsServiceController.setSpeakStartChapterAndPage(
-                        context, loadedChapter, null,
-                        bookTitle = book?.title ?: "",
-                        chapterTitle = loadedChapter.title,
-                        bookCover = book?.coverImage,
-                        bookUri = book?.filePath ?: "",
-                        chapterSize = loadedChapter.chaptersSize
-                    )
-                } else {
-                    Logger.e("加载章节失败: $requestedChapterIndex")
-                    ttsStateHolder.reportError(
-                        TtsError.ChapterLoadFailed(requestedChapterIndex),
-                        context
-                    )
-                }
-            } catch (e: Exception) {
-                Logger.e("加载章节异常: ${e.message}")
-                ttsStateHolder.reportError(
-                    TtsError.ChapterLoadFailed(requestedChapterIndex),
-                    context
+        if (chapter.position != requestedChapterIndex) {
+            // Move the locator before the service state updates its currentChapterIndex, so
+            // handleTtsStateChange does not see a "new" request for this chapter and send it twice.
+            speakingStatus.readBookLocator?.let { locator ->
+                speakingStatus = speakingStatus.copy(
+                    readBookLocator = locator.copy(chapterIndex = chapter.position)
                 )
             }
         }
+
+        Logger.i("向TTS提供章节: index=${chapter.position}")
+        ttsChapter = chapter
+        // 通过TtsServiceController发送章节到服务
+        ttsServiceController.setSpeakStartChapterAndPage(
+            context, chapter,
+            null,
+            bookTitle = book?.title ?: "",
+            chapterTitle = chapter.title,
+            bookCover = book?.coverImage,
+            bookUri = book?.filePath ?: "",
+            chapterSize = chapter.chaptersSize
+        )
     }
 
     abstract fun refreshView()
